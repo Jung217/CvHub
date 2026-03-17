@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scaling Up GANs for Text-to-Image Synthesis (GigaGAN) — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Scaling Up GANs for Text-to-Image Synthesis (GigaGAN)
+                <span class="course-tag">CVPR 2023</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2303.05511" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-adaptive-kernel">3.1 自適應核選擇</a>
+        <a href="#sec-attention">3.2 注意力與摺積交錯</a>
+        <a href="#sec-conditioning">3.3 文字與潛在編碼條件化</a>
+        <a href="#sec-multiscale">3.4 多尺度訓練</a>
+        <a href="#sec-discriminator">3.5 判別器設計</a>
+        <a href="#sec-upsampler">3.6 GAN 超解析度器</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-applications">5. 應用</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1：問題與動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The recent success of <span class="hl-concept">text-to-image synthesis</span> has been driven by <span class="hl-concept">diffusion models</span> and <span class="hl-concept">autoregressive models</span>. Despite the ability of <span class="hl-concept">GANs</span> to generate high-quality images through efficient feed-forward inference, they have not been able to <span class="hl-rebuttal">scale up to match the performance of these newer approaches in complex, open-domain text-to-image generation</span>. Can GANs continue to be scaled up and potentially benefit from vast computational resources, or have they plateaued? This work presents <span class="hl-concept">GigaGAN</span>, a <span class="hl-thesis">new GAN architecture that far exceeds the previously established scaling limits</span>, demonstrating that GANs remain a viable architecture for text-to-image synthesis.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期文字到影像合成的成功主要由擴散模型與自迴歸模型所驅動。儘管 GAN 能透過高效的前饋推論生成高品質影像，它們卻無法擴展到與這些新方法在複雜的開放域文字到影像生成上相匹敵的表現。GAN 能否繼續被擴大規模並從龐大的計算資源中獲益，還是已經觸及瓶頸？本研究提出 GigaGAN，一種遠超先前所建立之擴展限制的新型 GAN 架構，證明 GAN 在文字到影像合成領域仍是可行的架構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文定位——以反問句引出核心研究問題：GAN 是否已觸及擴展瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要前半段建立「GAN 被邊緣化」的現實背景，隨即以 GigaGAN 回應此質疑，形成「挑戰-回應」的論證框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以反問句「Can GANs continue to be scaled up?」製造懸念，是有效的修辭策略。但「far exceeds the previously established scaling limits」是一個需要量化支撐的強主張，有待後文以具體實驗數據驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 2：成果概覽 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                GigaGAN offers three major advantages. First, it is <span class="hl-evidence">orders of magnitude faster at inference than diffusion and autoregressive models</span>, generating a <span class="hl-evidence">512px image in 0.13 seconds</span>. Second, it can synthesize <span class="hl-evidence">ultra high-resolution images, e.g., 16-megapixel pixels at 4096x4096 in 3.66 seconds</span>. Third, it supports various <span class="hl-thesis">latent space editing applications such as latent interpolation, style mixing, and vector arithmetic operations</span>. GigaGAN achieves a <span class="hl-evidence">zero-shot FID of 9.09 on the COCO2014 dataset</span>, <span class="hl-evidence">lower than DALL-E 2, Parti-750M, and Stable Diffusion</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                GigaGAN 提供三項主要優勢。首先，其推論速度比擴散模型與自迴歸模型快上數個數量級，僅需 0.13 秒即可生成一張 512 像素的影像。其次，它能合成超高解析度影像，例如在 3.66 秒內生成 4096x4096 的一千六百萬像素影像。第三，它支援各種潛在空間編輯應用，包括潛在插值、風格混合與向量算術運算。GigaGAN 在 COCO2014 資料集上達到 9.09 的零樣本 FID，低於 DALL-E 2、Parti-750M 與 Stable Diffusion。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    成果量化——以三項具體優勢與數據支撐核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接前段的定性主張，此段以精確數字（0.13 秒、4096x4096、FID 9.09）將「GAN 仍可行」的論點具體化，形成摘要的實證基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項優勢的排列策略精妙：速度（使用者最直觀感受）、解析度（技術壁壘）、可編輯性（差異化賣點）。但 FID 9.09 雖優於 DALL-E 2，卻未與後續更強的擴散模型（如 SDXL）比較，時效性上需注意。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：GAN 的歷史地位與現狀 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Generative adversarial networks (GANs)</span> have long been the dominant paradigm in <span class="hl-concept">image synthesis</span>. The <span class="hl-concept">StyleGAN</span> family, in particular, has excelled at modeling single or multiple object classes, producing remarkably realistic images of faces, cars, and other categories. However, the recent emergence of <span class="hl-concept">diffusion models</span> such as <span class="hl-concept">DALL-E 2, Imagen, and Stable Diffusion</span>, as well as <span class="hl-concept">autoregressive models</span> like <span class="hl-concept">Parti</span>, has dramatically shifted the landscape. These models, <span class="hl-evidence">trained on billions of text-image pairs</span>, have achieved <span class="hl-evidence">unprecedented quality and diversity in open-domain text-to-image generation</span>, <span class="hl-rebuttal">seemingly leaving GANs behind</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                生成對抗網路（GAN）長期以來一直是影像合成領域的主流典範。StyleGAN 系列尤其擅長建模單一或多個物件類別，能生成極為逼真的人臉、汽車及其他類別影像。然而，DALL-E 2、Imagen 與 Stable Diffusion 等擴散模型，以及 Parti 等自迴歸模型的出現，劇烈改變了這一格局。這些模型在數十億組文字-影像配對上訓練，在開放域文字到影像生成中實現了前所未有的品質與多樣性，似乎將 GAN 拋在了身後。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立歷史脈絡——從 GAN 的輝煌到被擴散模型超越的轉折。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先確立 GAN 的歷史貢獻，再描述其被取代的現狀，為後文「重新證明 GAN 的可行性」製造張力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「seemingly leaving GANs behind」的措辭巧妙地以「看似」暗示結論尚早，為後文的反轉埋下伏筆。但此敘事略有簡化——GAN 在影像編輯、風格遷移等領域仍被大量使用，並非完全被取代。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：核心問題與發現 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This raises a fundamental question: <span class="hl-thesis">can GANs continue to be scaled up and potentially benefit from such resources, or have they plateaued?</span> The authors find that <span class="hl-evidence">naively increasing the capacity of the StyleGAN architecture quickly becomes unstable</span>. Simply making the network wider or deeper does not yield improvements and often leads to <span class="hl-rebuttal">training collapse</span>. To address this, the paper introduces several key modifications to the GAN architecture that together enable <span class="hl-thesis">stable training at a scale 36 times larger than StyleGAN2 and 6 times larger than StyleGAN-XL</span>, with a <span class="hl-evidence">total of 1 billion parameters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                這引發了一個根本性的問題：GAN 能否繼續被擴大規模並從這些資源中獲益，還是已經觸及瓶頸？作者發現，天真地增加 StyleGAN 架構的容量會迅速導致不穩定。單純加寬或加深網路不僅無法帶來改進，還經常導致訓練崩潰。為此，本文引入了多項關鍵的架構修改，使其能在比 StyleGAN2 大 36 倍、比 StyleGAN-XL 大 6 倍的規模下穩定訓練，總參數量達 10 億。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心研究問題——並以初步發現揭示問題的非平凡性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論證的關鍵轉折：先承認「天真擴展」行不通（誠實面對困難），再宣告找到了解法。36 倍與 6 倍的數字提供了具體的規模參照。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「天真擴展失敗」開頭是有效的策略——既展現了研究過程的嚴謹性，又為後續提出的技術方案賦予必要性。但 10 億參數相比 Imagen（30 億）或 DALL-E 2（55 億）仍然偏小，作者需論證參數效率而非僅強調絕對規模。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：GAN 的獨特優勢 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Beyond competitive generation quality, GANs offer several unique advantages that diffusion and autoregressive models struggle to match. First, GAN inference is <span class="hl-thesis">orders of magnitude faster</span> — a single forward pass versus hundreds of iterative denoising steps. Second, GANs naturally support <span class="hl-thesis">ultra high-resolution synthesis</span> through their upsampling architecture, producing <span class="hl-evidence">4096x4096 images in 3.66 seconds</span>. Third, GANs maintain a <span class="hl-thesis">well-structured, controllable latent vector space</span> that enables powerful editing applications including <span class="hl-concept">style mixing</span>, <span class="hl-concept">prompt interpolation</span>, and <span class="hl-concept">prompt mixing</span> — capabilities that remain challenging for diffusion models due to their iterative and stochastic nature.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                除了具競爭力的生成品質之外，GAN 還提供數項擴散與自迴歸模型難以匹敵的獨特優勢。首先，GAN 推論速度快上數個數量級——僅需單次前饋通過，而非數百次迭代去噪步驟。其次，GAN 透過其上取樣架構天然地支援超高解析度合成，能在 3.66 秒內生成 4096x4096 的影像。第三，GAN 維持了一個結構良好、可控的潛在向量空間，使其能支援強大的編輯應用，包括風格混合、提示詞插值與提示詞混合——這些能力由於擴散模型的迭代與隨機本質，至今仍難以實現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    差異化定位——闡述 GAN 相對於擴散模型的三項不可替代優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了 GAN 研究的「價值命題」：即使在生成品質上追趕擴散模型，GAN 在速度、解析度與可編輯性上擁有結構性優勢，因此其研究具備獨立的正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項優勢的論述具有互補性：速度針對實際部署、解析度針對應用場景、可編輯性針對創作工作流。然而，擴散模型的蒸餾技術（如 LCM、SDXL-Turbo）已大幅縮小速度差距，此優勢可能隨時間削弱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：文字到影像合成 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Text-to-image synthesis</span> has been studied extensively. Early GAN-based approaches such as <span class="hl-concept">StackGAN</span> and <span class="hl-concept">AttnGAN</span> were trained on <span class="hl-evidence">relatively small datasets such as CUB-200 (12k training pairs), MSCOCO (82k), and LN-OpenImages (507k)</span>. The field was transformed by large-scale <span class="hl-concept">autoregressive models</span> like <span class="hl-concept">DALL-E</span> and <span class="hl-concept">CogView</span>, followed by <span class="hl-concept">diffusion models</span> including <span class="hl-concept">GLIDE, DALL-E 2, Imagen, and Stable Diffusion</span>. These methods leverage <span class="hl-evidence">billions of text-image pairs</span> and <span class="hl-method">large pretrained language models</span> to achieve unprecedented quality. GigaGAN represents the <span class="hl-thesis">first expedition toward training a large-scale GAN for text-to-image generation on a vast amount of web-crawled text and image pairs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                文字到影像合成已被廣泛研究。早期基於 GAN 的方法如 StackGAN 與 AttnGAN 在相對較小的資料集上訓練，如 CUB-200（12k 組訓練配對）、MSCOCO（82k）與 LN-OpenImages（507k）。大規模自迴歸模型如 DALL-E 與 CogView 的出現改變了這一領域，隨後又有 GLIDE、DALL-E 2、Imagen 與 Stable Diffusion 等擴散模型接續發展。這些方法利用數十億組文字-影像配對與大型預訓練語言模型，達成了前所未有的品質。GigaGAN 代表了首次在大量網路爬取的文字-影像配對上訓練大規模 GAN 以進行文字到影像生成的探索。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理文字到影像合成從小規模 GAN 到大規模擴散模型的演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了資料規模的演進脈絡：12k -> 82k -> 507k -> 數十億，暗示 GAN 之所以落後是因為尚未在大規模資料上被充分探索，而非架構本身的局限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首次探索」的宣稱精確地界定了貢獻邊界。但同時期的 StyleGAN-T 與 GALIP 也有類似目標，作者將它們歸為「concurrent work」以維護首創性，這在學術上是常見但略有取巧的策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：GAN 架構演進 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">StyleGAN</span> family of architectures has been the dominant approach for <span class="hl-concept">GAN-based image synthesis</span>. <span class="hl-concept">StyleGAN2</span> introduced <span class="hl-method">weight demodulation and path length regularization</span> for improved training stability. <span class="hl-concept">StyleGAN-XL</span> extended the approach to <span class="hl-evidence">ImageNet-scale generation</span> by leveraging a <span class="hl-method">pretrained classifier for progressive growing</span>. However, these architectures have <span class="hl-rebuttal">struggled with scaling to complex datasets, much less an open world</span>. The fundamental challenge is that <span class="hl-rebuttal">the same convolution filters must handle all possible text conditions across all spatial locations</span>, an increasingly difficult task as the domain broadens.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                StyleGAN 系列架構一直是基於 GAN 的影像合成之主流方法。StyleGAN2 引入了權重解調變與路徑長度正則化以提升訓練穩定性。StyleGAN-XL 透過利用預訓練分類器的漸進式成長，將方法擴展到 ImageNet 規模的生成。然而，這些架構在擴展到複雜資料集上遭遇困難，更遑論開放世界。根本性的挑戰在於：同一組摺積濾波器必須處理所有可能的文字條件與所有空間位置，隨著領域的擴大，這項任務變得越來越困難。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術背景——分析 StyleGAN 系列的架構局限，為方法論創新鋪墊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段精準地診斷了 GAN 擴展失敗的技術根因——「固定摺積濾波器」的瓶頸。這為後文提出的「樣本自適應核選擇」提供了直接的問題動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題歸因於「同一組摺積濾波器處理所有條件」是一個清晰且可操作的診斷，直接導向解決方案。但此論述隱含了「摺積本身不足」的假設，忽略了如 ControlNet 等透過額外條件注入機制而非更換摺積的替代路線。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：超解析度 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Image super-resolution</span> has been a longstanding task in computer vision. Classical approaches use <span class="hl-method">convolutional neural networks</span> trained with <span class="hl-method">pixel-wise and perceptual losses</span>. More recently, <span class="hl-concept">diffusion-based upscalers</span> such as <span class="hl-concept">LDM</span> and <span class="hl-concept">SD Upscaler</span> have shown strong results but <span class="hl-rebuttal">remain computationally expensive, performing the reverse process in low-dimensional latent space over many steps</span>. Real-ESRGAN uses a <span class="hl-method">GAN-based architecture</span> with a compact model but <span class="hl-rebuttal">cannot incorporate text conditioning</span>. GigaGAN's upsampler serves a <span class="hl-thesis">different purpose: enabling text-conditioned, ultra high-resolution synthesis in a single efficient forward pass</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像超解析度一直是電腦視覺中的經典任務。傳統方法使用以像素級與感知損失訓練的摺積神經網路。近期，基於擴散的上取樣器如 LDM 與 SD Upscaler 展現了優異的成果，但計算代價仍然高昂，需在低維潛在空間中經過許多步驟執行反向過程。Real-ESRGAN 使用精簡的 GAN 架構但無法融入文字條件化。GigaGAN 的上取樣器服務於不同的目的：在單次高效的前饋通過中實現文字條件化的超高解析度合成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位差異化——將 GigaGAN 的超解析度模組與既有方法區分。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為 GigaGAN 的第二項貢獻（超高解析度合成）建立文獻基礎，強調既有方法在「速度」或「文字條件化」上的不足，凸顯 GigaGAN 的獨特賣點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者巧妙地將超解析度重新定義為「文字條件化的高解析度合成」而非傳統的「低解析度到高解析度重建」，藉此避開與專門超解析度模型的直接比較，同時凸顯自身的獨特定位。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <!-- ====== 3.1 自適應核選擇 ====== -->
+    <h3 class="subsection-heading" id="sec-adaptive-kernel">3.1 Sample-Adaptive Kernel Selection — 樣本自適應核選擇</h3>
+
+    <!-- 方法 3.1 段落 1：問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In standard <span class="hl-concept">StyleGAN</span>, the same <span class="hl-concept">convolution filters</span> are applied to all generated images regardless of the input text condition. As the model is required to handle an <span class="hl-rebuttal">increasingly diverse and open-ended set of text prompts</span>, these <span class="hl-rebuttal">shared, static filters are challenged to model the general image synthesis function for all text conditioning across all locations</span>. This fundamental bottleneck limits the model's capacity to scale effectively and is a key reason why <span class="hl-rebuttal">naively increasing the network width or depth leads to training instability rather than improved quality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在標準 StyleGAN 中，無論輸入的文字條件為何，同一組摺積濾波器被套用於所有生成的影像。隨著模型需要處理日益多樣且開放的文字提示集合，這些共享的靜態濾波器在為所有文字條件與所有空間位置建模通用影像合成函數時面臨嚴峻挑戰。這一根本性瓶頸限制了模型有效擴展的能力，也是為何天真增加網路寬度或深度會導致訓練不穩定而非品質提升的關鍵原因。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題診斷——精確指出 GAN 擴展失敗的技術根因。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將緒論中的「天真擴展失敗」觀察提升為技術層面的分析：共享摺積核是瓶頸。此診斷直接導向下一段的解法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者將問題精確歸因於「靜態濾波器」，這是一個清晰可驗證的假說。但實際上訓練不穩定可能有多重因素（如判別器過強、梯度爆炸等），作者的歸因可能過度簡化，但其簡潔性有利於後續方案的說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.1 段落 2：解法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To address this, the authors propose <span class="hl-method">sample-adaptive kernel selection</span>. Instead of using a single convolution filter, they instantiate a <span class="hl-method">bank of N filters {K_1, K_2, ..., K_N}</span>. The <span class="hl-concept">style vector w</span> predicted from the text conditioning is used to compute a <span class="hl-method">set of softmax weights that dynamically average across the filter bank</span>, yielding the final convolution kernel: <span class="hl-method">K = sum of K_i multiplied by softmax(W_filter^T w + b_filter)_i</span>. Crucially, this <span class="hl-thesis">filter selection process is performed only once per layer and is independent of spatial resolution</span>, meaning it adds <span class="hl-evidence">negligible computational overhead</span> while dramatically expanding the model's expressiveness. This approach shares the spirit of <span class="hl-concept">dynamic convolutions</span> but explicitly instantiates a larger filter bank for greater capacity.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為解決此問題，作者提出樣本自適應核選擇。不使用單一摺積濾波器，而是建構一個含 N 個濾波器的濾波器庫 {K_1, K_2, ..., K_N}。由文字條件推導的風格向量 w 被用來計算一組 softmax 權重，動態地對濾波器庫進行加權平均，得到最終的摺積核：K 等於各 K_i 乘以 softmax(W_filter^T w + b_filter)_i 的加總。關鍵在於，此濾波器選擇過程每層僅執行一次且與空間解析度無關，意味著它在大幅擴展模型表達力的同時，僅增加可忽略的計算開銷。此方法與動態摺積的精神相通，但透過顯式建構更大的濾波器庫來獲得更大的容量。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之一——描述樣本自適應核選擇的具體機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從上段的問題診斷直接導出解法，形成嚴密的「因果鏈」。濾波器庫的設計讓每個樣本擁有不同的等效摺積核，從根本上打破了「共享靜態濾波器」的瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「每層僅執行一次且與解析度無關」是關鍵的效率論述——確保方案在實際中可行。但濾波器庫的大小 N 如何選擇未在此處討論，若 N 過大可能導致記憶體瓶頸，過小則表達力不足。消融研究中需驗證 N 的影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 注意力與摺積交錯 ====== -->
+    <h3 class="subsection-heading" id="sec-attention">3.2 Interleaving Attention with Convolution — 注意力與摺積交錯</h3>
+
+    <!-- 方法 3.2 段落 1：穩定性問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Incorporating <span class="hl-concept">self-attention</span> into GANs has been a persistent challenge due to <span class="hl-rebuttal">training instability</span>. A key insight is that <span class="hl-method">standard dot-product self-attention is not Lipschitz continuous</span>, which is problematic for GAN training where <span class="hl-rebuttal">maintaining Lipschitz constraints is crucial for stable adversarial optimization</span>. To address this, the authors adopt <span class="hl-method">L2-distance instead of dot product as attention logits</span>, which provides a more stable attention mechanism. They also match <span class="hl-method">architectural details of StyleGAN such as equalized learning rate</span>, <span class="hl-method">tie the key and query matrices</span>, and apply <span class="hl-method">weight decay</span> to further stabilize training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                將自注意力機制融入 GAN 一直是持續的挑戰，主要原因是訓練不穩定。一個關鍵洞見是標準的點積自注意力不具備 Lipschitz 連續性，這對 GAN 訓練而言是個問題，因為維持 Lipschitz 約束對穩定的對抗最佳化至關重要。為此，作者採用 L2 距離取代點積作為注意力邏輯值，提供更穩定的注意力機制。他們同時沿用 StyleGAN 的架構細節如均衡化學習率、綁定鍵與查詢矩陣，並施加權重衰減以進一步穩定訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術挑戰與解法——解決 GAN 中自注意力的穩定性問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段處理的是 GAN 擴展中的第二個核心障礙：注意力機制的整合。L2 距離注意力是一個基於理論分析（Lipschitz 連續性）的設計選擇，增強了方法的理論基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從 Lipschitz 連續性出發推導設計選擇，展現了理論驅動的方法論。但「L2 距離注意力」是否在所有情境下都優於點積注意力，還是僅在 GAN 訓練中有優勢，作者未做充分的理論比較。此外，多項穩定化技巧（均衡化學習率、綁定矩陣、權重衰減）疊加使用，難以確認各自的獨立貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.2 段落 2：交叉注意力與整合 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The attention layers are <span class="hl-method">interleaved with the convolutional backbone</span> rather than replacing it. At each generator block, the feature map passes through an <span class="hl-method">adaptive convolution layer</span>, followed by a <span class="hl-method">self-attention layer</span>, and then a <span class="hl-method">cross-attention layer</span>. The <span class="hl-concept">cross-attention mechanism</span> uses <span class="hl-method">local word embeddings (t_local)</span> from the CLIP text encoder, allowing the generator to <span class="hl-thesis">attend to specific words in the prompt and spatially localize their effects</span>. The synthesis network at each layer can be expressed as: <span class="hl-method">f_(l+1) = g^l_xa(g^l_attn(g^l_adaconv(f_l, w), w), t_local)</span>, where each function operates sequentially on the feature representation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                注意力層與摺積骨幹網路採取交錯排列而非替換。在每個生成器區塊中，特徵圖依序通過自適應摺積層、自注意力層，再到交叉注意力層。交叉注意力機制使用來自 CLIP 文字編碼器的局部詞嵌入（t_local），使生成器能注意到提示詞中的特定詞彙並在空間上定位其效果。合成網路在每層可表示為：f_(l+1) = g^l_xa(g^l_attn(g^l_adaconv(f_l, w), w), t_local)，其中各函數依序作用於特徵表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構整合——描述摺積、自注意力與交叉注意力的完整處理流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將各個技術組件組裝為完整的管線。交叉注意力使用局部詞嵌入的設計，使模型能在空間維度上回應文字條件，是實現精細文字控制的關鍵環節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以數學公式 f_(l+1) 清晰表達處理流程，增強了可重現性。交叉注意力使用局部詞嵌入（而非全局文字嵌入）的設計與擴散模型（如 Stable Diffusion）的做法相似，作者在此借鑑了擴散模型的成功經驗但未明確致謝。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 文字與潛在編碼條件化 ====== -->
+    <h3 class="subsection-heading" id="sec-conditioning">3.3 Text and Latent-Code Conditioning — 文字與潛在編碼條件化</h3>
+
+    <!-- 方法 3.3 段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The text conditioning pipeline uses a <span class="hl-concept">pretrained CLIP text encoder</span> to extract embeddings from the input prompt. The authors apply <span class="hl-method">additional attention layers T</span> to the raw CLIP embeddings for greater flexibility. The processed embeddings are then separated into two components: <span class="hl-method">t_local, consisting of individual word embeddings (dimension C-1 x 768)</span>, which provides fine-grained spatial conditioning through cross-attention; and <span class="hl-method">t_global, the aggregated end-of-text (EOT) component (dimension 768)</span>, which captures the overall semantic meaning of the prompt.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                文字條件化管線使用預訓練的 CLIP 文字編碼器從輸入提示詞中提取嵌入。作者在原始 CLIP 嵌入上施加額外的注意力層 T，以獲得更大的靈活性。處理後的嵌入被分離為兩個成分：t_local 由個別詞嵌入組成（維度 C-1 x 768），透過交叉注意力提供細粒度的空間條件化；t_global 為聚合的文末（EOT）成分（維度 768），捕捉提示詞的整體語意含義。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    條件化設計——描述文字嵌入如何被處理並注入生成器。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解釋了文字資訊的雙路徑設計：全局語意（t_global）驅動風格向量控制整體風格，局部詞嵌入（t_local）透過交叉注意力控制空間細節。此分工是實現精細文字對齊的架構基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    局部-全局的雙路徑設計借鑑了 Stable Diffusion 等模型的成功實踐，但 GigaGAN 額外加入了注意力層 T 來處理 CLIP 嵌入，增加了設計的靈活性。然而，CLIP 文字編碼器的容量（相比 T5-XXL 等大型語言模型）可能限制了文字理解能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.3 段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-concept">mapping network M</span> transforms the <span class="hl-method">noise vector z and global text embedding t_global</span> into a <span class="hl-concept">style vector w = M(z, t_global)</span>, following the StyleGAN paradigm. The final image is then generated as <span class="hl-method">x = G(w, t_local)</span>, where the style vector w modulates the generator through <span class="hl-method">adaptive convolution and style-based normalization</span>, while the local word embeddings condition the generator through <span class="hl-method">cross-attention at each block</span>. This dual conditioning approach <span class="hl-thesis">preserves the well-structured latent space of StyleGAN, enabling the powerful editing applications that are a hallmark of GANs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                映射網路 M 將噪音向量 z 與全局文字嵌入 t_global 轉換為風格向量 w = M(z, t_global)，遵循 StyleGAN 的典範。最終影像透過 x = G(w, t_local) 生成，其中風格向量 w 透過自適應摺積與基於風格的正規化來調變生成器，而局部詞嵌入則透過每個區塊的交叉注意力來條件化生成器。此雙重條件化方法保留了 StyleGAN 結構良好的潛在空間，使 GAN 標誌性的強大編輯應用得以實現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構整合——將映射網路、風格向量與雙重條件化統一為完整流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的收束點：z + t_global -> w（全局控制），t_local -> 交叉注意力（局部控制）。同時回扣緒論中提出的「可編輯潛在空間」優勢，形成前後呼應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調「保留 StyleGAN 結構良好的潛在空間」是策略性的論述——這正是 GAN 相對於擴散模型的核心差異化優勢。但此主張需要在應用章節中以風格混合、插值等實驗來實證支持。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 多尺度訓練 ====== -->
+    <h3 class="subsection-heading" id="sec-multiscale">3.4 Multi-Scale Training — 多尺度訓練</h3>
+
+    <!-- 方法 3.4 段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical problem encountered during scaling is that <span class="hl-rebuttal">early, low-resolution layers of the generator become inactive</span> as the model grows larger. The gradients from the discriminator primarily flow to the later, high-resolution layers, leaving the early layers undertrained. To address this, the authors introduce <span class="hl-method">multi-scale input/output (MS-I/O) training</span>. The generator produces a <span class="hl-method">pyramid of outputs {x_i} with L=5 levels at spatial resolutions {64, 32, 16, 8, 4}</span>. Each level of the pyramid makes <span class="hl-method">real/fake predictions at multiple scales</span>, resulting in <span class="hl-method">L(L+1)/2 total predictions that supervise multi-scale generations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在擴展過程中遇到的一個關鍵問題是：隨著模型規模增大，生成器早期的低解析度層變得不活躍。來自判別器的梯度主要流向後期的高解析度層，使早期層訓練不足。為此，作者引入多尺度輸入/輸出（MS-I/O）訓練。生成器產生一組金字塔輸出 {x_i}，包含 L=5 個層級，空間解析度分別為 {64, 32, 16, 8, 4}。金字塔的每個層級在多個尺度上進行真/假預測，共計 L(L+1)/2 個預測，監督多尺度的生成結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練穩定化——解決大規模 GAN 中低解析度層失活的問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了 GAN 擴展的第三個障礙——梯度分配不均。多尺度訓練確保所有解析度層級都接收充分的監督信號，是穩定大規模訓練的關鍵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「低解析度層失活」是一個新穎且具體的觀察，增強了論文的洞見貢獻。L(L+1)/2 的多尺度監督設計在理論上很完整，但也顯著增加了訓練的計算成本與實作複雜度，作者未討論此成本。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.4 段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The multi-scale objective is formulated as: <span class="hl-method">V_MS-I/O(G,D) = sum over all i and j where i &lt; j &le; L of [V_GAN(G_i, D_ij) + V_match(G_i, D_ij)]</span>. Here, <span class="hl-method">G_i represents the generator output at pyramid level i</span>, and <span class="hl-method">D_ij denotes the discriminator prediction at scale j given input from level i</span>. The <span class="hl-concept">matching-aware loss V_match</span> ensures the discriminator considers not only image realism but also <span class="hl-method">whether the image matches its text condition</span>, by pairing real images with randomly sampled, mismatched conditions as additional negative examples. This comprehensive multi-scale supervision <span class="hl-thesis">activates all layers of the generator and enables stable training at billion-parameter scale</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多尺度目標函數表達為：V_MS-I/O(G,D) 為所有 i 與 j（其中 i &lt; j &le; L）上 [V_GAN(G_i, D_ij) + V_match(G_i, D_ij)] 的總和。其中 G_i 表示生成器在金字塔層級 i 的輸出，D_ij 表示判別器在給定層級 i 輸入下於尺度 j 的預測。匹配感知損失 V_match 確保判別器不僅考量影像真實性，還考量影像是否與其文字條件匹配，方法是將真實影像與隨機取樣的不匹配條件配對，作為額外的負樣本。這種全面的多尺度監督活化了生成器的所有層級，使十億參數規模的穩定訓練成為可能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學形式化——以精確的目標函數定義多尺度訓練機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將多尺度訓練從直覺描述提升為嚴格的數學定義。匹配感知損失的引入解決了條件化 GAN 的經典問題——判別器可能忽略文字條件而僅判斷影像真實性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    匹配感知損失是一個簡單但有效的設計，迫使判別器學習文字-影像對齊。但負樣本僅透過隨機配對產生，可能不夠「困難」——若能使用語意相近但不匹配的條件作為負樣本（如對比學習中的困難負例），效果可能更佳。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.5 判別器設計 ====== -->
+    <h3 class="subsection-heading" id="sec-discriminator">3.5 Discriminator Design — 判別器設計</h3>
+
+    <!-- 方法 3.5 段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The discriminator adopts a <span class="hl-concept">multi-scale input/output (MS-I/O) architecture</span> that processes each pyramid level independently. For example, the <span class="hl-method">full-resolution output x_0 makes predictions at all L=5 scales</span>, the <span class="hl-method">next level x_1 makes predictions at 4 scales</span>, and so on. <span class="hl-method">Feature extractors phi_i->j extract features at different scales</span> to produce the discriminator's predictions. In addition to the adversarial loss, the authors incorporate a <span class="hl-concept">CLIP contrastive loss</span>: <span class="hl-method">L_CLIP = -E[log(exp(E_img(G(c_0))^T E_txt(c_0)) / sum_n exp(...))]</span>, which directly optimizes the <span class="hl-thesis">alignment between generated images and their text conditions using pretrained CLIP embeddings</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                判別器採用多尺度輸入/輸出（MS-I/O）架構，獨立處理每個金字塔層級。例如，全解析度輸出 x_0 在所有 L=5 個尺度上進行預測，下一層級 x_1 在 4 個尺度上預測，以此類推。特徵提取器 phi_i->j 在不同尺度上提取特徵以產生判別器的預測。除對抗損失外，作者還加入了 CLIP 對比損失：L_CLIP = -E[log(exp(E_img(G(c_0))^T E_txt(c_0)) / sum_n exp(...))]，直接利用預訓練 CLIP 嵌入最佳化生成影像與其文字條件之間的對齊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    判別器架構——描述多尺度判別與 CLIP 對比損失的設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成了 GAN 訓練的另一半——判別器的設計。MS-I/O 判別器與生成器的多尺度金字塔相互配合，CLIP 損失則提供了外部的語意對齊監督。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    整合 CLIP 對比損失是聰明的設計——利用預訓練視覺-語言模型的知識來指導 GAN 訓練。但這也引入了對 CLIP 模型偏差的依賴，CLIP 已知的偏差（如對某些視覺概念的系統性偏好）可能被傳遞至 GigaGAN。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.5 段落 2：視覺輔助損失 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The final discriminator objective further incorporates a <span class="hl-concept">vision-aided GAN loss</span>. This uses a <span class="hl-method">pretrained CLIP image encoder as a backbone</span>, extracting <span class="hl-method">features from intermediate layers</span> and processing them through a <span class="hl-method">simple network with 3x3 convolutional layers</span> to produce auxiliary discriminator predictions. The complete training objective combines all components: <span class="hl-method">V(G,D) = V_MS-I/O(G,D) + L_CLIP(G) + L_Vision(G)</span>. This <span class="hl-thesis">multi-faceted loss landscape provides diverse training signals</span> — adversarial realism from MS-I/O, text-image alignment from CLIP contrastive loss, and perceptual quality from vision-aided discrimination — each addressing a different aspect of the generation task.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最終的判別器目標函數進一步融入了視覺輔助 GAN 損失。此損失使用預訓練的 CLIP 影像編碼器作為骨幹網路，從中間層提取特徵，並透過含 3x3 摺積層的簡單網路處理以產生輔助判別器預測。完整的訓練目標結合了所有組件：V(G,D) = V_MS-I/O(G,D) + L_CLIP(G) + L_Vision(G)。這種多面向的損失架構提供了多元的訓練信號——MS-I/O 提供對抗真實性、CLIP 對比損失提供文字-影像對齊、視覺輔助判別提供感知品質——每個組件處理生成任務的不同面向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    損失函數彙整——將所有訓練目標統一為完整的最佳化框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的閉合點：三項損失各自負責不同的生成品質維度，形成互補的監督架構。此設計的邏輯清晰但複雜度較高。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「多面向損失」的論述將複雜性包裝為優勢。但三項損失的相互作用與權重平衡是實作中的關鍵挑戰——不當的權重可能導致某些損失主導訓練而壓抑其他面向。作者未詳細討論各損失的權重選擇策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.6 GAN 超解析度器 ====== -->
+    <h3 class="subsection-heading" id="sec-upsampler">3.6 GAN-Based Upsampler — GAN 超解析度器</h3>
+
+    <!-- 方法 3.6 段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To enable <span class="hl-thesis">ultra high-resolution image synthesis</span>, the authors design a dedicated <span class="hl-concept">GAN-based upsampler</span> as a second stage. The upsampler follows an <span class="hl-method">asymmetric U-Net architecture with 3 downsampling residual blocks followed by 6 upsampling residual blocks</span>, connected by <span class="hl-method">skip connections at matching resolutions</span>. It takes the <span class="hl-evidence">512px output from the base generator</span> and upsamples it to <span class="hl-evidence">2048px or 4096px</span>. The upsampler is conditioned on the same <span class="hl-method">text embeddings and style vectors</span> as the base model, enabling text-aware detail synthesis during upsampling.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為實現超高解析度影像合成，作者設計了一個專用的 GAN 超解析度器作為第二階段。該上取樣器遵循非對稱 U-Net 架構，包含 3 個下取樣殘差區塊後接 6 個上取樣殘差區塊，透過匹配解析度的跳躍連接相連。它接收基礎生成器的 512 像素輸出，並上取樣至 2048 或 4096 像素。上取樣器以與基礎模型相同的文字嵌入與風格向量作為條件，使其在上取樣過程中能進行文字感知的細節合成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第二階段架構——描述超解析度器的設計與運作方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段引入 GigaGAN 的第二階段，使「超高解析度合成」的承諾得以實現。非對稱 U-Net 的設計（下取樣少、上取樣多）反映了上取樣任務的特性——需要在保持低階結構的同時添加高頻細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    文字條件化的上取樣器是一個新穎的設計——傳統超解析度模型不使用文字條件。但這也意味著上取樣器可能引入與原始低解析度影像不一致的內容（由文字條件驅動的「幻想」），在某些應用場景中可能不受歡迎。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.6 段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The upsampler is trained with the <span class="hl-method">same adversarial losses as the base model</span>, along with an additional <span class="hl-method">LPIPS perceptual loss</span> computed with respect to the ground-truth high-resolution image. <span class="hl-method">Moderate Gaussian noise augmentation</span> is applied to the low-resolution input during training to improve robustness. The upsampler contains <span class="hl-evidence">359.1 million parameters</span>, bringing the total GigaGAN system to <span class="hl-evidence">approximately 1 billion parameters</span> (652.5M for the base generator plus 359.1M for the upsampler). Despite this large parameter count, the entire upsampling process for a <span class="hl-evidence">4096x4096 image takes only 3.66 seconds</span>, demonstrating the <span class="hl-thesis">efficiency advantage of feed-forward GAN inference</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                上取樣器以與基礎模型相同的對抗損失進行訓練，並額外加入相對於真實高解析度影像計算的 LPIPS 感知損失。訓練時對低解析度輸入施加適度的高斯噪音增強以提升穩健性。上取樣器包含 3.591 億個參數，使 GigaGAN 系統總量達到約 10 億個參數（基礎生成器 6.525 億加上上取樣器 3.591 億）。儘管參數量龐大，整個 4096x4096 影像的上取樣過程僅需 3.66 秒，展示了前饋式 GAN 推論的效率優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練細節與效率數據——量化上取樣器的規模與推論速度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供了完整系統的參數明細（652.5M + 359.1M = ~1B），同時以 3.66 秒生成 4096x4096 的數據回扣「效率優勢」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    LPIPS 感知損失與高斯噪音增強是成熟的工程實踐，增加了方法的穩健性。但 3.66 秒的推論時間是在 A100 GPU 上測量的——在消費級硬體上的效能未被討論，可能影響實際應用的可行性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：資料集與訓練設定 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                GigaGAN is trained on a <span class="hl-evidence">large-scale dataset formed by the union of LAION2B-en and COYO-700M</span>. The data is preprocessed by <span class="hl-method">filtering for CLIP score above 0.3, image resolution at least 512 pixels, and aesthetic score above 5.0</span>. The <span class="hl-evidence">base generator has 652.5 million parameters and the upsampler has 359.1 million parameters</span>, totaling approximately <span class="hl-evidence">1.0 billion parameters</span>. Training is conducted on <span class="hl-evidence">64 to 128 NVIDIA A100 GPUs</span>. The total training cost is approximately <span class="hl-evidence">4,783 A100 GPU days</span>, which is <span class="hl-evidence">comparable to Stable Diffusion v1.5 (6,250 A100 GPU days) and Imagen (~4,755 TPUv4 days)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                GigaGAN 在由 LAION2B-en 與 COYO-700M 聯集而成的大規模資料集上訓練。資料經過預處理，篩選 CLIP 分數高於 0.3、影像解析度至少 512 像素、美學評分高於 5.0 的樣本。基礎生成器含 6.525 億個參數，上取樣器含 3.591 億個參數，合計約 10 億個參數。訓練在 64 至 128 張 NVIDIA A100 GPU 上進行。總訓練成本約為 4,783 個 A100 GPU 天，與 Stable Diffusion v1.5（6,250 個 A100 GPU 天）及 Imagen（約 4,755 個 TPUv4 天）相當。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定——詳述資料集、模型規模與訓練資源。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段確立實驗的公平性基礎：與 Stable Diffusion 和 Imagen 使用相近的訓練資源（GPU 天數），使後續的效能比較具有可比性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    訓練成本的比較策略精妙——4,783 A100 GPU 天低於 SD v1.5 的 6,250 天，暗示 GigaGAN 不僅推論更快，訓練也更高效。但 A100 GPU 天與 TPUv4 天的直接比較存在硬體差異，不完全等價。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：消融研究 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The ablation study at <span class="hl-evidence">64px resolution</span> systematically evaluates each architectural contribution. Starting from a <span class="hl-evidence">baseline StyleGAN2 with FID-10k of 29.91</span>, <span class="hl-evidence">naively increasing capacity by 5.7x actually degrades performance to FID 34.07</span>, confirming that simple scaling fails. Progressively adding components yields consistent improvements: <span class="hl-evidence">attention (FID 23.87)</span>, <span class="hl-evidence">matching-aware loss on both G and D (FID 21.66)</span>, <span class="hl-evidence">adaptive convolution (FID 19.97)</span>, <span class="hl-evidence">deeper architecture (FID 19.18)</span>, <span class="hl-evidence">CLIP loss (FID 14.88)</span>, <span class="hl-evidence">multi-scale training (FID 14.92, with improved CLIP score from 0.280 to 0.300)</span>, <span class="hl-evidence">vision-aided GAN (FID 13.67)</span>, and finally <span class="hl-evidence">full scale-up to GigaGAN (FID 9.18, CLIP 0.307, 652.5M parameters)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 64 像素解析度下的消融研究系統性地評估了每項架構貢獻。從基準 StyleGAN2 的 FID-10k 29.91 開始，天真地將容量增加 5.7 倍反而使效能退化至 FID 34.07，確認了單純擴展的失敗。逐步添加組件帶來持續的改進：注意力機制（FID 23.87）、在生成器與判別器上同時施加匹配感知損失（FID 21.66）、自適應摺積（FID 19.97）、更深架構（FID 19.18）、CLIP 損失（FID 14.88）、多尺度訓練（FID 14.92，CLIP 分數從 0.280 提升至 0.300）、視覺輔助 GAN（FID 13.67），最終完整擴展至 GigaGAN（FID 9.18、CLIP 0.307、6.525 億參數）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    逐步消融——以數據證明每項技術貢獻的獨立有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是全文最強的實證段落。從 FID 29.91 到 9.18 的逐步改進軌跡，清晰地展示了每項貢獻的價值，尤其是「天真擴展反而退化」的對照，有力地支撐了本文技術創新的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究的呈現採用「累積式」而非「單因素式」——每次添加新組件是在前一步的基礎上。這使得各組件之間可能存在的交互作用（正面或負面）無法被獨立評估。例如，CLIP 損失的貢獻可能部分取決於先前已加入的自適應摺積。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：與最先進方法比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On the <span class="hl-evidence">COCO2014 benchmark</span>, GigaGAN achieves a <span class="hl-evidence">zero-shot FID-30k of 9.09</span>, outperforming <span class="hl-evidence">DALL-E 2 (FID 10.39), Parti-750M (FID 10.71), and Stable Diffusion (FID 9.62)</span>. In terms of inference speed, GigaGAN generates a <span class="hl-evidence">512px image in 0.13 seconds</span>, compared to <span class="hl-evidence">GLIDE at 15.0 seconds, LDM at 9.4 seconds, and Imagen at 9.1 seconds</span>. When compared against <span class="hl-concept">distilled diffusion models</span>, GigaGAN with a <span class="hl-evidence">single forward pass achieves FID-5k of 21.1 and CLIP score of 0.32 in 0.13 seconds</span>, outperforming <span class="hl-evidence">Stable Diffusion distilled with 2 steps (FID 37.3), 4 steps (FID 26.0), and 16 steps (FID 28.8, 0.88s)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 COCO2014 基準上，GigaGAN 達到 9.09 的零樣本 FID-30k，優於 DALL-E 2（FID 10.39）、Parti-750M（FID 10.71）與 Stable Diffusion（FID 9.62）。在推論速度方面，GigaGAN 僅需 0.13 秒生成一張 512 像素影像，相比 GLIDE 需 15.0 秒、LDM 需 9.4 秒、Imagen 需 9.1 秒。與蒸餾擴散模型比較時，GigaGAN 以單次前饋通過在 0.13 秒內達到 FID-5k 21.1 與 CLIP 分數 0.32，優於 Stable Diffusion 蒸餾版的 2 步（FID 37.3）、4 步（FID 26.0）與 16 步（FID 28.8、0.88 秒）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量比較——以標準基準展示 GigaGAN 的競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的核心實證主張：GigaGAN 不僅快數十倍，在 FID 上也優於或可比擬主流擴散模型。與蒸餾模型的比較更進一步回應了「擴散模型也能加速」的潛在反駁。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    FID 9.09 確實優於 DALL-E 2 和 SD v1.x，但比較對象未包含更新的模型如 SDXL（FID 更低）或 Midjourney。此外，FID 主要衡量分布層面的品質，人類偏好評估（如 HPS、ImageReward）的缺失是顯著的評估盲點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：超解析度結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For the <span class="hl-concept">super-resolution task</span> (128 to 1024 upsampling on LAION), GigaGAN achieves significantly better results than existing methods. With <span class="hl-evidence">693M parameters and 0.13 seconds inference time</span>, GigaGAN reaches <span class="hl-evidence">FID-10k of 1.54 and Patch-FID of 8.90</span>, substantially outperforming <span class="hl-evidence">Real-ESRGAN (FID 8.60, Patch-FID 22.8) and SD Upscaler (FID 9.39, Patch-FID 41.3, 7.75s)</span>. On <span class="hl-evidence">ImageNet unconditional 64-to-256 upsampling</span>, GigaGAN achieves <span class="hl-evidence">Inception Score of 191.5 and FID of 1.2</span>, outperforming SR3 and LDM variants. These results demonstrate that <span class="hl-thesis">GAN-based upsampling can deliver superior perceptual quality at a fraction of the computational cost of diffusion-based alternatives</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在超解析度任務（LAION 上的 128 到 1024 上取樣）中，GigaGAN 的表現顯著優於現有方法。以 6.93 億參數與 0.13 秒推論時間，GigaGAN 達到 FID-10k 1.54 與 Patch-FID 8.90，大幅超越 Real-ESRGAN（FID 8.60、Patch-FID 22.8）與 SD Upscaler（FID 9.39、Patch-FID 41.3、7.75 秒）。在 ImageNet 無條件 64 到 256 上取樣中，GigaGAN 達到 Inception Score 191.5 與 FID 1.2，超越 SR3 與 LDM 變體。這些結果證明基於 GAN 的上取樣能以擴散替代方案極小的計算成本，提供更優越的感知品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    超解析度驗證——以獨立任務展示 GigaGAN 上取樣器的強大效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為 GigaGAN 的第二項核心貢獻（超高解析度合成）提供實證支撐。FID 1.54 與 Patch-FID 8.90 的數據極具說服力，尤其是與 SD Upscaler 的速度差距（0.13 秒 vs 7.75 秒）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    超解析度結果是論文最強的數據點之一——FID 1.54 遠低於競爭對手。但 GigaGAN 的上取樣器使用文字條件化，而 Real-ESRGAN 不使用，比較的公平性值得商榷。此外，Patch-FID 的評估偏向局部紋理品質，可能忽略全局結構一致性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 應用 ====== -->
+    <h2 class="section-heading" id="sec-applications">5. Applications — 應用</h2>
+
+    <!-- 應用段落 1：風格混合 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key advantage of GigaGAN over diffusion models is its <span class="hl-thesis">disentangled latent space that enables rich editing applications</span>. <span class="hl-concept">Style mixing</span> allows blending the <span class="hl-method">coarse style of one sample with the fine style of another</span> by splicing latent codes at different layers of the synthesis network. This produces a <span class="hl-method">style-swapping grid</span> where rows and columns represent different style sources, and each cell shows the combined result. This capability directly inherits from the <span class="hl-concept">StyleGAN</span> architecture and demonstrates that <span class="hl-thesis">scaling up GANs preserves their characteristic latent space structure</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                GigaGAN 相對於擴散模型的一項關鍵優勢是其解耦的潛在空間，使豐富的編輯應用成為可能。風格混合允許透過在合成網路的不同層級拼接潛在編碼，將一個樣本的粗略風格與另一個樣本的精細風格混合。這產生了一個風格交換方格，其中行與列代表不同的風格來源，每個儲存格展示結合後的結果。此能力直接承繼自 StyleGAN 架構，證明了擴大 GAN 規模能保留其特有的潛在空間結構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——以風格混合證明潛在空間的結構化特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段驗證了緒論中提出的第三項優勢——「可編輯的潛在空間」。風格混合的成功表明大規模 GAN 訓練未破壞潛在空間的語意結構，形成論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    風格混合是 StyleGAN 系列的經典展示，在此處的論證功能是「證明 GAN 的不可替代性」。但擴散模型社群已發展出類似的編輯技術（如 SDEdit、InstructPix2Pix），風格混合的獨特性不如作者暗示的那樣絕對。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 應用段落 2：提示詞插值 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Prompt interpolation</span> is achieved by <span class="hl-method">interpolating text embeddings t and style vectors w between two different prompts</span>. Using the <span class="hl-method">same noise vector z</span> for both endpoints <span class="hl-method">results in similar layouts</span>, enabling a <span class="hl-thesis">smooth, semantically meaningful transition between different text descriptions</span>. For example, one can smoothly morph between "a photo of a cat" and "a photo of a dog" while maintaining consistent spatial structure. This capability highlights the <span class="hl-thesis">continuous and well-organized nature of GigaGAN's latent space</span>, where nearby points correspond to semantically related images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                提示詞插值透過在兩個不同提示詞之間對文字嵌入 t 與風格向量 w 進行插值來實現。使用相同的噪音向量 z 作為兩端點會產生相似的版面配置，從而在不同文字描述之間實現平滑且語意有意義的過渡。例如，可以在「一張貓的照片」與「一張狗的照片」之間平滑變形，同時維持一致的空間結構。此能力彰顯了 GigaGAN 潛在空間連續且組織良好的本質，其中鄰近的點對應語意相關的影像。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——以提示詞插值展現潛在空間的連續性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從另一維度支撐「結構化潛在空間」的主張——不僅能在同一提示詞下混合風格，還能在不同提示詞之間平滑過渡，進一步強化 GAN 的差異化優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「平滑過渡」的展示具有視覺說服力，但作者未提供定量評估（如插值路徑上的 FID 或感知距離）來衡量過渡的品質。定性展示容易受到精心挑選樣本的影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 應用段落 3：提示詞混合與截斷技巧 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Prompt mixing</span> applies <span class="hl-method">different text prompts to different layers of the generator</span>, enabling creative compositions such as "an object X with the texture of Y." The <span class="hl-method">cross-attention mechanism automatically localizes the style effects</span> to appropriate spatial regions. Additionally, GigaGAN supports a <span class="hl-concept">text-conditioned truncation trick</span>: <span class="hl-method">w_trunc = lerp(w_mean_c, lerp(w_mean, w, psi), psi)</span>, which trades <span class="hl-method">diversity for fidelity</span> by interpolating the style vector toward its text-conditional mean. The <span class="hl-evidence">CLIP score increases with stronger truncation at the cost of reduced diversity</span>, with the <span class="hl-evidence">optimal truncation value between 0.8 and 0.7</span>. These applications collectively demonstrate that <span class="hl-thesis">GigaGAN brings back key editing capabilities that became challenging with the transition to autoregressive and diffusion models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                提示詞混合將不同的文字提示詞套用於生成器的不同層級，實現如「具有 Y 紋理的物件 X」等創意組合。交叉注意力機制自動將風格效果定位到適當的空間區域。此外，GigaGAN 支援文字條件化截斷技巧：w_trunc = lerp(w_mean_c, lerp(w_mean, w, psi), psi)，透過將風格向量朝其文字條件均值插值，以多樣性換取保真度。CLIP 分數隨著更強的截斷而提升，但代價是降低多樣性，最佳截斷值介於 0.8 與 0.7 之間。這些應用共同展示了 GigaGAN 帶回了隨著向自迴歸與擴散模型過渡而變得困難的關鍵編輯能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用彙整——以提示詞混合與截斷技巧完善 GAN 編輯生態。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段收束應用章節，以「帶回關鍵編輯能力」的結語直接回應全文的核心論點：GAN 在編輯維度上不可被擴散模型完全取代。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    截斷技巧的數據（最佳值 0.8-0.7）為從業者提供了實用指導。但「帶回關鍵編輯能力」的宣稱需要與擴散模型的最新編輯技術（如 ControlNet、IP-Adapter）進行公平比較，後者在許多場景中已提供了強大的控制能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion and Limitations — 結論與局限</h2>
+
+    <!-- 結論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work demonstrates that <span class="hl-thesis">GANs can be successfully scaled up to one billion parameters for text-to-image synthesis</span>, challenging the prevailing assumption that diffusion and autoregressive models are the only viable path forward. <span class="hl-concept">GigaGAN</span> introduces several architectural innovations — <span class="hl-method">sample-adaptive kernel selection, L2-distance attention, multi-scale input/output training, and a combined loss framework</span> — that together enable <span class="hl-thesis">stable training at unprecedented scale</span>. The resulting model achieves <span class="hl-evidence">competitive FID scores while being orders of magnitude faster at inference</span>, supports <span class="hl-evidence">ultra high-resolution synthesis up to 4K</span>, and maintains a <span class="hl-evidence">structured latent space for rich editing applications</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究證明 GAN 能被成功擴展至十億參數規模以進行文字到影像合成，挑戰了擴散與自迴歸模型是唯一可行前進路徑的主流假設。GigaGAN 引入了多項架構創新——樣本自適應核選擇、L2 距離注意力、多尺度輸入/輸出訓練，以及組合損失框架——共同實現了前所未有規模下的穩定訓練。所得模型在推論速度快上數個數量級的同時達到具競爭力的 FID 分數，支援高達 4K 的超高解析度合成，並維持結構化的潛在空間以供豐富的編輯應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結貢獻——重申核心創新與三項優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段與摘要形成呼應：重述「GAN 仍然可行」的核心論點，並以四項架構創新與三項優勢作為支撐，形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「挑戰主流假設」的措辭為研究賦予了更大的意義——不僅是一個技術貢獻，更是對領域方向的反思。但此措辭可能過於強烈，因為 GigaGAN 在視覺品質上仍承認不及頂尖擴散模型。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：局限性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors <span class="hl-rebuttal">honestly acknowledge several limitations</span>. The <span class="hl-rebuttal">visual quality of GigaGAN's results is not yet comparable to production-grade models like DALL-E 2</span> in terms of photorealism and fine detail. The model <span class="hl-rebuttal">struggles with compositionality</span> — correctly generating complex scenes with multiple objects and their spatial relationships as described in the prompt. <span class="hl-rebuttal">Text-to-image alignment remains imperfect</span>, with some prompts producing results that do not fully match the described content. However, the authors <span class="hl-thesis">expect performance to improve with larger models, as suggested by the consistent scaling trends observed in the ablation study</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者坦誠地承認了數項局限性。GigaGAN 的視覺品質在逼真度與精細細節方面，尚無法與 DALL-E 2 等量產級模型相比。模型在組合性上遭遇困難——難以根據提示詞的描述正確生成包含多物件及其空間關係的複雜場景。文字到影像的對齊仍不完美，部分提示詞產生的結果未完全匹配描述的內容。然而，作者預期效能將隨更大模型而提升，消融研究中觀察到的一致擴展趨勢支持了此預期。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    誠實揭露局限——承認與頂尖擴散模型的差距。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段扮演論文的「自我批判」角色，增強了整體的可信度。同時以「擴展趨勢」為局限性提供了正面展望，暗示問題可透過進一步擴展來解決。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦承不足是優秀學術論文的特徵，增加讀者信任。但「期待更大模型改善」的預期屬於推測——GAN 的擴展是否與擴散模型一樣遵循清晰的 Scaling Law 仍是未驗證的假說。此外，組合性問題可能不僅是規模問題，而是 GAN 架構的結構性限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 3：未來展望 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Looking forward, the authors argue that GigaGAN <span class="hl-thesis">opens up a whole new design space for large-scale generative models</span>. The architecture demonstrates that <span class="hl-thesis">no quality saturation regarding model size has been observed</span>, suggesting significant room for further scaling. GigaGAN <span class="hl-thesis">brings back key editing capabilities — style mixing, prompt interpolation, prompt mixing — that became challenging with the transition to autoregressive and diffusion models</span>. As the field continues to advance, the complementary strengths of GANs (speed, editability, resolution) and diffusion models (quality, compositionality) may <span class="hl-thesis">lead to hybrid architectures that combine the best of both paradigms</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                展望未來，作者認為 GigaGAN 為大規模生成模型開闢了全新的設計空間。此架構展示了模型規模上尚未觀察到品質飽和現象，暗示進一步擴展仍有顯著空間。GigaGAN 帶回了隨著向自迴歸與擴散模型過渡而變得困難的關鍵編輯能力——風格混合、提示詞插值、提示詞混合。隨著領域持續進步，GAN（速度、可編輯性、解析度）與擴散模型（品質、組合性）的互補優勢，可能催生結合兩種典範之長的混合架構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    未來展望——勾勒 GAN 與擴散模型融合的願景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結尾段將視野從 GigaGAN 本身擴展至整個生成式 AI 領域的未來。「混合架構」的展望既為自身研究定位了更大的意義，又為後續研究指明了方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「未觀察到品質飽和」是有力的外推依據，但僅基於 10 億參數以內的觀察，能否外推至更大規模仍不確定。「混合架構」的展望頗具遠見——事實上，後續的 StyleGAN-T2 等研究確實朝此方向發展，部分驗證了此預測。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                GAN 無法擴展至<br>開放域文字到影像生成
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>診斷</strong><br>
+                靜態摺積核、注意力不穩定<br>低解析度層失活
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>方案</strong><br>
+                自適應核選擇、L2 注意力<br>多尺度訓練、組合損失
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                FID 9.09、0.13 秒推論<br>4K 超高解析度合成
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                GAN 仍是文字到影像<br>合成的可行架構
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過樣本自適應核選擇、穩定注意力機制與多尺度訓練等架構創新，GAN 能被擴展至十億參數規模進行開放域文字到影像合成，在推論速度、超高解析度支援與潛在空間可編輯性上提供擴散模型難以匹敵的獨特優勢。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>系統性的消融研究：</strong>從 StyleGAN2 基準（FID 29.91）出發，逐步添加每項創新直至完整 GigaGAN（FID 9.18），以數據清晰展示每項貢獻的價值。尤其「天真擴展 5.7 倍反而退化至 FID 34.07」的對照實驗，有力地證明了本文技術創新的不可或缺性。推論速度 0.13 秒（比擴散模型快 70-115 倍）的優勢無可爭議。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>視覺品質的坦承差距：</strong>作者自認視覺品質不及 DALL-E 2 等量產級擴散模型，且在組合性（正確組合多物件的空間關係）上表現不佳。FID 分數的優勢可能反映分布匹配而非人眼偏好，缺乏人類偏好評估是顯著的評估盲點。此外，比較基線未包含同時期或更新的擴散模型（如 SDXL），時效性上略顯不足。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

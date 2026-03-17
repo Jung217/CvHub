@@ -73,3 +73,20 @@ https://jung217.github.io/CvHub/
 | DN-DETR: Accelerate DETR Training by Introducing Query DeNoising | 物體偵測 |
 | Restormer: Efficient Transformer for High-Resolution Image Restoration | 影像修復 |
 | Point-NeRF: Point-based Neural Radiance Fields | 3D 重建 |
+
+## CVPR 2023
+
+| 論文 | 領域 |
+|------|------|
+| Visual Programming: Compositional Visual Reasoning Without Training | 視覺推理 (Best Paper) |
+| Planning-oriented Autonomous Driving (UniAD) | 自動駕駛 (Best Paper) |
+| DynIBaR: Neural Dynamic Image-Based Rendering | 新視角合成 (Best Paper Honorable Mention) |
+| 3D Registration with Maximal Cliques | 點雲配準 (Best Student Paper) |
+| DreamBooth: Fine Tuning Text-to-Image Diffusion Models for Subject-Driven Generation | 擴散模型 (Best Student Paper Honorable Mention) |
+| InternImage: Exploring Large-Scale Vision Foundation Models with Deformable Convolutions | 視覺基礎模型 |
+| ImageBind: One Embedding Space To Bind Them All | 多模態學習 |
+| EVA: Exploring the Limits of Masked Visual Representation Learning at Scale | 自監督學習 |
+| ODISE: Open-Vocabulary Panoptic Segmentation with Text-to-Image Diffusion Models | 開放詞彙分割 |
+| Scaling Up GANs for Text-to-Image Synthesis (GigaGAN) | GAN / 影像生成 |
+| Mask DINO: Towards A Unified Transformer-based Framework for Object Detection and Segmentation | 偵測與分割 |
+| Score Jacobian Chaining: Lifting Pretrained 2D Diffusion Models for 3D Generation | 3D 生成 |

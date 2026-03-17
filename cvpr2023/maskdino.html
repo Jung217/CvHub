@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mask DINO: Towards A Unified Transformer-based Framework for Object Detection and Segmentation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Mask DINO: Towards A Unified Transformer-based Framework for Object Detection and Segmentation
+                <span class="course-tag">CVPR 2023</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2206.02777" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-query">3.2 統一查詢選擇</a>
+        <a href="#sec-denoise">3.3 統一去噪訓練</a>
+        <a href="#sec-matching">3.4 混合匹配</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.2 消融研究</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1：問題與方案總述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper we present <span class="hl-concept">Mask DINO</span>, <span class="hl-thesis">a unified object detection and segmentation framework</span>. Mask DINO extends <span class="hl-concept">DINO (DETR with Improved Denoising Anchor Boxes)</span> by adding <span class="hl-method">a mask prediction branch which supports all image segmentation tasks (instance, panoptic, and semantic)</span>. It makes use of the <span class="hl-method">query embeddings from DINO to dot-product with high-resolution pixel embedding maps for mask prediction</span>. Building upon DINO, the key components include <span class="hl-method">a unified query selection for detection and segmentation, a unified denoising training for both tasks, and a hybrid bipartite matching</span> that enhances mutual benefits between detection and segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 Mask DINO，一個統一的物件偵測與分割框架。Mask DINO 在 DINO（改進去噪錨框的 DETR）基礎上，新增支援所有影像分割任務（實例分割、全景分割與語意分割）的遮罩預測分支。該方法利用 DINO 的查詢嵌入與高解析度像素嵌入圖進行點積運算以預測遮罩。在 DINO 的基礎之上，核心組件包含統一查詢選擇、統一去噪訓練，以及增進偵測與分割互利的混合二分匹配機制。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以一段話概述 Mask DINO 的定位、架構來源與三大核心創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的前半段承擔「方案預告」功能：先定義 Mask DINO 為統一框架，再明確其與 DINO 的繼承關係，最後以三個關鍵詞（統一查詢選擇、統一去噪、混合匹配）勾勒技術貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者策略性地將 Mask DINO 定位為 DINO 的「擴展」而非全新設計，降低讀者接受門檻。但「統一」一詞的反覆使用需在後文以實質架構差異加以支撐，否則容易被質疑為行銷包裝。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 2：實驗成果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Mask DINO demonstrates <span class="hl-thesis">significant improvements over all existing specialized and unified models</span>. It achieves the best results among models with <span class="hl-evidence">less than one billion parameters on all three segmentation tasks</span> — with <span class="hl-evidence">54.5 AP on COCO instance segmentation</span>, <span class="hl-evidence">59.4 PQ on COCO panoptic segmentation</span>, and <span class="hl-evidence">60.8 mIoU on ADE20K semantic segmentation</span>. Notably, with a ResNet-50 backbone, Mask DINO achieves <span class="hl-evidence">46.3 AP on COCO instance segmentation, outperforming Mask2Former by 2.6 AP</span>, and <span class="hl-evidence">51.7 AP on COCO object detection, outperforming DINO itself by 0.8 AP</span>, demonstrating the <span class="hl-thesis">mutual benefits of detection and segmentation in a unified framework</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Mask DINO 相較於所有既有的專門化與統一模型均展現顯著改進。在低於十億參數的模型中，它在三項分割任務上皆取得最佳成績——COCO 實例分割 54.5 AP、COCO 全景分割 59.4 PQ、ADE20K 語意分割 60.8 mIoU。值得注意的是，僅以 ResNet-50 骨幹網路，Mask DINO 便在 COCO 實例分割上達到 46.3 AP，超越 Mask2Former 2.6 AP；在 COCO 物件偵測上達到 51.7 AP，超越 DINO 本身 0.8 AP，充分證明偵測與分割在統一框架中的互利效益。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    以量化數據預告實驗成果——為讀者提供繼續閱讀的誘因。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的後半段以密集的數據呈現實驗結果，同時呼應前段的「統一框架」主張，以「超越專門化模型」的數字佐證「統一優於專門化」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「低於十億參數」為評比條件，巧妙排除了大型基礎模型的競爭。此外，選擇性地同時報告三項任務的結果，展現了全面性，但讀者需注意不同任務使用了不同的主幹與預訓練設定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：任務定義與研究動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Object detection</span> and <span class="hl-concept">image segmentation</span> are fundamental computer vision tasks with different focuses. Detection aims to localize objects and predict <span class="hl-concept">bounding boxes</span> and categories, while segmentation performs <span class="hl-concept">pixel-level grouping</span> of different semantics, encompassing <span class="hl-concept">instance, panoptic, and semantic</span> variants. Classical <span class="hl-concept">convolution-based algorithms</span> achieved remarkable progress through specialized architectures — <span class="hl-concept">Faster RCNN</span> for detection, <span class="hl-concept">Mask RCNN</span> for instance segmentation, and <span class="hl-concept">FCN</span> for semantic segmentation — but these <span class="hl-rebuttal">lacked generalization across tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                物件偵測與影像分割是電腦視覺的基礎任務，兩者關注的層面各有不同。偵測旨在定位物件並預測邊界框與類別，而分割則在像素層級上對不同語意進行分組，涵蓋實例、全景與語意三種變體。傳統摺積網路方法透過專門化架構取得了顯著進展——Faster RCNN 用於偵測、Mask RCNN 用於實例分割、FCN 用於語意分割——但這些方法缺乏跨任務的泛化能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義偵測與分割兩大任務，並點出傳統方法的「專門化」現狀。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以歷史脈絡展示「每個任務各自發展專屬架構」的現象，為後續「統一框架」的提出奠定必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 Faster RCNN、Mask RCNN、FCN 三者並列，暗示各任務的割裂。但 Mask RCNN 本身即同時處理偵測與實例分割，已具備一定程度的統一性，此處的敘事稍有簡化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：Transformer 方法的進展與缺口 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recently, <span class="hl-concept">Transformer-based DETR-like models</span> have achieved significant progress on both detection and segmentation. <span class="hl-concept">DINO</span> reached <span class="hl-evidence">state-of-the-art detection results on COCO</span>, while <span class="hl-concept">MaskFormer</span> and <span class="hl-concept">Mask2Former</span> unified all three segmentation tasks under a single architecture. However, <span class="hl-thesis">in Transformer-based models, the best-performing detection and segmentation models are still not unified</span>, which <span class="hl-rebuttal">prevents task and data cooperation between detection and segmentation tasks</span>. Simply adding DETR's segmentation head to DINO <span class="hl-rebuttal">results in inferior instance segmentation results</span>, and naive multi-task training <span class="hl-rebuttal">actually hurts performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期，基於 Transformer 的 DETR 類模型在偵測與分割方面皆取得重大進展。DINO 在 COCO 偵測上達到最先進成果，而 MaskFormer 與 Mask2Former 則將三種分割任務統一於單一架構之下。然而，在 Transformer 模型中，表現最優的偵測與分割模型仍未統一，這阻礙了偵測與分割任務之間的任務與資料協作。單純地將 DETR 的分割頭加到 DINO 上會導致實例分割結果下降，而樸素的多任務訓練實際上反而損害了效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    指出研究缺口——即便 Transformer 已在各任務上取得突破，偵測與分割的最優模型仍然分離。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是論證的核心轉折點：先肯定 DINO 與 Mask2Former 各自的成就，再揭示「分別最強」不等於「合在一起最強」的反直覺現象，精準界定了本文要解決的問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「單純加上分割頭反而損害效能」是一個強有力的負面結果，有效地說明了統一並非易事。但作者未在此處說明為何樸素方法會失敗，讀者需等到方法章節才能理解原因。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：兩個關鍵問題與 Mask DINO 方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors pose two key questions: <span class="hl-thesis">(1) Why can detection and segmentation not cooperate well in existing Transformer-based models? (2) How can we design a unified framework where the two tasks mutually benefit each other?</span> To address these, they propose <span class="hl-concept">Mask DINO</span>, which extends DINO with <span class="hl-method">three key components: unified query selection that initializes queries using both box and mask predictions from the encoder, unified denoising training that extends denoising to segmentation masks, and hybrid bipartite matching that jointly considers box and mask losses</span>. These designs ensure that <span class="hl-thesis">detection and segmentation align from query initialization through training and matching, achieving genuine mutual benefits</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提出兩個關鍵問題：(1) 為何偵測與分割在現有 Transformer 模型中無法良好協作？(2) 如何設計一個統一框架，使兩項任務互相受益？為此，他們提出 Mask DINO，以三個核心組件擴展 DINO：統一查詢選擇——利用編碼器的框與遮罩預測共同初始化查詢；統一去噪訓練——將去噪機制延伸至分割遮罩；混合二分匹配——同時考量框與遮罩損失。這些設計確保偵測與分割從查詢初始化、訓練到匹配全程對齊，實現真正的互利。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以問答形式引導讀者從問題走向方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段以兩個研究問題為結構支點，將三大技術貢獻對應到「為何失敗→如何成功」的邏輯鏈中。三個組件分別對應初始化、訓練、匹配三個階段，覆蓋了模型全生命週期。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「提問→回答」的修辭結構引導讀者思考，具有很強的說服力。但「genuine mutual benefits」的宣稱需要實驗中以消融研究明確證明——移除任一組件是否會破壞互利效應。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：Transformer 偵測器 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Transformer-based detectors</span> have dominated recent progress in object detection. <span class="hl-concept">DETR</span> pioneered the <span class="hl-method">end-to-end set prediction approach</span>, eliminating hand-crafted modules like <span class="hl-concept">non-maximum suppression (NMS)</span> and anchor generation. <span class="hl-concept">DAB-DETR</span> reformulated queries as <span class="hl-method">4D anchor boxes with layer-by-layer refinement</span>. <span class="hl-concept">DN-DETR</span> introduced <span class="hl-method">denoising training</span> to accelerate convergence. <span class="hl-concept">DINO</span> combined improvements from both, achieving <span class="hl-evidence">state-of-the-art results on COCO detection with 63.3 AP</span> using a SwinL backbone. These advances in detection architecture provide <span class="hl-thesis">a strong foundation that segmentation could potentially benefit from</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於 Transformer 的偵測器主導了物件偵測的近期進展。DETR 開創了端到端集合預測方法，消除了非極大值抑制（NMS）與錨框生成等手工設計模組。DAB-DETR 將查詢重新定義為具有逐層精煉機制的四維錨框。DN-DETR 引入去噪訓練以加速收斂。DINO 整合了上述改進，以 SwinL 骨幹在 COCO 偵測上達到 63.3 AP 的最先進成果。這些偵測架構的進展為分割任務提供了一個可能受益的堅實基礎。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理 DETR 系列偵測器的演進脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立 DETR -> DAB-DETR -> DN-DETR -> DINO 的技術譜系，暗示 Mask DINO 是此演進線的自然下一步。最後一句明確點出「分割可從偵測中獲益」的論述方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以線性演進敘事將多項獨立研究串成一條清晰的發展線。但此處未提及其他偵測方向（如 YOLO 系列或基於 anchor 的偵測器），可能讓讀者產生 DETR 系列是唯一主流方向的錯覺。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：分割方法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Image segmentation encompasses three main variants: <span class="hl-concept">instance segmentation</span> (predicting a mask plus category per object), <span class="hl-concept">semantic segmentation</span> (per-pixel classification including background), and <span class="hl-concept">panoptic segmentation</span> (unifying both). Specialized architectures dominated historically: <span class="hl-concept">Mask RCNN</span> and <span class="hl-concept">HTC</span> for instance segmentation, <span class="hl-concept">FCN</span> and <span class="hl-concept">U-Net</span> for semantic, and separate panoptic models. Recent unified approaches, especially <span class="hl-concept">K-Net</span>, <span class="hl-concept">MaskFormer</span>, and <span class="hl-concept">Mask2Former</span>, achieved remarkable multi-task performance using <span class="hl-method">query-based Transformer architectures with mask classification</span>, demonstrating that <span class="hl-thesis">a single segmentation architecture can handle all three tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像分割包含三種主要變體：實例分割（預測每個物件的遮罩與類別）、語意分割（逐像素分類，含背景）及全景分割（統一前兩者）。過去由專門化架構主導：Mask RCNN 與 HTC 用於實例分割，FCN 與 U-Net 用於語意分割，以及各種獨立的全景分割模型。近期的統一方法，特別是 K-Net、MaskFormer 與 Mask2Former，以基於查詢的 Transformer 架構搭配遮罩分類策略，在多任務上取得卓越成效，證明了單一分割架構能夠處理所有三項任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——概述分割任務的歷史與最新統一趨勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    與偵測段落平行，展示分割領域也經歷了「專門化→統一化」的趨勢。Mask2Former 已統一三種分割任務的事實，為下一個問題「能否進一步統一偵測與分割」鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    此段隱含的邏輯是：既然分割已統一，偵測也已有 DINO 之最優解，那麼下一步自然是統一兩者。這一推論看似順理成章，但忽略了統一的代價——架構複雜度增加、訓練困難等潛在問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：統一方法的現狀 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Previous attempts at <span class="hl-concept">unified detection and segmentation</span> include CNN-based models like <span class="hl-concept">Mask RCNN</span>, <span class="hl-concept">HTC</span>, and <span class="hl-concept">Panoptic FPN</span>, which combined detection and segmentation branches. In the Transformer era, the original <span class="hl-concept">DETR</span> also explored adding a segmentation head. However, <span class="hl-rebuttal">simply adding a segmentation head to a state-of-the-art detector like DINO leads to performance degradation</span> rather than improvement. The detection and segmentation tasks <span class="hl-rebuttal">interfere with each other when naively combined</span>, suggesting that <span class="hl-thesis">careful architectural alignment is needed to achieve mutual benefits rather than mutual harm</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前嘗試統一偵測與分割的方法包括基於 CNN 的模型，如 Mask RCNN、HTC 與 Panoptic FPN，它們結合了偵測與分割分支。在 Transformer 時代，原始 DETR 也嘗試加入分割頭。然而，單純地在 DINO 等最先進偵測器上加入分割頭，反而導致效能退化而非提升。偵測與分割任務在樸素結合時會相互干擾，顯示需要精心的架構對齊才能實現互利而非互害。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    反駁既有嘗試——說明為何先前的統一方法未能成功。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整個相關工作的總結性論述：將偵測與分割兩條線匯合，指出交匯處的困難。「互害」一詞是強烈的措辭，為 Mask DINO 的精心設計創造了最大的需求空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「樸素結合→效能退化」的負面結果作為鋪墊，暗示 Mask DINO 的成功並非偶然而是經過深思熟慮。但作者未提供「樸素結合」的具體實驗設定，讀者難以判斷退化的真正原因是架構問題還是超參數選擇問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Architecture Overview — 架構概覽</h3>
+
+    <!-- 方法段落 1：整體架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Mask DINO</span> extends <span class="hl-concept">DINO</span> by adding a parallel <span class="hl-method">mask prediction branch</span> alongside the existing box and label prediction branches. The framework maintains DINO's overall architecture: a <span class="hl-method">backbone network</span> extracts multi-scale features, a <span class="hl-method">deformable Transformer encoder</span> processes these features for feature enhancement, and a <span class="hl-method">Transformer decoder</span> takes content queries and positional queries to produce detection and segmentation outputs. The key architectural addition is a <span class="hl-method">segmentation branch that constructs a high-resolution pixel embedding map</span> by fusing backbone features at 1/4 resolution with upsampled encoder features at 1/8 resolution. Binary masks are produced by <span class="hl-method">dot-producting content query embeddings with this combined pixel embedding map</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Mask DINO 在 DINO 現有的框預測與標籤預測分支之外，新增一個平行的遮罩預測分支。框架沿用 DINO 的整體架構：骨幹網路擷取多尺度特徵，可變形 Transformer 編碼器處理這些特徵以進行特徵增強，Transformer 解碼器則接收內容查詢與位置查詢以產生偵測與分割輸出。核心的架構新增部分是分割分支，它將 1/4 解析度的骨幹特徵與上取樣至 1/8 解析度的編碼器特徵融合，建構出高解析度像素嵌入圖。二元遮罩透過內容查詢嵌入與此組合像素嵌入圖的點積運算而產生。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構概覽——描述 Mask DINO 的整體管線與核心新增組件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法章節的開篇，提供全局視角。透過明確指出「沿用 DINO 的整體架構」，作者強調改動的最小化，暗示方法的簡潔性與可複製性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「最小修改、最大效益」是極具說服力的研究敘事。但 1/4 與 1/8 解析度的特徵融合策略直接借鑑自 Mask2Former，作者對此借鑑的標註是否充分，讀者需自行判斷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 2：遮罩預測公式 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Formally, the mask prediction follows a <span class="hl-method">mask classification</span> paradigm. Let <span class="hl-method">q_c</span> denote the content query embedding from the decoder. The pixel embedding map <span class="hl-method">M</span> is constructed as: <span class="hl-method">M = T(C_b) + F(C_e)</span>, where <span class="hl-method">C_b</span> represents the 1/4-resolution backbone feature, <span class="hl-method">C_e</span> represents the 1/8-resolution encoder feature, <span class="hl-method">T</span> is a lateral connection, and <span class="hl-method">F</span> is an upsampling operator. The binary mask <span class="hl-method">m</span> is then obtained by: <span class="hl-method">m = q_c &otimes; M</span>, where <span class="hl-method">&otimes;</span> denotes the dot product operation. This formulation is <span class="hl-thesis">lightweight yet effective, adding minimal computational overhead to the existing detection pipeline</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在形式上，遮罩預測遵循遮罩分類範式。令 q_c 表示來自解碼器的內容查詢嵌入。像素嵌入圖 M 的建構方式為：M = T(C_b) + F(C_e)，其中 C_b 為 1/4 解析度的骨幹特徵，C_e 為 1/8 解析度的編碼器特徵，T 為橫向連接，F 為上取樣運算子。二元遮罩 m 由以下公式取得：m = q_c 點乘 M。此公式輕量且高效，僅為現有偵測管線增添最小的計算開銷。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學形式化——以公式明確定義遮罩預測的計算流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將前段的文字描述轉化為精確的數學語言，是方法論可複製性的關鍵。骨幹特徵與編碼器特徵的融合設計，體現了對多尺度資訊的利用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    點積遮罩預測是簡潔的設計選擇，但其表達能力可能不如更複雜的注意力機制。此外，僅使用 1/4 與 1/8 解析度可能對小物件的分割精度造成限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 統一查詢選擇 ====== -->
+    <h3 class="subsection-heading" id="sec-query">3.2 Unified and Enhanced Query Selection — 統一且增強的查詢選擇</h3>
+
+    <!-- 查詢選擇段落 1：動機與做法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical design in Mask DINO is the <span class="hl-concept">unified query selection</span> mechanism. The method adopts <span class="hl-method">three prediction heads (classification, detection, and segmentation) at the encoder output</span> level, extending DINO's original two-head (classification and detection) query selection. The <span class="hl-method">top-ranked encoder features, scored by classification confidence, are selected to initialize the decoder content queries</span>. This provides the decoder with <span class="hl-thesis">strong initial priors from the encoder's dense predictions</span>, significantly accelerating convergence and improving performance. In ablation studies, this unified query selection enables <span class="hl-evidence">39.6 AP mask predictions even at decoder layer 0</span>, compared to <span class="hl-evidence">only 1.1 AP achieved by Mask2Former</span> at the same stage.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Mask DINO 的一項關鍵設計是統一查詢選擇機制。該方法在編碼器輸出層級採用三個預測頭（分類、偵測、分割），擴展了 DINO 原始的雙頭（分類與偵測）查詢選擇。依分類信心度排序的最高排名編碼器特徵被選取以初始化解碼器的內容查詢。這為解碼器提供了來自編碼器密集預測的強初始先驗，顯著加速收斂並提升效能。在消融研究中，此統一查詢選擇在解碼器第 0 層即能達到 39.6 AP 的遮罩預測，相較之下 Mask2Former 在同一階段僅達 1.1 AP。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之一——描述統一查詢選擇的機制與其驚人的初始效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是三大核心組件中的第一個。39.6 vs 1.1 AP 的對比極為驚人，有力地證明了編碼器先驗對於分割任務的重要性，也暗示 Mask2Former 的查詢初始化策略有改進空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「第 0 層即可達 39.6 AP」這一數據創造了極強的說服力。但需注意此比較的公平性——DINO 的編碼器經過可變形注意力增強，本身就具有較強的特徵表達能力，而 Mask2Former 使用的是不同的編碼器設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查詢選擇段落 2：遮罩增強的錨框初始化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A novel insight is that <span class="hl-thesis">predicted masks from the encoder are initially more accurate than predicted boxes</span>, especially for irregularly shaped objects. Mask DINO introduces <span class="hl-concept">mask-enhanced anchor box initialization</span>: the <span class="hl-method">minimum bounding rectangle of the predicted mask is used to derive an enhanced anchor box</span>, replacing the directly predicted box for decoder initialization. This creates a <span class="hl-thesis">virtuous cycle where mask predictions improve box initialization, and better box anchors in turn benefit subsequent mask refinement</span>. Ablation results show that mask-enhanced initialization boosts <span class="hl-evidence">layer-0 mask AP from 25.6 to 41.2 (+15.6)</span> and improves <span class="hl-evidence">final detection AP by 1.2 points</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項新穎的洞察是：來自編碼器的遮罩預測最初比框預測更為準確，尤其對於形狀不規則的物件。Mask DINO 引入遮罩增強錨框初始化：以預測遮罩的最小外接矩形推導出增強錨框，取代直接預測的框用於解碼器初始化。這建立了一個良性循環——遮罩預測改善框初始化，而更好的錨框又反過來促進後續的遮罩精煉。消融實驗顯示，遮罩增強初始化將第 0 層遮罩 AP 從 25.6 提升至 41.2（+15.6），並將最終偵測 AP 提升 1.2 個百分點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心洞察——揭示遮罩比框更適合作為初始化來源的反直覺發現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最具創新性的論點之一。「遮罩→框」的資訊流方向打破了傳統「先偵測再分割」的層級假設，提供了「互利」主張的最直接證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「良性循環」的論述非常有說服力，且有 +15.6 AP 的數據支撐。但此機制的有效性可能高度依賴於編碼器預測遮罩的品質——若骨幹網路較弱或影像解析度較低，遮罩預測可能不如框預測準確，此情境下機制的穩健性未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 統一去噪訓練 ====== -->
+    <h3 class="subsection-heading" id="sec-denoise">3.3 Unified Denoising Training — 統一去噪訓練</h3>
+
+    <!-- 去噪訓練段落 1：從偵測去噪到分割去噪 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">DN-DETR</span> demonstrated that <span class="hl-method">denoising training</span> — feeding noised ground-truth boxes and training the model to reconstruct the original — significantly accelerates DETR-like model convergence. Mask DINO extends this idea to segmentation: <span class="hl-method">ground-truth boxes are treated as noised versions of masks</span>, and the model is trained to <span class="hl-method">reconstruct the original mask given a noised box as the positional query</span>. The denoising process includes <span class="hl-method">label flipping with probability 0.2, center shifting constrained to half the box dimensions scaled by lambda_1=0.4, and box scaling within [(1-lambda_2), (1+lambda_2)] where lambda_2=0.4</span>. This <span class="hl-thesis">unified denoising bridges the gap between detection and segmentation during training</span>, forcing the model to learn the correspondence between boxes and masks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DN-DETR 證明了去噪訓練——輸入加噪的真值框並訓練模型重建原始框——能顯著加速 DETR 類模型的收斂。Mask DINO 將此概念延伸至分割：將真值框視為遮罩的加噪版本，訓練模型在給定加噪框作為位置查詢的條件下重建原始遮罩。去噪過程包含以 0.2 機率翻轉標籤、中心偏移限制在框尺寸一半乘以 lambda_1=0.4 的範圍內，以及框縮放在 [(1-lambda_2), (1+lambda_2)]（lambda_2=0.4）的區間內。此統一去噪機制在訓練過程中彌合了偵測與分割之間的鴻溝，迫使模型學習框與遮罩之間的對應關係。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之二——將去噪訓練從偵測擴展到分割任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是三大核心組件中的第二個，聚焦於訓練階段。將框視為遮罩的加噪版本，在概念上建立了兩種標註形式之間的橋梁，是實現「統一訓練」的關鍵洞察。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「框=加噪遮罩」的類比作為擴展去噪的理論基礎，邏輯上有一定合理性（框確實是遮罩的粗略近似），但嚴格而言框並非由遮罩加噪而來，此類比的物理意義略顯牽強。不過實驗效果證明了其實用價值。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 去噪訓練段落 2：去噪對收斂速度的影響 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The effectiveness of unified denoising is demonstrated through <span class="hl-evidence">convergence speed improvements</span>. In standard training without denoising, the model requires <span class="hl-evidence">many more epochs to achieve comparable performance</span>. With unified denoising, Mask DINO achieves <span class="hl-evidence">44.2 AP on instance segmentation in only 24 epochs</span>, which is <span class="hl-evidence">0.5 AP higher than Mask2Former's result of 43.7 AP at 50 epochs</span>. This <span class="hl-thesis">demonstrates that denoising training not only accelerates convergence but also provides a regularization effect</span> that improves final performance. The denoising queries and matching queries are processed in <span class="hl-method">separate groups to prevent information leakage between them</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                統一去噪的有效性透過收斂速度的改善得到驗證。在不使用去噪的標準訓練中，模型需要更多輪次才能達到可比的效能。搭配統一去噪後，Mask DINO 在僅 24 輪即達到實例分割 44.2 AP，比 Mask2Former 在 50 輪達到的 43.7 AP 還高出 0.5 AP。這證明了去噪訓練不僅加速收斂，還提供正則化效果以改善最終效能。去噪查詢與匹配查詢在不同群組中分開處理，以防止彼此之間的資訊洩漏。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實證——以收斂速度與最終效能的數據驗證去噪訓練的效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將技術設計（去噪）與可量化的效益（更少輪次、更高 AP）直接連結，強化了方法論的可信度。24 vs 50 輪次的對比尤其能引起重視計算資源的讀者共鳴。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    24 輪超越 50 輪的比較非常有說服力，但需注意 Mask DINO 每輪的計算量可能高於 Mask2Former（因為額外的偵測頭與去噪查詢），單純比較輪次數並不等同於比較總計算量。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 混合二分匹配 ====== -->
+    <h3 class="subsection-heading" id="sec-matching">3.4 Hybrid Bipartite Matching — 混合二分匹配</h3>
+
+    <!-- 混合匹配段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Standard <span class="hl-concept">bipartite matching</span> in DETR-like detectors uses only classification and box regression losses to establish the <span class="hl-method">one-to-one correspondence between predictions and ground truths</span>. However, when both box and mask predictions exist, <span class="hl-rebuttal">using only box loss for matching may lead to inconsistent box-mask pairs</span> — a prediction might have a well-matched box but a poorly aligned mask. Mask DINO introduces <span class="hl-concept">hybrid bipartite matching</span> that incorporates <span class="hl-method">mask prediction loss alongside classification and box losses in the matching cost</span>: <span class="hl-method">L = lambda_cls * L_cls + lambda_box * L_box + lambda_mask * L_mask</span>. This ensures that <span class="hl-thesis">the matching considers both detection and segmentation quality simultaneously</span>, producing more consistent predictions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DETR 類偵測器中的標準二分匹配僅使用分類與框迴歸損失來建立預測與真值之間的一對一對應。然而，當框與遮罩預測同時存在時，僅使用框損失進行匹配可能導致不一致的框-遮罩配對——某個預測可能框匹配良好但遮罩對齊不佳。Mask DINO 引入混合二分匹配，將遮罩預測損失與分類及框損失共同納入匹配成本：L = lambda_cls * L_cls + lambda_box * L_box + lambda_mask * L_mask。這確保匹配同時考量偵測與分割品質，產生更一致的預測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之三——將遮罩損失納入匹配成本以確保一致性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是三大核心組件的最後一個，聚焦於匹配階段。從「樸素匹配的不一致問題」出發，以直覺易懂的方式解釋為何需要將遮罩損失加入匹配。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「框匹配好但遮罩差」的情境描述非常具體，讓讀者能直覺理解問題。但混合匹配引入了額外的超參數（lambda_mask），其敏感度需要消融研究加以驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 混合匹配段落 2：消融驗證 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Ablation studies validate the effectiveness of hybrid matching. With <span class="hl-evidence">box-only matching, detection achieves 44.4 AP but mask quality is suboptimal</span>. With <span class="hl-evidence">mask-only matching, detection drops significantly to 40.2 AP</span> as the matching ignores box localization quality. The <span class="hl-evidence">hybrid matching achieves 44.5 AP detection and 41.4 AP masks</span>, demonstrating that <span class="hl-thesis">considering both modalities in matching is essential for maintaining strong performance on both tasks simultaneously</span>. Furthermore, <span class="hl-method">decoupled box prediction is employed for panoptic segmentation</span>, where <span class="hl-method">box loss and matching are removed for "stuff" categories</span> (amorphous regions like sky and road) while box predictions are retained for <span class="hl-method">deformable attention feature extraction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究驗證了混合匹配的有效性。僅使用框匹配時，偵測達 44.4 AP 但遮罩品質不理想；僅使用遮罩匹配時，偵測顯著下降至 40.2 AP，因為匹配忽略了框定位品質。混合匹配達到 44.5 AP 偵測與 41.4 AP 遮罩，證明在匹配中同時考量兩種模態對於維持雙任務的強勁效能至關重要。此外，在全景分割中採用解耦框預測——對「stuff」類別（如天空、道路等無定型區域）移除框損失與匹配，但保留框預測用於可變形注意力的特徵擷取。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融驗證——以數據證明混合匹配的必要性，並補充全景分割的特殊處理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段同時扮演「實證支持」與「方法補充」的雙重角色。三種匹配策略的對比清楚展示了混合匹配的優勢，而解耦框預測則展現了方法對不同任務場景的靈活適應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三組對比實驗（僅框/僅遮罩/混合）的設計非常乾淨且有說服力。但解耦框預測的設計暗示了統一框架在面對「stuff」類別時仍需任務特定的調整，某程度上削弱了「完全統一」的主張。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+    <h3 class="subsection-heading">4.1 Main Results — 主要結果</h3>
+
+    <!-- 實驗段落 1：COCO 實例分割與偵測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">COCO instance segmentation and object detection</span>, Mask DINO with a <span class="hl-concept">ResNet-50</span> backbone achieves <span class="hl-evidence">46.3 AP on instance segmentation at 50 epochs, surpassing Mask2Former's 43.7 AP by 2.6 points</span>. Simultaneously, it achieves <span class="hl-evidence">51.7 AP on object detection, outperforming DINO's 50.9 AP by 0.8 points</span>. This result is particularly significant because it demonstrates that <span class="hl-thesis">adding segmentation capability to a top detection model does not degrade but actually improves detection performance</span>. Even at 24 epochs, Mask DINO achieves <span class="hl-evidence">44.2 AP on masks, already surpassing Mask2Former's 50-epoch result</span>. With a <span class="hl-concept">SwinL backbone</span>, the gaps further widen: <span class="hl-evidence">52.3 AP masks (+2.2 over Mask2Former) and 59.0 AP detection (+0.5 over DINO)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 COCO 實例分割與物件偵測上，Mask DINO 以 ResNet-50 骨幹在 50 輪達到實例分割 46.3 AP，超越 Mask2Former 的 43.7 AP 達 2.6 個百分點。同時在物件偵測上達到 51.7 AP，超越 DINO 的 50.9 AP 達 0.8 個百分點。此結果尤其重要，因為它證明了為頂尖偵測模型添加分割能力不僅不會降低偵測效能，反而會加以提升。即使在僅 24 輪時，Mask DINO 即達到 44.2 AP 遮罩，已超越 Mask2Former 在 50 輪的結果。以 SwinL 骨幹時差距進一步拉大：52.3 AP 遮罩（超越 Mask2Former 2.2）與 59.0 AP 偵測（超越 DINO 0.5）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗證據——以 COCO 基準驗證偵測與分割的雙重提升。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的實證支柱。同時超越 DINO（偵測）和 Mask2Former（分割）兩個各自領域的最優模型，直接支撐了「互利」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「不降低反而提升」的反直覺結果創造最大的論證衝擊力。但偵測 AP 的提升幅度（+0.8）遠小於分割（+2.6），暗示互利可能並非對稱的——分割從偵測中獲益更多。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：全景分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">COCO panoptic segmentation</span>, Mask DINO achieves <span class="hl-evidence">53.0 PQ at 50 epochs with ResNet-50</span>, exceeding <span class="hl-evidence">Mask2Former's 51.9 PQ by 1.1 points</span>. At the 12-epoch setting, the improvement is even more pronounced: <span class="hl-evidence">49.0 PQ versus Mask2Former's 46.9 PQ (+2.1)</span>, indicating <span class="hl-thesis">faster convergence benefits from detection-segmentation cooperation</span>. The <span class="hl-method">decoupled box prediction</span> for "stuff" categories proves essential for panoptic performance, as enforcing box constraints on amorphous regions like sky or grass would introduce <span class="hl-rebuttal">misleading supervision signals</span>. With a <span class="hl-concept">SwinL backbone</span>, Mask DINO reaches <span class="hl-evidence">58.3 PQ, improving upon Mask2Former by 0.5 points</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 COCO 全景分割上，Mask DINO 以 ResNet-50 在 50 輪達到 53.0 PQ，超越 Mask2Former 的 51.9 PQ 達 1.1 個百分點。在 12 輪設定下，改善更為顯著：49.0 PQ 對比 Mask2Former 的 46.9 PQ（+2.1），顯示偵測-分割協作帶來更快的收斂。解耦框預測對「stuff」類別至關重要，因為對天空或草地等無定型區域強加框約束會引入誤導性的監督訊號。以 SwinL 骨幹時，Mask DINO 達到 58.3 PQ，較 Mask2Former 提升 0.5 個百分點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    延伸驗證——將統一框架的效益從實例分割擴展到全景分割任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段擴展了方法的適用範圍。12 輪設定下 +2.1 PQ 的大幅改善，進一步強化了「去噪訓練加速收斂」的論點。解耦框預測的必要性也為方法增添了實務智慧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    巧妙地將 12 輪與 50 輪結果並列呈現，突顯收斂優勢。但 SwinL 骨幹下的改善從 +1.1 縮小到 +0.5 PQ，暗示隨著模型容量增加，統一框架的邊際效益遞減。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：語意分割與大規模結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">ADE20K semantic segmentation</span>, Mask DINO with ResNet-50 achieves <span class="hl-evidence">48.7 mIoU, outperforming Mask2Former's 47.2 mIoU by 1.5 points</span>. On <span class="hl-evidence">Cityscapes, it reaches 80.0 mIoU versus Mask2Former's 79.4 mIoU (+0.6)</span>. In the <span class="hl-concept">large-scale comparison</span>, using a <span class="hl-concept">SwinL backbone with Objects365 detection pre-training</span>, Mask DINO establishes new state-of-the-art results among sub-billion parameter models across all three tasks: <span class="hl-evidence">54.5 AP on COCO instance segmentation, 59.4 PQ on COCO panoptic segmentation, and 60.8 mIoU on ADE20K semantic segmentation</span>. The ability to leverage <span class="hl-thesis">large-scale detection pre-training for segmentation is a unique advantage</span> that previous specialized segmentation models could not exploit.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ADE20K 語意分割上，Mask DINO 以 ResNet-50 達到 48.7 mIoU，超越 Mask2Former 的 47.2 mIoU 達 1.5 個百分點。在 Cityscapes 上達到 80.0 mIoU，對比 Mask2Former 的 79.4 mIoU（+0.6）。在大規模比較中，使用 SwinL 骨幹搭配 Objects365 偵測預訓練，Mask DINO 在低於十億參數的模型中，於三項任務上皆創下最先進成績：COCO 實例分割 54.5 AP、COCO 全景分割 59.4 PQ、ADE20K 語意分割 60.8 mIoU。能夠將大規模偵測預訓練的優勢轉移至分割，是先前專門化分割模型無法利用的獨特優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面展示——覆蓋語意分割與大規模設定，完成三任務的全面驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成了實驗的最後一塊拼圖。三個任務、多個骨幹、多個資料集的全面勝出，構成了不可忽視的實證矩陣。「偵測預訓練轉移至分割」更是統一框架的獨特殺手級功能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「低於十億參數」的限定條件排除了更大模型的競爭。Objects365 預訓練的引入使得公平比較更加困難——Mask2Former 未使用此預訓練資料，因此部分性能差距可能來自資料規模而非架構優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.2 消融研究 ====== -->
+    <h2 class="section-heading" id="sec-ablation">4.2 Ablation Studies — 消融研究</h2>
+
+    <!-- 消融段落 1：組件有效性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Comprehensive ablation studies validate each component's contribution. <span class="hl-evidence">Removing all three proposed components (unified query selection, unified denoising, and hybrid matching) reduces detection AP by 4.0 points and mask AP by 2.7 points</span>. Individually, <span class="hl-evidence">query selection provides the most substantial gains</span>: the encoder-based initialization enables <span class="hl-evidence">39.6 AP mask predictions at decoder layer 0</span>, compared to <span class="hl-evidence">merely 1.1 AP from Mask2Former's random initialization</span>. By decoder layer 3, Mask DINO already achieves <span class="hl-evidence">44.0 AP, which is competitive with Mask2Former's final performance</span>. The <span class="hl-method">multi-scale feature design</span> also proves important: single-scale features yield <span class="hl-evidence">45.8 AP boxes and 45.1 AP masks</span>, while four-scale features improve to <span class="hl-evidence">50.5 AP boxes and 46.0 AP masks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                全面的消融研究驗證了每個組件的貢獻。移除所有三個提出的組件（統一查詢選擇、統一去噪、混合匹配）導致偵測 AP 下降 4.0 個百分點、遮罩 AP 下降 2.7 個百分點。就個別組件而言，查詢選擇提供最大的增益：基於編碼器的初始化在解碼器第 0 層即能達到 39.6 AP 遮罩預測，相較之下 Mask2Former 的隨機初始化僅有 1.1 AP。到解碼器第 3 層時，Mask DINO 已達到 44.0 AP，與 Mask2Former 的最終效能相當。多尺度特徵設計同樣重要：單尺度特徵產生 45.8 AP 框與 45.1 AP 遮罩，而四尺度特徵提升至 50.5 AP 框與 46.0 AP 遮罩。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統性驗證——以消融實驗量化每個組件的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究是方法論文的信服力保證。逐步移除組件並觀察效能下降，證明每個設計都是必要的而非冗餘的。39.6 vs 1.1 AP 的第 0 層對比更是全文最具衝擊力的數據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融設計全面且系統，但作者選擇以「逐步移除」而非「逐步加入」的方式呈現，可能遮蔽了組件之間的交互效應。若某兩個組件存在高度冗餘，逐步移除可能掩蓋此事實。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 2：任務協作 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key ablation examines <span class="hl-concept">task cooperation</span> between detection and segmentation. <span class="hl-evidence">Detection-only training yields 50.1 AP on boxes</span>; <span class="hl-evidence">segmentation-only training yields 43.3 AP on masks</span>. When <span class="hl-evidence">jointly trained, detection improves to 50.5 AP (+0.4) and segmentation improves to a much larger extent</span>, confirming the <span class="hl-thesis">asymmetric but genuine mutual benefit between the two tasks</span>. The detection task provides strong localization priors that benefit segmentation, while segmentation provides fine-grained spatial information that moderately improves detection. This experiment directly answers the paper's motivating question: <span class="hl-thesis">with proper architectural alignment, detection and segmentation not only avoid interference but actively cooperate</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項關鍵的消融研究檢視偵測與分割之間的任務協作。僅偵測訓練產出框 50.1 AP；僅分割訓練產出遮罩 43.3 AP。聯合訓練時，偵測提升至 50.5 AP（+0.4），而分割的提升幅度更大，確認了兩項任務之間不對稱但真實的互利關係。偵測任務提供強力的定位先驗以利分割，而分割提供細粒度的空間資訊以適度改善偵測。此實驗直接回答了論文的核心問題：在適當的架構對齊下，偵測與分割不僅避免了干擾，還能主動協作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    回答核心問題——以實驗直接驗證偵測與分割能否互利。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的收束點，將緒論提出的兩個問題以實驗數據回答。「不對稱但真實的互利」是一個誠實且精準的結論，避免了過度宣稱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    承認互利的「不對稱性」是高度誠實的學術態度，增加了讀者的信任。但偵測僅提升 +0.4 AP 的幅度在統計上可能不夠顯著，需要多次隨機種子實驗來確認此增益的穩定性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 3：多解碼器層的效益 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Further analysis across <span class="hl-method">decoder layers</span> reveals the progressive refinement behavior. With unified query selection, <span class="hl-evidence">mask AP improves from 39.6 at layer 0 to 44.0 at layer 3 and reaches peak performance at layer 5</span>. Similarly, <span class="hl-evidence">detection AP progresses from moderate to strong across layers</span>, confirming that <span class="hl-thesis">both tasks benefit from the iterative refinement mechanism of the Transformer decoder</span>. The multi-decoder layer design in Mask DINO proves especially important for aligning box and mask predictions: early layers can leverage mask-enhanced initialization for better box anchors, while later layers fine-tune both predictions jointly.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                跨解碼器層的進一步分析揭示了漸進式精煉行為。搭配統一查詢選擇，遮罩 AP 從第 0 層的 39.6 逐步提升至第 3 層的 44.0，並在第 5 層達到峰值。偵測 AP 同樣跨層逐步增強，確認兩項任務皆受益於 Transformer 解碼器的迭代精煉機制。Mask DINO 的多解碼器層設計對於對齊框與遮罩預測尤為重要：早期層級可利用遮罩增強初始化以獲得更佳的錨框，而後期層級則聯合微調兩項預測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深入分析——展示跨解碼器層級的漸進式改善，驗證迭代精煉的效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為方法提供了更深層的機制性理解，超越了純粹的數字比較。逐層分析展示了 Mask DINO 內部工作流程的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    逐層分析使方法論的理解更加立體，避免了「黑箱」批評。但作者未討論是否存在過擬合風險——當解碼器層數增加時，訓練成本與過擬合的取捨需要更細緻的分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <!-- 結論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Mask DINO</span> presents <span class="hl-thesis">a unified Transformer-based framework that demonstrates detection and segmentation can achieve mutual benefit through careful architectural design</span>. By extending <span class="hl-concept">DINO</span> with <span class="hl-method">a mask prediction branch, unified query selection, unified denoising training, and hybrid bipartite matching</span>, the framework achieves <span class="hl-evidence">state-of-the-art results across all three segmentation tasks (instance, panoptic, and semantic) among sub-billion parameter models</span>. The results demonstrate that a unified model can <span class="hl-thesis">outperform specialized models on their respective tasks</span>, challenging the conventional wisdom that task-specific architectures are necessary for peak performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Mask DINO 提出了一個統一的 Transformer 框架，證明偵測與分割透過精心的架構設計能夠實現互利。藉由以遮罩預測分支、統一查詢選擇、統一去噪訓練與混合二分匹配擴展 DINO，該框架在低於十億參數的模型中，於三項分割任務（實例、全景、語意）上皆達到最先進成果。結果證明統一模型能夠在各自任務上超越專門化模型，挑戰了「任務特定架構是達到最佳效能之必要條件」的傳統觀念。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結核心貢獻——重申方法、成果與對既有觀念的挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的第一段呼應摘要結構，從方法到成果再到啟示。「挑戰傳統觀念」的措辭提升了論文的影響力宣稱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「挑戰傳統觀念」是有力的總結性修辭。但需謹慎——Mask DINO 在偵測上的改善幅度較小（+0.4 到 +0.8 AP），是否足以宣稱「統一優於專門化」尚有討論空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：展望 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A particularly significant implication is that <span class="hl-thesis">the unified framework enables segmentation models to benefit from large-scale detection pre-training datasets such as Objects365</span>, a capability that <span class="hl-rebuttal">previous specialized segmentation architectures could not leverage</span>. This opens new avenues for <span class="hl-thesis">scaling segmentation performance through detection data</span>, which is typically more abundant and cheaper to annotate than pixel-level segmentation labels. The framework's design philosophy — <span class="hl-thesis">aligning task representations from initialization through training to matching — provides a template for unifying other complementary vision tasks</span> in the future.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項特別重要的啟示是：統一框架使分割模型能夠從大規模偵測預訓練資料集（如 Objects365）中獲益，這是先前專門化分割架構無法利用的能力。這開啟了透過偵測資料擴展分割效能的新途徑，而偵測資料通常比像素級分割標註更為豐富且標註成本更低。該框架的設計哲學——從初始化、訓練到匹配全程對齊任務表示——為未來統一其他互補性視覺任務提供了一個範本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望未來——指出統一框架的長遠影響與可擴展性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的收尾段從具體成果躍升至宏觀啟示。「偵測資料助力分割」是一個極具實用價值的觀點，因為偵測標註的成本遠低於分割標註。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論的展望適度而具有遠見，避免了過度宣稱。但作者未討論方法的局限性——如對小物件的分割效能、推論速度與記憶體開銷、以及在更多樣化場景（如醫學影像或遙感影像）中的泛化能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                偵測與分割的最優模型<br>仍然分離且無法協作
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                透過統一查詢、去噪<br>與混合匹配實現互利
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                三項分割任務皆為<br>低十億參數最佳成績
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                樸素統一會互害<br>需精心架構對齊
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                統一框架超越專門化<br>偵測預訓練可遷移分割
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過統一查詢選擇、統一去噪訓練與混合二分匹配三項關鍵設計，將 DINO 偵測器擴展為同時處理偵測與所有分割任務的統一框架，使兩類任務從初始化到訓練全程對齊並實現互利，在低於十億參數的模型中於三項分割基準上達到最先進成績。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>遮罩增強錨框初始化的互利循環：</strong>「遮罩預測在早期比框預測更準確」的洞察，催生了遮罩→框→遮罩的良性循環設計。消融實驗中第 0 層 39.6 vs 1.1 AP 的驚人對比，以及同時超越 DINO（偵測）和 Mask2Former（分割）兩個各自領域最優模型的結果，構成了全文最具說服力的實證。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>互利的不對稱性與公平比較的困難：</strong>偵測 AP 的提升幅度（+0.4 至 +0.8）遠小於分割（+2.2 至 +2.6），暗示互利關係並非對稱——分割從偵測中獲益遠大於偵測從分割中獲益。此外，大規模結果（54.5 AP 等）使用了 Objects365 預訓練資料，而基線模型未使用，使得架構優勢與資料規模優勢難以區分。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternImage: Exploring Large-Scale Vision Foundation Models with Deformable Convolutions — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                InternImage: Exploring Large-Scale Vision Foundation Models with Deformable Convolutions
+                <span class="course-tag">CVPR 2023</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2211.05778" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-dcnv3">3.1 DCNv3</a>
+        <a href="#sec-model">3.2 模型架構</a>
+        <a href="#sec-stacking">3.3 堆疊規則</a>
+        <a href="#sec-scaling">3.4 縮放規則</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.4 消融研究</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Compared to the rapid development of <span class="hl-concept">large-scale vision transformers (ViTs)</span> in recent years, <span class="hl-rebuttal">large-scale models based on CNNs have not been thoroughly explored</span>. This work presents <span class="hl-concept">InternImage</span>, a new <span class="hl-thesis">large-scale CNN-based foundation model</span> that can obtain comparable or even better performance than current state-of-the-art ViTs. Different from recent CNNs that adopt <span class="hl-rebuttal">large dense kernels</span>, InternImage takes <span class="hl-concept">deformable convolution</span> as the core operator, so that the model not only has the large <span class="hl-method">effective receptive field</span> required for downstream tasks such as detection and segmentation, but also has <span class="hl-method">adaptive spatial aggregation conditioned by input and task information</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                相較於近年來大規模視覺 Transformer（ViT）的快速發展，基於 CNN 的大規模模型尚未被充分探索。本研究提出 InternImage，一個新的大規模 CNN 基礎模型，能夠獲得與當前最先進的 ViT 相當甚至更優的效能。與近期採用大型密集核的 CNN 不同，InternImage 以可變形摺積作為核心運算子，使模型不僅擁有下游任務（如偵測與分割）所需的大有效感受野，還具備根據輸入與任務資訊進行自適應空間聚合的能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文定位——從大型視覺模型的研究缺口切入，點明 CNN 基礎模型被忽視的現狀，並引出 InternImage 的核心定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要前半以「ViT 蓬勃 vs. CNN 滯後」的對比建立研究動機，再以「可變形摺積取代密集大核」劃清與同期 CNN 改良工作的區別，一句話完成「問題-方案」的雙重陳述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 ViT 的成功作為正面對照來論證 CNN 的潛力，修辭上巧妙地將「劣勢」轉化為「未被開發的機會」。但「可變形摺積」與「大型密集核」之間的優劣比較需要後續章節的實驗支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Starting from InternImage, the authors explore how to design and train <span class="hl-thesis">CNN-based foundation models at a large scale</span>. By customizing a series of <span class="hl-method">block-level, stage-level, and model-level designs</span>, together with a tailored <span class="hl-method">large-scale training strategy</span>, InternImage is successfully scaled to <span class="hl-evidence">over 1 billion parameters and trained on 427 million images</span>. It achieves <span class="hl-evidence">65.4 mAP on COCO test-dev</span> and <span class="hl-evidence">62.9 mIoU on ADE20K</span>, outperforming current leading CNNs and ViTs on these benchmarks. The code and models are available at <span class="hl-concept">github.com/OpenGVLab/InternImage</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                以 InternImage 為起點，作者探索如何在大規模下設計與訓練基於 CNN 的基礎模型。透過客製化一系列區塊層級、階段層級與模型層級的設計，配合量身打造的大規模訓練策略，InternImage 成功擴展至超過十億個參數，並在四億兩千七百萬張影像上進行訓練。它在 COCO test-dev 上達到 65.4 mAP，在 ADE20K 上達到 62.9 mIoU，超越了當前領先的 CNN 與 ViT。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    量化宣示——以具體的參數規模與基準數字佐證核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要後半承擔「實證預告」功能：十億參數與多項 SOTA 結果預先建立讀者對方法有效性的信心，為後續詳細論述提供期望框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇報告 COCO 與 ADE20K 兩項高難度密集預測任務的成績，而非僅報告 ImageNet 分類，暗示 InternImage 在需要大感受野的任務上具有特殊優勢。但摘要未提及 ImageNet 上與 ViT-G 等最大模型的差距（約 0.9%），留待讀者自行發現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：問題陳述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since the introduction of <span class="hl-concept">AlexNet</span>, convolutional neural networks have been the de facto standard for visual recognition. However, the emergence of <span class="hl-concept">Vision Transformers (ViTs)</span> has shifted the paradigm significantly. Models like <span class="hl-concept">ViT</span>, <span class="hl-concept">Swin Transformer</span>, and their scaled variants have demonstrated remarkable performance on a wide range of vision benchmarks. A natural question arises: <span class="hl-thesis">Can CNN-based foundation models also achieve comparable or even better performance than ViTs when equipped with similar operator-level and architecture-level designs?</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自 AlexNet 問世以來，摺積神經網路一直是視覺辨識的事實標準。然而，視覺 Transformer（ViT）的出現顯著改變了這一典範。ViT、Swin Transformer 及其擴展變體在各種視覺基準上展現了卓越的效能。一個自然的問題隨之浮現：當配備類似的運算子層級與架構層級設計時，基於 CNN 的基礎模型是否也能達到與 ViT 相當甚至更優的效能？
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——以歷史脈絡鋪陳 CNN 到 ViT 的典範轉移，並以反問句引出核心研究問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先確立 CNN 的歷史地位，再指出 ViT 的挑戰，最終以疑問句形式提出研究假設，引導讀者進入作者的論證框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以反問句（「能否...？」）代替直接聲明，降低了論點的侵略性，同時激發讀者的好奇心。但此問題隱含一個前提假設：CNN 與 ViT 的差異可被歸結為「運算子層級與架構層級設計」，而非更根本的數學結構差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：缺口分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To answer this question, the authors first identify two key differences between the core operators of modern CNNs and ViTs. First, <span class="hl-concept">multi-head self-attention (MHSA)</span> provides <span class="hl-concept">long-range dependencies</span> and <span class="hl-concept">adaptive spatial aggregation</span>, whereas standard convolutions have <span class="hl-rebuttal">limited and static receptive fields</span>. Second, ViTs benefit from <span class="hl-concept">advanced architectural components</span> such as <span class="hl-method">Layer Normalization, Feed-Forward Networks (FFN), and GELU activation</span>, which are <span class="hl-rebuttal">absent in traditional CNN designs</span>. Previous attempts to bridge this gap using <span class="hl-rebuttal">very large kernels (e.g., 31x31)</span> still <span class="hl-rebuttal">lag behind state-of-the-art ViTs</span> and introduce <span class="hl-rebuttal">optimization difficulties</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為回答此問題，作者首先辨識出現代 CNN 與 ViT 核心運算子之間的兩個關鍵差異。其一，多頭自注意力機制（MHSA）提供了長程相依性與自適應空間聚合，而標準摺積則具有有限且固定的感受野。其二，ViT 受益於進階的架構元件，例如層歸一化、前饋網路（FFN）和 GELU 啟動函數，這些在傳統 CNN 設計中付之闕如。先前試圖以超大核（如 31x31）彌合此差距的嘗試，仍然落後於最先進的 ViT，且引入了最佳化困難。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    差距剖析——系統化地列舉 CNN 與 ViT 的核心差異，並批評既有彌合策略的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段承擔「問題診斷」的關鍵功能：將模糊的「CNN 不如 ViT」分解為兩個可操作的技術維度（運算子特性與架構元件），為後續方案設計提供精確的改進方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題拆解為「運算子」與「架構」兩個獨立維度，使解決方案看起來既完整又可行。但暗示大核方法（如 RepLKNet、SLaK）效果不佳時，未充分考量這些方法在某些特定任務上的優勢，可能過度簡化了競爭格局。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：提出解決方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, the authors propose a different approach. Instead of using large dense kernels, they adopt <span class="hl-concept">deformable convolution v3 (DCNv3)</span> as the core operator, which uses <span class="hl-method">3x3 convolution kernels with learnable sampling offsets</span>. This design provides three key advantages: (1) <span class="hl-thesis">flexible receptive fields that can be either short-range or long-range depending on the learned offsets</span>; (2) <span class="hl-thesis">input-adaptive spatial aggregation similar to MHSA</span>; and (3) <span class="hl-thesis">avoidance of the optimization problems inherent in dense large kernels</span>. Combined with <span class="hl-method">transformer-inspired architectural components</span> and customized <span class="hl-method">stacking and scaling rules</span>, InternImage becomes the <span class="hl-evidence">first CNN-based model effectively scaled to over 1 billion parameters</span> while matching ViT-level performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究提出一條不同的路徑。作者不使用大型密集核，而是採用可變形摺積 v3（DCNv3）作為核心運算子，使用帶有可學習取樣偏移的 3x3 摺積核。此設計提供三項關鍵優勢：(1) 靈活的感受野——根據學習到的偏移量可為短程或長程；(2) 類似 MHSA 的輸入自適應空間聚合；(3) 避免密集大核固有的最佳化問題。結合受 Transformer 啟發的架構元件以及客製化的堆疊與縮放規則，InternImage 成為首個成功擴展至超過十億參數且達到 ViT 水準效能的 CNN 基礎模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——完整概述 InternImage 的技術核心與三大優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題診斷，此段實現「轉折」：從「為何現有 CNN 不夠好」過渡到「InternImage 如何回應」。三項優勢精確對應上段提出的兩個差異維度，形成嚴密的邏輯閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以編號列表清晰呈現三項優勢，增強記憶性與說服力。「首個超過十億參數的 CNN」是一個強有力的歷史性宣稱，但其意義取決於效能是否真正匹配 ViT——若 ImageNet 上仍有 0.9% 的差距，「匹配 ViT 水準」的說法需要更精細的限定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：視覺基礎模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Vision foundation models</span> have evolved from <span class="hl-concept">AlexNet</span> through a long line of CNN architectures including <span class="hl-concept">VGGNet, GoogLeNet, ResNet, DenseNet, and EfficientNet</span>. These models progressively improved accuracy and efficiency through innovations in <span class="hl-method">depth, width, connectivity patterns, and neural architecture search</span>. More recently, <span class="hl-concept">Vision Transformers (ViT)</span> and their hierarchical variants such as <span class="hl-concept">Swin Transformer, PVT, and CSWin</span> have introduced <span class="hl-concept">self-attention mechanisms</span> that provide <span class="hl-method">global receptive fields and dynamic weight computation</span>. This has sparked renewed interest in modernizing CNN architectures by borrowing techniques from ViTs, as seen in works like <span class="hl-concept">ConvNeXt</span> that systematically incorporate <span class="hl-method">transformer-inspired design choices</span> into pure convolutional networks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺基礎模型從 AlexNet 歷經一長串 CNN 架構的演進，包括 VGGNet、GoogLeNet、ResNet、DenseNet 及 EfficientNet。這些模型透過深度、寬度、連接模式與神經架構搜尋等創新，逐步提升了精確度與效率。近期，視覺 Transformer（ViT）及其階層式變體（如 Swin Transformer、PVT、CSWin）引入了自注意力機制，提供全域感受野與動態權重計算。這也激發了借鏡 ViT 技術來現代化 CNN 架構的研究興趣，例如 ConvNeXt 系統性地將受 Transformer 啟發的設計選擇融入純摺積網路。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——以歷史脈絡串聯 CNN 與 ViT 兩大陣營的演進軌跡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立完整的學術譜系：傳統 CNN -> ViT -> 現代化 CNN（如 ConvNeXt），為 InternImage 在這條演進線上的定位提供脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以線性演進敘事覆蓋大量相關工作，既展現了學術嚴謹性，又暗示 InternImage 是此演進的最新產物。但將 ConvNeXt 等工作僅歸為「借鏡 ViT」可能簡化了其原創性貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：大規模模型與大核 CNN -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The success of <span class="hl-concept">large-scale pre-training</span> in NLP has inspired similar efforts in computer vision. <span class="hl-evidence">Zhai et al. extended ViT to 2 billion parameters</span>, and <span class="hl-evidence">Liu et al. developed 3 billion parameter Swin variants</span>, demonstrating that <span class="hl-thesis">model scaling is a crucial factor for achieving state-of-the-art performance</span>. However, <span class="hl-rebuttal">CNN-based large-scale models have significantly lagged behind transformer variants</span> in both parameter count and downstream performance. Recent attempts to improve CNNs through <span class="hl-concept">large kernel designs</span> — such as <span class="hl-concept">RepLKNet</span> with 31x31 kernels and <span class="hl-concept">SLaK</span> with up to 51x51 kernels — have narrowed the gap but <span class="hl-rebuttal">still fall short of the best ViTs</span> and require <span class="hl-rebuttal">specialized re-parameterization techniques</span> to stabilize training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                NLP 領域大規模預訓練的成功啟發了電腦視覺的類似努力。Zhai 等人將 ViT 擴展至二十億參數，Liu 等人開發了三十億參數的 Swin 變體，證明模型縮放是達到最先進效能的關鍵因素。然而，基於 CNN 的大規模模型在參數量與下游效能上均顯著落後於 Transformer 變體。近期透過大核設計改進 CNN 的嘗試——如 RepLKNet 採用 31x31 核、SLaK 採用高達 51x51 核——雖縮小了差距，但仍不及最佳 ViT，且需要特殊的重參數化技術以穩定訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    競爭分析——指出大規模 CNN 的缺席與大核方案的侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在相關工作中扮演「收束」角色：從廣泛的模型演進聚焦到「大規模 CNN 的空白」，直接為 InternImage 的研究貢獻定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉 RepLKNet 與 SLaK 的具體核大小（31x31、51x51），以數字的直觀衝擊暗示「密集大核路線」的笨拙感，為可變形摺積的「稀疏 3x3」設計提供反襯。但大核方法的優勢在於實作簡單、硬體友善，此處未予公平呈現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：可變形摺積的演進 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Deformable convolution</span> was first introduced by Dai et al. as <span class="hl-concept">DCNv1</span>, which augments the standard convolution grid with <span class="hl-method">2D learnable offsets</span>, allowing each sampling point to shift from its regular position. <span class="hl-concept">DCNv2</span> further introduced <span class="hl-method">modulation scalars</span> that re-weight the contribution of each sampling point. While these operators have proven effective as <span class="hl-rebuttal">plug-in modules in detection and segmentation backbones</span>, they have <span class="hl-rebuttal">not been explored as the core building block for designing large-scale foundation models</span>. This paper bridges this gap by <span class="hl-thesis">extending DCNv2 into DCNv3 with modifications tailored for foundation model design</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                可變形摺積最初由 Dai 等人以 DCNv1 的形式提出，透過二維可學習偏移來擴充標準摺積網格，允許每個取樣點偏離其常規位置。DCNv2 進一步引入了調變純量，重新加權每個取樣點的貢獻。儘管這些運算子已被證明是偵測與分割骨幹網路中有效的外掛模組，但它們尚未被探索作為設計大規模基礎模型的核心建構單元。本文透過將 DCNv2 擴展為 DCNv3——加入針對基礎模型設計量身打造的修改——來彌合此缺口。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術溯源——追蹤可變形摺積從 v1 到 v2 的演進，並指出其作為基礎模型核心元件的未開發潛力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了「DCNv1 -> DCNv2 -> DCNv3（本文）」的技術譜系，使 InternImage 的核心創新看起來是自然且漸進的學術延伸，而非突兀的跳躍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將先前的 DCN 定位為「外掛模組」而非「核心建構單元」，精準地劃分了本文的貢獻邊界。但「未被探索作為核心建構單元」的說法需考量是否有其他研究已進行類似嘗試——若有，則此創新性宣稱需要調整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 DCNv3 ====== -->
+    <h2 class="section-heading" id="sec-dcnv3">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Deformable Convolution v3 (DCNv3)</h3>
+
+    <!-- DCNv3 段落 1：摺積與 MHSA 的比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors begin by analyzing the limitations of <span class="hl-concept">standard convolution</span> compared to <span class="hl-concept">multi-head self-attention (MHSA)</span>. Standard convolution suffers from two critical shortcomings: (1) the <span class="hl-rebuttal">effective receptive field remains relatively small</span> despite increasing network depth, constrained by the <span class="hl-method">fixed kernel size (typically 3x3 or 5x5)</span>; and (2) <span class="hl-rebuttal">static convolution weights</span> impose strong inductive biases — specifically <span class="hl-concept">2D locality</span> and <span class="hl-concept">translation equivalence</span> — which <span class="hl-rebuttal">restrict the model's ability to learn from web-scale diverse data</span>. In contrast, MHSA computes <span class="hl-method">dynamic attention weights conditioned on input features</span>, enabling both long-range dependencies and adaptive spatial aggregation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者首先分析標準摺積相較於多頭自注意力機制（MHSA）的侷限。標準摺積存在兩項關鍵缺陷：(1) 有效感受野即使隨著網路深度增加仍保持相對較小，受限於固定的核大小（通常為 3x3 或 5x5）；(2) 靜態摺積權重施加了強歸納偏置——具體而言是二維局部性與平移等變性——限制了模型從網路規模的多樣化資料中學習的能力。相較之下，MHSA 計算以輸入特徵為條件的動態注意力權重，同時實現長程相依性與自適應空間聚合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題診斷——以結構化方式解剖標準摺積的核心弱點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為 DCNv3 的設計提供理論動機：每一項 MHSA 的優勢對應一項摺積的弱點，後續的 DCNv3 修改必須逐一回應這些弱點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將歸納偏置定性為「限制」而非「優勢」是一個策略性的框架選擇。在小資料集場景下，CNN 的歸納偏置實際上是優勢；作者的論述僅在「網路規模資料」的前提下成立，但此前提假設未被明確限定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DCNv3 段落 2：回顧 DCNv2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recall that <span class="hl-concept">DCNv2</span> computes its output as: <span class="hl-method">y(p<sub>0</sub>) = &Sigma;<sub>k=1</sub><sup>K</sup> w<sub>k</sub> m<sub>k</sub> x(p<sub>0</sub> + p<sub>k</sub> + &Delta;p<sub>k</sub>)</span>, where <span class="hl-method">p<sub>k</sub></span> denotes regular grid sampling locations, <span class="hl-method">&Delta;p<sub>k</sub></span> are learnable offsets, and <span class="hl-method">m<sub>k</sub></span> are modulation scalars. DCNv2 already shares favorable properties with MHSA: the <span class="hl-thesis">learnable offsets enable variable-length receptive fields</span>, and the <span class="hl-thesis">input-conditioned modulation provides adaptive spatial aggregation</span>. However, DCNv2 has several design choices that <span class="hl-rebuttal">hinder its scalability to large-scale models</span>: location-specific convolution weights, single-group operation, and element-wise sigmoid normalization of modulation scalars.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                回顧 DCNv2 的輸出計算公式：y(p<sub>0</sub>) = &Sigma;<sub>k=1</sub><sup>K</sup> w<sub>k</sub> m<sub>k</sub> x(p<sub>0</sub> + p<sub>k</sub> + &Delta;p<sub>k</sub>)，其中 p<sub>k</sub> 為常規網格取樣位置，&Delta;p<sub>k</sub> 為可學習偏移量，m<sub>k</sub> 為調變純量。DCNv2 已具備與 MHSA 共通的有利特性：可學習偏移量實現了可變長度的感受野，而以輸入為條件的調變則提供了自適應空間聚合。然而，DCNv2 有若干設計選擇妨礙其擴展至大規模模型：位置特定的摺積權重、單一群組運作，以及調變純量的逐元素 sigmoid 歸一化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術基礎——回顧 DCNv2 公式，並辨識其可擴展性瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段扮演「承上啟下」的關鍵角色：先肯定 DCNv2 已具備的優良特性（與 MHSA 的相似性），再精確列出三項需要修改的設計缺陷，為 DCNv3 的三項改進提供一對一的銜接。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以數學公式建立嚴謹的技術基礎，同時以「妨礙擴展性」的措辭將 DCNv2 的設計選擇定性為「問題」而非「取捨」。但位置特定權重在小模型中可能帶來更好的表達能力，此處未予討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DCNv3 段落 3：三項關鍵修改 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                DCNv3 introduces three critical modifications. <strong>First, weight sharing among convolutional neurons:</strong> the original DCNv2 maintains <span class="hl-rebuttal">location-specific weights for each sampling point</span>, making parameter count grow linearly with the number of sampling points. DCNv3 <span class="hl-method">decomposes this into depth-wise components (handling spatial modulation) and point-wise shared projections</span>, dramatically reducing parameters. <strong>Second, the multi-group mechanism:</strong> inspired by <span class="hl-concept">group convolution</span> and <span class="hl-concept">multi-head attention</span>, DCNv3 <span class="hl-method">splits spatial aggregation into G groups, each with individual sampling offsets &Delta;p<sub>mk</sub> and modulation scalars m<sub>mk</sub></span>, enabling different groups to learn <span class="hl-thesis">diverse spatial aggregation patterns from different representation subspaces</span>. <strong>Third, softmax normalization:</strong> replacing the original <span class="hl-rebuttal">element-wise sigmoid (which produces unstable output range [0, K])</span> with <span class="hl-method">softmax normalization along the K sampling points</span>, constraining the sum to 1 and <span class="hl-thesis">stabilizing gradient flow in large-scale training</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DCNv3 引入三項關鍵修改。第一，摺積神經元間的權重共享：原始 DCNv2 為每個取樣點維護位置特定的權重，使參數量隨取樣點數量線性增長。DCNv3 將此分解為深度方向元件（處理空間調變）與逐點共享投影，大幅降低參數量。第二，多群組機制：受群組摺積與多頭注意力啟發，DCNv3 將空間聚合分割為 G 個群組，每組具有獨立的取樣偏移 &Delta;p<sub>mk</sub> 與調變純量 m<sub>mk</sub>，使不同群組能從不同的表示子空間中學習多樣化的空間聚合模式。第三，softmax 歸一化：以沿 K 個取樣點的 softmax 歸一化取代原始的逐元素 sigmoid（其產生不穩定的輸出範圍 [0, K]），將總和約束為 1，穩定大規模訓練中的梯度流動。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術創新——逐一描述 DCNv3 的三項改進及其設計動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    全文的技術核心。三項修改分別回應前段列出的三個 DCNv2 缺陷，形成完美的「問題-解決方案」對應關係，使論證邏輯無懈可擊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「第一、第二、第三」的編號結構增強清晰度。每項修改都有明確的「問題描述 -> 解決方案 -> 效益」邏輯。但三項修改是否存在交互作用（例如權重共享可能降低多群組的表達能力）未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DCNv3 段落 4：DCNv3 最終公式 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The resulting <span class="hl-concept">DCNv3 operator</span> is formulated as: <span class="hl-method">y(p<sub>0</sub>) = &Sigma;<sub>g=1</sub><sup>G</sup> &Sigma;<sub>k=1</sub><sup>K</sup> w<sub>g</sub> m<sub>gk</sub> x<sub>g</sub>(p<sub>0</sub> + p<sub>k</sub> + &Delta;p<sub>gk</sub>)</span>, where G denotes the number of aggregation groups, K is the number of sampling points per group, <span class="hl-method">w<sub>g</sub> &isin; R<sup>C&times;C'</sup></span> is the group-wise projection weight with <span class="hl-method">C' = C/G</span>, and the modulation scalars m<sub>gk</sub> are normalized via softmax. Compared to MHSA, DCNv3 is more efficient because it uses <span class="hl-evidence">sparse sampling (K=9 for 3x3 kernel) rather than attending to all spatial locations</span>, while still achieving <span class="hl-thesis">adaptive spatial aggregation through the learned offsets and modulation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最終的 DCNv3 運算子公式為：y(p<sub>0</sub>) = &Sigma;<sub>g=1</sub><sup>G</sup> &Sigma;<sub>k=1</sub><sup>K</sup> w<sub>g</sub> m<sub>gk</sub> x<sub>g</sub>(p<sub>0</sub> + p<sub>k</sub> + &Delta;p<sub>gk</sub>)，其中 G 為聚合群組數量，K 為每組的取樣點數，w<sub>g</sub> &isin; R<sup>C&times;C'</sup> 為群組投影權重（C' = C/G），調變純量 m<sub>gk</sub> 透過 softmax 進行歸一化。相較於 MHSA，DCNv3 更具效率，因為它使用稀疏取樣（3x3 核對應 K=9）而非注意所有空間位置，同時仍透過學習到的偏移量與調變實現自適應空間聚合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學嚴格化——給出 DCNv3 的完整公式，並與 MHSA 進行效率比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成了 DCNv3 的技術規格定義，同時以「稀疏取樣 vs. 全域注意力」的對比，將 DCNv3 定位在 MHSA 與標準摺積之間的「甜蜜點」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以數學公式建立權威感，同時以效率比較回應可能的「為何不直接用 MHSA」質疑。但稀疏取樣的 K=9 與全域注意力的 HW 個 token 之間的效率差距，在高解析度輸入時最為顯著，作者可更明確量化此優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 InternImage 模型 ====== -->
+    <h3 class="subsection-heading" id="sec-model">3.2 InternImage Model — 模型架構</h3>
+
+    <!-- 模型架構段落 1：基本區塊設計 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">basic block</span> of InternImage departs from the traditional <span class="hl-concept">bottleneck design</span> used in ResNet and instead adopts a <span class="hl-method">transformer-like structure</span>. Each block consists of <span class="hl-method">DCNv3 as the core operator</span>, preceded by <span class="hl-method">Layer Normalization (LN)</span> and followed by a <span class="hl-method">Feed-Forward Network (FFN)</span> with <span class="hl-method">GELU activation</span>. The <span class="hl-method">sampling offsets and modulation scales are predicted via separable convolution from input features</span>. This design combines the <span class="hl-thesis">spatial modeling strength of deformable convolution with the training stability and representation capacity of transformer-style components</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                InternImage 的基本區塊脫離了 ResNet 使用的傳統瓶頸設計，轉而採用類 Transformer 結構。每個區塊以 DCNv3 作為核心運算子，前置層歸一化（LN），後接具有 GELU 啟動函數的前饋網路（FFN）。取樣偏移量與調變尺度透過可分離摺積從輸入特徵中預測。此設計結合了可變形摺積的空間建模強度與 Transformer 風格元件的訓練穩定性及表示能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構設計——描述 InternImage 基本區塊的組成與設計哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應緒論中提出的第二個差異（「ViT 的進階架構元件」）：透過整合 LN、FFN、GELU 等 Transformer 元件，直接消弭 CNN 與 ViT 在架構層級的差距。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「類 Transformer 結構」的措辭暗示 InternImage 汲取了兩個世界的精華。但這也引發一個根本問題：當 CNN 採用了大量 Transformer 元件後，其「CNN」的身分認定是否仍然明確？核心差異僅剩 DCNv3 vs. MHSA。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模型架構段落 2：莖幹與下採樣 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">stem layer</span> consists of <span class="hl-method">two 3x3 convolutions with stride 2 and padding 1</span>, flanked by Layer Normalization and GELU activations, which <span class="hl-method">reduce the input resolution by 4x</span> before the first stage. Between consecutive stages, <span class="hl-concept">downsampling layers</span> employ a <span class="hl-method">single 3x3 convolution with stride 2 and padding 1</span> followed by Layer Normalization, providing a <span class="hl-method">2x spatial reduction</span>. The overall architecture follows the <span class="hl-concept">four-stage hierarchical design</span> common to both modern CNNs and ViTs, producing feature maps at <span class="hl-evidence">1/4, 1/8, 1/16, and 1/32 of the input resolution</span>, which are compatible with standard downstream task heads such as <span class="hl-concept">FPN</span> and <span class="hl-concept">UperNet</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                莖幹層由兩個步幅為 2、填充為 1 的 3x3 摺積組成，搭配層歸一化與 GELU 啟動函數，在進入第一階段前將輸入解析度降低四倍。相鄰階段之間的下採樣層使用一個步幅為 2、填充為 1 的 3x3 摺積加上層歸一化，提供二倍的空間縮減。整體架構遵循現代 CNN 與 ViT 通用的四階段階層式設計，產生輸入解析度 1/4、1/8、1/16 和 1/32 的特徵圖，相容於 FPN 和 UperNet 等標準下游任務頭。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    工程細節——描述莖幹、下採樣與整體階層結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段確保 InternImage 與現有生態系統的相容性：四階段設計與標準解析度比例使其能無縫接入現有的偵測與分割框架，降低了採用門檻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調與 FPN、UperNet 的相容性是務實的工程考量，展現了作者對實際部署的重視。四階段設計雖為業界標準，但可能限制了架構搜尋的自由度——是否存在更適合 DCNv3 的非標準階層結構，值得探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 堆疊規則 ====== -->
+    <h3 class="subsection-heading" id="sec-stacking">3.3 Stacking Rules — 堆疊規則</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To reduce the <span class="hl-rebuttal">vast hyperparameter space</span> when designing model variants, the authors propose <span class="hl-method">four stacking rules</span> that constrain the architecture. <strong>Rule 1:</strong> <span class="hl-method">the channel dimensions of stages 2, 3, and 4 are determined by the first stage channel C<sub>1</sub></span> through fixed scaling factors (2x, 4x, 8x). <strong>Rule 2:</strong> <span class="hl-method">group numbers in each stage correspond to their channel configurations</span>. <strong>Rules 3 and 4:</strong> the block count follows an <span class="hl-method">"AABA" pattern</span> — stages 1, 2, and 4 have equal numbers of blocks (L<sub>1</sub>), while <span class="hl-method">stage 3 has significantly more blocks (L<sub>3</sub>)</span>, concentrating the majority of computational capacity in the third stage. These rules reduce the full <span class="hl-evidence">12-dimensional hyperparameter space to just 4 variables: (C<sub>1</sub>, C', L<sub>1</sub>, L<sub>3</sub>)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為縮減設計模型變體時龐大的超參數空間，作者提出四條堆疊規則以約束架構。規則一：第二、三、四階段的通道維度由第一階段的通道數 C<sub>1</sub> 透過固定縮放因子（2 倍、4 倍、8 倍）決定。規則二：每個階段的群組數量對應其通道配置。規則三與四：區塊數量遵循「AABA」模式——第一、二、四階段具有相同數量的區塊（L<sub>1</sub>），而第三階段具有顯著更多的區塊（L<sub>3</sub>），將大部分計算容量集中於第三階段。這些規則將完整的 12 維超參數空間縮減為僅需 4 個變數：(C<sub>1</sub>, C', L<sub>1</sub>, L<sub>3</sub>)。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統化設計——以規則化的方式降低架構搜尋複雜度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應「如何系統化地建構模型族群」的實用問題。從 12 維降至 4 維的超參數壓縮，使大規模搜尋變得可行，也暗示作者的架構設計並非拍腦袋決定，而是經過系統化探索。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「AABA」模式與 Swin Transformer 的「1:1:3:1」或「1:1:9:1」分配比例相似，顯示此設計可能源自經驗觀察而非理論推導。作者將此包裝為「規則」增添了方法論的嚴謹感，但這些規則的最佳性並未被嚴格證明。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                With the constrained search space, the authors <span class="hl-method">discretize the remaining hyperparameters</span>: <span class="hl-method">C<sub>1</sub> &isin; {48, 64, 80}, L<sub>1</sub> &isin; {1, 2, 3, 4, 5}, and C' &isin; {16, 32}</span>, producing <span class="hl-evidence">30 candidate models</span> that are evaluated on ImageNet with a short training schedule. The optimal configuration <span class="hl-evidence">(C<sub>1</sub>=64, C'=16, L<sub>1</sub>=4, L<sub>3</sub>=18)</span> yields approximately <span class="hl-evidence">30 million parameters</span> and serves as the <span class="hl-concept">"origin model" (InternImage-T)</span> from which all other variants are derived through systematic scaling.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在約束後的搜尋空間中，作者將剩餘超參數離散化：C<sub>1</sub> &isin; {48, 64, 80}、L<sub>1</sub> &isin; {1, 2, 3, 4, 5}、C' &isin; {16, 32}，產生 30 個候選模型，在 ImageNet 上以短訓練排程進行評估。最佳配置 (C<sub>1</sub>=64, C'=16, L<sub>1</sub>=4, L<sub>3</sub>=18) 產出約三千萬參數，作為「原點模型」（InternImage-T），所有其他變體均從此透過系統化縮放衍生。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    驗證搜尋——報告超參數探索的具體過程與最終選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將「規則」轉化為「實驗結果」：30 個候選的離散搜尋提供了可復現的探索框架，(64, 16, 4, 18) 的最終選擇有實驗依據支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    30 個候選看似少量但合理，展現了效率。但短訓練排程下的排名是否能可靠地預測完整訓練的結果，是一個潛在的方法論風險——訓練排程改變可能導致不同的最佳配置。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 縮放規則 ====== -->
+    <h3 class="subsection-heading" id="sec-scaling">3.4 Scaling Rules — 縮放規則</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Starting from the origin model, larger variants are obtained by <span class="hl-method">jointly scaling depth and width</span> using the compound scaling approach. The depth is scaled as <span class="hl-method">D' = &alpha;<sup>&phi;</sup> &middot; D</span> (where D = 3L<sub>1</sub> + L<sub>3</sub>) and the width as <span class="hl-method">C<sub>1</sub>' = &beta;<sup>&phi;</sup> &middot; C<sub>1</sub></span>, subject to the constraint <span class="hl-method">&alpha; &middot; &beta;<sup>1.99</sup> &asymp; 2</span>, ensuring that each scaling step approximately doubles the model's FLOPs. Through empirical evaluation of multiple (&alpha;, &beta;) combinations, the authors select <span class="hl-evidence">&alpha; = 1.09 and &beta; = 1.36</span>, which balances depth and width growth for optimal performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從原點模型出發，透過複合縮放方法聯合縮放深度與寬度以獲得較大的變體。深度按 D' = &alpha;<sup>&phi;</sup> &middot; D（其中 D = 3L<sub>1</sub> + L<sub>3</sub>）縮放，寬度按 C<sub>1</sub>' = &beta;<sup>&phi;</sup> &middot; C<sub>1</sub> 縮放，受約束條件 &alpha; &middot; &beta;<sup>1.99</sup> &asymp; 2 限制，確保每次縮放步驟大約使模型的 FLOPs 倍增。經過多組 (&alpha;, &beta;) 組合的經驗評估，作者選擇 &alpha; = 1.09 與 &beta; = 1.36，在深度與寬度增長之間取得最佳效能平衡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    縮放策略——定義從小模型到大模型的系統化擴展方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決「如何從 30M 擴展到 1B+ 參數」的核心工程問題。複合縮放的概念借鏡 EfficientNet，但約束條件（&alpha; &middot; &beta;<sup>1.99</sup> &asymp; 2）提供了更具理論支撐的縮放框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    指數 1.99 的選取（近似於 2）暗示 FLOPs 主要由寬度平方決定，與摺積的理論計算量一致。但在極大規模（如 1B 參數）下，記憶體瓶頸可能比 FLOPs 更關鍵，純粹基於 FLOPs 的縮放策略可能不是最優的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This scaling strategy produces <span class="hl-concept">six model variants</span> spanning a wide range of computational budgets: <span class="hl-evidence">InternImage-T (30M params), InternImage-S (50M), InternImage-B (97M), InternImage-L (223M), InternImage-XL (335M), and InternImage-H (1.08B params)</span>. The block configurations are: T has <span class="hl-evidence">{4,4,18,4}</span>, S has <span class="hl-evidence">{4,4,21,4}</span>, B has <span class="hl-evidence">{4,4,21,4}</span> with wider channels, L uses <span class="hl-evidence">{5,5,22,5}</span>, XL uses <span class="hl-evidence">{5,5,24,5}</span>, and the largest H variant uses <span class="hl-evidence">{6,6,32,6}</span> blocks across the four stages, with <span class="hl-evidence">C<sub>1</sub> = 320 and C' = 32</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此縮放策略產出六個模型變體，涵蓋廣泛的計算預算範圍：InternImage-T（30M 參數）、InternImage-S（50M）、InternImage-B（97M）、InternImage-L（223M）、InternImage-XL（335M）與 InternImage-H（1.08B 參數）。各自的區塊配置為：T 為 {4,4,18,4}、S 為 {4,4,21,4}、B 為 {4,4,21,4}（通道更寬）、L 為 {5,5,22,5}、XL 為 {5,5,24,5}，最大的 H 變體在四個階段使用 {6,6,32,6} 區塊，C<sub>1</sub> = 320 且 C' = 32。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    具體規格——列出完整的模型族群及其配置細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將抽象的縮放公式具體化為六個可復現的模型變體。從 30M 到 1.08B 的參數跨度覆蓋了從輕量級到旗艦級的完整光譜，展現了方法的通用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    六個變體的命名（T/S/B/L/XL/H）與 Swin Transformer 的命名慣例一致，方便直接比較。但 H 變體的 C' 從 16 跳到 32，偏離了其他變體的設定，暗示最大模型需要額外的手動調整，略微削弱了「完全自動縮放」的敘事。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：ImageNet 分類 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Image Classification on ImageNet.</strong> InternImage-T/S/B are trained for <span class="hl-evidence">300 epochs on ImageNet-1K</span>, while InternImage-L/XL are first pre-trained on <span class="hl-evidence">ImageNet-22K for 90 epochs</span> then fine-tuned on ImageNet-1K for 20 epochs. For the largest model, InternImage-H is pre-trained on a <span class="hl-evidence">joint dataset of 427 million images (Laion-400M, YFCC-15M, CC12M)</span> for 30 epochs using the M3I pre-training approach, then fine-tuned on ImageNet-1K. Among small models, <span class="hl-evidence">InternImage-T achieves 83.5% top-1 accuracy</span>, surpassing <span class="hl-evidence">ConvNeXt-T (82.1%) by 1.4 points</span>. <span class="hl-evidence">InternImage-B reaches 84.9%</span>, outperforming <span class="hl-evidence">ConvNeXt-B (83.8%) by 1.1 points</span>. At the largest scale, <span class="hl-evidence">InternImage-H achieves 89.6% on 640x640 inputs</span>, approaching <span class="hl-rebuttal">ViT-G/14's 90.5%</span> with a gap of only <span class="hl-rebuttal">0.9 points</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像分類（ImageNet）。InternImage-T/S/B 在 ImageNet-1K 上訓練 300 個周期，InternImage-L/XL 先在 ImageNet-22K 上預訓練 90 個周期，再於 ImageNet-1K 上微調 20 個周期。最大模型 InternImage-H 在四億兩千七百萬張影像的聯合資料集（Laion-400M、YFCC-15M、CC12M）上以 M3I 預訓練方法進行 30 個周期的預訓練，再於 ImageNet-1K 上微調。在小型模型中，InternImage-T 達到 83.5% 的 top-1 精確度，超越 ConvNeXt-T（82.1%）1.4 個百分點。InternImage-B 達到 84.9%，超越 ConvNeXt-B（83.8%）1.1 個百分點。在最大規模下，InternImage-H 在 640x640 輸入上達到 89.6%，接近 ViT-G/14 的 90.5%，差距僅 0.9 個百分點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    分類實驗——在 ImageNet 上全面驗證各規模模型的效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供分類任務的完整實證鏈：小型模型顯著超越同類 CNN，大型模型接近最強 ViT。兩個層面共同支撐「CNN 可與 ViT 匹敵」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    小模型的比較對象為 ConvNeXt（CNN），展示了 DCNv3 相對於大核方法的優勢。但 InternImage-H 與 ViT-G 的 0.9% 差距不可忽略——考慮到 ViT-G 使用了更大的私有資料集（JFT-3B），此差距可能反映資料規模差異而非架構差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：COCO 物件偵測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Object Detection on COCO.</strong> On the standard <span class="hl-concept">Mask R-CNN 1x schedule</span>, <span class="hl-evidence">InternImage-T achieves 47.2 box AP</span>, outperforming <span class="hl-evidence">Swin-T (42.7) by 4.5 points and ConvNeXt-T (44.2) by 3.0 points</span>. <span class="hl-evidence">InternImage-B reaches 48.8 box AP</span>, <span class="hl-evidence">1.8 points ahead of ConvNeXt-B (47.0)</span>. With the advanced <span class="hl-concept">DINO detector</span> and Objects365 pre-training, <span class="hl-evidence">InternImage-H achieves a record 65.4 mAP on COCO test-dev</span>, <span class="hl-evidence">surpassing the previous best FD-SwinV2-G (64.2) by 1.2 points</span> while using <span class="hl-evidence">27% fewer parameters (2.18B vs 3.00B)</span>. Notably, InternImage-H achieves this <span class="hl-thesis">without knowledge distillation</span>, which was employed by competing methods, further highlighting the <span class="hl-thesis">inherent strength of the DCNv3-based backbone for dense prediction tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                物件偵測（COCO）。在標準的 Mask R-CNN 1x 排程上，InternImage-T 達到 47.2 box AP，超越 Swin-T（42.7）4.5 個百分點、ConvNeXt-T（44.2）3.0 個百分點。InternImage-B 達到 48.8 box AP，領先 ConvNeXt-B（47.0）1.8 個百分點。搭配進階的 DINO 偵測器與 Objects365 預訓練，InternImage-H 在 COCO test-dev 上達到 65.4 mAP 的新紀錄，超越先前最佳的 FD-SwinV2-G（64.2）1.2 個百分點，同時使用少 27% 的參數（2.18B 對 3.00B）。值得注意的是，InternImage-H 在未使用知識蒸餾的情況下達成此成績——而競爭方法採用了蒸餾——進一步凸顯了基於 DCNv3 骨幹在密集預測任務上的固有優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    偵測實驗——在 COCO 上展示跨越多種偵測框架的全面優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論證鏈中最強的實證環節。COCO test-dev 的 SOTA 紀錄搭配更低的參數量，直接且有力地支撐了「CNN 基礎模型不遜於 ViT」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無知識蒸餾」的強調是巧妙的加分項——暗示 InternImage 的優勢來自架構本身而非訓練技巧。但 DINO 偵測器本身是一個強大的偵測框架，部分功勞可能歸於偵測器而非骨幹。此外，不同方法使用不同的偵測器使直接比較複雜化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：ADE20K 語義分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Semantic Segmentation on ADE20K.</strong> Using the <span class="hl-concept">UperNet</span> framework with single-scale testing, <span class="hl-evidence">InternImage-T achieves 47.9 mIoU</span>, surpassing <span class="hl-evidence">ConvNeXt-T (46.0) by 1.9 points</span>. <span class="hl-evidence">InternImage-B reaches 50.8 mIoU</span>, ahead of <span class="hl-evidence">RepLKNet-31B (49.9) by 0.9 points</span>. At the large scale with <span class="hl-concept">Mask2Former</span> and 896x896 crop inputs, <span class="hl-evidence">InternImage-H achieves 62.9 mIoU</span>, <span class="hl-evidence">surpassing SwinV2-G (59.9) by 3.0 points with approximately 3x fewer parameters</span>, and even slightly exceeding <span class="hl-evidence">BEiT-3 (62.8 mIoU)</span>. On multi-scale evaluation, <span class="hl-evidence">InternImage-H reaches 60.3 mIoU with UperNet</span>, which alone surpasses SwinV2-G's 59.9 mIoU.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                語義分割（ADE20K）。使用 UperNet 框架進行單尺度測試，InternImage-T 達到 47.9 mIoU，超越 ConvNeXt-T（46.0）1.9 個百分點。InternImage-B 達到 50.8 mIoU，領先 RepLKNet-31B（49.9）0.9 個百分點。在大規模設定下搭配 Mask2Former 與 896x896 裁剪輸入，InternImage-H 達到 62.9 mIoU，以約三倍少的參數超越 SwinV2-G（59.9）3.0 個百分點，甚至略微超越 BEiT-3（62.8 mIoU）。在多尺度評估中，InternImage-H 使用 UperNet 達到 60.3 mIoU，僅此一項即超越 SwinV2-G 的 59.9 mIoU。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    分割實驗——在 ADE20K 上驗證 InternImage 在像素級預測任務的效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    與偵測結果共同構成密集預測任務的完整實證。在分割任務上超越 BEiT-3 尤為重要，因為 BEiT-3 是基於 ViT 的最強分割模型之一。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    在偵測與分割兩項密集預測任務上的一致優勢，有力地支撐了「DCNv3 的自適應空間聚合特別適合密集預測」的論點。但分類任務上的差距（與 ViT-G 差 0.9%）暗示 DCNv3 的優勢可能集中於空間密集型任務，在全域語義理解上仍有提升空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.4 消融研究 ====== -->
+    <h3 class="subsection-heading" id="sec-ablation">4.4 Ablation Studies — 消融研究</h3>
+
+    <!-- 消融段落 1：權重共享 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Effect of weight sharing.</strong> Comparing shared versus unshared convolution weights in DCNv3, <span class="hl-evidence">weight sharing reduces parameters by 42.0% and GPU memory by 84.2%</span> for InternImage-H, while maintaining <span class="hl-evidence">nearly identical accuracy: 83.5% vs 83.6% on ImageNet</span> and <span class="hl-evidence">47.2 vs 47.4 box AP on COCO</span>. This demonstrates that <span class="hl-thesis">weight sharing is essential for scaling DCN-based models to billions of parameters</span> without sacrificing performance — the memory savings alone make large-scale training feasible.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                權重共享效果。比較 DCNv3 中共享與非共享摺積權重的影響，權重共享為 InternImage-H 減少了 42.0% 的參數量與 84.2% 的 GPU 記憶體用量，同時維持幾乎相同的精確度：ImageNet 上 83.5% 對 83.6%，COCO 上 47.2 對 47.4 box AP。此結果證明權重共享對於將基於 DCN 的模型擴展至數十億參數而不犧牲效能至關重要——僅記憶體節省一項就使大規模訓練變得可行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——量化權重共享對效率與效能的影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此消融直接驗證了 DCNv3 第一項修改的必要性：84.2% 的記憶體節省是一個驚人的數字，使十億參數級訓練從「不可能」變為「可行」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    42% 參數減少與 84% 記憶體節省的數字極具衝擊力。但精確度差距（0.1% ImageNet、0.2 AP COCO）雖小卻非零，在更大規模或更長訓練下此差距是否會擴大值得觀察。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 2：多群組與 softmax -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Multi-group mechanism and softmax normalization.</strong> Removing the multi-group design (using a single group) leads to <span class="hl-evidence">a 1.2-point drop on ImageNet (from 83.5% to 82.3%) and a significant 3.4-point drop on COCO (from 47.2 to 43.8 box AP)</span>. Visualization of learned sampling locations shows that <span class="hl-method">different groups concentrate their sampling points in different spatial regions</span>, confirming that the multi-group mechanism enables learning diverse spatial patterns. For the normalization choice, replacing <span class="hl-method">softmax with element-wise sigmoid</span> causes <span class="hl-evidence">severe training instability, with ImageNet accuracy plummeting to 65.7% and COCO box AP falling to 38.7</span>. This validates that <span class="hl-thesis">softmax normalization is critical for stable training of DCN-based large-scale models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多群組機制與 softmax 歸一化。移除多群組設計（使用單一群組）導致 ImageNet 下降 1.2 個百分點（83.5% 降至 82.3%）、COCO 顯著下降 3.4 個百分點（47.2 降至 43.8 box AP）。對學習到的取樣位置進行視覺化顯示，不同群組將其取樣點集中在不同的空間區域，確認了多群組機制能學習多樣化的空間模式。關於歸一化選擇，將 softmax 替換為逐元素 sigmoid 導致嚴重的訓練不穩定，ImageNet 精確度驟降至 65.7%、COCO box AP 降至 38.7。此結果驗證了 softmax 歸一化對基於 DCN 的大規模模型穩定訓練至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計選擇驗證——以消融實驗確認多群組與 softmax 歸一化的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    完成 DCNv3 三項修改的完整消融驗證。sigmoid 歸一化導致精確度暴跌至 65.7% 是最具說服力的結果——幾乎破壞了整個模型的可用性，強力證明了 softmax 的不可或缺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    COCO 上 3.4 個百分點的下降比 ImageNet 上 1.2 個百分點更為顯著，暗示多群組機制對密集預測任務的影響更大。sigmoid 的災難性失敗則可能暗示 DCNv3 的穩定性高度依賴特定的歸一化選擇，模型的穩健性可能有限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 3：有效感受野分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Effective receptive field analysis.</strong> Using gradient-based visualization, the authors compare the <span class="hl-concept">effective receptive fields (ERFs)</span> of <span class="hl-evidence">ResNet-101</span> and <span class="hl-evidence">InternImage-S</span>. Before training, both models exhibit <span class="hl-evidence">localized ERFs</span>. After training, <span class="hl-evidence">InternImage achieves near-global ERFs in stages 3 and 4</span>, whereas <span class="hl-rebuttal">ResNet's ERF remains relatively small even in its deepest layers</span>. Interestingly, InternImage's ERF pattern differs from ViTs: while <span class="hl-rebuttal">ViTs maintain global ERFs throughout all layers</span>, InternImage shows a <span class="hl-thesis">progressive expansion of the effective receptive field with increasing depth</span>, suggesting it learns a hierarchical spatial representation — <span class="hl-thesis">local details in early layers and global context in later layers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                有效感受野分析。透過基於梯度的視覺化，作者比較了 ResNet-101 與 InternImage-S 的有效感受野（ERF）。訓練前，兩個模型均展示局部化的 ERF。訓練後，InternImage 在第三與第四階段達到近全域的 ERF，而 ResNet 即使在最深層其 ERF 仍保持相對較小。有趣的是，InternImage 的 ERF 模式有別於 ViT：ViT 在所有層級都維持全域 ERF，而 InternImage 展現出有效感受野隨深度遞增的漸進式擴展，暗示其學習了階層式的空間表示——早期層關注局部細節，後期層捕捉全域脈絡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    機制解析——視覺化分析 DCNv3 的感受野行為，提供直覺理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應了緒論中「有效感受野受限」的核心批判，以視覺化證據展示 DCNv3 確實克服了此限制。漸進式擴展的發現更為 InternImage 賦予了獨特的理論價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「階層式空間表示」的詮釋巧妙地將 InternImage 與 ViT 的差異轉化為優勢——暗示漸進式的感受野擴展可能比 ViT 的「全程全域」更適合多尺度視覺任務。但此論點需要更嚴格的因果證明，而非僅從 ERF 視覺化推測。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents <span class="hl-concept">InternImage</span>, which demonstrates that <span class="hl-thesis">CNN-based foundation models can match or even surpass transformer-based models</span> when properly designed with <span class="hl-method">deformable convolution operators, transformer-inspired architectural components, and systematic scaling strategies</span>. Through the proposed <span class="hl-concept">DCNv3 operator</span> — featuring weight sharing, multi-group aggregation, and softmax normalization — the model effectively addresses the <span class="hl-thesis">long-standing limitations of CNNs in receptive field flexibility and adaptive spatial aggregation</span>. The comprehensive experimental results across <span class="hl-evidence">image classification, object detection, and semantic segmentation</span> confirm that InternImage achieves <span class="hl-evidence">state-of-the-art results on COCO (65.4 mAP) and ADE20K (62.9 mIoU)</span> while remaining parameter-efficient.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 InternImage，展示了基於 CNN 的基礎模型在配備可變形摺積運算子、受 Transformer 啟發的架構元件與系統化縮放策略時，能夠匹敵甚至超越基於 Transformer 的模型。透過所提出的 DCNv3 運算子——具備權重共享、多群組聚合與 softmax 歸一化——該模型有效解決了 CNN 在感受野靈活性與自適應空間聚合方面的長期侷限。涵蓋影像分類、物件偵測與語義分割的全面實驗結果確認，InternImage 在 COCO（65.4 mAP）與 ADE20K（62.9 mIoU）上達到最先進成果，同時保持參數效率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——重申核心貢獻，呼應摘要與緒論的論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段形成論證的閉環：從緒論的「CNN 能否匹敵 ViT？」問題出發，經過方法設計與實驗驗證，最終以肯定的答案收束全文。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論措辭精煉，將三項技術創新濃縮為一句話。「匹敵甚至超越」的用語相對保守，準確反映了 InternImage 在密集預測上超越、在分類上略遜的實際情況。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors also acknowledge <span class="hl-rebuttal">limitations</span> of the current work. <span class="hl-rebuttal">The latency of DCN operators remains problematic for real-time downstream applications</span>, as the irregular memory access patterns of deformable convolution are <span class="hl-rebuttal">less hardware-friendly than standard convolutions or self-attention</span>. Additionally, <span class="hl-rebuttal">large-scale CNN research is still in its early stages</span>, and InternImage's performance gap with methods that leverage even larger private datasets (such as JFT-3B) suggests room for further improvement. The authors position this work as a <span class="hl-thesis">starting point for efficient large-scale CNN development</span>, encouraging the community to continue exploring the potential of CNN-based vision foundation models.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者也坦承目前工作的侷限性。DCN 運算子的延遲對即時下游應用仍是問題，因為可變形摺積的不規則記憶體存取模式對硬體不如標準摺積或自注意力友善。此外，大規模 CNN 研究仍處於早期階段，InternImage 與利用更大規模私有資料集（如 JFT-3B）的方法之間的效能差距，暗示仍有進一步改進的空間。作者將本研究定位為高效大規模 CNN 開發的起點，鼓勵社群繼續探索基於 CNN 的視覺基礎模型的潛力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    侷限討論——坦誠指出方法的不足與未來改進方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為全文的論證增添了學術誠實度：承認延遲問題與資料規模差距，避免了過度宣稱，也為後續研究指明了方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    延遲問題是 DCN 的根本性瓶頸——不規則記憶體存取在 GPU 上的效率遠低於規則運算。作者以「起點」自居是明智的定位，但此侷限可能阻礙 InternImage 在工業界的廣泛採用。將工作定位為「起點」而非「終點」，既管理了預期，也為後續的 InternImage-v2 等工作預留了空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                CNN 基礎模型在大規模<br>視覺任務上落後於 ViT
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                DCNv3 可變形摺積彌合<br>感受野與自適應聚合差距
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                COCO 65.4 mAP、<br>ADE20K 62.9 mIoU SOTA
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                延遲問題與資料規模差距<br>是目前的已知侷限
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                CNN 基礎模型仍具潛力<br>值得持續探索
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以可變形摺積 v3 為核心運算子，配合 Transformer 風格架構元件與系統化縮放策略，CNN 基礎模型能夠在超過十億參數的規模下，於密集預測任務上匹敵甚至超越視覺 Transformer。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>密集預測任務的壓倒性優勢：</strong>InternImage-H 在 COCO test-dev 上以 65.4 mAP 刷新紀錄，同時使用比 SwinV2-G 少 27% 的參數且未依賴知識蒸餾。DCNv3 的三項修改（權重共享、多群組、softmax）均有嚴格的消融實驗支撐，每項修改都展示了明確且不可替代的貢獻。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>分類任務的差距與延遲問題：</strong>在 ImageNet 分類上，InternImage-H（89.6%）與 ViT-G（90.5%）仍有 0.9% 的差距，且 ViT-G 使用了更大的私有資料集，使此比較不完全公平。更根本的問題是 DCN 的不規則記憶體存取模式導致實際推論延遲高於理論 FLOPs 預期，限制了其在即時應用中的採用。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

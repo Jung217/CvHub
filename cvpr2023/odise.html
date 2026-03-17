@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODISE: Open-Vocabulary Panoptic Segmentation with Text-to-Image Diffusion Models — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                ODISE: Open-Vocabulary Panoptic Segmentation with Text-to-Image Diffusion Models
+                <span class="course-tag">CVPR 2023</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2303.04803" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-diffusion">3.3 擴散模型</a>
+        <a href="#sec-mask-gen">3.4 遮罩生成器</a>
+        <a href="#sec-mask-cls">3.5 遮罩分類</a>
+        <a href="#sec-inference">3.6 開放詞彙推論</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.3 消融研究</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-concept">ODISE: Open-vocabulary DIffusion-based panoptic SEgmentation</span>, which <span class="hl-thesis">unifies pre-trained text-image diffusion and discriminative models to perform open-vocabulary panoptic segmentation</span>. <span class="hl-concept">Text-to-image diffusion models</span> have the remarkable ability to generate high-quality images with diverse open-vocabulary language descriptions, suggesting that their <span class="hl-thesis">internal representations correlate well with open-world visual concepts</span>. <span class="hl-concept">Text-image discriminative models</span> like <span class="hl-concept">CLIP</span> are adept at classifying images into open-vocabulary labels. We leverage the <span class="hl-method">frozen internal representations of both model types for panoptic segmentation of any category in the wild</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 ODISE：基於開放詞彙擴散模型的全景式分割，結合預訓練的文字-影像擴散模型與判別模型，實現開放詞彙的全景式分割。文字到影像的擴散模型具備以多樣化開放詞彙語言描述生成高品質影像的卓越能力，這暗示其內部表示與開放世界的視覺概念高度相關。而像 CLIP 這類文字-影像判別模型則擅長將影像分類至開放詞彙的標籤。本研究利用兩類模型的凍結內部表示，對任意類別進行全景式分割。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文導引——以精煉的語言介紹 ODISE 的定位與核心假設：擴散模型的內部表示蘊含豐富的語義資訊，可用於分割任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的前半段同時扮演「問題框架」與「方案預告」的角色：先指出擴散模型與判別模型各自的優勢，再說明如何將兩者統一於全景式分割任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「內部表示與開放世界概念相關」是全文的核心假設，作者以擴散模型的生成品質作為間接佐證。但生成能力與判別能力之間的因果關係並非不證自明，需要後續實驗加以驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our approach <span class="hl-evidence">substantially outperforms prior state-of-the-art on open-vocabulary panoptic and semantic segmentation benchmarks</span>. Specifically, with <span class="hl-evidence">only COCO training data</span>, our method achieves <span class="hl-evidence">23.4 PQ and 30.0 mIoU on the ADE20K dataset, with 8.3 PQ and 7.9 mIoU absolute improvement</span> over previous approaches. Our code and models are publicly available.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本方法在開放詞彙全景式分割與語義分割的基準測試上大幅超越先前的最佳表現。具體而言，僅使用 COCO 訓練資料，本方法在 ADE20K 資料集上達到 23.4 PQ 與 30.0 mIoU，相較先前方法分別提升 8.3 PQ 與 7.9 mIoU。程式碼與模型已公開釋出。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    量化宣稱——以具體數據展示方法的效果，為全文的實證基礎奠定預期。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的方法概述，此段以數字強化說服力：PQ 提升 8.3、mIoU 提升 7.9 的絕對增幅構成強有力的證據預告。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    僅以 COCO 訓練資料達到 ADE20K 上的突破，凸顯了跨資料集泛化能力。然而需注意 COCO 與 ADE20K 的類別存在部分重疊，「開放詞彙」的純粹程度有待進一步檢視。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Humans effortlessly recognize an unlimited number of object categories and understand fine-grained distinctions between similar items. Recent computer vision research has focused on <span class="hl-concept">open-vocabulary recognition</span>, enabling systems to identify <span class="hl-thesis">unlimited categories rather than only training-set categories</span>. However, very few unified frameworks address both <span class="hl-concept">instance-level and scene-level semantic understanding</span> simultaneously through <span class="hl-concept">panoptic segmentation</span> — <span class="hl-thesis">the task that jointly resolves "what objects are present" and "where each pixel belongs."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人類能毫不費力地辨識無限數量的物件類別，並理解相似物件之間的細微差異。近年電腦視覺研究聚焦於開放詞彙辨識，使系統能夠識別不受限於訓練集的類別。然而，鮮少有統一框架能透過全景式分割同時處理實例層級與場景層級的語義理解——這項任務需同時回答「場景中存在哪些物件」以及「每個像素歸屬於何處」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    研究動機建立——從人類視覺能力出發，引出開放詞彙全景式分割的需求缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以「人類能力」作為理想基準，再指出現有系統的差距——尚無統一框架同時處理開放詞彙與全景式分割。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「人類能力」起手是經典的動機建構策略，能迅速建立讀者對問題重要性的認同。但全景式分割的定義在此僅作簡要帶過，預設讀者已具備相關背景知識。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有方法瓶頸 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Current open-vocabulary approaches primarily rely on <span class="hl-concept">text-image discriminative models</span> trained on internet-scale data, which excel at classifying individual proposals but <span class="hl-rebuttal">struggle with spatial relationships and dense prediction tasks</span>. We hypothesize that the <span class="hl-thesis">lack of spatial and relational understanding in text-image discriminative models is a bottleneck</span> for open-vocabulary panoptic segmentation. These models were designed for <span class="hl-rebuttal">image-level classification rather than pixel-level understanding</span>, limiting their effectiveness when applied directly to segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有的開放詞彙方法主要依賴在網路規模資料上訓練的文字-影像判別模型，這類模型擅長對個別提案進行分類，卻在空間關係與密集預測任務上表現不佳。我們假設文字-影像判別模型在空間與關聯性理解上的不足，是開放詞彙全景式分割的瓶頸所在。這些模型本為影像層級的分類而設計，而非像素層級的理解，這限制了它們直接應用於分割任務的效果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判現有途徑——指出判別模型在空間理解上的根本限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題-解決方案」論證中的問題精確化：從「缺乏統一框架」這個寬泛問題，收窄至「判別模型缺少空間理解」這個具體技術瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將判別模型的弱點歸結為「設計初衷」（影像級分類 vs. 像素級理解），這是結構性的批評而非表面的效能比較。但 CLIP 的特徵圖在 OpenSeg 等工作中已展現一定的密集預測能力，此處的批判可能過度簡化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：擴散模型的機遇 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Text-to-image diffusion models</span> trained on internet-scale data represent an alternative approach. These models condition image generation through <span class="hl-method">cross-attention between text embeddings and internal visual representations</span>, suggesting that these <span class="hl-thesis">internal representations correlate with high-level and mid-level semantic concepts expressible through language</span>. Clustering the diffusion model's internal features reveals <span class="hl-evidence">semantically distinct, localized information where objects naturally group together</span>, indicating that diffusion models encode rich spatial-semantic structure well-suited for segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在網路規模資料上訓練的文字到影像擴散模型提供了另一種途徑。這些模型透過文字嵌入與內部視覺表示之間的交叉注意力機制來調控影像生成，暗示其內部表示與可透過語言描述的高層級及中層級語義概念高度相關。對擴散模型內部特徵進行聚類分析，可揭示語義上獨立且空間局部化的資訊，物件自然地群聚在一起，這表明擴散模型編碼了適合分割任務的豐富空間-語義結構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    引入關鍵洞見——擴散模型的內部表示天然具備空間語義結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證的轉折點：從「判別模型的不足」轉向「擴散模型的優勢」，構建出本文的核心假設——擴散模型內部表示可作為分割的特徵基底。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以聚類視覺化作為間接佐證，直觀且具說服力。但聚類結果的品質高度依賴超參數選擇，且從「生成能力好」到「表示適合分割」的推論存在邏輯跳躍，需在方法與實驗章節加以填補。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 4：ODISE 方案概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">ODISE</span> to leverage both large-scale <span class="hl-concept">text-image diffusion and discriminative models</span> for state-of-the-art <span class="hl-concept">open-vocabulary panoptic segmentation</span>. Our approach consists of three stages: <span class="hl-method">extracting internal features from a frozen text-to-image diffusion model using input images and captions</span>; <span class="hl-method">generating class-agnostic panoptic masks using these features</span>; and <span class="hl-method">categorizing masks into open-vocabulary categories by associating mask diffusion features with text embeddings of object category names</span>. Our key contributions include: the <span class="hl-thesis">first exploration of large-scale text-to-image diffusion models for open-vocabulary segmentation</span>; a novel pipeline that effectively combines diffusion and discriminative models; and significant performance advances across multiple benchmarks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 ODISE，利用大規模文字-影像擴散模型與判別模型，實現最先進的開放詞彙全景式分割。本方法包含三個階段：從凍結的文字到影像擴散模型中擷取內部特徵（使用輸入影像與描述文字）；利用這些特徵生成類別無關的全景式遮罩；以及透過將遮罩的擴散特徵與物件類別名稱的文字嵌入進行關聯，將遮罩歸類至開放詞彙類別。我們的主要貢獻包括：首次探索大規模文字到影像擴散模型於開放詞彙分割任務的應用；提出有效結合擴散模型與判別模型的新穎流程；以及在多項基準測試上達成顯著的效能提升。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方案總覽與貢獻聲明——以三階段管線概述 ODISE 的完整架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接前述的問題分析，此段將「擴散模型表示適合分割」的假設具體化為可執行的三步驟方案，並明確列出三項貢獻以預告全文的價值主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三階段管線的描述清晰明瞭，讓讀者迅速掌握全貌。「首次探索」的宣稱極具吸引力，但需注意 DDPMSeg 等先前工作已將擴散模型用於語義分割，差異在於「開放詞彙」與「全景式」這兩個特定限定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：全景式分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Panoptic segmentation</span> encompasses both <span class="hl-concept">instance segmentation</span> and <span class="hl-concept">semantic segmentation</span> tasks, requiring the model to assign every pixel a semantic label while simultaneously distinguishing individual object instances. Previous works follow <span class="hl-rebuttal">closed-vocabulary assumptions</span>, recognizing only training-set categories. This limitation restricts segmentation to <span class="hl-rebuttal">finite-sized vocabularies that are substantially smaller than the real-world diversity of object descriptions</span>. Methods like <span class="hl-concept">Mask2Former</span> achieve strong closed-vocabulary performance but cannot generalize to novel categories unseen during training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                全景式分割涵蓋實例分割與語義分割兩項任務，要求模型為每個像素指派語義標籤，同時區分個別的物件實例。先前的研究遵循封閉詞彙假設，僅能辨識訓練集中的類別。此限制使分割受限於有限大小的詞彙表，遠小於現實世界物件描述的多樣性。Mask2Former 等方法在封閉詞彙上達到優異表現，卻無法泛化至訓練時未見過的新類別。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義任務框架——釐清全景式分割的範疇及其封閉詞彙的固有限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為文獻回顧的起點，此段劃定了「封閉詞彙」與「開放詞彙」的分野，為後續論述 ODISE 的創新性提供對照基準。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「有限詞彙表 vs. 現實世界多樣性」的對比，簡潔有力地凸顯封閉詞彙的侷限。引用 Mask2Former 作為代表性基線是恰當的——ODISE 自身的遮罩生成器即建構於 Mask2Former 之上。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：開放詞彙分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Open-vocabulary segmentation</span> prior work addresses either <span class="hl-concept">instance segmentation</span> with object detection or <span class="hl-concept">semantic segmentation</span> independently, but <span class="hl-rebuttal">not unified panoptic segmentation</span>. Existing approaches rely on large-scale discriminative pre-training for image classification or <span class="hl-concept">image-text contrastive learning</span>. The concurrent work <span class="hl-concept">MaskCLIP</span> also uses CLIP for open-vocabulary segmentation. However, <span class="hl-thesis">discriminative models' internal representations prove suboptimal for dense segmentation tasks</span> compared to text-to-image diffusion model representations, as they were originally trained for image-level rather than pixel-level objectives.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                開放詞彙分割的先前研究分別處理實例分割（結合物件偵測）或語義分割，但未有統一的全景式分割方案。現有方法依賴大規模判別式預訓練進行影像分類或影像-文字對比學習。同期工作 MaskCLIP 同樣使用 CLIP 進行開放詞彙分割。然而，判別模型的內部表示在密集分割任務上並非最佳選擇——與文字到影像擴散模型的表示相比，判別模型原本是為影像層級而非像素層級的目標所訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位差異——區隔 ODISE 與既有開放詞彙分割方法的技術路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了兩條對比軸：(1) 實例/語義分割的分離 vs. 全景式的統一；(2) 判別模型表示 vs. 擴散模型表示。ODISE 在兩條軸上均佔據未被探索的位置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    誠實提及同期工作 MaskCLIP 是良好的學術規範。但「判別模型表示次優」的判斷需以公平的消融實驗支撐——控制模型大小、訓練資料等變因後的比較才具說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：生成模型用於分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Generative models for segmentation</span> has been explored using GANs and diffusion models for semantic segmentation. Previous works train generative models on <span class="hl-rebuttal">small-vocabulary datasets (e.g., cats, faces, ImageNet)</span> and use few-shot examples to classify internal representations into semantic regions. <span class="hl-concept">DDPMSeg</span> demonstrates <span class="hl-evidence">state-of-the-art label-efficient semantic segmentation</span> by leveraging diffusion model features. However, these approaches differ fundamentally from ours: they tackle <span class="hl-rebuttal">small closed-vocabulary label-efficient segmentation</span>, while ODISE addresses <span class="hl-thesis">open-vocabulary panoptic segmentation of many unseen categories at scale</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                利用生成模型進行分割的研究已有使用 GAN 與擴散模型進行語義分割的先例。先前的工作在小詞彙資料集（如貓、人臉、ImageNet）上訓練生成模型，並以少量樣本將內部表示分類為語義區域。DDPMSeg 透過利用擴散模型特徵，展示了最先進的標籤高效語義分割表現。然而，這些方法與本文存在根本性差異：它們處理的是小型封閉詞彙的標籤高效分割，而 ODISE 針對的是大規模開放詞彙全景式分割，涵蓋眾多訓練時未見過的類別。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    學術譜系定位——將 ODISE 放置於「生成模型用於分割」的研究脈絡中，並明確區分。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    防範可能的「已被做過」質疑：先承認擴散模型用於分割並非全新想法，再以「規模」與「開放詞彙」兩個維度劃出差異化界線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「根本性差異」的措辭有效地隔離了 ODISE 與先前工作的比較基礎。但 DDPMSeg 的思路——利用擴散模型內部特徵做分割——與 ODISE 的核心想法在本質上是相通的，差異更多在於工程層面的規模化擴展。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Problem Definition — 問題定義</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The approach trains models using <span class="hl-method">base training categories C_train</span>, which may differ from <span class="hl-method">test categories C_test</span>, meaning <span class="hl-thesis">C_train is not equal to C_test</span>. Test categories may include <span class="hl-concept">novel categories unseen during training</span>. During training, <span class="hl-method">binary panoptic mask annotations</span> for each category are provided. Additionally, either <span class="hl-method">category labels for each mask</span> or <span class="hl-method">image text captions</span> are available as supervision signals. During testing, neither labels nor captions are provided; <span class="hl-method">only test category names are available</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本方法使用基礎訓練類別 C_train 來訓練模型，而測試類別 C_test 可能與之不同，亦即 C_train 不等於 C_test。測試類別可能包含訓練時從未見過的新類別。訓練階段提供每個類別的二值全景式遮罩標註，並額外提供每個遮罩的類別標籤或影像文字描述作為監督訊號。測試階段不提供標籤或描述文字，僅提供測試類別的名稱。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    形式化定義——以數學符號精確界定開放詞彙全景式分割的問題設定。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法章節的基石：C_train 不等於 C_test 的設定是整篇論文的核心約束，後續所有設計選擇都必須在此約束下運作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提供兩種監督訊號（類別標籤 vs. 影像描述文字）增加了方法的彈性與適用範圍。但描述文字監督的設定較弱，對應的效能差異需在實驗中透明呈現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.2 Method Overview — 方法概述</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                ODISE extracts features from a <span class="hl-method">frozen text-to-image diffusion model</span> using input images and captions. With these extracted features and provided training mask annotations, a <span class="hl-concept">trainable mask generator</span> produces panoptic masks for all possible image categories. An <span class="hl-concept">open-vocabulary mask classification module</span>, trained using training images' category labels or text captions, categorizes each predicted mask by <span class="hl-method">associating diffusion features with text embeddings of training category names</span>. After training, open-vocabulary panoptic inference employs <span class="hl-thesis">both text-image diffusion and discriminative models</span> in a complementary manner.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ODISE 使用輸入影像與描述文字，從凍結的文字到影像擴散模型中擷取特徵。利用這些擷取的特徵與所提供的訓練遮罩標註，一個可訓練的遮罩生成器為所有可能的影像類別生成全景式遮罩。一個開放詞彙遮罩分類模組——以訓練影像的類別標籤或文字描述進行訓練——透過將擴散特徵與訓練類別名稱的文字嵌入進行關聯，對每個預測遮罩進行分類。訓練完成後，開放詞彙全景式推論以互補方式同時運用文字-影像擴散模型與判別模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構鳥瞰——以流程視角描述 ODISE 從輸入到輸出的完整管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    連接問題定義與後續各子模組的樞紐：讀者可藉此段建立全局理解，再逐一深入各組件的技術細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「凍結」的設計選擇極為關鍵——它保留了擴散模型的豐富表示而不因微調而退化，同時大幅降低了訓練成本（僅 28.1M 可訓練參數）。這一工程決策是 ODISE 可行性的基礎。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 文字到影像擴散模型 ====== -->
+    <h3 class="subsection-heading" id="sec-diffusion">3.3 Text-to-Image Diffusion Model — 文字到影像擴散模型</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Text-to-image diffusion models</span> generate high-quality images from input text prompts, trained with <span class="hl-evidence">millions of internet-crawled image-text pairs</span>. Text input is encoded into <span class="hl-method">text embeddings using pre-trained text encoders</span> like T5 or CLIP. Before diffusion network input, images undergo <span class="hl-method">Gaussian noise distortion</span>. The diffusion network learns to <span class="hl-method">undo this distortion given the noisy input and paired text embedding</span>. During inference, the model takes image-shaped pure Gaussian noise and user-provided text embeddings, <span class="hl-method">progressively de-noising through multiple iterations</span> to produce the final image.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                文字到影像擴散模型從輸入的文字提示生成高品質影像，以數百萬筆網路爬取的影像-文字配對進行訓練。文字輸入透過預訓練的文字編碼器（如 T5 或 CLIP）編碼為文字嵌入。在輸入擴散網路之前，影像經歷高斯雜訊擾動。擴散網路學習在給定雜訊輸入與配對文字嵌入的條件下，還原此擾動。推論時，模型接收影像形狀的純高斯雜訊與使用者提供的文字嵌入，透過多次迭代逐步去雜訊以產生最終影像。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    背景知識鋪陳——回顧擴散模型的基本原理，為後續特徵擷取方法提供理論基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    技術預備段：確保讀者理解擴散模型的「加噪-去噪」框架，才能理解為何內部特徵具有語義資訊——因為去噪過程必須「理解」影像內容才能有效執行。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的流程描述（編碼 -> 加噪 -> 去噪）讓非專家讀者快速理解擴散模型。但省略了潛在擴散模型（Latent Diffusion）的重要細節——Stable Diffusion 在潛在空間而非像素空間運作，這影響特徵的空間解析度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prevalent text-to-image diffusion models typically use <span class="hl-concept">UNet architecture</span> for learning denoising. The UNet includes <span class="hl-method">convolution blocks, upsampling/downsampling blocks, skip connections, and attention blocks</span> performing <span class="hl-method">cross-attention between text embeddings and UNet features</span>. At every de-noising step, diffusion models use text to infer the de-noising direction of noisy images. Since <span class="hl-thesis">text injection occurs via cross-attention layers, the visual features become correlated with rich semantic text descriptions</span>. The <span class="hl-method">UNet output feature maps</span> thus provide rich, dense features for panoptic segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                主流的文字到影像擴散模型通常使用 UNet 架構來學習去雜訊。UNet 包含摺積區塊、上取樣/下取樣區塊、跳接連結，以及執行文字嵌入與 UNet 特徵之間交叉注意力運算的注意力區塊。在每個去雜訊步驟中，擴散模型使用文字來推斷雜訊影像的去雜訊方向。由於文字注入是透過交叉注意力層進行的，視覺特徵因而與豐富的語義文字描述產生關聯。UNet 輸出的特徵圖因此提供了適合全景式分割的豐富密集特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心洞見闡述——解釋為何 UNet 的內部特徵天然具備語義感知能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是全文最關鍵的理論橋樑：因為交叉注意力機制將文字語義注入視覺特徵，所以這些特徵「知道」語言所描述的概念。這直接支撐了「擴散模型表示適合開放詞彙分割」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「交叉注意力 -> 語義關聯」的因果鏈為核心假設提供機制性解釋，遠比單純的實驗觀察更具說服力。但交叉注意力僅在部分層中運作，不同層的特徵語義豐富度差異未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our method requires only <span class="hl-method">a single forward pass through the diffusion model</span> to extract visual representations, rather than the entire multi-step generative diffusion process. Given input image-text pairs (x, s), we first sample a noisy image at <span class="hl-method">timestep t</span> as x_t, where alpha values represent <span class="hl-method">pre-defined noise schedules</span>. The caption is encoded with a pre-trained text encoder, and <span class="hl-method">diffusion UNet internal features are extracted</span> by feeding the timestep and text encoding. We extract <span class="hl-method">feature maps from every three UNet blocks</span> and resize them using <span class="hl-method">FPN-style approaches</span> to create multi-scale feature pyramids suitable for dense prediction.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本方法僅需透過擴散模型進行一次前向傳播即可擷取視覺表示，無需執行完整的多步生成擴散過程。給定輸入的影像-文字配對 (x, s)，首先在時間步 t 取樣一個加噪影像 x_t，其中 alpha 值代表預定義的雜訊排程。描述文字以預訓練的文字編碼器編碼，再將時間步與文字編碼輸入擴散 UNet 以擷取內部特徵。我們從每三個 UNet 區塊擷取特徵圖，並使用 FPN 風格的方法調整大小，建構適合密集預測的多尺度特徵金字塔。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    效率設計——說明如何以單次前向傳播高效擷取擴散模型特徵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應潛在的「效率質疑」：擴散模型通常需要數十步迭代去噪，此段明確指出 ODISE 只需一次前向傳播，消除了對推論速度的疑慮。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「單次前向傳播」的強調極具策略性——它將擴散模型從「緩慢的生成器」重新定位為「高效的特徵擷取器」。FPN 風格的多尺度特徵建構是密集預測的標準做法，確保了與下游遮罩生成器的相容性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隱式描述文字生成器 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The diffusion model's visual representation depends on paired caption input. This becomes problematic when extracting visual representations for images <span class="hl-rebuttal">without paired captions — the common application case</span>. Using empty text proves suboptimal. We introduce an <span class="hl-concept">Implicit Captioner</span> that <span class="hl-method">generates implicit text embeddings directly from images</span> rather than relying on off-the-shelf captioning networks. The implicit captioner uses <span class="hl-method">frozen CLIP image encoders</span> to encode input images into their embedding space. A <span class="hl-method">learned MLP projects the image embedding into an implicit text embedding</span> fed into the diffusion UNet. During training, image encoder and UNet parameters remain unchanged; <span class="hl-evidence">only the MLP parameters are fine-tuned</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                擴散模型的視覺表示依賴配對的描述文字輸入。當需要為沒有配對描述文字的影像擷取視覺表示時，這便成為問題——而這正是常見的應用情境。使用空字串作為文字輸入的效果並不理想。我們引入一個隱式描述文字生成器，直接從影像生成隱式文字嵌入，而非依賴現成的自動描述文字生成網路。隱式描述文字生成器使用凍結的 CLIP 影像編碼器將輸入影像編碼至其嵌入空間，再透過一個學習得到的多層感知器將影像嵌入投射為隱式文字嵌入，輸入至擴散 UNet。訓練期間，影像編碼器與 UNet 的參數保持不變，僅微調多層感知器的參數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解決實際問題——提出隱式描述文字生成器以應對推論時缺乏文字輸入的窘境。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段填補了一個關鍵的實作缺口：擴散模型需要文字輸入，但推論時不一定有描述文字。隱式描述文字生成器是連接訓練與推論設定的橋樑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 CLIP 影像嵌入取代顯式描述文字的設計非常巧妙——CLIP 的嵌入空間本身就與文字空間對齊，使得影像到文字嵌入的映射具有良好的初始化。僅訓練 MLP 的輕量策略進一步強化了效率論述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 遮罩生成器 ====== -->
+    <h3 class="subsection-heading" id="sec-mask-gen">3.4 Mask Generator — 遮罩生成器</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">mask generator</span> accepts the visual representation as input and outputs <span class="hl-method">N class-agnostic binary masks and corresponding N mask embedding features</span>. The architecture is flexible — any panoptic segmentation network generating mask predictions works. We instantiate it with both <span class="hl-method">bounding box-based and direct segmentation mask-based methods</span>. Using box-based approaches, <span class="hl-method">ROI-Aligned features</span> of predicted mask regions compute mask embedding features. With mask-based methods, <span class="hl-method">masked pooling on final feature maps</span> computes mask embedding features.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                遮罩生成器接受視覺表示作為輸入，輸出 N 個類別無關的二值遮罩及對應的 N 個遮罩嵌入特徵。其架構設計具備彈性——任何能生成遮罩預測的全景式分割網路皆可勝任。我們以邊界框式與直接分割遮罩式兩種方法進行實例化。使用邊界框式方法時，透過預測遮罩區域的 ROI 對齊特徵來計算遮罩嵌入特徵；使用遮罩式方法時，則在最終特徵圖上進行遮罩池化來計算遮罩嵌入特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    模組定義——描述遮罩生成器的輸入/輸出規格與實例化方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    遮罩生成器是管線的第二階段，承接擴散特徵擷取後的密集預測任務。「類別無關」的設計是關鍵——它將「在哪裡」與「是什麼」解耦，後者交由分類模組處理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    架構的模組化設計（可替換不同的遮罩生成器）增強了方法的通用性與可擴展性。但這也意味著 ODISE 的效能部分取決於所選用的基礎遮罩生成器——實驗中選用 Mask2Former 已是當時最強的封閉詞彙方法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since our approach emphasizes <span class="hl-concept">dense pixel-wise predictions</span>, we select a <span class="hl-method">direct segmentation-based architecture</span> using <span class="hl-concept">Mask2Former</span> as our primary mask generator. Following established practices, predicted class-agnostic binary masks receive supervision through <span class="hl-method">pixel-wise binary cross-entropy loss</span> with corresponding ground-truth masks treated as class-agnostic ones. This loss ensures the mask generator learns to <span class="hl-thesis">produce high-quality region proposals regardless of semantic category</span>, which is essential for open-vocabulary generalization.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由於本方法強調密集的像素級預測，我們選擇直接分割式架構，以 Mask2Former 作為主要的遮罩生成器。依循既有做法，預測的類別無關二值遮罩透過像素級二值交叉熵損失進行監督，對應的真實遮罩亦被視為類別無關。此損失確保遮罩生成器學會產生高品質的區域提案，且不受語義類別的限制——這對開放詞彙泛化至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    具體實例化——確定遮罩生成器的最終選擇並說明訓練目標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將上段的抽象設計落地為具體實作：Mask2Former + 類別無關損失。「類別無關」的訓練策略確保遮罩品質不受訓練類別偏差影響，這是泛化至新類別的先決條件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選用 Mask2Former 是明智之舉——它在封閉詞彙設定下已是最強基線，可確保遮罩品質不成為瓶頸。但此選擇也使得 ODISE 的新穎性主要來自特徵擷取與分類模組，而非遮罩生成本身。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.5 遮罩分類 ====== -->
+    <h3 class="subsection-heading" id="sec-mask-cls">3.5 Mask Classification — 遮罩分類</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Each predicted binary mask receives a category label from <span class="hl-concept">open vocabularies</span> using <span class="hl-concept">text-image discriminative models</span>. These models, trained on internet-scale image-text pairs, demonstrate strong open-vocabulary classification capabilities, consisting of <span class="hl-method">image encoders and text encoders</span>. We employ two commonly used supervision signals for predicting mask category labels: <span class="hl-method">category label supervision</span> and <span class="hl-method">image caption supervision</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                每個預測的二值遮罩透過文字-影像判別模型從開放詞彙中接收一個類別標籤。這些在網路規模影像-文字配對上訓練的模型，展現強大的開放詞彙分類能力，由影像編碼器與文字編碼器組成。我們採用兩種常見的監督訊號來預測遮罩的類別標籤：類別標籤監督與影像描述文字監督。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    模組導引——介紹遮罩分類的核心概念與兩種監督模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    遮罩分類是管線的第三階段，負責回答「這個遮罩是什麼」。兩種監督模式的並存體現了方法的適應性——有標籤時用標籤，僅有描述文字時用描述文字。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    雙監督模式的設計增加了方法的實用性，因為許多資料集僅提供影像描述文字而非逐遮罩標籤。這也暗示了 ODISE 可利用更大規模的弱標注資料進行訓練。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Category Label Supervision:</strong> Training assumes access to each mask's <span class="hl-method">ground-truth category label</span>, similar to traditional closed-vocabulary training. With K_train training categories, each mask embedding feature has a corresponding ground-truth category. All training category names are <span class="hl-method">encoded with frozen text encoders</span> to form category embeddings. We compute mask embedding feature probabilities belonging to training classes through <span class="hl-method">classification loss using softmax-normalized dot products</span> with category embeddings and a <span class="hl-method">learnable temperature parameter</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>類別標籤監督：</strong>訓練時假設可取得每個遮罩的真實類別標籤，類似於傳統的封閉詞彙訓練。在 K_train 個訓練類別下，每個遮罩嵌入特徵對應一個真實類別。所有訓練類別名稱透過凍結的文字編碼器編碼為類別嵌入。我們透過分類損失計算遮罩嵌入特徵屬於各訓練類別的機率，使用經 softmax 正規化的點積搭配類別嵌入及一個可學習的溫度參數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第一種監督模式——描述以類別標籤進行監督的分類機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示如何將封閉詞彙的訓練策略擴展至開放詞彙設定：關鍵在於使用文字編碼器將類別名稱映射到嵌入空間，使得推論時可直接替換為任意新類別名稱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    可學習溫度參數是對比學習中的標準技巧，用以控制分布的銳利度。但在極端開放詞彙場景中（如數百個類別），softmax 分類的計算效率與類別間的語義混淆可能成為瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Image Caption Supervision:</strong> This setting assumes <span class="hl-rebuttal">no category labels for each annotated mask</span>, but access to <span class="hl-method">natural language captions for each image</span>. We extract <span class="hl-method">nouns from captions</span> and treat them as grounding category labels. A <span class="hl-method">grounding loss</span> supervises mask category label predictions: given image-caption pairs with K_word nouns extracted from captions, we compute <span class="hl-method">similarity between each image-caption pair through masked attention mechanisms</span>, encouraging nouns to be grounded by one or few masked image regions while <span class="hl-rebuttal">avoiding penalizing ungrounded regions</span>. The grounding loss follows <span class="hl-method">image-text contrastive loss patterns with a temperature parameter</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>影像描述文字監督：</strong>此設定假設每個標註遮罩不具備類別標籤，但可取得每張影像的自然語言描述文字。我們從描述文字中擷取名詞，將其視為接地類別標籤。一個接地損失函數監督遮罩類別標籤的預測：給定影像-描述文字配對與從描述文字中擷取的 K_word 個名詞，我們透過遮罩注意力機制計算每對影像-描述文字之間的相似度，鼓勵名詞被一個或少數遮罩影像區域所接地，同時避免懲罰未被接地的區域。接地損失依循影像-文字對比損失的模式，搭配溫度參數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第二種監督模式——以更弱的描述文字監督取代逐遮罩類別標籤。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段擴展了方法的適用範圍：當遮罩級標籤不可用時（如僅有影像描述文字的資料集），仍可透過名詞擷取與接地損失進行訓練。這使 ODISE 能利用更廣泛的弱監督資料。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「避免懲罰未被接地的區域」是一個巧妙的設計——描述文字通常不會涵蓋影像中的所有物件，因此損失函數必須容忍這種不完整性。但名詞擷取的品質高度依賴自然語言處理工具，錯誤的名詞擷取可能引入雜訊監督。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.6 開放詞彙推論 ====== -->
+    <h3 class="subsection-heading" id="sec-inference">3.6 Open-Vocabulary Inference — 開放詞彙推論</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                During inference, <span class="hl-method">test category names are available</span>, and no captions or labels exist for test images. Images pass through the <span class="hl-method">implicit captioner</span> for implicit captions, then through the <span class="hl-method">diffusion model to obtain UNet features</span>, and finally through <span class="hl-method">mask generators to predict all possible binary masks</span>. To classify each predicted mask into test categories, probabilities are computed using the same approach as training, now with <span class="hl-method">test category embeddings</span> replacing training category embeddings.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                推論階段提供測試類別名稱，而測試影像不具備描述文字或標籤。影像首先通過隱式描述文字生成器取得隱式描述文字，接著通過擴散模型取得 UNet 特徵，最後通過遮罩生成器預測所有可能的二值遮罩。為將每個預測遮罩分類至測試類別，使用與訓練相同的方法計算機率，但以測試類別嵌入取代訓練類別嵌入。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推論流程描述——說明測試階段的完整管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將訓練時的各模組串聯為完整的推論流程。「以測試類別嵌入取代訓練類別嵌入」是開放詞彙泛化的核心機制——模型從未見過這些類別，但透過共享的嵌入空間仍能進行分類。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    推論流程的描述清晰簡潔，展現了方法的優雅性：無需任何微調即可處理新類別。但此泛化能力高度依賴嵌入空間的品質——若訓練類別與測試類別在嵌入空間中的分布差異過大，效能可能下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We found that diffusion model internal representations generate many plausible masks but benefit from <span class="hl-thesis">combining classification with text-image discriminative models</span>, especially for open vocabularies. We leverage the <span class="hl-method">discriminative model image encoder</span> to further classify each predicted masked region. For each predicted mask, features within the mask region are pooled from the encoder's output using <span class="hl-method">mask pooling operations</span>. The final classification uses <span class="hl-method">geometric mean fusion</span> of category predictions from diffusion and discriminative models with a <span class="hl-method">fixed balancing factor lambda between 0 and 1</span>. This <span class="hl-evidence">pooling approach is more efficient and equally effective</span> compared to cropping each predicted mask's bounding box and separately encoding with the image encoder.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們發現擴散模型的內部表示能生成許多合理的遮罩，但在結合文字-影像判別模型進行分類時效果更佳，尤其在開放詞彙場景中。我們利用判別模型的影像編碼器進一步對每個預測遮罩區域進行分類。對於每個預測遮罩，透過遮罩池化運算從編碼器輸出中匯集遮罩區域內的特徵。最終分類採用擴散模型與判別模型類別預測的幾何平均融合，搭配一個介於 0 到 1 之間的固定平衡因子 lambda。相較於裁剪每個預測遮罩的邊界框並分別以影像編碼器編碼，此池化方法更加高效且同等有效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心融合策略——說明如何結合擴散模型與判別模型的互補優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文設計哲學的凝縮：擴散模型提供空間語義表示，判別模型提供開放詞彙分類能力，幾何平均融合將兩者的優勢統一。這直接呼應緒論中「結合擴散與判別模型」的核心命題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    幾何平均融合是簡潔但有效的組合策略。固定 lambda 的選擇簡化了超參數調整，但可能無法在所有資料集上達到最佳。遮罩池化取代逐遮罩裁剪的效率優化展現了工程思維，避免了推論時的計算爆炸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：實作細節 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Architecture:</strong> We use <span class="hl-concept">Stable Diffusion</span> pretrained on the <span class="hl-evidence">LAION dataset</span> as the text-to-image diffusion model. Feature maps are extracted from <span class="hl-method">every three UNet blocks</span>, resized using <span class="hl-method">FPN-style approaches to create feature pyramids</span>. Diffusion timesteps are set to <span class="hl-evidence">t=0 by default</span>. <span class="hl-concept">CLIP</span> serves as the text-image discriminative model. <span class="hl-concept">Mask2Former</span> provides the mask generator architecture, generating <span class="hl-evidence">N=100 binary mask predictions</span>. The entire model contains <span class="hl-evidence">28.1M trainable parameters (1.8% of full model) and 1,493.8M frozen parameters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>架構：</strong>我們使用在 LAION 資料集上預訓練的 Stable Diffusion 作為文字到影像擴散模型。從每三個 UNet 區塊擷取特徵圖，以 FPN 風格調整大小建構特徵金字塔。擴散時間步預設為 t=0。CLIP 作為文字-影像判別模型。Mask2Former 提供遮罩生成器架構，產生 N=100 個二值遮罩預測。整個模型包含 28.1M 個可訓練參數（佔完整模型的 1.8%）及 1,493.8M 個凍結參數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實作規格——詳列架構選擇與模型規模，確保可再現性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將方法章節的抽象設計落實為具體的模型配置。「1.8% 可訓練參數」的數據強調了參數效率——幾乎所有知識來自預訓練模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    t=0 的選擇意味著輸入影像不加噪，這與擴散模型的原始設計（加噪後去噪）有所偏離。此設定下 UNet 實質上充當純粹的特徵擷取器，其合理性需由消融實驗佐證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：訓練細節 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Training Details:</strong> ODISE trains for <span class="hl-evidence">90k iterations with 1024x1024 images</span> using <span class="hl-method">large-scale jittering with random scales between 0.1 and 2.0</span>. Batch size is <span class="hl-evidence">64</span>. <span class="hl-method">AdamW optimizer</span> with learning rate 0.0001 and weight decay 0.05 is used. <span class="hl-evidence">COCO dataset</span> provides training data, with panoptic mask annotations supervising binary mask loss. For image caption training, one caption per image is randomly selected from <span class="hl-evidence">COCO caption annotations</span>. Evaluation covers <span class="hl-evidence">ADE20K for open-vocabulary panoptic, instance, and semantic segmentation; and Pascal datasets for semantic segmentation</span>. A single checkpoint handles all tasks and datasets.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>訓練細節：</strong>ODISE 以 1024x1024 影像訓練 90k 次迭代，使用 0.1 至 2.0 之間隨機縮放的大規模抖動。批次大小為 64。使用 AdamW 最佳化器，學習率為 0.0001，權重衰減為 0.05。以 COCO 資料集為訓練資料，全景式遮罩標註監督二值遮罩損失。影像描述文字訓練時，從 COCO 描述文字標註中隨機選取每張影像的一則描述。評估涵蓋 ADE20K（開放詞彙全景式、實例及語義分割）以及 Pascal 資料集（語義分割）。單一模型檢查點即可處理所有任務與資料集。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練配方揭露——提供完整的超參數設定，確保實驗可再現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「單一檢查點處理所有任務」是重要的實用性主張——無需為不同任務或資料集分別訓練，體現了方法的通用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    1024x1024 的訓練解析度與 Stable Diffusion 的原生解析度一致，這是自然的選擇。大規模抖動（0.1-2.0）對多尺度物件的偵測至關重要。但 90k 迭代在批次大小 64 下僅約 5.7M 個樣本，訓練成本相對有限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：與最新方法比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Open-Vocabulary Panoptic Segmentation:</strong> Training on COCO and testing on ADE20K, ODISE <span class="hl-evidence">outperforms concurrent work MaskCLIP by 8.3 PQ</span> and achieves <span class="hl-evidence">8.4 gains in the mAP metric</span>. Specifically, ODISE achieves <span class="hl-evidence">23.4 PQ and 30.0 mIoU on ADE20K</span>. <strong>Open-Vocabulary Semantic Segmentation:</strong> Evaluations across five datasets show ODISE outperforms existing state-of-the-art by <span class="hl-evidence">7.6 mIoU on A-150, 4.7 mIoU on A-847, 4.8 mIoU on PC-459</span> with caption supervision, and <span class="hl-evidence">6.2 mIoU on A-150, 4.5 mIoU on PC-459</span> with category label supervision. These consistent improvements across diverse benchmarks demonstrate the <span class="hl-thesis">generalizability and robustness of the diffusion-based feature representations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>開放詞彙全景式分割：</strong>在 COCO 上訓練、ADE20K 上測試，ODISE 超越同期工作 MaskCLIP 達 8.3 PQ，並在 mAP 指標上取得 8.4 的增幅。具體而言，ODISE 在 ADE20K 上達到 23.4 PQ 與 30.0 mIoU。<strong>開放詞彙語義分割：</strong>在五個資料集上的評估顯示，ODISE 在描述文字監督下分別以 7.6 mIoU（A-150）、4.7 mIoU（A-847）、4.8 mIoU（PC-459）超越現有最佳方法；在類別標籤監督下，分別以 6.2 mIoU（A-150）、4.5 mIoU（PC-459）領先。這些跨多樣化基準的一致性提升，證明了基於擴散模型特徵表示的泛化能力與穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗證據——在多項基準上展示全面且顯著的效能提升。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最有力的實證支柱：跨兩種任務（全景式/語義分割）、跨五個以上的資料集，ODISE 均達到最佳表現。一致性提升排除了「僅在特定設定下有效」的疑慮。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    大量的數據點（PQ、mAP、mIoU 在多個資料集上）構成了壓倒性的證據。但所有比較對象均為同期或先前工作，後續方法（如 FC-CLIP）可能進一步縮小差距。另外，A-847（847 類別）上的絕對 mIoU 值仍較低，反映了極端開放詞彙場景的挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.3 消融研究 ====== -->
+    <h3 class="subsection-heading" id="sec-ablation">4.3 Ablation Study — 消融研究</h3>
+
+    <!-- 消融段落 1：視覺表示比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Visual Representations:</strong> We compare text-to-image <span class="hl-concept">diffusion model internal representations</span> against other state-of-the-art pre-trained <span class="hl-concept">discriminative and generative models</span>. All experiments freeze pre-trained model weights using identical training hyperparameters and mask generators. ODISE <span class="hl-evidence">outperforms all compared models in PQ on both datasets</span>. Despite both the diffusion model and CLIP being trained on equal-sized <span class="hl-evidence">LAION datasets</span>, the diffusion-based method <span class="hl-evidence">outperforms CLIP(H) by a large margin on all metrics</span>, demonstrating that <span class="hl-thesis">diffusion model internal representations are inherently superior for open-vocabulary segmentation tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>視覺表示：</strong>我們將文字到影像擴散模型的內部表示與其他最先進的預訓練判別模型及生成模型進行比較。所有實驗凍結預訓練模型權重，使用相同的訓練超參數與遮罩生成器。ODISE 在兩個資料集上的 PQ 指標均超越所有比較模型。儘管擴散模型與 CLIP 均在等規模的 LAION 資料集上訓練，基於擴散模型的方法在所有指標上以大幅度超越 CLIP(H)，證明擴散模型的內部表示在開放詞彙分割任務上具有內在優越性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    關鍵消融——以公平比較驗證擴散模型表示優於判別模型表示的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是全文最重要的消融實驗，直接驗證了核心假設。控制變因（相同訓練資料、相同下游架構）使比較極具說服力，結論直指「擴散模型表示本質上更適合分割」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「等規模訓練資料」的控制是嚴謹的實驗設計，排除了資料量差異的干擾。但擴散模型與判別模型的訓練目標不同（生成 vs. 對比），模型容量也可能不同，這些因素可能部分解釋效能差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 2：描述文字生成器 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Captioning Generators:</strong> We compare the <span class="hl-concept">implicit captioning module</span> against baselines: providing <span class="hl-rebuttal">empty strings</span> (fixed text embeddings for all images); using two <span class="hl-concept">off-the-shelf image captioning networks</span> (a heuristic approach and the BLIP model); and our proposed implicit captioning module. Results show that <span class="hl-evidence">explicit and implicit captions both outperform empty text</span>. The <span class="hl-thesis">implicit captioning module generalizes best among all variants</span> since it derives captions from the internet-scale text-image discriminative model's embedding space, avoiding the domain gap introduced by explicit captioning networks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>描述文字生成器：</strong>我們將隱式描述文字模組與以下基線進行比較：提供空字串（所有影像使用固定的文字嵌入）；使用兩個現成的影像描述文字生成網路（啟發式方法與 BLIP 模型）；以及本文提出的隱式描述文字模組。結果顯示，顯式與隱式描述文字均優於空文字。隱式描述文字模組在所有變體中泛化最佳，因為它從網路規模文字-影像判別模型的嵌入空間中衍生描述文字，避免了顯式描述文字生成網路引入的領域差距。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——以消融實驗確認隱式描述文字模組的必要性與優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段驗證了方法設計中一個巧妙但非顯然的選擇：為何使用隱式描述文字而非顯式描述文字或空字串。結果支持了設計的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    與空字串基線的比較確認了文字條件的重要性；與 BLIP 的比較則展示了端到端學習的優勢。但隱式描述文字的「可解釋性」較低——我們無法直接理解模型「看到」了什麼文字描述，這在安全性與可解釋性方面可能是隱憂。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 3：時間步與融合 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Diffusion Time Steps:</strong> Studies determine which diffusion timesteps best extract features. Results indicate <span class="hl-evidence">all metrics decrease as timestep values increase, with t=0 producing optimal results</span>. Training with learnable timesteps shows convergence to values near zero, independently validating t=0 as optimal. <strong>Mask Classifiers:</strong> Fusing class predictions from <span class="hl-method">diffusion and discriminative models</span> via geometric mean improves performance. Individual comparisons show the <span class="hl-evidence">diffusion approach outperforms discriminative-only approaches</span>, while <span class="hl-evidence">fusion produces the highest values</span>. Even without fusion, the diffusion-only method surpasses all existing approaches.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>擴散時間步：</strong>研究確定哪個擴散時間步最適合擷取特徵。結果顯示所有指標隨時間步值增加而下降，t=0 產生最佳結果。以可學習時間步進行訓練時，值收斂至接近零，獨立驗證了 t=0 為最佳選擇。<strong>遮罩分類器：</strong>透過幾何平均融合擴散模型與判別模型的類別預測，可提升效能。個別比較顯示，擴散方法優於僅用判別模型的方法，而融合產生最高值。即使不融合，僅用擴散模型的方法亦超越所有現有方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    超參數驗證與融合效益——確認關鍵設計選擇的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    雙重驗證策略：(1) t=0 的最佳性既由掃描實驗支持，又由可學習時間步的收斂結果獨立佐證；(2) 融合策略的增益確認了「擴散+判別」的互補性假設。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    t=0 意味著不加雜訊，這在直覺上令人意外——擴散模型設計初衷是處理雜訊輸入。可學習時間步收斂至零的結果雖然支持此選擇，但也暗示擴散模型可能在此設定下退化為一般的 UNet 特徵擷取器，削弱了「擴散」的特殊性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work takes the <span class="hl-thesis">first step in leveraging the frozen internal representations of large-scale text-to-image diffusion models for downstream recognition tasks</span>. ODISE demonstrates that text-to-image generation models hold significant <span class="hl-thesis">potential in open-vocabulary segmentation</span> and establishes new state-of-the-art performance across multiple benchmarks. Our work reveals that text-to-image diffusion models learn <span class="hl-thesis">"rich semantic representations" that go beyond image generation capabilities</span>, opening new directions for leveraging text-to-image model internal representations in future vision tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究跨出了利用大規模文字到影像擴散模型凍結內部表示於下游辨識任務的第一步。ODISE 展示了文字到影像生成模型在開放詞彙分割領域的巨大潛力，並在多項基準測試上建立了新的最佳表現。我們的工作揭示了文字到影像擴散模型學習到「豐富的語義表示」，其能力超越了影像生成本身，為在未來視覺任務中利用文字到影像模型的內部表示開啟了新方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與展望——重申核心發現並指出未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要與緒論，形成完整的論證閉環：從「擴散模型的內部表示蘊含語義」的假設出發，經過方法設計與實驗驗證，最終確認此假設成立並指出更廣泛的影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「第一步」的謙虛措辭恰如其分——承認這是探索性工作，為後續改進留出空間。但結論未討論明顯的局限性（如推論速度、對 Stable Diffusion 的依賴、t=0 設定的理論基礎薄弱），這在學術規範上略有不足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Looking forward, the <span class="hl-thesis">synergy between generative and discriminative models</span> for visual understanding represents a promising paradigm. As text-to-image diffusion models continue to improve in <span class="hl-concept">generation quality and diversity</span>, their internal representations will likely encode <span class="hl-thesis">even richer semantic structures</span>. Future work may explore <span class="hl-method">fine-tuning diffusion models for specific recognition tasks</span>, <span class="hl-method">extending to video segmentation</span>, or <span class="hl-method">leveraging newer diffusion architectures</span> beyond UNet. The principle that <span class="hl-thesis">generative pre-training produces representations useful for discriminative tasks</span> may prove broadly applicable across computer vision.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                展望未來，生成模型與判別模型在視覺理解上的協同效應代表了一個充滿前景的典範。隨著文字到影像擴散模型在生成品質與多樣性上持續進步，其內部表示很可能編碼更豐富的語義結構。未來的研究方向包括：為特定辨識任務微調擴散模型、擴展至影片分割，或利用 UNet 之外的更新擴散架構。「生成式預訓練能產生對判別任務有用的表示」這一原則，可能在電腦視覺領域具有廣泛的適用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    前瞻性展望——描繪生成-判別協同的研究藍圖。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將 ODISE 的具體成果昇華為更廣泛的研究原則：生成式預訓練可服務於判別任務。這為整篇論文賦予了超越單一方法的學術影響力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提出微調擴散模型、影片分割、新架構等方向，展示了充沛的後續研究潛力。但「生成式預訓練有利於判別任務」的通用性主張需更多不同任務的驗證支持。事實上，後續如 VPD、Marigold 等工作已部分驗證了此方向的可行性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                開放詞彙全景式分割<br>缺乏空間語義表示
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                擴散模型內部表示<br>蘊含豐富的空間語義
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ADE20K 上 PQ +8.3<br>mIoU +7.9 全面領先
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                擴散+判別雙模型融合<br>互補解決分類瓶頸
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                生成式預訓練表示<br>可服務判別任務
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    大規模文字到影像擴散模型的凍結內部表示，結合判別模型的開放詞彙分類能力，能以極少量可訓練參數實現跨資料集、跨類別的開放詞彙全景式分割，大幅超越純判別式方法。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>公平的視覺表示消融實驗：</strong>在控制訓練資料（LAION）、下游架構（Mask2Former）與超參數完全相同的條件下，擴散模型表示大幅領先 CLIP 表示，直接且嚴謹地驗證了核心假設。多基準、多任務的一致性提升進一步排除了過擬合於特定設定的可能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>t=0 設定的理論基礎薄弱：</strong>最佳時間步為 t=0（不加雜訊）意味著擴散模型的「去雜訊」核心機制在特徵擷取時並未被啟動，這令人質疑真正發揮作用的究竟是「擴散」還是僅僅是「以大規模影像-文字配對訓練的 UNet」。此外，推論速度（1.26 FPS）限制了實際應用，且對 Stable Diffusion 特定架構的依賴性未被充分討論。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

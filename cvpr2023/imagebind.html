@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImageBind: One Embedding Space To Bind Them All — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                ImageBind: One Embedding Space To Bind Them All
+                <span class="course-tag">CVPR 2023</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2305.05665" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-binding">3.1 綁定機制</a>
+        <a href="#sec-implementation">3.2 實作細節</a>
+        <a href="#sec-emergent">3.3 湧現能力</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.2 消融研究</a>
+        <a href="#sec-conclusion">5. 討論與結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1：問題與方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">ImageBind</span>, an approach to learn <span class="hl-thesis">a joint embedding across six different modalities — images, text, audio, depth, thermal, and IMU data</span>. We show that <span class="hl-thesis">all combinations of paired data are not necessary</span> to train such a joint embedding, and only <span class="hl-method">image-paired data is sufficient to bind the modalities together</span>. ImageBind can leverage recent large scale <span class="hl-concept">vision-language models</span>, and extends their zero-shot capabilities to new modalities just by using their natural pairing with images. It enables novel <span class="hl-concept">emergent applications</span> including <span class="hl-evidence">cross-modal retrieval, composing modalities with arithmetic, cross-modal detection and generation</span>. The emergent capabilities improve with the strength of the image encoder and we set a new <span class="hl-evidence">state-of-the-art on emergent zero-shot recognition tasks across modalities, outperforming specialist supervised models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 ImageBind，一種學習跨越六種不同模態（影像、文字、音訊、深度、熱感應與 IMU 資料）聯合嵌入空間的方法。我們展示所有模態配對組合的資料並非必要——僅需影像配對資料即足以將各模態綁定在一起。ImageBind 能夠善用近期的大規模視覺語言模型，並僅透過與影像的自然配對，即可將其零樣本能力延伸至新的模態。此方法實現了多項新穎的湧現應用，包括跨模態檢索、以算術運算組合模態、跨模態偵測與生成。湧現能力隨影像編碼器的強度而提升，且本方法在跨模態的湧現零樣本辨識任務上達到最新的最佳水準，超越了專門的監督式模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精煉的方式宣告 ImageBind 的核心貢獻與關鍵發現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題定義與解決方案預告」的雙重功能：先界定多模態聯合嵌入的挑戰（需要所有模態的配對資料），再以一個反直覺的發現（僅需影像配對）作為核心賣點，最後列舉湧現能力與實驗成果作為可信度擔保。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「僅需影像配對資料即足以綁定所有模態」是極具吸引力的主張，但此處尚未交代為何影像能扮演如此獨特的「錨點」角色。此外，「湧現能力」一詞借用了大型語言模型領域的流行術語，可能過度渲染了方法的自發性質——這些能力實際上是架構設計的預期結果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：人類多感官感知 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Humans understand the world by <span class="hl-thesis">absorbing multiple senses simultaneously — sight, sound, touch, smell, and movement</span>. This holistic understanding enables us to recognize objects not just visually, but through their associated sounds, textures, and spatial configurations. <span class="hl-concept">Multimodal learning</span> in AI aims to replicate this capability by learning representations that capture the relationships between different sensory modalities. A key challenge is that <span class="hl-rebuttal">obtaining large-scale paired data across all possible modality combinations is impractical</span> — while image-text pairs are abundant on the web, acquiring aligned data for combinations like audio-depth or thermal-IMU is prohibitively expensive.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人類透過同時吸收多重感官來理解世界——視覺、聽覺、觸覺、嗅覺與動覺。這種整體性的理解使我們不僅能以視覺辨識物體，還能透過其相關的聲音、質地與空間配置加以認知。人工智慧中的多模態學習旨在複製此能力，學習能捕捉不同感官模態間關係的表示。核心挑戰在於，取得涵蓋所有可能模態組合的大規模配對資料是不切實際的——雖然影像與文字的配對資料在網路上相當豐富，但要取得音訊-深度或熱感應-IMU 等組合的對齊資料，其成本高得令人望而卻步。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——從人類感知的直覺出發，引出多模態學習的核心挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以生物類比（人類多感官感知）建立讀者的直覺認同，再轉向技術挑戰（配對資料稀缺），為後續「僅需影像配對」的解決方案製造需求張力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以人類感知作類比是有效的修辭策略，但人類的多感官整合機制與 ImageBind 的向量空間對齊在本質上截然不同。此類比可能誤導讀者以為模型具備類人的感官融合能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有方法的限制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent <span class="hl-concept">vision-language models</span> such as <span class="hl-concept">CLIP</span> and <span class="hl-concept">ALIGN</span> have demonstrated remarkable success in learning <span class="hl-evidence">aligned image-text representations from web-scale data</span>. These models enable powerful zero-shot transfer capabilities for visual recognition tasks. However, <span class="hl-rebuttal">they are fundamentally limited to two modalities — images and text</span>. Extending such approaches to additional modalities like audio, depth, thermal, or inertial data would <span class="hl-rebuttal">naively require paired datasets for every combination of modalities</span>, resulting in an O(n^2) scaling problem. Prior multimodal approaches have attempted to handle three or more modalities, but typically <span class="hl-rebuttal">require explicit supervision across all modality pairs or resort to limited modality combinations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期的視覺語言模型（如 CLIP 與 ALIGN）在從網路規模的資料中學習對齊的影像-文字表示方面，已展現了卓越的成功。這些模型為視覺辨識任務提供了強大的零樣本遷移能力。然而，它們從根本上被限制在兩種模態——影像與文字。若要將此類方法天真地擴展至音訊、深度、熱感應或慣性資料等額外模態，將需要每一種模態組合的配對資料集，導致 O(n^2) 的擴展問題。先前的多模態方法曾嘗試處理三種或更多模態，但通常需要跨所有模態對的顯式監督，或只能處理有限的模態組合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——指出視覺語言模型的模態數量限制與擴展困難。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題-解決方案」論證中的問題深化：從 CLIP/ALIGN 的兩模態瓶頸到 O(n^2) 配對問題，精確界定了 ImageBind 要突破的技術壁壘。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    O(n^2) 的複雜度分析是有力的論證——它將問題從直覺上的「困難」提升為數學上的「不可擴展」。但作者暗示 CLIP 僅限於兩模態，而忽略了其文字端本身已是一種通用介面，理論上可描述任何模態的內容。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：ImageBind 方案概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-concept">ImageBind</span>, which learns <span class="hl-thesis">a single joint embedding space across six modalities by using images as a binding modality</span>. Our key insight is that <span class="hl-thesis">images co-occur naturally with a wide variety of other modalities</span> — videos contain synchronized audio, RGB-D cameras capture aligned depth maps, thermal cameras provide paired thermal imagery, and wearable cameras record simultaneous IMU data. By <span class="hl-method">aligning each modality's embedding to the image embedding using contrastive learning on naturally paired data</span>, we achieve an emergent alignment across all modalities <span class="hl-method">without requiring any explicit pairing between non-image modalities</span>. This approach scales linearly O(n) with the number of modalities, rather than quadratically.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 ImageBind，透過使用影像作為綁定模態，學習一個跨越六種模態的單一聯合嵌入空間。核心洞見在於：影像與各式各樣的其他模態存在自然共現關係——影片包含同步的音訊、RGB-D 攝影機擷取對齊的深度圖、熱感應攝影機提供配對的熱影像，而穿戴式攝影機則記錄同步的 IMU 資料。透過在自然配對資料上使用對比學習，將每種模態的嵌入對齊到影像嵌入，我們實現了所有模態之間的湧現式對齊——無需非影像模態之間的任何顯式配對。此方法隨模態數量呈線性 O(n) 擴展，而非二次方。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——完整概述以影像為錨點的綁定策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的 O(n^2) 問題，此段扮演「轉折」角色：提出 O(n) 的解決方案。影像作為「萬用黏合劑」的類比，將看似複雜的多模態對齊問題化約為多個雙模態對齊的簡單疊加。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「自然共現」是整套方法的基石假設，但此假設的強度因模態而異——影像與音訊的共現（影片）比影像與 IMU 的共現（穿戴裝置）更自然且資料更豐富。不同模態對的對齊品質差異可能導致嵌入空間的各向異性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：視覺語言預訓練 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Vision-language pretraining</span> has made significant strides with models like <span class="hl-concept">CLIP</span>, <span class="hl-concept">ALIGN</span>, and <span class="hl-concept">Florence</span> that learn aligned image-text representations from <span class="hl-evidence">large-scale web-crawled datasets containing hundreds of millions to billions of image-text pairs</span>. These models use <span class="hl-method">contrastive learning objectives</span> to pull together matched image-text pairs while pushing apart unmatched ones in a shared embedding space. The resulting representations exhibit <span class="hl-evidence">strong zero-shot transfer capabilities</span>, enabling classification, retrieval, and detection without task-specific training. However, <span class="hl-rebuttal">these approaches are inherently bimodal and cannot directly accommodate modalities beyond images and text</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺語言預訓練在 CLIP、ALIGN 與 Florence 等模型的推動下取得了長足進展，這些模型從大規模的網路爬取資料集（包含數億至數十億筆影像-文字配對）中學習對齊的影像-文字表示。這些模型使用對比學習目標，在共享嵌入空間中拉近配對的影像-文字對，同時推開不配對的組合。由此產生的表示展現出強大的零樣本遷移能力，無需任務特定的訓練即可進行分類、檢索與偵測。然而，這些方法本質上是雙模態的，無法直接容納影像與文字以外的模態。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——概述視覺語言預訓練的成就與模態數量的瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術基礎：ImageBind 直接繼承並擴展 CLIP 等模型的成功範式，但將其從雙模態推向多模態。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 CLIP 的成功歸因於對比學習，為後續 ImageBind 採用相同損失函數提供了正當性。但此處未提及 CLIP 的局限性（如長尾分布偏差、社會偏見等），這些問題在多模態擴展中可能被放大。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：多模態學習 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Multimodal learning</span> beyond vision and language has explored various combinations of sensory data. <span class="hl-concept">AudioCLIP</span> extends CLIP to incorporate audio, while <span class="hl-concept">VATT</span> learns from video, audio, and text simultaneously. Other works focus on specific pairings such as <span class="hl-concept">image-depth</span> or <span class="hl-concept">audio-visual correspondence</span>. A common limitation is that <span class="hl-rebuttal">these methods are designed for specific modality combinations and do not generalize to arbitrary modalities</span>. Furthermore, approaches that do handle multiple modalities typically <span class="hl-rebuttal">require paired data across all modality combinations they aim to support</span>, which limits their scalability. <span class="hl-concept">Self-supervised learning</span> methods have shown that effective representations can be learned from unpaired data within a single modality, but <span class="hl-rebuttal">cross-modal alignment still generally requires paired supervision</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺與語言之外的多模態學習已探索了各種感官資料的組合。AudioCLIP 擴展 CLIP 以納入音訊，而 VATT 同時從影片、音訊與文字中學習。其他研究則聚焦於特定配對，如影像-深度或音訊-視覺對應。共通的局限在於這些方法是為特定模態組合所設計，無法泛化至任意模態。此外，能處理多種模態的方法通常需要跨所有支援的模態組合的配對資料，這限制了其擴展性。自監督學習方法已展示可從單一模態的未配對資料中學習有效表示，但跨模態對齊通常仍需配對監督。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 ImageBind 放置於多模態學習的更廣泛脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    系統性地排除競爭方法：AudioCLIP 受限於三模態、VATT 需要三方配對資料。每一個比較都指向同一結論——現有方法的模態擴展性不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者巧妙地將多個相關工作各分配一個不同的弱點，但這些工作的目標本就不同於 ImageBind。例如 AudioCLIP 可能並未以六模態統一為目標，將其與 ImageBind 直接比較有失公允。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：嵌入空間對齊 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The idea of using a <span class="hl-concept">shared embedding space</span> to connect different domains has a long history. <span class="hl-concept">Metric learning</span> and <span class="hl-method">contrastive losses</span> have been widely adopted for learning semantically meaningful distance functions. The <span class="hl-concept">InfoNCE loss</span>, used in contrastive learning frameworks, provides a principled approach to aligning representations by treating the task as an instance discrimination problem. Recent work has shown that <span class="hl-evidence">the quality of the embedding space depends critically on the scale and diversity of training data, as well as the capacity of the encoder models</span>. <span class="hl-thesis">ImageBind builds upon these foundations but introduces the novel insight that a single binding modality (images) can serve as a universal connector</span>, eliminating the need for explicit cross-modal pairings between all modalities.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用共享嵌入空間來連接不同領域的構想由來已久。度量學習與對比損失已被廣泛採用以學習語義上有意義的距離函數。對比學習框架中使用的 InfoNCE 損失，透過將任務視為實例辨別問題，提供了一種原則性的表示對齊方法。近期研究表明，嵌入空間的品質關鍵取決於訓練資料的規模與多樣性，以及編碼器模型的容量。ImageBind 建立在這些基礎之上，但引入了一個新穎的洞見：單一綁定模態（影像）可作為萬用連接器，消除所有模態之間顯式跨模態配對的需求。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論承接——將 ImageBind 的技術選擇連結到度量學習與對比學習的理論基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在學術譜系中為 ImageBind 找到根基：度量學習 -> 對比損失 -> InfoNCE -> CLIP -> ImageBind。每一環節都是自然的演進，使讀者認為 ImageBind 是邏輯上的必然下一步。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將核心創新定位為「洞見」而非「技術創新」是巧妙的修辭——這暗示方法本身的工程實作並不複雜，真正的價值在於概念層面的突破。但這也可能被批評者解讀為技術貢獻有限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Approach — 方法</h2>
+
+    <!-- 方法段落 1：總覽 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                ImageBind creates a <span class="hl-thesis">joint embedding space by leveraging images as a binding modality that connects all six modalities</span>. The approach is based on a simple observation: <span class="hl-thesis">images naturally co-occur with diverse modalities</span>. Videos provide naturally aligned (image, text), (image, audio) pairs; RGB-D sensors provide (image, depth) pairs; thermal cameras provide (image, thermal) pairs; and wearable devices with cameras provide (video, IMU) pairs. Rather than requiring paired data between all <span class="hl-method">C(M, 2) = M(M-1)/2 combinations</span> of M modalities, we only need <span class="hl-method">M-1 pairs</span>, each involving images. This reduces data requirements from quadratic to linear in the number of modalities.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ImageBind 透過利用影像作為綁定模態來建立聯合嵌入空間，將所有六種模態連接起來。此方法基於一個簡單的觀察：影像與多樣化的模態存在自然共現關係。影片提供自然對齊的（影像, 文字）與（影像, 音訊）配對；RGB-D 感測器提供（影像, 深度）配對；熱感應攝影機提供（影像, 熱感應）配對；帶有攝影機的穿戴裝置提供（影片, IMU）配對。與其需要所有 C(M, 2) = M(M-1)/2 種模態組合的配對資料，我們僅需 M-1 組配對，每組都涉及影像。這將資料需求從模態數量的二次方降為線性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法總覽——以數學化的方式闡述影像作為綁定模態的效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整個方法論的數學基礎。從組合數學的角度量化了方法的效率優勢：六種模態下，傳統方法需要 15 組配對，ImageBind 僅需 5 組。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以排列組合公式將效率優勢數學化是極具說服力的論證手法。但此分析假設每組配對資料的取得成本相同，事實上影像-IMU 配對的取得可能遠比影像-文字配對困難且昂貴。線性擴展的論述在理論上成立，但實際的資料瓶頸因模態而異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 綁定機制 ====== -->
+    <h3 class="subsection-heading" id="sec-binding">3.1 Binding with Images — 以影像進行綁定</h3>
+
+    <!-- 綁定機制段落 1：對比學習 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For each modality pair (I, M) where I denotes images and M denotes another modality, we train modality-specific encoders using the <span class="hl-method">InfoNCE contrastive loss</span>. Given a batch of N aligned pairs {(I_i, M_i)}, the loss encourages the <span class="hl-method">embeddings of matched pairs to be close while pushing apart unmatched pairs</span> in the joint space. Specifically, we <span class="hl-method">normalize the embeddings to lie on a unit hypersphere</span> and use a <span class="hl-method">symmetric cross-entropy loss over cosine similarities</span> scaled by a learnable temperature parameter. The image encoder is <span class="hl-method">initialized from a pretrained CLIP model and kept frozen</span>, while the modality-specific encoders are trained from scratch or from pretrained checkpoints. This design ensures that <span class="hl-thesis">all modalities are aligned to the same image embedding space, and hence to each other</span>, through the transitive property of embedding alignment.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於每一組模態配對 (I, M)——其中 I 表示影像，M 表示另一模態——我們使用 InfoNCE 對比損失來訓練特定於模態的編碼器。給定一批 N 個對齊的配對 {(I_i, M_i)}，損失函數鼓勵配對樣本的嵌入在聯合空間中彼此接近，同時推開不配對的樣本。具體而言，我們將嵌入正規化至單位超球面上，並使用經可學習溫度參數縮放的餘弦相似度上的對稱交叉熵損失。影像編碼器從預訓練的 CLIP 模型初始化並保持凍結，而特定於模態的編碼器則從頭訓練或從預訓練檢查點開始。此設計確保所有模態都對齊到相同的影像嵌入空間——因而透過嵌入對齊的遞移性，彼此也相互對齊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法推導——詳述對比學習損失函數與編碼器訓練策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的技術支柱。InfoNCE 損失 + 凍結影像編碼器的組合，確保了所有新模態都被「拉入」已建立的影像-文字嵌入空間，而非建立全新的空間。遞移性論證（A 對齊 B，B 對齊 C，則 A 對齊 C）是整個方法成立的數學依據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    遞移性假設是此方法最關鍵也最脆弱的環節。在高維空間中，對齊的遞移性並非精確成立——A 與 B 的對齊品質、B 與 C 的對齊品質並不保證 A 與 C 的對齊品質相當。嵌入空間的幾何結構可能在多次遞移後出現系統性偏移。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 綁定機制段落 2：為何影像是理想的錨點 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The choice of <span class="hl-thesis">images as the binding modality is motivated by several factors</span>. First, images are the <span class="hl-evidence">most information-rich sensory modality</span> — they capture spatial structure, object appearance, scene layout, and contextual cues that correlate with many other sensory experiences. Second, <span class="hl-evidence">large-scale pretrained image encoders (such as those in CLIP) already encode rich semantic representations</span> that have been shown to transfer well across tasks. Third, images <span class="hl-evidence">naturally co-occur with the widest range of other modalities</span> due to the ubiquity of cameras in modern sensor systems. By leveraging this <span class="hl-concept">natural centrality of images</span>, ImageBind avoids the need for specialized data collection pipelines for non-image modality pairs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                選擇影像作為綁定模態的動機有多重因素。首先，影像是資訊最豐富的感官模態——它捕捉了與許多其他感官體驗相關的空間結構、物件外觀、場景布局與情境線索。其次，大規模預訓練影像編碼器（如 CLIP 中的編碼器）已編碼了豐富的語義表示，且已被證明能良好地跨任務遷移。第三，由於攝影機在現代感測系統中的普及性，影像與最廣泛的其他模態存在自然共現。透過利用影像的這種自然中心性，ImageBind 避免了為非影像模態配對建立專門資料收集管線的需求。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供理論依據——從多角度論證影像作為綁定中心的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應讀者可能的疑問：「為何偏偏是影像？」此段以三重論證（資訊豐富度、預訓練品質、共現普及性）建立影像作為「萬用綁定劑」的獨特地位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三重論證結構穩健，但「最資訊豐富」的主張可被挑戰——文字在抽象概念的表達上可能比影像更為豐富。此外，影像的「中心性」部分源於攝影機技術的發展，而非感官本身的內在屬性。若未來感測器格局改變（如 LiDAR 普及），此論證的基礎可能動搖。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 綁定機制段落 3：數學表述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Formally, let <span class="hl-method">f_I denote the image encoder and f_M denote a modality-specific encoder</span>. For a pair (I_i, M_i), we compute normalized embeddings <span class="hl-method">q_i = f_I(I_i) / ||f_I(I_i)|| and k_i = f_M(M_i) / ||f_M(M_i)||</span>. The InfoNCE loss for modality M is defined as <span class="hl-method">L_M = -1/N sum_i log( exp(q_i . k_i / tau) / sum_j exp(q_i . k_j / tau) )</span>, where tau is the learnable temperature. The total training objective is <span class="hl-method">the sum of losses across all modality pairs: L = sum_{M in {T, A, D, Th, IMU}} L_M</span>. This formulation ensures that each modality encoder learns to map its inputs into the same region of the embedding space as the corresponding image features.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                形式上，令 f_I 表示影像編碼器，f_M 表示特定於模態的編碼器。對於一組配對 (I_i, M_i)，我們計算正規化嵌入 q_i = f_I(I_i) / ||f_I(I_i)|| 與 k_i = f_M(M_i) / ||f_M(M_i)||。模態 M 的 InfoNCE 損失定義為 L_M = -1/N sum_i log( exp(q_i . k_i / tau) / sum_j exp(q_i . k_j / tau) )，其中 tau 為可學習溫度。總訓練目標為所有模態配對的損失總和：L = sum_{M in {T, A, D, Th, IMU}} L_M。此公式化確保每個模態編碼器學習將其輸入映射到嵌入空間中與對應影像特徵相同的區域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學嚴格化——將前述的直覺概念轉化為明確的損失函數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為方法提供了可複現的數學規格。總損失函數的加法結構反映了各模態訓練的獨立性——這也是方法能線性擴展的數學體現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    損失函數的簡單加法形式意味著各模態的對齊是獨立進行的，沒有跨模態的聯合最佳化。這使訓練簡便，但也可能錯失模態間的高階交互資訊。此外，各模態損失的等權重相加假設了每組配對同等重要，但實際上配對品質與資料規模差異巨大。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 實作細節 ====== -->
+    <h3 class="subsection-heading" id="sec-implementation">3.2 Implementation Details — 實作細節</h3>
+
+    <!-- 實作細節段落 1：編碼器架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The image encoder uses a <span class="hl-concept">Vision Transformer (ViT)</span> architecture, specifically <span class="hl-evidence">ViT-H/14 from OpenCLIP</span>, which provides a strong pretrained representation. For <span class="hl-concept">text encoding</span>, we use the corresponding CLIP text encoder. The <span class="hl-concept">audio encoder</span> processes 2-second audio clips converted to <span class="hl-method">mel-spectrograms and treated as 2D images</span>, using a ViT architecture. The <span class="hl-concept">depth encoder</span> processes depth maps similarly as single-channel images with a ViT. The <span class="hl-concept">thermal encoder</span> handles thermal infrared images, also processed with a ViT. The <span class="hl-concept">IMU encoder</span> uses a <span class="hl-method">Transformer architecture that processes 5-second windows of accelerometer and gyroscope data projected to a common dimension</span>. All modality encoders share the same embedding dimensionality to enable direct comparison in the joint space.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像編碼器採用視覺轉換器（ViT）架構，具體使用 OpenCLIP 的 ViT-H/14，提供強健的預訓練表示。文字編碼方面，使用對應的 CLIP 文字編碼器。音訊編碼器處理 2 秒的音訊片段——將其轉換為梅爾頻譜圖並視為二維影像，使用 ViT 架構。深度編碼器以類似方式處理深度圖，作為單通道影像輸入 ViT。熱感應編碼器處理熱紅外影像，同樣以 ViT 處理。IMU 編碼器使用 Transformer 架構，處理 5 秒窗口的加速度計與陀螺儀資料，將其投影到共同維度。所有模態編碼器共享相同的嵌入維度，以便在聯合空間中進行直接比較。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構規格——詳述六種模態各自的編碼器設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    提供方法的完整實作藍圖。一個關鍵的設計哲學浮現：盡可能將所有模態統一為「類影像」的處理方式（頻譜圖、深度圖皆作為 2D 影像），以共用 ViT 架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將音訊轉為頻譜圖再以影像模型處理，是一種已被驗證的策略，但可能遺失音訊的時序動態特性。同樣，IMU 資料本質上是時間序列，以固定窗口的 Transformer 處理可能無法捕捉長程運動模式。各模態編碼器的設計複雜度差異可能導致嵌入品質不均。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實作細節段落 2：訓練資料 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The training data leverages <span class="hl-evidence">naturally paired datasets for each modality</span>. For <span class="hl-evidence">(image, text) pairs, we use web-crawled data following the CLIP paradigm</span>. For <span class="hl-evidence">(video, audio) pairs, we use the AudioSet dataset</span> which contains YouTube video clips with audio annotations, treating video frames as images. For <span class="hl-evidence">(image, depth) pairs, we use ScanNet</span>, a large-scale indoor RGB-D dataset, <span class="hl-evidence">and SUN RGB-D</span>. For <span class="hl-evidence">(image, thermal) pairs, we use the LLVIP dataset</span> containing visible-infrared image pairs. For <span class="hl-evidence">(video, IMU) pairs, we leverage the Ego4D dataset</span> captured from egocentric wearable cameras equipped with IMU sensors. Importantly, <span class="hl-thesis">these datasets are collected independently and no cross-modal pairing is needed between non-image modalities</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練資料利用每種模態的自然配對資料集。影像-文字配對使用依循 CLIP 範式的網路爬取資料。影片-音訊配對使用 AudioSet 資料集，其中包含帶有音訊標註的 YouTube 影片片段，將影片幀視為影像。影像-深度配對使用 ScanNet（大規模室內 RGB-D 資料集）與 SUN RGB-D。影像-熱感應配對使用 LLVIP 資料集，包含可見光-紅外線影像配對。影片-IMU 配對則利用 Ego4D 資料集，由配備 IMU 感測器的自我中心穿戴攝影機所擷取。重要的是，這些資料集是獨立收集的，非影像模態之間不需要任何跨模態配對。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料規格——列舉所有訓練資料的來源與配對方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段驗證了先前「自然共現」論述的可行性：每一組模態配對都有現成的公開資料集可用，無需額外的資料標註工程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    各資料集的規模差異極大——網路影像-文字有數億筆，而 LLVIP 可能僅有數千筆。這種數量級差異必然導致不同模態嵌入的品質落差，但作者未在此處討論此不平衡問題及其緩解策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實作細節段落 3：訓練策略 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical design choice is that the <span class="hl-method">image encoder remains frozen during training</span> — only the modality-specific encoders are updated. This serves two purposes: first, it <span class="hl-method">preserves the rich semantic structure already learned by the CLIP image encoder</span>, preventing catastrophic forgetting; second, it <span class="hl-method">ensures that the image embedding space remains stable as an anchor</span>, so that all modalities trained at different times or on different datasets are aligned to the same reference frame. The modality encoders are trained using <span class="hl-method">large batch sizes with distributed training across multiple GPUs</span>. Data augmentation strategies are applied according to each modality's characteristics — spatial augmentations for images and depth, temporal augmentations for audio and IMU.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個關鍵的設計選擇是影像編碼器在訓練期間保持凍結——僅更新特定於模態的編碼器。此做法有雙重目的：首先，保留 CLIP 影像編碼器已學習的豐富語義結構，防止災難性遺忘；其次，確保影像嵌入空間作為錨點保持穩定，使得在不同時間或不同資料集上訓練的所有模態都對齊到相同的參考框架。模態編碼器使用大批次量、跨多個 GPU 的分散式訓練。資料增強策略依據各模態特性而定——影像與深度採用空間增強，音訊與 IMU 採用時間增強。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略——解釋凍結影像編碼器的關鍵設計決策。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應潛在的技術質疑：為何不聯合微調所有編碼器？凍結策略不僅是效率考量，更是方法論的核心——它保證了嵌入空間的穩定性與可擴展性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    凍結影像編碼器是一把雙刃劍：它保證了錨點穩定性，但也意味著嵌入空間的結構完全由 CLIP 的訓練資料決定。若 CLIP 的表示在某些語義維度上有偏差（如文化偏見或長尾類別不足），這些偏差將被繼承並傳播到所有模態。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 湧現能力 ====== -->
+    <h3 class="subsection-heading" id="sec-emergent">3.3 Emergent Capabilities — 湧現能力</h3>
+
+    <!-- 湧現能力段落 1：跨模態零樣本 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A remarkable property of ImageBind is its <span class="hl-concept">emergent zero-shot capabilities</span>. Since all modalities are aligned to the same embedding space, and <span class="hl-thesis">text embeddings from CLIP already support zero-shot classification for images, this capability automatically transfers to all other modalities</span>. For instance, even though the audio encoder was never trained with paired (audio, text) data, it can perform <span class="hl-evidence">zero-shot audio classification by comparing audio embeddings to text embeddings of class names</span>. Similarly, depth maps, thermal images, and IMU signals can all be classified in a zero-shot manner using text prompts, despite never having seen text during their encoder training. This emergent transfer arises purely from the transitive alignment through the shared image embedding space.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ImageBind 的一項顯著特性是其湧現式零樣本能力。由於所有模態都對齊到相同的嵌入空間，而 CLIP 的文字嵌入已支援影像的零樣本分類，此能力便自動遷移至所有其他模態。舉例而言，儘管音訊編碼器從未以配對的（音訊, 文字）資料進行訓練，它仍能透過比較音訊嵌入與類別名稱的文字嵌入來執行零樣本音訊分類。同樣地，深度圖、熱感應影像與 IMU 訊號都能以文字提示進行零樣本分類，儘管它們的編碼器在訓練過程中從未見過文字。此湧現式遷移完全源自透過共享影像嵌入空間的遞移性對齊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示核心優勢——說明跨模態零樣本能力如何自然湧現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將「遞移性對齊」的理論承諾轉化為實際的應用能力——零樣本分類。從未見過文字的音訊編碼器能以文字分類，這是整篇論文最具說服力的「魔法時刻」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「湧現」一詞暗示這些能力是意外出現的，但實際上它們是架構設計的直接推論——若對齊是遞移的，跨模態零樣本就是邏輯必然。真正的問題不是「能否做到」，而是「做得多好」，這需要實驗數據來回答。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 湧現能力段落 2：模態算術與生成 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The shared embedding space also enables <span class="hl-concept">modality arithmetic</span> — <span class="hl-method">adding or subtracting embedding vectors from different modalities to create composite queries</span>. For example, combining an image embedding of a dog with an audio embedding of ocean waves can retrieve images of dogs at the beach. This arithmetic compositionality suggests that the <span class="hl-thesis">embedding space captures meaningful semantic relationships that are consistent across modalities</span>. Furthermore, ImageBind's embeddings can be used with existing generative models — by replacing CLIP image embeddings with <span class="hl-method">audio or other modality embeddings in text-to-image generation pipelines like DALL-E 2</span>, one can generate <span class="hl-evidence">images from audio inputs (e.g., generating rainforest scenes from rainforest sounds) or from other non-visual modalities</span>, without any modification to the generation model itself.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                共享嵌入空間還實現了模態算術——透過加減不同模態的嵌入向量來建立複合查詢。例如，將一張狗的影像嵌入與海浪的音訊嵌入相加，可以檢索出狗在海灘上的影像。此算術組合性表明嵌入空間捕捉了跨模態一致的有意義語義關係。此外，ImageBind 的嵌入可與現有生成模型搭配使用——在如 DALL-E 2 的文字到影像生成管線中，以音訊或其他模態嵌入替換 CLIP 影像嵌入，即可從音訊輸入生成影像（例如從雨林聲音生成雨林場景），或從其他非視覺模態生成，且無需對生成模型本身做任何修改。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示應用廣度——從模態算術到跨模態生成的多元應用場景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將抽象的嵌入空間品質指標轉化為引人注目的具體應用。「狗 + 海浪 = 海灘狗」的例子直覺地說明了嵌入空間的語義結構，而 DALL-E 2 的整合則展示了與現有生態系統的即插即用相容性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    模態算術的例子經過精心挑選以呈現最佳效果。在實際應用中，向量加減的語義解讀可能不穩定——並非所有嵌入組合都會產生有意義的結果。此外，DALL-E 2 整合的成功部分取決於 DALL-E 2 對 CLIP 嵌入空間的容忍度，而非 ImageBind 本身的品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 湧現能力段落 3：擴展性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                An important finding is that <span class="hl-thesis">ImageBind's emergent capabilities scale with the strength of the image encoder</span>. When upgrading from a smaller ViT-B to the larger <span class="hl-evidence">ViT-H image encoder, emergent zero-shot performance across all non-image modalities improves substantially</span>, even though only the image encoder changed and the modality-specific encoders remain the same size. This suggests that <span class="hl-thesis">a stronger visual representation provides a richer anchor point for cross-modal alignment</span>, and that <span class="hl-thesis">improvements in vision models can automatically benefit understanding in other sensory modalities</span>. This scaling property also positions ImageBind as a new evaluation framework for vision models — measuring their impact on non-visual downstream tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項重要發現是 ImageBind 的湧現能力隨影像編碼器的強度而擴展。從較小的 ViT-B 升級到較大的 ViT-H 影像編碼器時，所有非影像模態的湧現零樣本效能均有顯著提升，儘管僅有影像編碼器改變，而特定於模態的編碼器保持相同規模。這表明更強大的視覺表示提供了更豐富的跨模態對齊錨點，且視覺模型的改進可自動惠及其他感官模態的理解。此擴展特性也將 ImageBind 定位為視覺模型的新評估框架——衡量其對非視覺下游任務的影響。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    擴展性論證——展示方法隨編碼器規模提升而改善的特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為 ImageBind 的長期價值立論：隨著視覺基礎模型持續進步，ImageBind 的所有模態能力都將水漲船高，無需重新訓練其他編碼器。這是一個極具吸引力的「免費升級」論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「免費升級」的論述預設了嵌入空間結構在不同規模的視覺模型間是相容的。但實際上，更換影像編碼器後，所有模態編碼器都需要重新訓練以對齊到新的嵌入空間，這個成本被有意淡化了。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：零樣本辨識 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate ImageBind's <span class="hl-concept">emergent zero-shot classification</span> capabilities across multiple modalities and benchmarks. For <span class="hl-concept">audio classification</span>, we evaluate on <span class="hl-evidence">ESC-50 and AudioSet</span> using text embeddings of category names. <span class="hl-evidence">ImageBind achieves state-of-the-art zero-shot audio classification, outperforming AudioCLIP and other specialized audio-text models</span>, despite never being trained on paired audio-text data. For <span class="hl-concept">depth classification</span>, we evaluate on <span class="hl-evidence">NYU-v2 and SUN RGB-D</span> scene recognition tasks, where ImageBind achieves strong zero-shot performance. For <span class="hl-concept">thermal classification</span>, we evaluate on <span class="hl-evidence">LLVIP and related benchmarks</span>. Across all modalities, ImageBind's zero-shot performance <span class="hl-evidence">matches or exceeds that of models specifically supervised for those modality-text pairs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在多個模態與基準測試上評估 ImageBind 的湧現零樣本分類能力。音訊分類方面，在 ESC-50 與 AudioSet 上使用類別名稱的文字嵌入進行評估。ImageBind 達到最先進的零樣本音訊分類水準，超越 AudioCLIP 與其他專門的音訊-文字模型，儘管從未以配對的音訊-文字資料進行訓練。深度分類方面，在 NYU-v2 與 SUN RGB-D 的場景辨識任務上進行評估，ImageBind 達到強勁的零樣本效能。熱感應分類方面，在 LLVIP 及相關基準上進行評估。在所有模態上，ImageBind 的零樣本效能均達到或超越了專門為那些模態-文字配對進行監督訓練的模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗結果——在跨模態零樣本分類上的全面驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是實證支柱，直接驗證了「湧現零樣本能力」的核心主張。超越專門監督模型的結果尤其有力——它表明透過影像的間接對齊甚至優於直接的模態-文字監督。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「超越專門監督模型」的比較需要謹慎解讀——ImageBind 使用的 ViT-H 編碼器遠大於多數競爭方法的編碼器，模型規模的差異可能是效能差距的主因。若公平比較相同規模的模型，差距可能縮小。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：少樣本辨識 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Beyond zero-shot evaluation, we assess ImageBind's <span class="hl-concept">few-shot classification</span> performance. Using a simple <span class="hl-method">linear probe on frozen ImageBind features</span>, we evaluate performance with 1, 2, and 4 labeled examples per class. On audio tasks, <span class="hl-evidence">ImageBind achieves approximately 40 percentage points improvement in top-1 accuracy on 4-shot classification compared to Meta's AudioMAE models</span>, both self-supervised and supervised variants. This dramatic improvement demonstrates that ImageBind's embeddings provide a semantically rich starting point that requires very few labeled examples to adapt to specific tasks. The few-shot results also show consistent improvements across depth, thermal, and IMU modalities, <span class="hl-evidence">confirming that the joint embedding space captures transferable semantic structure across all modalities</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                除了零樣本評估外，我們還評估 ImageBind 的少樣本分類效能。使用凍結 ImageBind 特徵上的簡單線性探測，我們評估每類 1、2 與 4 個標記樣本的效能。在音訊任務上，ImageBind 在 4-shot 分類中的 top-1 準確率相比 Meta 的 AudioMAE 模型（包含自監督與監督式變體）提升了約 40 個百分點。此巨大提升證明 ImageBind 的嵌入提供了語義豐富的起點，僅需極少量標記樣本即可適應特定任務。少樣本結果在深度、熱感應與 IMU 模態上也展現了一致的改進，確認聯合嵌入空間在所有模態上捕捉了可遷移的語義結構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    補充實驗——以少樣本設定進一步驗證嵌入品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    少樣本實驗補充了零樣本的不足——若零樣本結果可能受文字提示工程的影響，少樣本則更直接地衡量嵌入本身的語義品質。40 個百分點的差距是極為顯著的實證支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    40 個百分點的提升數字令人印象深刻，但比較基準（AudioMAE）可能不是最強的少樣本音訊分類方法。若與經過少樣本學習專門設計的方法（如 ProtoNet 搭配強音訊特徵）比較，差距可能不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.2 消融研究 ====== -->
+    <h3 class="subsection-heading" id="sec-ablation">4.2 Ablation Studies — 消融研究</h3>
+
+    <!-- 消融研究段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We conduct <span class="hl-concept">ablation studies</span> to understand the contribution of key design choices. First, we examine the <span class="hl-method">impact of the image encoder strength</span>: upgrading from ViT-B to ViT-L to ViT-H consistently improves emergent zero-shot performance across all modalities, with <span class="hl-evidence">particularly large gains on audio (+15.7% on ESC) and depth (+8.3% on NYU-v2)</span>. Second, we ablate the <span class="hl-method">importance of the frozen image encoder</span> versus fine-tuning it jointly — results show that <span class="hl-evidence">fine-tuning the image encoder degrades cross-modal alignment</span>, confirming that a stable anchor is essential. Third, we study the <span class="hl-method">effect of training data scale</span>: reducing the training data for any single modality pair primarily affects that modality's alignment quality but has <span class="hl-rebuttal">minimal impact on other modalities</span>, validating the independence of the modality-specific training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進行消融研究以理解關鍵設計選擇的貢獻。首先，檢視影像編碼器強度的影響：從 ViT-B 升級到 ViT-L 再到 ViT-H，在所有模態上一致地改善湧現零樣本效能，其中音訊（ESC 上 +15.7%）與深度（NYU-v2 上 +8.3%）的增益特別顯著。其次，消融凍結影像編碼器與聯合微調的差異——結果顯示微調影像編碼器會損害跨模態對齊，確認了穩定錨點的必要性。第三，研究訓練資料規模的影響：減少任何單一模態配對的訓練資料主要影響該模態的對齊品質，但對其他模態的影響微乎其微，驗證了模態特定訓練的獨立性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統性消融——驗證方法中每個設計決策的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三組消融分別回應三個關鍵問題：(1) 編碼器規模是否重要？是。(2) 凍結是否必要？是。(3) 訓練是否獨立？是。每一組都強化了方法的設計合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融實驗設計嚴謹，但缺少一組關鍵消融：若使用非影像的模態（如文字）作為綁定中心，效果會如何？這能直接驗證「影像是最佳錨點」的主張，而非僅以論述支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融研究段落 2：跨模態檢索 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further evaluate <span class="hl-concept">cross-modal retrieval</span> between non-image modality pairs. For <span class="hl-evidence">audio-to-text retrieval, text-to-depth retrieval, and audio-to-depth retrieval</span>, ImageBind demonstrates meaningful retrieval performance despite <span class="hl-thesis">never having seen these modality combinations during training</span>. The retrieval quality correlates with the semantic similarity between the modalities and images — modalities that have richer visual content (like depth) tend to show better cross-modal retrieval than more abstract modalities (like IMU). We also evaluate <span class="hl-concept">embedding space quality</span> through <span class="hl-method">nearest-neighbor analysis</span>, showing that semantically similar concepts cluster together across modalities in the joint space. <span class="hl-evidence">The audio of a guitar, the image of a guitar, and the text "guitar" all map to nearby regions</span> in the embedding space, confirming the semantic coherence of the joint representation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步評估非影像模態配對之間的跨模態檢索。在音訊到文字檢索、文字到深度檢索、以及音訊到深度檢索上，ImageBind 展現了有意義的檢索效能，儘管在訓練過程中從未見過這些模態組合。檢索品質與模態和影像之間的語義相似度相關——具有更豐富視覺內容的模態（如深度）傾向於展現比更抽象模態（如 IMU）更好的跨模態檢索。我們還透過最近鄰分析評估嵌入空間品質，顯示語義上相似的概念在聯合空間中跨模態聚集。吉他的音訊、吉他的影像與文字「guitar」都映射到嵌入空間的鄰近區域，確認了聯合表示的語義一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    跨模態驗證——在從未見過的模態組合上測試嵌入空間的一致性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是「遞移性對齊」假說的最直接驗證：若音訊-文字對齊完全透過影像間接實現，那麼音訊-文字檢索的成功就是遞移性假說的實證。吉他的跨模態聚集是整篇論文中最直觀的品質指標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者承認了一個重要限制：跨模態檢索品質與視覺相關度相關。這暗示了嵌入空間存在「視覺偏差」——抽象概念（如情緒、因果關係）的跨模態對齊可能較弱。此誠實的自我評估增強了論文的可信度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融研究段落 3：與生成模型整合 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Finally, we demonstrate <span class="hl-concept">cross-modal generation</span> by integrating ImageBind with <span class="hl-concept">DALL-E 2</span>'s image decoder. By feeding <span class="hl-method">audio embeddings from ImageBind into the DALL-E 2 decoder</span> (which was trained to generate images from CLIP embeddings), we achieve <span class="hl-evidence">audio-to-image generation without any additional training</span>. The generated images semantically correspond to the input audio — <span class="hl-evidence">rainforest sounds produce lush jungle scenes, bustling market sounds produce crowded market images, and bird songs produce images of birds in natural settings</span>. This plug-and-play compatibility with existing generative models demonstrates the practical utility of aligning all modalities to a well-established embedding space, and opens new avenues for <span class="hl-thesis">multimodal content creation that was previously inaccessible</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最後，我們透過將 ImageBind 與 DALL-E 2 的影像解碼器整合，展示跨模態生成。將 ImageBind 的音訊嵌入餵入 DALL-E 2 解碼器（該解碼器原本訓練為從 CLIP 嵌入生成影像），我們實現了無需任何額外訓練的音訊到影像生成。生成的影像在語義上與輸入音訊對應——雨林聲音產生茂密的叢林場景、繁忙市場聲音產生擁擠的市集影像、鳥鳴聲產生自然環境中的鳥類影像。這種與現有生成模型的即插即用相容性，展示了將所有模態對齊到成熟嵌入空間的實際效用，並為先前無法實現的多模態內容創作開闢了新途徑。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——以音訊到影像生成作為方法實用性的最終證明。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從量化評估轉向質化展示，以引人注目的生成範例為論文畫下高潮。「即插即用」的特性暗示 ImageBind 的嵌入空間與 CLIP 高度相容，驗證了整個方法的工程可行性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    生成結果的展示選擇了語義明確的聲音（雨林、市場、鳥鳴），但對於語義模糊的音訊（如白噪音、抽象音樂）的生成品質未被討論。此外，DALL-E 2 對 CLIP 嵌入的特定分布有隱性依賴，ImageBind 的嵌入可能不完全符合此分布，導致生成品質不穩定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 討論與結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Discussion and Conclusion — 討論與結論</h2>
+
+    <!-- 結論段落 1：核心貢獻總結 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">ImageBind</span>, a method for learning <span class="hl-thesis">a joint embedding space across six modalities using only image-paired data</span>. Our key insight is that <span class="hl-thesis">images serve as a natural binding modality</span> — their rich semantic content and ubiquitous co-occurrence with other modalities make them an ideal anchor for cross-modal alignment. Through the <span class="hl-method">transitive property of contrastive embedding alignment</span>, ImageBind achieves emergent capabilities such as <span class="hl-evidence">zero-shot classification, cross-modal retrieval, modality arithmetic, and cross-modal generation</span> for modality pairs that were never explicitly aligned during training. Our results demonstrate that <span class="hl-evidence">this approach outperforms specialist supervised models on emergent zero-shot tasks</span>, validating the effectiveness of the binding-through-images paradigm.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了 ImageBind，一種僅使用影像配對資料即可學習跨六種模態聯合嵌入空間的方法。核心洞見在於影像作為自然綁定模態——其豐富的語義內容與和其他模態的普遍共現，使其成為跨模態對齊的理想錨點。透過對比嵌入對齊的遞移性，ImageBind 在訓練時從未顯式對齊的模態配對上，實現了零樣本分類、跨模態檢索、模態算術與跨模態生成等湧現能力。實驗結果展示此方法在湧現零樣本任務上超越了專門的監督式模型，驗證了「透過影像綁定」範式的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結核心貢獻——重申方法的創新性與實驗驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要，形成論證閉環：從問題（多模態對齊需要 O(n^2) 配對）到解決方案（影像綁定的 O(n) 方法）到驗證（超越監督模型）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論精確地重述了核心貢獻，但措辭比摘要更為自信（「驗證了有效性」而非「展示了能力」）。這種信心升級反映了實驗結果的支撐，但也需要讀者自行判斷實驗的覆蓋面是否足夠全面。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：局限性與未來方向 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Several <span class="hl-rebuttal">limitations and future directions</span> remain. The quality of cross-modal alignment is <span class="hl-rebuttal">inherently bounded by the quality of image-modality pairing</span> — modalities with weaker or noisier visual correspondence (such as IMU) show lower alignment quality. The <span class="hl-rebuttal">transitive alignment is approximate rather than exact</span>, and the accumulated alignment error grows as more modalities are chained through the image anchor. Furthermore, the current approach <span class="hl-rebuttal">does not model temporal dynamics</span> for sequential modalities like audio and IMU, treating them as fixed-length windows. Future work could explore <span class="hl-method">dynamic binding with temporal models, extending to additional modalities such as touch and smell, and investigating whether the binding paradigm can be applied to other anchor modalities</span> beyond images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                仍存在若干局限性與未來方向。跨模態對齊的品質本質上受限於影像-模態配對的品質——與視覺對應較弱或雜訊較多的模態（如 IMU）顯示較低的對齊品質。遞移性對齊是近似而非精確的，且隨著更多模態透過影像錨點串聯，累積的對齊誤差會增長。此外，當前方法未對音訊與 IMU 等序列模態建模時序動態，而是將它們處理為固定長度的窗口。未來工作可探索以時序模型進行動態綁定、擴展至觸覺與嗅覺等額外模態，以及研究綁定範式是否可應用於影像以外的其他錨定模態。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自我批判——坦承方法的局限並指出未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展現學術誠信：主動揭示方法的三個核心弱點（配對品質依賴、遞移近似性、缺乏時序建模）。這不僅增強可信度，也為後續研究者提供了明確的改進路線圖。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    局限性的討論相當全面，但遺漏了一個重要議題：嵌入空間的公平性與偏見問題。由於影像編碼器繼承了 CLIP 的訓練資料偏差，這些偏差透過綁定機制傳播到所有模態，可能在音訊分類或熱感應辨識中產生系統性偏見。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 3：更廣泛影響 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                More broadly, ImageBind represents a step toward <span class="hl-thesis">holistic AI systems that can perceive and reason across multiple sensory modalities</span>, mirroring the multimodal nature of human perception. The finding that <span class="hl-thesis">stronger vision models improve non-visual tasks</span> suggests a deep connection between visual understanding and general-purpose representation learning. As vision models continue to improve in scale and capability, ImageBind's binding paradigm provides a <span class="hl-thesis">principled and scalable pathway for extending these advances to the full spectrum of sensory experience</span>. We release our models and code to facilitate further research in multimodal representation learning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                更廣泛而言，ImageBind 代表了朝向能跨越多種感官模態進行感知與推理的整體性人工智慧系統邁進的一步，映射了人類感知的多模態本質。「更強的視覺模型改善非視覺任務」這一發現暗示了視覺理解與通用表示學習之間的深層關聯。隨著視覺模型在規模與能力上持續進步，ImageBind 的綁定範式提供了一條原則性且可擴展的途徑，將這些進步延伸至完整的感官體驗光譜。我們釋出模型與程式碼以促進多模態表示學習的進一步研究。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    願景展望——將技術貢獻提升至更宏觀的人工智慧願景層次。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結尾段從具體方法拉高到「整體性 AI」的願景，將 ImageBind 定位為多模態人工智慧發展路線上的關鍵里程碑。開源程式碼的承諾則確保了學術影響力的最大化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結尾的願景陳述雖然鼓舞人心，但「完整的感官體驗光譜」（包含觸覺、嗅覺、味覺）的擴展並非本文已驗證的內容。此處存在從六模態到無限模態的過度外推。此外，「人類感知的映射」再次召回了開篇的生物類比，形成修辭上的首尾呼應，但技術上的差距仍然巨大。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                多模態聯合嵌入<br>需要 O(n^2) 配對資料
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                影像作為綁定模態<br>將需求降至 O(n)
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                六模態零樣本辨識<br>超越專門監督模型
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                遞移對齊近似性<br>與視覺偏差的坦承
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                綁定範式可擴展至<br>完整的感官光譜
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    僅需將各模態的嵌入與影像嵌入對齊，即可透過遞移性建立跨越六種感官模態的統一語義空間，無需所有模態配對的監督資料，且湧現出零樣本跨模態理解能力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>概念簡潔性與實證說服力的結合：</strong>以影像作為萬用錨點的核心洞見，從數學上優雅地解決了 O(n^2) 到 O(n) 的擴展問題，同時在實驗中展示了從未訓練過的模態配對（如音訊-文字）竟能超越專門監督模型的零樣本效能。概念的簡潔性使方法高度可複現，而「湧現式超越監督」的結果則提供了不可忽視的實證衝擊力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>遞移性對齊的理論保證不足：</strong>整個方法的數學基礎——嵌入對齊的遞移性——在高維空間中並非精確成立，且缺乏嚴格的理論分析。不同模態與影像的配對品質與資料規模差異巨大（網路影像-文字數億筆 vs. LLVIP 影像-熱感應數千筆），這種不平衡可能導致嵌入空間的語義結構因模態而異。此外，凍結 CLIP 影像編碼器意味著所有偏差都被無條件繼承與傳播。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

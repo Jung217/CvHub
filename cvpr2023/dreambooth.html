@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DreamBooth: Fine Tuning Text-to-Image Diffusion Models for Subject-Driven Generation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                DreamBooth: Fine Tuning Text-to-Image Diffusion Models for Subject-Driven Generation
+                <span class="course-tag">CVPR 2023</span>
+                <span class="best-paper-badge">Best Student Paper Honorable Mention</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2208.12242" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-method-diffusion">3.1 擴散模型背景</a>
+        <a href="#sec-method-personalization">3.2 個人化技術</a>
+        <a href="#sec-method-prior">3.3 先驗保留損失</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-limitations">4.5 限制</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Large <span class="hl-concept">text-to-image models</span> achieved a remarkable leap in the evolution of AI, enabling <span class="hl-evidence">high-quality and diverse synthesis of images</span> from a given text prompt. However, these models lack the ability to <span class="hl-rebuttal">mimic the appearance of subjects in a given reference set</span> and <span class="hl-rebuttal">synthesize novel renditions of them in different contexts</span>. In this work, we present a new approach for <span class="hl-thesis">"personalization" of text-to-image diffusion models</span>. Given as input just <span class="hl-evidence">a few images of a subject</span>, we fine-tune a pretrained text-to-image model so that it learns to <span class="hl-method">bind a unique identifier with that specific subject</span>. Once the subject is embedded in the output domain of the model, <span class="hl-thesis">the unique identifier can be used to synthesize fully-novel photorealistic images of the subject contextualized in different scenes</span>, while preserving their key visual features.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大型文字轉影像模型在人工智慧的演進中取得了重大突破，能夠根據給定的文字提示產生高品質且多樣的影像。然而，這些模型缺乏模仿給定參考集中特定主體外觀的能力，也無法在不同情境下合成該主體的新穎呈現。本研究提出一種文字轉影像擴散模型的「個人化」新方法。僅需輸入少量主體影像，即可微調預訓練的文字轉影像模型，使其學會將一個獨特識別符與該特定主體綁定。一旦主體被嵌入模型的輸出域，該獨特識別符便可用於合成該主體在不同場景中的全新逼真影像，同時保留其關鍵視覺特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「成就-缺口-方案」的三段式結構，從大型文字轉影像模型的能力出發，指出其個人化不足的問題，最終引出 DreamBooth 的解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題定義與解決方案預告」的雙重功能：先肯定文字轉影像模型的成就，再明確界定「特定主體保真合成」的缺口，最後以「獨特識別符綁定」一句話概述核心技術途徑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「僅需少量影像」的措辭刻意強調方法的易用性與低門檻，但「少量」的確切範圍（3-5 張）及其對不同類別主體的適用性差異，需待後文驗證。此外，「保留關鍵視覺特徵」是一個主觀性較強的主張，需要嚴格的評估指標來支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We leverage the <span class="hl-method">semantic prior that is embedded in the model with a new autogenous class-specific prior preservation loss</span>, which encourages it to generate diverse instances of the same class as the subject. This enables <span class="hl-thesis">synthesizing the subject in diverse scenes, poses, views, and lighting conditions</span> that do not appear in the reference images. We present applications including <span class="hl-evidence">subject recontextualization, text-guided view synthesis, appearance modification, and artistic rendering</span>, all while <span class="hl-thesis">preserving the subject's key features</span>. We also provide a <span class="hl-evidence">new dataset and evaluation protocol</span> for this new task of subject-driven generation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們利用嵌入模型中的語意先驗，搭配一個新穎的自生式類別特定先驗保留損失函數，鼓勵模型生成與主體同類別的多樣實例。這使得在參考影像中未出現的多樣場景、姿態、視角與光照條件下合成主體成為可能。我們展示了多項應用，包括主體重新情境化、文字引導的視角合成、外觀修改與藝術風格渲染，且全程保留主體的關鍵特徵。我們亦為此主體驅動生成的新任務提供了新的資料集與評估協定。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術預告與成果展示——簡介先驗保留損失的角色，並列舉多項應用場景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段補完摘要的技術面向：前一段點出「做什麼」，此段說明「如何做到」以及「能做哪些事」。先驗保留損失是防止模型遺忘的關鍵機制，而多元應用展示方法的廣泛適用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以列舉應用的方式展現方法的通用性是有效的說服策略。但「新的資料集與評估協定」的提出暗示此前缺乏標準化的評估框架，這既是貢獻也反映了此研究方向的不成熟——作者自定義的評估標準是否能被社群廣泛接受，仍有待觀察。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與願景 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Imagine being able to take your dog on a walk through the streets of every city in the world, display your favorite bag in the most exclusive Parisian showrooms, or feature your parrot as a character in a storybook illustration. <span class="hl-thesis">Synthesizing such scenes requires the ability to render specific subjects in new, previously unseen contexts</span>, where the subject naturally blends into the environment. Recent large <span class="hl-concept">text-to-image models</span> demonstrate unprecedented capabilities, enabling <span class="hl-evidence">high-quality, diverse image synthesis</span> based on natural language prompts. A primary advantage involves the <span class="hl-concept">strong semantic priors</span> learned from large-scale image-caption datasets, binding concepts like "dog" with various dog instances across different poses and contexts.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                試想像，能讓你的狗漫步於世界各地的街道、將你最喜愛的包包展示在巴黎最頂級的精品店裡，或是讓你的鸚鵡成為繪本故事中的角色。合成這樣的場景，需要在全新的、前所未見的情境中渲染特定主體，使其自然融入環境。近期的大型文字轉影像模型展現了前所未有的能力，能根據自然語言提示生成高品質且多樣的影像。其核心優勢在於從大規模影像-描述資料集中習得的強大語意先驗，將「狗」等概念與各種姿態和情境下的狗實例加以綁定。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    引發動機——以生動的生活場景描繪觸動讀者的想像力，建立研究的實用願景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以感性的場景喚起讀者對「個人化影像生成」的渴望，再過渡到技術層面，介紹文字轉影像模型的現有能力與語意先驗的概念，為後文的缺口分析鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「你的狗」「你最喜愛的包包」等第二人稱敘述，巧妙地將讀者代入使用情境，是極有效的修辭手法。但這些場景預設了使用者希望保真地再現特定物件的需求，實際上並非所有使用者的需求都如此——有些人可能更需要風格化而非保真的生成。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有模型的限制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Despite these remarkable capabilities, <span class="hl-rebuttal">these models lack the ability to mimic the appearance of subjects in a given reference set and synthesize novel renditions of them in different contexts</span>. The main reason is that the <span class="hl-rebuttal">output domain of the model is limited in its expressiveness</span>; even the most detailed textual description of a subject yields <span class="hl-rebuttal">varied instances with different appearances rather than a consistent subject identity</span>. Even models with shared language-vision spaces cannot accurately reconstruct the appearance of given subjects, only creating variations of the content described by the text.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管具備這些卓越能力，這些模型仍無法模仿參考集中主體的外觀，也無法在不同情境中合成這些主體的新穎呈現。主要原因在於模型的輸出域表現力有限——即使是對主體最詳盡的文字描述，產生的也是外觀各異的不同實例，而非一致的主體身份。即便是具有共享語言-視覺空間的模型，也無法準確重建給定主體的外觀，只能創造文字描述內容的變體。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    指出缺口——明確闡述現有文字轉影像模型在「主體保真度」上的根本限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是「問題-解決方案」結構中的問題核心化：從前段的「能做什麼」急轉為「不能做什麼」，將「主體身份一致性」定位為關鍵未解問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「輸出域表現力有限」是一個精準的技術診斷，將問題歸因於模型架構層面而非訓練資料不足。但這一判斷隱含了「文字描述本質上無法完整定義一個特定實例」的假設——這在哲學上值得商榷，且隨著更精細的描述語言或更大的模型，此限制可能被緩解。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：DreamBooth 方案概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we introduce a new approach for <span class="hl-thesis">"personalization" of text-to-image diffusion models</span>, expanding the language-vision dictionary to <span class="hl-method">bind new "words" with specific user-desired subjects</span>. Once a subject is embedded in the model, these "words" can be used to <span class="hl-thesis">synthesize novel photorealistic images of the subject in different scenes, while preserving their identifying features</span> — functioning like a <span class="hl-concept">"magic photo booth"</span> where a few subject images can generate infinite photos in different conditions, guided by intuitive text prompts. Formally, given approximately <span class="hl-evidence">3-5 casually captured images of a subject</span>, our objective involves <span class="hl-method">implanting the subject into the model's output domain</span> such that it can be synthesized via a unique text identifier.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究引入一種文字轉影像擴散模型的「個人化」新方法，擴展語言-視覺字典以將新的「詞彙」與使用者期望的特定主體綁定。一旦主體被嵌入模型，這些「詞彙」便可用於在不同場景中合成該主體的新穎逼真影像，同時保留其識別特徵——如同一個「魔法照相亭」，僅需少量主體影像即可在不同條件下生成無限照片，並以直覺式文字提示引導。正式而言，給定約 3-5 張隨意拍攝的主體影像，我們的目標是將主體植入模型的輸出域，使其能透過獨特的文字識別符加以合成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——概述 DreamBooth 的核心概念與運作方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「現有模型做不到」過渡到「本文方法能做到」。「擴展語言-視覺字典」的比喻精準地傳達了技術本質——為模型增添新的「詞條」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「魔法照相亭」的比喻既傳達了技術功能（少量輸入、多樣輸出），也呼應了論文名稱「DreamBooth」，形成品牌化的記憶錨點。「3-5 張隨意拍攝」刻意強調低門檻，但不同類別的主體對影像數量和品質的需求可能差異顯著。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 4：技術手段概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our technique represents subjects with <span class="hl-method">rare token identifiers</span> and <span class="hl-method">fine-tunes a pretrained diffusion-based text-to-image framework</span>. Fine-tuning uses the input images paired with text prompts containing the unique identifier followed by a class name (e.g., <span class="hl-method">"A [V] dog"</span>). This enables leveraging the model's prior knowledge of the class while binding class-specific instances to the unique identifier. To prevent <span class="hl-concept">language drift</span> — where the model progressively associates class names exclusively with the specific target instance — we propose an <span class="hl-method">autogenous class-specific prior preservation loss</span> that leverages the semantic prior embedded in the model, encouraging generation of diverse instances of the same class.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的技術以罕見詞彙標記識別符表示主體，並微調預訓練的基於擴散的文字轉影像框架。微調時使用輸入影像搭配包含獨特識別符加上類別名稱的文字提示（例如「A [V] dog」）。這使得模型能利用其對該類別的先驗知識，同時將類別特定的實例與獨特識別符綁定。為了防止語言漂移——即模型逐漸將類別名稱僅與特定目標實例關聯——我們提出一種自生式類別特定先驗保留損失函數，利用嵌入模型中的語意先驗，鼓勵生成同一類別的多樣實例。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節預告——介紹三個關鍵技術元素：罕見標記、微調策略、先驗保留損失。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為方法章節的路標，預先揭示三個核心技術決策：(1) 以罕見標記避免語意衝突；(2) 結合識別符與類別名稱的提示設計；(3) 先驗保留損失解決語言漂移。三者環環相扣，構成完整的技術鏈條。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「語言漂移」一詞借自自然語言處理領域的已知現象，使讀者立即理解問題的本質。然而，將 NLP 中的語言漂移直接類比到擴散模型中是否完全恰當，值得細究——兩者的漂移機制和表現形式可能存在本質差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：影像合成與編輯 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Image composition</span> techniques aim to clone subjects into new backgrounds with seamless integration. Applying <span class="hl-concept">3D reconstruction</span> for novel poses typically works on rigid objects, requiring larger numbers of views. Drawbacks include <span class="hl-rebuttal">difficulties with scene integration (lighting, shadows, contact)</span> and <span class="hl-rebuttal">inability to generate novel scenes</span>. <span class="hl-concept">Text-driven image manipulation</span> achieved significant progress using <span class="hl-concept">GANs</span> combined with image-text representations like <span class="hl-concept">CLIP</span>, yielding realistic manipulations. However, these methods work well on <span class="hl-rebuttal">structured scenarios (e.g., human face editing) but struggle over diverse datasets with varied subjects</span>. While most editing approaches enable global property modification or localized editing, <span class="hl-rebuttal">none previously enabled generating novel subject renditions in new contexts</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像合成技術旨在將主體無縫地嵌入新的背景中。利用三維重建來產生新穎姿態的方法通常僅適用於剛體物件，且需要較多的視角影像。其缺點包括場景融合困難（光照、陰影、接觸面）以及無法生成全新場景。文字驅動的影像操作借助 GAN 結合 CLIP 等影像-文字表示取得了顯著進展，產生逼真的操作效果。然而，這些方法在結構化場景（如人臉編輯）上表現良好，但在主體多樣的資料集上卻力不從心。儘管大多數編輯方法能進行全域屬性修改或局部編輯，但此前從未有方法能在新情境中生成主體的新穎呈現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——概述影像合成與文字驅動編輯的現有方法及其侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過系統性地審視三類相關方法（影像合成、3D 重建、文字驅動編輯），建立一個「所有現有路線均不足」的論述框架，為 DreamBooth 的定位創造空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「none previously enabled」的絕對性措辭宣稱領域空白，修辭力度強但略有風險——若有遺漏的先前工作，此主張便會被削弱。此外，將 GAN+CLIP 方法歸類為「僅限結構化場景」可能過度簡化了這些方法在通用領域的能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：文字轉影像模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent large <span class="hl-concept">text-to-image synthesis</span> models like <span class="hl-concept">Imagen, DALL-E 2, Parti, CogView2</span>, and <span class="hl-concept">Stable Diffusion</span> demonstrate <span class="hl-evidence">unprecedented semantic generation capabilities</span>. However, these models provide <span class="hl-rebuttal">limited fine-grained control using text guidance only</span>, making <span class="hl-rebuttal">subject identity preservation challenging or impossible</span> across synthesized images. Various approaches attempt to control generative models for subject-driven, prompt-guided image synthesis. Some diffusion-based techniques allow image variations guided by reference images or text. <span class="hl-concept">Inversion</span> methods can preserve subjects while modifying context. However, <span class="hl-rebuttal">these methods fall short of identity-preserving novel sample generation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期的大型文字轉影像合成模型，如 Imagen、DALL-E 2、Parti、CogView2 和 Stable Diffusion，展示了前所未有的語意生成能力。然而，這些模型僅透過文字引導提供有限的精細控制，使得跨合成影像的主體身份保持極具挑戰甚至不可能。多種方法嘗試控制生成模型以實現主體驅動、提示引導的影像合成。部分基於擴散的技術允許以參考影像或文字引導的影像變化。反轉方法能保留主體同時修改情境。然而，這些方法都無法達成保留身份的新穎樣本生成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 DreamBooth 放置於大型文字轉影像模型的脈絡中，指出控制性不足的共同問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將問題收窄至「身份保持」這一精確的技術缺口：即使是最先進的模型（Imagen、DALL-E 2 等），也無法在保持特定主體身份的前提下進行創作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉五個知名模型名稱具有權威性加持的效果——暗示「連這些強大的模型都做不到」。但反轉方法的能力被一筆帶過，實際上 DDIM Inversion 等方法在特定場景下能相當好地保留主體，此處的比較不夠公平。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：並行工作 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Within GANs, <span class="hl-concept">Pivotal Tuning</span> enables real image editing through fine-tuning with inverted latent code anchors. Extended work on <span class="hl-concept">GAN fine-tuning for faces</span> trains personalized priors, <span class="hl-rebuttal">requiring around 100 images and limiting to face domains</span>. Concurrent work by <span class="hl-concept">Gal et al. (Textual Inversion)</span> proposes representing visual concepts through new embedding space tokens in frozen text-to-image models, resulting in small personalized token embeddings. While <span class="hl-rebuttal">limited by the expressiveness of the frozen model</span>, their approach demonstrates the potential of concept-level personalization. In contrast, <span class="hl-thesis">our fine-tuning approach embeds subjects within the model's output domain</span>, generating novel images that <span class="hl-thesis">preserve key visual features with higher fidelity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 GAN 領域中，Pivotal Tuning 透過以反轉潛在編碼為錨點的微調實現真實影像編輯。針對人臉的 GAN 微調擴展研究訓練個人化先驗，但需要約 100 張影像且限於人臉領域。Gal 等人的並行工作（Textual Inversion）提出在凍結的文字轉影像模型中，以嵌入空間的新標記表示視覺概念，產生小型個人化標記嵌入。雖然受限於凍結模型的表現力，其方法展示了概念層級個人化的潛力。相較之下，我們的微調方法將主體嵌入模型的輸出域，生成能以更高保真度保留關鍵視覺特徵的新穎影像。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    競爭分析——系統性比較 DreamBooth 與最相關的替代方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了關鍵的技術對比軸：(1) GAN 微調需大量資料且限於特定領域；(2) Textual Inversion 僅修改嵌入而非模型本身。DreamBooth 被定位為兩者的超越者——既通用又高保真。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 Textual Inversion 的評價「受限於凍結模型的表現力」是精準的技術分析，但也暗含了一個取捨：DreamBooth 微調整個模型雖提升保真度，卻以更高的計算成本和潛在的過擬合風險為代價。作者在此刻意只強調優勢而避談代價。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <h3 class="subsection-heading" id="sec-method-diffusion">3.1 Text-to-Image Diffusion Models — 文字轉影像擴散模型</h3>
+
+    <!-- 方法 3.1 段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Diffusion models</span> are <span class="hl-concept">probabilistic generative models</span> that learn a data distribution by <span class="hl-method">gradually denoising a variable sampled from a Gaussian distribution</span>. Specifically, a pretrained text-to-image diffusion model generates images <strong>x&#x0302;</strong><sub>&theta;</sub> given initial noise <strong>&epsilon;</strong> ~ N(0, I) and conditioning vector <strong>c</strong> = &Gamma;(<strong>P</strong>) produced by a text encoder &Gamma; from prompt <strong>P</strong>, such that <strong>x</strong><sub>gen</sub> = <strong>x&#x0302;</strong><sub>&theta;</sub>(<strong>&epsilon;</strong>, <strong>c</strong>). Training uses the squared error loss on denoising variably-noised images or latent codes <strong>z</strong><sub>t</sub> := &alpha;<sub>t</sub><strong>x</strong> + &sigma;<sub>t</sub><strong>&epsilon;</strong>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                擴散模型是一種機率式生成模型，透過對從高斯分布取樣的變數逐步去噪來學習資料分布。具體而言，預訓練的文字轉影像擴散模型在給定初始雜訊 &epsilon; ~ N(0, I) 與由文字編碼器 &Gamma; 從提示 P 產生的條件向量 c = &Gamma;(P) 的情況下，生成影像 x&#x0302;&theta;，使得 x_gen = x&#x0302;&theta;(&epsilon;, c)。訓練使用對可變加噪影像或潛在編碼 z_t := &alpha;_t x + &sigma;_t &epsilon; 的均方誤差損失。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術背景——建立擴散模型的數學基礎，為後續的微調策略提供形式化框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段作為方法章節的數學起點，定義了後文將反覆使用的符號系統（&theta;、&epsilon;、c、&Gamma;）。損失函數的形式也預告了後續先驗保留損失的結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的數學符號呈現擴散模型的訓練目標，假設讀者已有基本的擴散模型知識。這種省略式的背景介紹在頂級會議論文中是常見且合理的——但可能使非專業讀者難以跟隨。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.1 段落 2：損失函數 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The training objective can be expressed as: <span class="hl-method">E<sub>x,c,&epsilon;,t</sub>[w<sub>t</sub> ||x&#x0302;<sub>&theta;</sub>(&alpha;<sub>t</sub>x + &sigma;<sub>t</sub>&epsilon;, c) - x||<sup>2</sup><sub>2</sub>]</span>, where <strong>x</strong> represents ground-truth images, <strong>c</strong> is the conditioning vector, and <span class="hl-method">&alpha;<sub>t</sub>, &sigma;<sub>t</sub>, w<sub>t</sub> are functions of the diffusion process time t ~ U([0,1])</span> that control the noise schedule and sample quality. This formulation provides the foundation upon which <span class="hl-thesis">subject-specific fine-tuning can be applied</span>, as the same objective is used but with <span class="hl-method">subject-specific input images and identifier-augmented text prompts</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練目標可表示為：E_{x,c,&epsilon;,t}[w_t ||x&#x0302;_&theta;(&alpha;_t x + &sigma;_t &epsilon;, c) - x||^2_2]，其中 x 代表真實影像，c 為條件向量，而 &alpha;_t、&sigma;_t、w_t 是擴散過程時間 t ~ U([0,1]) 的函數，控制雜訊排程與樣本品質。此公式化提供了主體特定微調的基礎——使用相同的目標函數，但以主體特定的輸入影像和附加識別符的文字提示取代。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學承接——展開損失函數的完整形式，並橋接至 DreamBooth 的微調策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段的關鍵在最後一句：標準訓練目標「直接沿用」於微調，僅更換輸入資料。這暗示 DreamBooth 的核心創新不在損失函數形式，而在輸入設計與正則化策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「相同目標函數，不同輸入」的框架呈現微調策略，使方法顯得自然且直覺。但這也意味著成功與否高度依賴輸入設計（識別符選擇、提示格式）——若這些設計不當，標準損失函數本身並不保證學到有用的主體表示。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-method-personalization">3.2 Personalization of Text-to-Image Models — 文字轉影像模型的個人化</h3>
+
+    <!-- 方法 3.2 段落 1：提示設計 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The goal involves <span class="hl-thesis">"implanting" new (unique identifier, subject) pairs into the diffusion model's "dictionary"</span>. Rather than detailed image descriptions, we label all input images as <span class="hl-method">"a [identifier] [class noun]"</span>, where [identifier] is a unique identifier linked to the subject and [class noun] is a coarse class descriptor of the subject (e.g., cat, dog, watch). The class descriptor can be obtained from the user or through a classifier. <span class="hl-thesis">Using class descriptors tethers class-specific priors to the unique subject</span>; using wrong descriptors or omitting them increases training time, language drift, and decreases performance. Essentially, <span class="hl-method">the method leverages model class priors, entangling them with the subject's unique identifier embeddings</span> for generating novel subject poses and articulations in different contexts.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                目標在於將新的（獨特識別符, 主體）配對「植入」擴散模型的「字典」中。我們不使用詳盡的影像描述，而是將所有輸入影像標註為「a [識別符] [類別名詞]」，其中 [識別符] 是與主體連結的獨特識別符，[類別名詞] 是主體的粗略類別描述詞（如 cat、dog、watch）。類別描述詞可由使用者提供或透過分類器取得。使用類別描述詞能將類別特定的先驗與獨特主體繫結；使用錯誤的描述詞或省略描述詞會增加訓練時間和語言漂移，並降低效能。本質上，此方法利用模型的類別先驗，將其與主體的獨特識別符嵌入糾纏在一起，以在不同情境中生成主體的新穎姿態和關節組態。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心設計決策——解釋提示格式「a [V] [class noun]」的設計原理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是 DreamBooth 最具直覺性的設計之一：以「識別符 + 類別名詞」的雙層結構，同時實現主體個體化（透過識別符）與類別知識利用（透過類別名詞）。前者提供身份錨定，後者提供姿態與情境的多樣性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「字典植入」的比喻非常有效地傳達了技術本質。但此設計有一個隱含假設：主體必須隸屬於某個模型已知的類別。對於模型訓練資料中罕見或不存在的類別（如特殊的藝術品或罕見物種），類別先驗的效用可能大打折扣。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.2 段落 2：罕見標記識別符 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing English words (e.g., "unique," "special") prove <span class="hl-rebuttal">suboptimal as identifiers since models must learn to disentangle them from their original meanings</span> and then re-entangle them to reference subjects. This motivates <span class="hl-method">identifiers that have weak priors in both the language model and the diffusion model</span>. Random character concatenation (e.g., "xxy5syt00") is also <span class="hl-rebuttal">hazardous because tokenizers split characters separately, each carrying strong diffusion priors</span>. Our approach <span class="hl-method">finds rare tokens in the vocabulary</span> and inverts them back to text space, <span class="hl-thesis">minimizing the prior probability of the identifier</span>. We perform rare-token lookup in the tokenizer vocabulary and obtain sequences f(<strong>V&#x0302;</strong>), where f is the tokenizer. For Imagen using T5-XXL tokenizer, <span class="hl-evidence">uniformly sampling tokens corresponding to 3 or fewer Unicode characters (without spaces) in the range {5000,...,10000} works well</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用既有的英文詞彙（如「unique」「special」）作為識別符並非最佳選擇，因為模型必須先學會將它們從原始語義中解耦，再重新與主體糾纏。這激發了在語言模型和擴散模型中均具有微弱先驗的識別符設計。隨機字元串接（如「xxy5syt00」）同樣存在風險，因為分詞器會將字元個別拆分，每個字元各自帶有強烈的擴散先驗。我們的方法在詞彙表中尋找罕見標記，並將其反轉回文字空間，以最小化識別符的先驗機率。我們在分詞器詞彙表中執行罕見標記查找，取得序列 f(V&#x0302;)，其中 f 為分詞器。對於使用 T5-XXL 分詞器的 Imagen，在 {5000,...,10000} 範圍內均勻取樣對應 3 個或更少 Unicode 字元（不含空格）的標記效果良好。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——解釋罕見標記識別符的選擇策略及其理由。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以排除法推導出最佳的識別符設計：常見詞彙有語義衝突 -> 隨機字串有分詞問題 -> 罕見標記兩者皆避免。這種遞進式排除使最終方案顯得是自然且必然的選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    排除法的邏輯嚴謹性在於：它系統性地列舉了替代方案並指出各自的問題。但「罕見標記」是否真正具有「微弱先驗」依賴於具體的預訓練資料分布——即使是詞彙表中的罕見標記，在特定語境下也可能已被模型學到某些關聯。此外，{5000,...,10000} 的範圍選擇缺乏嚴格的理論依據。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-method-prior">3.3 Class-specific Prior Preservation Loss — 類別特定先驗保留損失</h3>
+
+    <!-- 方法 3.3 段落 1：語言漂移問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The best results for maximum subject fidelity are achieved by <span class="hl-method">fine-tuning all layers of the model</span>, including text-embedding-conditioned layers. However, this causes <span class="hl-concept">language drift</span> — a phenomenon <span class="hl-rebuttal">observed in language models where models pre-trained on large text corpora progressively lose syntactic and semantic knowledge</span> during task-specific fine-tuning. Similarly, in diffusion models, <span class="hl-rebuttal">the model slowly forgets how to generate diverse same-class subjects</span> as the target. Another problem involves <span class="hl-rebuttal">reduced output diversity</span>: fine-tuning on small image sets risks reducing subject output variability in viewpoints, poses, and articulations, <span class="hl-rebuttal">sometimes "snapping" to the few-shot training views</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為達最高主體保真度，最佳結果來自微調模型的所有層級，包括文字嵌入條件層。然而，這會導致語言漂移——一種在語言模型中觀察到的現象：在大型文字語料庫上預訓練的模型，在特定任務微調過程中逐漸喪失句法與語意知識。類似地，在擴散模型中，模型會緩慢地遺忘如何生成與目標同類別的多樣主體。另一個問題是輸出多樣性降低：在小型影像集上微調，有降低主體輸出在視角、姿態和關節組態上變化性的風險，有時會「鎖定」到少樣本訓練視角。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題診斷——深入分析全層微調帶來的兩大負面效應：語言漂移與多樣性喪失。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為先驗保留損失的引入創造必要性：若不解決這兩個問題，全層微調雖提升保真度，但會嚴重損害模型的通用性與生成多樣性。形成「提升保真度 vs. 保持通用性」的張力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「鎖定到少樣本訓練視角」是一個非常形象的描述，精準地傳達了過擬合的表現形式。將 NLP 領域的「語言漂移」類比引入擴散模型是一個有力的跨領域概念遷移，但兩者的漂移機制本質上不同——語言模型的漂移影響語法結構，而擴散模型的漂移影響視覺多樣性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.3 段落 2：先驗保留損失 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To mitigate these issues, we propose an <span class="hl-method">autogenous class-specific prior preservation loss</span>. The key idea is to <span class="hl-thesis">supervise the model with its own generated samples</span>, enabling it to retain prior knowledge during few-shot fine-tuning. Specifically, we generate data <span class="hl-method">x<sub>pr</sub> = x&#x0302;(z<sub>t1</sub>, c<sub>pr</sub>)</span> using ancestral sampling from the <span class="hl-method">frozen pretrained model</span> with random initial noise z<sub>t1</sub> ~ N(0, I) and conditioning c<sub>pr</sub> := &Gamma;(f("a [class noun]")). The full loss becomes: <span class="hl-method">E[w<sub>t</sub>||x&#x0302;<sub>&theta;</sub>(&alpha;<sub>t</sub>x + &sigma;<sub>t</sub>&epsilon;, c) - x||<sup>2</sup> + &lambda; w<sub>t'</sub>||x&#x0302;<sub>&theta;</sub>(&alpha;<sub>t'</sub>x<sub>pr</sub> + &sigma;<sub>t'</sub>&epsilon;', c<sub>pr</sub>) - x<sub>pr</sub>||<sup>2</sup>]</span>, where the second term is the prior-preservation regularizer and <span class="hl-evidence">&lambda; controls the relative weighting</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為解決這些問題，我們提出一種自生式類別特定先驗保留損失。核心概念是以模型自身生成的樣本來監督模型，使其在少樣本微調期間保留先驗知識。具體而言，我們使用凍結的預訓練模型透過祖先取樣生成資料 x_pr = x&#x0302;(z_t1, c_pr)，其中隨機初始雜訊 z_t1 ~ N(0, I)，條件為 c_pr := &Gamma;(f("a [class noun]"))。完整損失函數變為：E[w_t||x&#x0302;_&theta;(&alpha;_t x + &sigma;_t &epsilon;, c) - x||^2 + &lambda; w_t'||x&#x0302;_&theta;(&alpha;_t' x_pr + &sigma;_t' &epsilon;', c_pr) - x_pr||^2]，其中第二項為先驗保留正則化項，&lambda; 控制相對權重。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——以數學形式呈現先驗保留損失的設計與實作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文技術論證的核心支柱。以模型自身生成的樣本作為正則化目標（「自生式」），直接回應語言漂移問題：強迫模型在學習新主體的同時，仍能重現其對一般類別的生成能力。第二損失項的設計極為精巧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「用模型自己的輸出來訓練自己」在概念上類似知識蒸餾，具有優雅的自洽性。但此設計有一個微妙的假設：凍結模型生成的類別樣本品質夠好且夠多樣。若預訓練模型本身對某些類別的生成品質就不佳，先驗保留損失所保留的「先驗」可能本身就有偏差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.3 段落 3：訓練細節 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Despite its simplicity, this <span class="hl-thesis">prior-preservation loss effectively encourages output diversity and overcomes language drift</span>, enabling longer model training without overfitting risks. In practice, <span class="hl-evidence">approximately 1000 iterations</span> with <span class="hl-evidence">&lambda; = 1</span> and <span class="hl-evidence">learning rate 10<sup>-5</sup> for Imagen</span> (or <span class="hl-evidence">5 &times; 10<sup>-6</sup> for Stable Diffusion</span>) with <span class="hl-evidence">3-5 subject images</span> achieves good results. During the process, approximately <span class="hl-evidence">1000 "a [class noun]" samples are generated</span> from the frozen model — though fewer can suffice. Training requires <span class="hl-evidence">about 5 minutes on a single TPUv4</span> for Imagen and a <span class="hl-evidence">single NVIDIA A100 for Stable Diffusion</span>, making the approach remarkably efficient for personalization.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管設計簡潔，此先驗保留損失有效地促進輸出多樣性並克服語言漂移，使模型得以延長訓練而不受過擬合風險所困。在實際操作中，約 1000 次迭代，&lambda; = 1，學習率為 10^-5（Imagen）或 5 &times; 10^-6（Stable Diffusion），搭配 3-5 張主體影像即可獲得良好結果。過程中從凍結模型生成約 1000 張「a [class noun]」樣本——雖然更少亦可。訓練在單張 TPUv4 上（Imagen）或單張 NVIDIA A100 上（Stable Diffusion）僅需約 5 分鐘，使此方法在個人化方面具有卓越的效率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實作規格——提供可重現的具體超參數與計算資源需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從理論過渡到實踐，回答「真的可行嗎？」的關鍵問題。「5 分鐘」的訓練時間是極具說服力的效率指標，直接支撐了「個人化」的實用性承諾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「5 分鐘」的時間數據非常具有衝擊力，但這是在頂級硬體（TPUv4/A100）上的結果。對於一般使用者可能使用的消費級 GPU（如 RTX 3090），訓練時間和記憶體需求可能顯著增加。此外，&lambda; = 1 是否為所有主體類別的最佳選擇，缺乏系統性的敏感度分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：資料集與評估 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We collected a <span class="hl-evidence">dataset of 30 subjects</span> including unique objects and pets: backpacks, stuffed animals, dogs, cats, sunglasses, cartoons, etc. Subjects are separated into <span class="hl-evidence">objects (21 of 30) and live subjects/pets (9 of 30)</span>. We collected <span class="hl-evidence">25 prompts</span> per category: 20 recontextualization and 5 property modification prompts for objects; 10 recontextualization, 10 accessorization, and 5 property modification prompts for live subjects. For the evaluation suite, <span class="hl-evidence">four images per subject-prompt pair are generated, totaling 3,000 images</span>. This setup robustly measures performance and generalization. <span class="hl-thesis">Datasets and evaluation protocols are publicly available</span> for future subject-driven generation research.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們收集了包含 30 個主體的資料集，涵蓋獨特的物件與寵物：背包、填充玩偶、狗、貓、太陽眼鏡、卡通角色等。主體分為物件（30 個中的 21 個）和活體主體/寵物（30 個中的 9 個）。我們為每個類別收集了 25 個提示：物件類有 20 個重新情境化和 5 個屬性修改提示；活體主體類有 10 個重新情境化、10 個配件添加和 5 個屬性修改提示。在評估套件中，每個主體-提示配對生成四張影像，共計 3,000 張影像。此設置穩健地衡量效能與泛化能力。資料集與評估協定已公開，供未來主體驅動生成研究使用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立評估基礎——詳述資料集組成與評估流程的設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續的定量比較建立可信的評估基礎。30 個主體、25 個提示、3000 張影像的規模展示了評估的嚴謹性。公開資料集的承諾更強化了研究的可重現性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    資料集的規模（30 個主體）雖不算龐大，但涵蓋範圍較廣（物件、動物、卡通），展示了方法的通用性。然而，物件與活體主體的比例失衡（21:9）可能使整體指標偏向物件的表現。此外，所有主體均由作者自行選定，可能存在選擇偏差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：評估指標 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Subject fidelity</span> — preserving subject details in generated images — is computed via two metrics. <span class="hl-method">CLIP-I</span> computes the average pairwise cosine similarity between CLIP embeddings of generated and real images. Though previously used, <span class="hl-rebuttal">this metric cannot distinguish different subjects with similar text descriptions</span> (e.g., two different yellow clocks). We therefore propose a new metric, <span class="hl-method">DINO</span>, computing average pairwise cosine similarity between <span class="hl-concept">ViT-S/16 DINO embeddings</span> of generated and real images. Unlike supervised networks, <span class="hl-thesis">DINO's self-supervised training objective encourages distinguishing unique subject features</span>. The second aspect, <span class="hl-concept">prompt fidelity</span>, is measured as average cosine similarity between prompt and image CLIP embeddings, denoted <span class="hl-method">CLIP-T</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                主體保真度——即在生成影像中保留主體細節——透過兩項指標計算。CLIP-I 計算生成影像與真實影像之 CLIP 嵌入的平均成對餘弦相似度。雖已被先前研究使用，但此指標無法區分具有相似文字描述的不同主體（例如兩個不同的黃色時鐘）。因此，我們提出新指標 DINO，計算生成影像與真實影像之 ViT-S/16 DINO 嵌入的平均成對餘弦相似度。與監督式網路不同，DINO 的自監督訓練目標鼓勵區分獨特的主體特徵。第二個面向——提示保真度——則以提示與影像 CLIP 嵌入之平均餘弦相似度衡量，記為 CLIP-T。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    評估方法創新——提出 DINO 指標以彌補 CLIP-I 的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段不僅定義指標，更展示了對現有評估方法的批判性思考。指出 CLIP-I 的缺陷（無法區分同類不同實例）並提出 DINO 作為替代，這本身就是一項方法論貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    DINO 指標的選擇理由（自監督學習鼓勵區分實例級特徵）邏輯自洽，但這是否意味著 DINO 嵌入能完美捕捉人類所認定的「主體身份」，仍是一個開放問題。此外，CLIP-T 作為提示保真度的衡量標準，受限於 CLIP 模型本身的語意理解能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：比較實驗 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Results are compared with <span class="hl-concept">Textual Inversion</span> (Gal et al.), the most comparable concurrent work for subject-driven, text-guided image generation. Table 1 shows <span class="hl-evidence">sizeable gaps between DreamBooth and Textual Inversion in both subject and prompt fidelity</span>. <span class="hl-evidence">DreamBooth (Imagen) achieves higher subject and prompt fidelity scores than DreamBooth (Stable Diffusion)</span>, approaching the upper bound of real image subject fidelity, attributed to Imagen's larger expressive power and higher output quality. Further comparisons via <span class="hl-evidence">user studies with 72 participants</span> and <span class="hl-evidence">1,800 comparative answers</span> show <span class="hl-evidence">overwhelming DreamBooth preference for both subject fidelity (88.5%) and prompt fidelity (81.6%)</span>, demonstrating that DINO differences around 0.1 and CLIP-T differences of 0.05 are perceptually significant.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                結果與 Textual Inversion（Gal 等人）進行比較，這是主體驅動文字引導影像生成領域中最具可比性的並行工作。表 1 顯示 DreamBooth 在主體保真度與提示保真度上均大幅領先 Textual Inversion。DreamBooth（Imagen）較 DreamBooth（Stable Diffusion）達到更高的主體保真度與提示保真度分數，趨近真實影像主體保真度的上界，歸功於 Imagen 更大的表現力與更高的輸出品質。進一步透過 72 位參與者、共 1,800 個比較回答的使用者研究，顯示使用者壓倒性地偏好 DreamBooth 的主體保真度（88.5%）與提示保真度（81.6%），證明 DINO 約 0.1 的差異和 CLIP-T 約 0.05 的差異在知覺上具有顯著意義。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量驗證——以客觀指標與使用者研究雙重驗證方法的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是實證支柱，覆蓋三個維度：(1) 定量指標（DINO、CLIP-I、CLIP-T）；(2) 使用者研究（88.5% 偏好率）；(3) 基準模型比較（Imagen vs. Stable Diffusion）。多維度驗證大幅提升了結論的說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    88.5% 的使用者偏好率是極具說服力的數據。然而，比較對象僅限 Textual Inversion 一種方法，且 Textual Inversion 凍結模型的設計本就在保真度上有結構性劣勢。若加入更多基準（如直接 GAN 反轉或其他微調策略），比較會更全面。此外，使用者研究的 72 人規模在統計上是否足夠穩健，值得審視。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：消融研究 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Ablation studies</span> are conducted on two key components. For the <span class="hl-concept">prior preservation loss (PPL)</span>, fine-tuning with and without PPL on 15 subjects reveals that <span class="hl-evidence">PPL substantially counteracts language drift</span>, helping retain the ability to generate diverse prior-class images. A <span class="hl-method">prior preservation metric (PRES)</span> measures how much random class subjects resemble specific subjects — <span class="hl-evidence">higher scores signal prior collapse</span>. Models trained with PPL also achieve <span class="hl-evidence">higher diversity (DIV) measured by LPIPS</span>, with slightly diminished subject fidelity, as PPL-trained models overfit less to reference image environments. For the <span class="hl-concept">class-prior ablation</span>, comparing correct class nouns, incorrect class nouns, and no class nouns shows that <span class="hl-evidence">correct class nouns yield substantially higher subject fidelity</span>. Incorrect nouns cause contention between subjects and priors, while omitting nouns fails to leverage class priors entirely.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究針對兩個關鍵元件進行。就先驗保留損失（PPL）而言，在 15 個主體上分別進行有無 PPL 的微調，結果顯示 PPL 顯著抵消語言漂移，有助保留生成多樣類別先驗影像的能力。先驗保留指標（PRES）衡量隨機類別主體與特定主體的相似程度——較高分數代表先驗崩塌。以 PPL 訓練的模型亦達到更高的多樣性（以 LPIPS 衡量的 DIV），但主體保真度略有下降，因為 PPL 訓練的模型對參考影像環境的過擬合程度較低。就類別先驗消融而言，比較正確類別名詞、錯誤類別名詞和無類別名詞的結果顯示，正確類別名詞產生顯著更高的主體保真度。錯誤名詞導致主體與先驗之間的衝突，而省略名詞則完全無法利用類別先驗。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——透過消融研究確認每個設計決策的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究回應了「為什麼需要這些組件？」的問題：PPL 消融證明先驗保留的必要性，類別名詞消融證明利用先驗知識的重要性。兩組消融共同支撐了方法設計的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究的設計嚴謹，但揭示了一個有趣的取捨：PPL 在提升多樣性的同時「略微降低」主體保真度。這暗示先驗保留與主體保真之間存在本質性的張力，而非可以兩全其美。作者以「略微」淡化此取捨，但這在某些高保真度需求的應用中可能不可忽視。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 5：應用展示 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method enables a wide range of applications. <span class="hl-evidence">Recontextualization</span> generates subjects in novel contexts with descriptive prompts (e.g., "a [V] dog on a beach"), producing <span class="hl-evidence">realistic scene-subject integration with contact, shadows, and reflections</span>. <span class="hl-evidence">Art renditions</span> use prompts like "a painting of a [V] dog in the style of [famous painter]" to generate meaningful artistic variations while preserving subject identity — unlike style transfer which merely applies style to existing structure. <span class="hl-evidence">Novel view synthesis</span> extrapolates class-prior knowledge to render subjects under previously unseen viewpoints from only <span class="hl-evidence">4 frontal input images</span>. <span class="hl-evidence">Property modification</span> enables cross-species combinations (e.g., "a cross of a [V] dog and a [target species]") and material changes (e.g., "a transparent [V] teapot"), preserving key identity features throughout transformations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此方法支援廣泛的應用場景。重新情境化以描述性提示（如「a [V] dog on a beach」）在新穎情境中生成主體，產生包含接觸面、陰影與反射的逼真場景-主體融合。藝術風格渲染使用如「a painting of a [V] dog in the style of [著名畫家]」的提示，在保留主體身份的同時生成有意義的藝術變化——不同於僅將風格套用至既有結構的風格遷移。新穎視角合成從僅 4 張正面輸入影像出發，借助類別先驗知識推斷出前所未見視角下的主體渲染。屬性修改支援跨物種組合（如「a cross of a [V] dog and a [目標物種]」）和材質變化（如「a transparent [V] teapot」），在變換過程中始終保留關鍵身份特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——以四類應用場景展現方法的多功能性與實用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從實驗數據過渡到實際應用，回應緒論中「你的狗在世界各地」的願景承諾。四類應用（重新情境化、藝術渲染、視角合成、屬性修改）覆蓋了從實用到創意的完整光譜。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「藝術風格渲染」與「風格遷移」做出區隔是聰明的定位策略——前者「生成新穎變化」，後者「僅套用風格」。但實際上兩者的界限並不那麼清晰。此外，「僅 4 張正面影像」即可合成背面視角，雖令人印象深刻，但這高度依賴模型對該類別的先驗品質——對於罕見類別，此能力可能大幅退化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.5 限制 ====== -->
+    <h2 class="section-heading" id="sec-limitations">4.5 Limitations — 限制</h2>
+
+    <!-- 限制段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Several failure modes are identified. First, <span class="hl-rebuttal">inaccurate generation of prompted contexts</span>: possible reasons include weak context priors or difficulty generating both subjects and specified concepts together due to <span class="hl-rebuttal">low co-occurrence probability in training sets</span>. Second, <span class="hl-rebuttal">context-appearance entanglement</span>, where the subject's appearance changes due to the prompted context — for example, a backpack's color changing. Third, <span class="hl-rebuttal">overfitting to real images</span> occurs when prompts resemble the original subject-capture settings, causing generated images to replicate training environments rather than creating novel ones.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                研究識別了數種失敗模式。首先是提示情境的不準確生成：可能原因包括情境先驗薄弱，或因訓練集中主體與指定概念的共現機率過低，難以同時生成兩者。其次是情境-外觀糾纏，即主體的外觀因提示情境而改變——例如背包的顏色變化。第三是對真實影像的過擬合，當提示與原始主體拍攝環境相似時，生成影像會複製訓練環境而非創造新穎場景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    誠實揭露——系統性地列舉方法的三種失敗模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    限制討論在強勢的實驗結果之後，扮演「平衡論述」的角色，展現學術誠實性。三種失敗模式分別對應不同的技術根源：先驗不足、解耦不完全、過擬合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動揭示失敗模式展現了學術成熟度，但描述偏向表面現象而非深層原因分析。例如，「情境-外觀糾纏」的根本原因是什麼？是微調過程中主體特徵與環境特徵在潛在空間中的耦合，還是先驗保留損失未能充分解耦這些面向？更深入的分析將更有價值。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 限制段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Other limitations include <span class="hl-rebuttal">varying difficulty in learning different subjects</span> — common categories (dogs, cats) are easier than rarer subjects, and occasionally rarer subjects cannot support as many variations. Additionally, <span class="hl-rebuttal">subject-fidelity variability</span> exists across generated images: some may contain <span class="hl-rebuttal">hallucinated subject features</span> depending on model-prior strength and semantic-modification complexity. These limitations suggest that <span class="hl-thesis">stronger base models with broader training distributions would further improve personalization results</span>, pointing toward future scaling directions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                其他限制包括不同主體的學習難度差異——常見類別（狗、貓）比罕見主體更容易學習，偶爾罕見主體無法支援那麼多變化。此外，生成影像間存在主體保真度的不一致性：部分影像可能包含幻覺式的主體特徵，取決於模型先驗強度與語意修改的複雜度。這些限制暗示，具有更廣泛訓練分布的更強大基礎模型將進一步改善個人化結果，指向未來的規模擴展方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    延伸限制——指出方法在不同主體類別間的表現差異及幻覺問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將限制轉化為未來方向：「更強大的基礎模型」既是對現有限制的解釋（「因為基礎模型還不夠好」），也是對未來改善的樂觀預期。這種將弱點轉化為機會的修辭策略非常巧妙。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「幻覺式主體特徵」是一個重要但被輕描淡寫的問題——在需要精確主體保真的應用（如電子商務或身份驗證）中，這可能是致命的缺陷。將解決方案寄託於「更強大的基礎模型」雖合理，但迴避了當前架構本身是否存在根本性限制的討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusions — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work presents an approach for <span class="hl-thesis">synthesizing novel renditions of subjects using just a few reference images and text-prompt guidance</span>. The key idea involves <span class="hl-method">embedding given subject instances in the output domain of text-to-image diffusion models</span> by <span class="hl-method">binding subjects to unique identifiers</span>. Remarkably, <span class="hl-evidence">fine-tuning works with only 3-5 subject images</span>, making the technique particularly accessible. The work demonstrates <span class="hl-evidence">various photorealistic-scene applications with animals and objects</span>, producing results <span class="hl-thesis">mostly indistinguishable from real images</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究提出一種僅需少量參考影像與文字提示引導即可合成主體新穎呈現的方法。核心概念是透過將主體與獨特識別符綁定，將給定的主體實例嵌入文字轉影像擴散模型的輸出域中。值得注意的是，微調僅需 3-5 張主體影像即可運作，使此技術具有極高的可及性。本研究展示了動物與物件在各種逼真場景中的應用，產生的結果大多與真實影像難以區分。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以簡潔的語言重申核心貢獻與技術本質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要與緒論的結構，形成完整的論證閉環。「3-5 張影像」與「難以區分」兩個核心主張在此獲得最終的強調，作為讀者帶走的關鍵訊息。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「大多與真實影像難以區分」是一個大膽的主張，雖然使用者研究的高偏好率提供了部分支持，但這裡的「大多」一詞預留了模糊空間。結論未重述限制，這在學術論文中是常見做法，但可能給讀者留下過度樂觀的印象。作為 Best Student Paper Honorable Mention，此論文的影響力在於開創了「擴散模型個人化」這一全新範式，其後續工作（如 LoRA、DreamBooth + ControlNet）已充分驗證了此方向的深遠價值。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The approach leverages <span class="hl-method">rare-token identifiers</span> to minimize prior interference, the <span class="hl-method">class-noun prompt design</span> to harness class-level semantic priors, and the <span class="hl-method">autogenous class-specific prior preservation loss</span> to combat language drift and preserve output diversity. Together, these components enable a <span class="hl-thesis">remarkably simple yet effective pipeline for subject-driven generation</span> that opens new creative possibilities — from subject recontextualization and novel view synthesis to artistic rendering and property modification. The technique's <span class="hl-thesis">low data requirement and fast training time</span> make it <span class="hl-thesis">accessible to a broad range of users and applications</span>, fundamentally expanding the creative capabilities of text-to-image models.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此方法利用罕見標記識別符以最小化先驗干擾，以類別名詞提示設計來運用類別層級的語意先驗，並以自生式類別特定先驗保留損失來對抗語言漂移並維護輸出多樣性。這些元件共同構成了一個極其簡潔卻有效的主體驅動生成管線，開啟了從主體重新情境化、新穎視角合成到藝術風格渲染與屬性修改的嶄新創作可能。此技術的低資料需求與快速訓練時間使其對廣泛的使用者與應用場景均具可及性，從根本上擴展了文字轉影像模型的創作能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術總結與展望——統整三大技術元件，並強調方法的簡潔性與可及性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以列舉方式回顧三個核心技術貢獻，再以「簡潔卻有效」的評價作結。從技術細節回到宏觀願景——「從根本上擴展創作能力」，與緒論中的場景描繪形成呼應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將三個技術元件並列呈現，暗示它們具有同等重要性。但從消融研究的結果來看，先驗保留損失的貢獻最為關鍵，而罕見標記的選擇對最終效果的影響相對較小。此外，「從根本上擴展」的措辭頗為大膽——DreamBooth 確實開創了新範式，但其與後續方法（如 Textual Inversion 的改進版本）的比較表明，此領域仍有大幅改進的空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                文字轉影像模型無法<br>保持特定主體身份
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                以獨特識別符綁定主體<br>植入模型輸出域
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                使用者研究 88.5% 偏好<br>DINO/CLIP 指標領先
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                先驗保留損失解決<br>語言漂移與多樣性喪失
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                3-5 張影像即可實現<br>高保真個人化生成
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將少量主體影像與罕見標記識別符綁定，對預訓練文字轉影像擴散模型進行微調，搭配自生式先驗保留損失防止語言漂移，即可在保持主體身份的前提下實現多樣的情境化影像生成。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>使用者研究的壓倒性優勢：</strong>在 72 位參與者、1,800 個比較回答的使用者研究中，DreamBooth 在主體保真度（88.5%）與提示保真度（81.6%）上均獲得壓倒性偏好。這不僅證明了方法的技術優越性，更重要的是證明了自動指標（DINO、CLIP-T）上的數值差異在人類感知層面確實有意義——將主觀感受與客觀指標成功連結。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>比較基準的單一性與限制討論的不足：</strong>定量比較僅針對 Textual Inversion 一種方法，而後者因凍結模型的設計在保真度上有結構性劣勢，使比較的公平性受限。此外，限制討論雖列舉了失敗模式，但缺乏對根本原因的深層分析——例如「情境-外觀糾纏」是否源自微調策略的本質限制，以及「幻覺式主體特徵」在實際部署中的風險評估均未充分探討。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>
