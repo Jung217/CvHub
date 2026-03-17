@@ -69,12 +69,15 @@
     }
     .chart-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem; font-weight: 600; color: #1a2332; margin-bottom: 12px; }
     .chart-canvas { width: 100%; height: 180px; }
-    .chart-legend { display: flex; gap: 16px; margin-top: 10px; font-size: 0.75rem; color: #5c5c5c; }
-    .chart-legend span { display: inline-flex; align-items: center; gap: 4px; }
-    .chart-legend span::before { content: ''; width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
-    .chart-legend .leg-submit::before { background: #1a2332; }
-    .chart-legend .leg-accept::before { background: #c9a84c; }
-    .chart-legend .leg-rate::before { background: #2e7d32; }
+    .chart-tooltip {
+      position: absolute; pointer-events: none; opacity: 0;
+      background: #1a2332; color: #fff; padding: 6px 12px; border-radius: 4px;
+      font-size: 0.78rem; white-space: nowrap; z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: opacity 0.15s;
+      transform: translate(-50%, -100%); margin-top: -10px;
+    }
+    .chart-tooltip.visible { opacity: 1; }
+    .chart-card { position: relative; }
 
     /* ===== 熱門關鍵詞 ===== */
     .keywords-section { max-width: 1280px; margin: 0 auto; padding: 20px 24px 32px; }
@@ -248,17 +251,12 @@
       <div class="chart-card">
         <div class="chart-title">歷年投稿與收錄篇數</div>
         <canvas class="chart-canvas" id="chartPapers"></canvas>
-        <div class="chart-legend">
-          <span class="leg-submit">投稿數</span>
-          <span class="leg-accept">收錄數</span>
-        </div>
+        <div class="chart-tooltip" id="tipPapers"></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">歷年錄取率</div>
         <canvas class="chart-canvas" id="chartRate"></canvas>
-        <div class="chart-legend">
-          <span class="leg-rate">錄取率 (%)</span>
-        </div>
+        <div class="chart-tooltip" id="tipRate"></div>
       </div>
     </div>
   </section>
@@ -1018,16 +1016,8 @@
       drawDots(ctx, submitPts, '#1a2332', 3.5);
       drawLine(ctx, acceptPts, '#c9a84c', 2.5);
       drawDots(ctx, acceptPts, '#c9a84c', 3.5);
-      // 數值標籤
-      ctx.font = '10px IBM Plex Sans'; ctx.textAlign = 'center';
-      submitPts.forEach(function(p, i) {
-        ctx.fillStyle = '#1a2332';
-        ctx.fillText(cvprData[i].submit.toLocaleString(), p[0], p[1] - 8);
-      });
-      acceptPts.forEach(function(p, i) {
-        ctx.fillStyle = '#9a8230';
-        ctx.fillText(cvprData[i].accept.toLocaleString(), p[0], p[1] - 8);
-      });
+      // 儲存資料點供 hover 使用
+      window._papersPts = { submit: submitPts, accept: acceptPts };
     }
 
     function drawRateChart(ctx, W, H, ml, mr, mt, mb) {
@@ -1054,10 +1044,7 @@
       ctx.lineTo(ratePts[ratePts.length-1][0], H - mb); ctx.closePath(); ctx.fill();
       drawLine(ctx, ratePts, '#2e7d32', 2.5);
       drawDots(ctx, ratePts, '#2e7d32', 3.5);
-      ctx.font = '10px IBM Plex Sans'; ctx.fillStyle = '#2e7d32'; ctx.textAlign = 'center';
-      ratePts.forEach(function(p, i) {
-        ctx.fillText(cvprData[i].rate.toFixed(1) + '%', p[0], p[1] - 8);
-      });
+      window._ratePts = ratePts;
     }
 
     // ===== 關鍵詞篩選 =====
@@ -1159,10 +1146,43 @@
       });
     });
 
+    // ===== 圖表 hover tooltip =====
+    function setupHover(canvasId, tipId, getInfo) {
+      var canvas = document.getElementById(canvasId);
+      var tip = document.getElementById(tipId);
+      if (!canvas || !tip) return;
+      canvas.addEventListener('mousemove', function(e) {
+        var rect = canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        var hit = -1, minDist = 25;
+        var pts = getInfo('pts');
+        if (!pts) return;
+        pts.forEach(function(p, i) { var d = Math.abs(mx - p[0]); if (d < minDist) { minDist = d; hit = i; } });
+        if (hit >= 0) {
+          tip.innerHTML = getInfo('text', hit);
+          tip.style.left = (pts[hit][0]) + 'px';
+          tip.style.top = (pts[hit][1]) + 'px';
+          tip.classList.add('visible');
+        } else { tip.classList.remove('visible'); }
+      });
+      canvas.addEventListener('mouseleave', function() { tip.classList.remove('visible'); });
+    }
+
     // ===== 初始化 =====
     switchYear('2025');
     drawChart('chartPapers', drawPapersChart);
     drawChart('chartRate', drawRateChart);
+
+    setupHover('chartPapers', 'tipPapers', function(q, i) {
+      if (q === 'pts') return window._papersPts ? window._papersPts.submit : null;
+      var d = cvprData[i];
+      return '<strong>' + d.year + '</strong><br>投稿 ' + d.submit.toLocaleString() + ' · 收錄 ' + d.accept.toLocaleString();
+    });
+    setupHover('chartRate', 'tipRate', function(q, i) {
+      if (q === 'pts') return window._ratePts || null;
+      return '<strong>' + cvprData[i].year + '</strong><br>錄取率 ' + cvprData[i].rate.toFixed(1) + '%';
+    });
+
     window.addEventListener('resize', function() {
       drawChart('chartPapers', drawPapersChart);
       drawChart('chartRate', drawRateChart);
