@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRELLIS: Structured 3D Latents for Scalable and Versatile 3D Generation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                TRELLIS: Structured 3D Latents for Scalable and Versatile 3D Generation
+                <span class="course-tag">CVPR 2025</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2412.01506" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-slat">3.1 結構化潛在表示</a>
+        <a href="#sec-enc-dec">3.2 編碼與解碼</a>
+        <a href="#sec-generation">3.3 潛在生成</a>
+        <a href="#sec-editing">3.4 3D 編輯</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce a novel <span class="hl-concept">3D generation method</span> for <span class="hl-thesis">versatile and high-quality 3D asset creation</span>. At the core of our method is a unified <span class="hl-concept">Structured LATent (SLat)</span> representation that <span class="hl-thesis">allows decoding to different output formats, such as Radiance Fields, 3D Gaussians, and meshes</span>. This representation is designed by integrating <span class="hl-method">a sparsely-populated 3D grid with dense multiview visual features</span> extracted from a powerful <span class="hl-concept">vision foundation model</span>. We employ <span class="hl-method">rectified flow transformers tailored for the structured latent representation</span> and train models with <span class="hl-evidence">up to 2 billion parameters on a large-scale dataset of 500K diverse 3D objects</span>. Our model generates <span class="hl-thesis">high-quality results with text or image conditions</span>, and the resulting 3D assets can be <span class="hl-thesis">directly extracted to various final representations, and further edited</span> to create diverse variations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種新穎的三維生成方法，旨在實現多功能且高品質的三維資產創建。方法的核心是一個統一的結構化潛在表示（Structured LATent, SLat），能夠解碼為不同的輸出格式，包括輻射場、三維高斯與網格。此表示透過將稀疏填充的三維網格與強大視覺基礎模型所提取的稠密多視角視覺特徵進行整合而設計。我們採用針對結構化潛在表示量身打造的矯正流（rectified flow）Transformer，並在包含 50 萬個多樣化三維物件的大規模資料集上訓練高達 20 億參數的模型。模型在文字或影像條件下均能生成高品質結果，所產出的三維資產可直接轉換為多種最終表示格式，並進一步編輯以創造多樣化的變體。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精煉語言預告方法核心、技術手段、規模與應用能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時承擔「問題暗示」與「解決方案預告」的雙重功能：以「多功能且高品質」暗示現有方法在通用性或品質上的不足，再以 SLat 表示 + 矯正流 Transformer + 50 萬物件的三重組合回應此缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體數字（20 億參數、50 萬物件）建立規模感，增強可信度。但「多功能」與「高品質」的同時宣稱需在後續實驗中以定量指標充分驗證——大規模訓練本身並不保證品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與現況 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While <span class="hl-evidence">2D image generation has achieved remarkable progress</span> through large-scale models, <span class="hl-rebuttal">3D generative models still fall short in generation quality compared to their 2D predecessors</span>. A core challenge is that <span class="hl-concept">3D data encompasses diverse representations</span> like <span class="hl-concept">meshes, point clouds, Radiance Fields, and 3D Gaussians</span>, each optimized for specific applications yet difficult to adapt across tasks. Geometry-focused approaches <span class="hl-rebuttal">often falter in detailed appearance modeling</span> compared to those relying on representations equipped with advanced volumetric rendering capabilities, while appearance-focused methods <span class="hl-rebuttal">excel in rendering high-quality appearances but struggle with plausible geometry extraction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管二維影像生成已透過大規模模型取得顯著進展，三維生成模型在生成品質上仍落後於二維前輩。核心挑戰在於三維資料涵蓋了多種表示方式——網格、點雲、輻射場、三維高斯——每種皆針對特定應用進行了最佳化，卻難以跨任務適配。側重幾何的方法在細緻外觀建模方面常有不足，而側重外觀的方法雖擅長渲染高品質外觀，卻在合理的幾何提取上力不從心。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出三維生成的品質落差與表示多樣性帶來的兩難。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以二維成就為標竿，再揭示三維領域「幾何 vs. 外觀」的根本矛盾，為統一表示的必要性鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「幾何 vs. 外觀」的二分法精準概括現有方法的取捨，修辭效果極佳。但實際上部分方法（如 DMTet + 紋理場）已嘗試兼顧兩者，此處的二分可能過度簡化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：提出解決方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose developing <span class="hl-thesis">a unified and versatile latent space that facilitates high-quality 3D generation across various representations</span>. Our strategy involves two key design choices: (1) introducing <span class="hl-method">explicit sparse 3D structures in the latent space design</span>, enabling diverse decoding targets; and (2) equipping these sparse structures <span class="hl-method">with a powerful vision foundation model for detailed information encoding</span>. The resulting system, <span class="hl-concept">TRELLIS</span>, is trained on <span class="hl-evidence">500K carefully-collected assets</span> using <span class="hl-method">rectified flow transformers as backbone models</span> adapted for sparse structures. Key capabilities include <span class="hl-thesis">high-quality generation, versatile format selection, flexible editing without parameter tuning</span>, and training without 3D-specific data fitting.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提議開發一個統一且通用的潛在空間，以促進跨多種表示的高品質三維生成。策略包含兩項關鍵設計選擇：其一，在潛在空間設計中引入顯式的稀疏三維結構，使其能解碼至多種目標格式；其二，為這些稀疏結構配備強大的視覺基礎模型以進行細緻的資訊編碼。由此產生的系統 TRELLIS 使用針對稀疏結構適配的矯正流 Transformer 作為骨幹模型，在 50 萬個精心蒐集的資產上訓練。主要能力涵蓋高品質生成、多元格式選擇、無需參數調校的靈活編輯，以及無需三維特定資料擬合的訓練方式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——概述 TRELLIS 的雙重設計策略與四大核心能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「現有方法不足」轉向「本文方案」。稀疏結構直接回應「表示多樣性」問題，視覺基礎模型回應「幾何與外觀兼顧」的需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以編號列舉兩項設計選擇，結構清晰易於理解。四大能力的並列宣稱涵蓋面極廣，但「無需參數調校的靈活編輯」與「無需三維特定資料擬合」的具體限制條件需待方法章節釐清。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：二維輔助方法的局限 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Some recent methods have leveraged <span class="hl-concept">2D diffusion models</span> for 3D creation, starting with <span class="hl-concept">DreamFusion</span> and progressing to <span class="hl-concept">multiview generation approaches</span>. However, <span class="hl-rebuttal">these 2D-assisted approaches often yield lower geometry quality compared to native 3D models learned from 3D data collections, due to inherent multiview inconsistency</span>. In contrast, our approach directly learns from <span class="hl-evidence">large-scale 3D data</span>, ensuring <span class="hl-thesis">geometric fidelity and multiview coherence</span> that 2D-lifting methods fundamentally cannot guarantee.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期部分方法借助二維擴散模型進行三維創建，從 DreamFusion 開始，逐步發展至多視角生成方法。然而，由於固有的多視角不一致性，這些二維輔助方法的幾何品質往往不如從三維資料集合中學習的原生三維模型。相對地，我們的方法直接從大規模三維資料中學習，確保了二維提升方法在本質上無法保證的幾何保真度與多視角一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    排除替代路線——批判二維輔助的三維生成方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段進一步收窄「為何需要原生三維方法」的論證：不僅排除了單一表示方法的缺陷，還排除了繞道二維的策略，使 TRELLIS 的定位更加明確。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「固有的多視角不一致性」一語概括二維方法的根本缺陷，論證簡潔有力。但近期如 Zero123++ 等方法已大幅改善一致性問題，此處的批判可能未充分反映最新進展。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：三維生成模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Early approaches used <span class="hl-concept">Generative Adversarial Networks (GANs)</span> to model <span class="hl-method">3D distributions</span> but <span class="hl-rebuttal">faced scaling challenges</span>. Later methods employed <span class="hl-concept">diffusion models</span> for various representations like <span class="hl-concept">point clouds, voxel grids, Triplanes, and 3D Gaussians</span>. While efficient <span class="hl-concept">latent-space approaches</span> emerged, most methods focused either on <span class="hl-rebuttal">shape modeling, often requiring an additional texturing phase</span>, or on appearance-rich formats that <span class="hl-rebuttal">struggle with plausible geometry extraction</span>. This dichotomy underscores the need for a unified representation that can serve both geometry and appearance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                早期方法使用生成對抗網路（GAN）來建模三維分布，但面臨擴展性的挑戰。後續方法針對點雲、體素網格、三平面（Triplane）與三維高斯等多種表示採用擴散模型。儘管高效的潛在空間方法應運而生，大多數方法仍聚焦於形狀建模（通常需要額外的紋理化階段），或是側重外觀豐富的格式卻在合理幾何提取上力有未逮。此二分法凸顯了對能同時服務幾何與外觀之統一表示的需求。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——概述三維生成模型從 GAN 到擴散模型的演進與侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    延續緒論的批判脈絡，以更系統化的方式重申「幾何 vs. 外觀」的二分困境，為 TRELLIS 的統一表示方案提供學術背景支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以時間線敘事（GAN -> 擴散模型 -> 潛在空間方法）呈現領域演進，結構清晰。但將所有先前方法歸類為非此即彼的二分法，可能忽略了如 CLAY 等近期嘗試同時處理幾何與外觀的工作。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：二維生成模型用於三維創作 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                An alternative paradigm leverages <span class="hl-concept">2D generative models</span> for 3D creation. <span class="hl-concept">Score Distillation Sampling (SDS)</span>, introduced by <span class="hl-concept">DreamFusion</span>, optimizes a 3D representation to match a 2D diffusion prior. Subsequent works explored <span class="hl-method">multiview generation followed by 3D reconstruction</span>. However, <span class="hl-rebuttal">these 2D-assisted approaches often yield lower geometry quality compared to native 3D models due to inherent multiview inconsistency</span>. <span class="hl-concept">Rectified flow models</span> have recently emerged as a novel generative paradigm that challenges the dominance of diffusions, demonstrating <span class="hl-evidence">effectiveness for large-scale image and video generation</span>, motivating their adoption for 3D generation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                另一種範式借助二維生成模型進行三維創作。由 DreamFusion 引入的分數蒸餾取樣（SDS）透過最佳化三維表示以匹配二維擴散先驗。後續工作探索了多視角生成加三維重建的路線。然而，這些二維輔助方法因固有的多視角不一致性，在幾何品質上往往不如原生三維模型。矯正流模型近期作為一種新興的生成範式崛起，挑戰了擴散模型的主導地位，在大規模影像與影片生成中展現出有效性，激發了將其應用於三維生成的動機。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 TRELLIS 放置在「原生三維 + 矯正流」的交匯處。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了兩條學術譜系：（1）二維輔助方法的局限 ->原生三維方法的必要性；（2）擴散模型 -> 矯正流的演進。TRELLIS 被定位為兩條線索的匯聚點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將矯正流的優勢從二維領域類推至三維領域，邏輯上合理但需實驗驗證。二維中的成功並不自動保證在三維稀疏結構上同樣有效，此處的論證存在歸納跳躍。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-slat">3.1 Structured Latent Representation — 結構化潛在表示</h3>
+
+    <!-- 方法 3.1 段落 1：SLat 定義 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core contribution is a representation called <span class="hl-concept">Structured Latents (SLat)</span>, defined as <span class="hl-method">z = {(z_i, p_i)} for i = 1 to L</span>, where <span class="hl-method">p_i represents active voxel positions in a 3D grid</span> and <span class="hl-method">z_i denotes local latents</span> at those positions. The <span class="hl-thesis">active voxels outline the coarse structure of the 3D asset, while the latents capture finer details of appearance and shape</span>. The representation leverages sparsity: <span class="hl-evidence">the number of active voxels L is significantly smaller than the total grid size N&sup3;</span>, allowing construction at a relatively high resolution. Default settings use <span class="hl-evidence">N = 64 resolution yielding approximately L = 20K active voxels</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                核心貢獻是一種稱為結構化潛在表示（SLat）的表示方式，定義為 z = {(z_i, p_i)}（i = 1 至 L），其中 p_i 代表三維網格中的活躍體素位置，z_i 則為該位置的局部潛在向量。活躍體素勾勒出三維資產的粗略結構，而潛在向量則捕捉更精細的外觀與形狀細節。此表示利用了稀疏性：活躍體素數量 L 遠小於網格總大小 N 的三次方，因此允許在相對較高的解析度下建構。預設設定使用 N = 64 的解析度，約產生 L = 20K 個活躍體素。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義 SLat 表示的數學形式與稀疏性質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是整個方法的數學基礎。「活躍體素 = 粗略結構，局部潛在向量 = 精細細節」的分離設計，直接決定了後續兩階段生成管線的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體數值（64 解析度、20K 體素）佐證稀疏性的實際可行性，增強說服力。但 20K 個體素的表達能力是否足以涵蓋高度複雜的幾何細節（如毛髮、薄壁結構），仍需實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 3.1 段落 2：結構與潛在的分離優勢 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical design insight is the <span class="hl-thesis">separation between structure (active voxel positions) and content (local latents)</span>. This decoupling yields two major advantages: first, the <span class="hl-method">structure can be generated independently and efficiently</span> as a compact binary occupancy grid; second, the <span class="hl-method">latents are generated conditioned on the structure</span>, allowing <span class="hl-thesis">detail variation and region-specific editing without affecting the overall coarse geometry</span>. The locality of the latents further enables <span class="hl-thesis">spatial editing by altering voxels and latents in targeted areas while leaving others unchanged</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項關鍵的設計洞察是結構（活躍體素位置）與內容（局部潛在向量）的分離。此解耦帶來兩大優勢：其一，結構可作為緊湊的二值佔據網格被獨立且高效地生成；其二，潛在向量以結構為條件進行生成，從而允許在不影響整體粗略幾何的情況下進行細節變化與區域特定的編輯。潛在向量的局部性更進一步支援空間編輯——只需修改目標區域的體素與潛在向量，其餘部分保持不變。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡述設計動機——解釋結構與內容分離所帶來的編輯靈活性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將 SLat 的數學定義連結到實際應用價值：結構-內容解耦不僅是技術設計，更是實現可控編輯能力的基礎，呼應緒論中「靈活編輯」的承諾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「兩大優勢」的並列結構使論證清晰有力。但局部性的假設意味著全域性的風格一致性（如整體光照協調）可能難以在區域編輯中自然維持，此限制未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 編碼與解碼 ====== -->
+    <h3 class="subsection-heading" id="sec-enc-dec">3.2 Encoding and Decoding — 編碼與解碼</h3>
+
+    <!-- 3.2 段落 1：視覺特徵聚合 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The encoding process converts 3D assets into voxelized features by <span class="hl-method">aggregating features extracted from dense multiview images using a pre-trained DINOv2 encoder</span>. For each active voxel, features are gathered from <span class="hl-method">randomly sampled camera views on a sphere</span>, <span class="hl-method">projected onto multiview feature maps to retrieve features at corresponding locations</span>, and their average is used as the voxel's visual feature. A <span class="hl-concept">transformer-based VAE architecture</span> then processes these voxelized features, serializing input features from active voxels and adding <span class="hl-method">sinusoidal positional encodings</span> to create tokens with <span class="hl-evidence">variable context length L</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                編碼過程透過聚合以預訓練 DINOv2 編碼器從稠密多視角影像中提取的特徵，將三維資產轉換為體素化特徵。對每個活躍體素，從球面上隨機取樣的攝影機視角收集特徵，投影到多視角特徵圖上以檢索對應位置的特徵，再取其平均值作為該體素的視覺特徵。隨後，基於 Transformer 的變分自編碼器（VAE）架構處理這些體素化特徵，將活躍體素的輸入特徵序列化並加入正弦位置編碼，形成具有可變上下文長度 L 的符記序列。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——描述從三維資產到結構化潛在向量的編碼管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示 SLat 的「密集視覺特徵」來源：以 DINOv2 作為視覺骨幹是將二維預訓練知識遷移至三維的關鍵橋樑，回應了緒論中「配備視覺基礎模型」的設計選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選用 DINOv2 而非其他視覺模型（如 CLIP）是一個重要但未充分論證的決策。DINOv2 的自監督特徵是否最適合三維重建需求，與 CLIP 的語義特徵相比各有何優劣，文中缺乏消融比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 段落 2：多格式解碼 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The structured latents can be decoded into <span class="hl-thesis">versatile output formats</span>. For <span class="hl-concept">3D Gaussians</span>, each z_i is decoded into <span class="hl-method">K Gaussians with position offsets, colors, scales, opacities, and rotations</span>, with final positions constrained to the <span class="hl-method">vicinity of their active voxel using p_i + tanh(o_i)</span>. For <span class="hl-concept">Radiance Fields</span>, the decoder outputs a <span class="hl-method">CP-decomposition of a local radiance volume at 8&sup3;</span> per voxel. For <span class="hl-concept">meshes</span>, the process decodes <span class="hl-method">FlexiCubes parameters and signed distance values</span>, upsampling to 256&sup3; and extracting meshes from 0-level isosurfaces. Notably, <span class="hl-thesis">the encoder and decoder are trained end-to-end using Gaussians</span>, while other format decoders are simply trained from scratch with frozen encoders, demonstrating <span class="hl-thesis">strong extensibility</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                結構化潛在向量可解碼為多種輸出格式。對於三維高斯，每個 z_i 解碼為 K 個高斯，包含位置偏移、顏色、尺度、不透明度與旋轉，最終位置透過 p_i + tanh(o_i) 約束在其活躍體素的鄰域內。對於輻射場，解碼器輸出每個體素的 8 立方局部輻射場體積之 CP 分解。對於網格，過程解碼 FlexiCubes 參數與符號距離值，上取樣至 256 立方並從零等值面提取網格。值得注意的是，編碼器與解碼器以三維高斯進行端到端訓練，而其他格式的解碼器則以凍結的編碼器從頭訓練，展現了強大的擴展性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——展示 SLat 的多格式解碼能力，回應「通用性」承諾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文「通用性」論證的實質支撐：同一個潛在表示能輸出三種截然不同的三維格式，直接回應緒論中「跨表示生成」的核心訴求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「以高斯訓練、其他格式凍結編碼器」的設計暗示高斯是最核心的表示，其他格式是「附帶」的。這引發疑問：其他格式的品質是否能達到與高斯同等的水準？若網格品質顯著低於高斯渲染品質，則「通用性」的宣稱需要打折。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 段落 3：稀疏 VAE 架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Sparse VAE</span> architecture incorporates <span class="hl-method">shifted window attention in 3D space to enhance local information interaction</span> among neighboring voxels. This design choice balances <span class="hl-evidence">computational efficiency with expressive power</span>: global self-attention across all 20K tokens would be prohibitively expensive, while purely local operations would miss inter-region dependencies. The <span class="hl-method">shifted window mechanism</span>, adapted from the 2D Swin Transformer paradigm to 3D sparse structures, allows information to propagate across window boundaries while maintaining manageable computational costs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                稀疏 VAE 架構整合了三維空間中的移位窗口注意力機制，以增強相鄰體素間的局部資訊交互。此設計選擇在計算效率與表達能力之間取得平衡：對所有 20K 個符記進行全域自注意力的成本過高，而純粹的局部操作則會遺漏跨區域的依賴關係。源自二維 Swin Transformer 範式並適配至三維稀疏結構的移位窗口機制，允許資訊跨越窗口邊界傳播，同時維持可控的計算成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構細節——解釋稀疏 VAE 中注意力機制的設計抉擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段處理一個關鍵的工程挑戰：如何在 20K 個稀疏符記上高效地進行注意力計算。移位窗口注意力是效率與表達力之間的務實妥協。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從 Swin Transformer 遷移至三維的策略減低了讀者的認知負擔（借用已知概念）。但三維移位窗口的實作複雜度遠高於二維，且窗口大小的選擇對品質的影響未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 結構化潛在生成 ====== -->
+    <h3 class="subsection-heading" id="sec-generation">3.3 Structured Latents Generation — 結構化潛在生成</h3>
+
+    <!-- 3.3 段落 1：矯正流背景與稀疏結構生成 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The generation pipeline follows a <span class="hl-method">two-stage approach</span>. The first stage generates the <span class="hl-concept">sparse structure</span> {p_i} by converting sparse active voxels into a <span class="hl-method">dense binary 3D grid O, then compressing it via a simple VAE with 3D convolutional blocks into a low-resolution feature grid S</span>. This makes structure generation <span class="hl-evidence">computationally efficient</span> while converting discrete occupancy values into <span class="hl-method">continuous features suited for rectified flow training</span>. The <span class="hl-concept">rectified flow</span> formulation uses <span class="hl-method">linear interpolation x(t) = (1-t)x_0 + t*epsilon</span> and learns a vector field through <span class="hl-method">conditional flow matching</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                生成管線遵循兩階段方法。第一階段生成稀疏結構 {p_i}：先將稀疏活躍體素轉換為稠密的二值三維網格 O，再透過帶有三維摺積區塊的簡易 VAE 壓縮為低解析度特徵網格 S。這使得結構生成在計算上高效，同時將離散的佔據值轉換為適合矯正流訓練的連續特徵。矯正流公式使用線性內插 x(t) = (1-t)x_0 + t*epsilon，並透過條件流匹配學習向量場。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導——描述兩階段生成中的第一階段：稀疏結構生成。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應了 SLat 定義中「結構與內容分離」的設計：結構先行生成，為後續潛在向量生成提供幾何骨架。二值佔據 -> 連續特徵的轉換是使矯正流適用於離散結構的關鍵技術橋樑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將離散佔據值轉換為連續特徵以適配矯正流的策略頗具巧思，但引入了額外的 VAE 壓縮步驟，可能在結構生成中產生資訊損失。解壓縮後的二值化閾值選擇也可能影響最終幾何品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 段落 2：潛在向量生成 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The second stage generates <span class="hl-concept">local latents</span> {z_i} conditioned on the structure. A <span class="hl-concept">transformer G_L</span> is <span class="hl-method">designed specifically for sparse structures</span>: instead of directly serializing all 20K tokens, the method improves efficiency by <span class="hl-method">packing them into a shorter sequence using sparse convolutions to aggregate latents within a 2&sup3; local region</span>, followed by <span class="hl-method">multiple time-modulated transformer blocks</span>. Both structure and latent generators incorporate conditions through <span class="hl-method">cross-attention layers</span>: text conditions use <span class="hl-concept">CLIP features</span>, while image conditions use <span class="hl-concept">DINOv2 visual features</span>. Both models are <span class="hl-method">trained separately using the conditional flow matching objective</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第二階段以結構為條件生成局部潛在向量 {z_i}。專為稀疏結構設計的 Transformer G_L 並非直接序列化所有 20K 個符記，而是透過稀疏摺積將 2 立方局部區域內的潛在向量打包為更短的序列以提升效率，隨後經過多個時間調制 Transformer 區塊處理。結構與潛在向量的生成器皆透過交叉注意力層注入條件：文字條件使用 CLIP 特徵，影像條件使用 DINOv2 視覺特徵。兩個模型使用條件流匹配目標函數分別訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導——描述第二階段潛在向量生成的架構與條件注入機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    完成兩階段管線的描述：結構生成 -> 潛在向量生成。稀疏摺積打包策略是解決 20K 符記序列長度問題的核心工程創新，使大規模 Transformer 訓練成為可能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    文字用 CLIP、影像用 DINOv2 的差異化條件設計反映了對兩種模態特性的深入理解。但兩階段分別訓練是否會導致結構與內容之間的不協調（例如結構過於簡化而潛在向量過於複雜），文中未充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 三維編輯 ====== -->
+    <h3 class="subsection-heading" id="sec-editing">3.4 3D Editing with Structured Latents — 三維編輯</h3>
+
+    <!-- 3.4 段落 1：細節變化與區域編輯 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-thesis">separation between structure and latents enables two forms of editing</span>. <span class="hl-concept">Detail variation</span> is accomplished by <span class="hl-method">preserving the asset's structure and executing the second generation stage with different text prompts</span>, producing variants that adhere to the overall shape while exhibiting diverse appearance and geometry details. <span class="hl-concept">Region-specific editing</span> leverages the locality of the representation: <span class="hl-method">altering voxels and latents in targeted areas while leaving others unchanged</span>, accomplished through <span class="hl-method">adapting the Repaint technique to the two-stage generation pipeline</span> and specifying <span class="hl-method">bounding boxes for voxels to be edited</span>. This enables detailed local modifications such as adding rivers and bridges to island models, all guided by text or image conditions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                結構與潛在向量的分離支援兩種形式的編輯。細節變化透過保留資產的結構並以不同的文字提示執行第二階段生成來實現，產出的變體保持整體形狀但呈現多樣化的外觀與幾何細節。區域特定編輯則利用表示的局部性：僅修改目標區域的體素與潛在向量而保持其餘不變，透過將 Repaint 技術適配至兩階段生成管線，並指定待編輯體素的邊界框來實現。這使得如在島嶼模型上添加河流與橋樑等精細的局部修改成為可能，全程以文字或影像條件引導。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——將 SLat 的結構性質轉化為實際的編輯能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將先前的技術設計（結構-內容分離、局部性）連結到使用者可感知的應用價值，完成「設計動機 -> 技術實現 -> 應用場景」的完整論證鏈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體的編輯範例（島嶼添加河流）使抽象的技術能力變得具體可感。但 Repaint 適配的效果高度依賴邊界框的精確指定，且編輯區域與非編輯區域的過渡自然度並未被定量評估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：實驗設定 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training involved approximately <span class="hl-evidence">500K high-quality 3D assets</span> from four public datasets: <span class="hl-evidence">Objaverse (XL), ABO, 3D-FUTURE, and HSSD</span>. The pipeline renders <span class="hl-method">150 images per asset</span> and employs <span class="hl-method">GPT-4o for captioning</span>. Three model scales were trained: <span class="hl-evidence">342M (Basic), 1.1B (Large), and 2B (X-Large) parameters</span>. The X-Large model was trained with <span class="hl-evidence">64 A100 GPUs for 400K steps with a batch size of 256</span>. At inference, <span class="hl-evidence">classifier-free guidance strength is set to 3, sampling steps to 50, and generation time is approximately 10 seconds</span>. Evaluation uses the <span class="hl-evidence">Toys4k dataset (4K objects not in the training set)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練使用了來自四個公開資料集的約 50 萬個高品質三維資產：Objaverse (XL)、ABO、3D-FUTURE 及 HSSD。管線為每個資產渲染 150 張影像，並採用 GPT-4o 進行字幕生成。訓練了三個模型規模：3.42 億（基礎版）、11 億（大型版）及 20 億（超大版）參數。超大版模型以 64 張 A100 GPU 訓練 40 萬步，批次大小為 256。推論時，無分類器引導強度設為 3，取樣步數為 50，生成時間約 10 秒。評估使用 Toys4k 資料集（4,000 個未在訓練集中出現的物件）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定——列出訓練資料、模型規模、計算資源與評估基準。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續的定量比較建立可信的實驗框架。50 萬資產、20 億參數、64 張 A100 的規模體現了此研究的工業級資源投入。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 GPT-4o 進行字幕生成是創新但可能引入偏差的選擇——GPT-4o 的描述品質直接影響文字條件生成的上限。此外，64 張 A100 的訓練門檻使方法的可複現性受限於少數擁有大規模算力的機構。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：定量比較與重建結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In reconstruction evaluation, the method <span class="hl-evidence">outperforms all baselines across all evaluated metrics</span> including <span class="hl-evidence">PSNR, LPIPS, Chamfer Distance, and F-score</span>, with <span class="hl-evidence">even geometry quality surpassing CLAY which focuses solely on shape encoding</span>. For generation, qualitative comparisons demonstrate superiority over both 2D-assisted methods (<span class="hl-concept">InstantMesh, LGM</span>) and 3D approaches (<span class="hl-concept">GaussianCube, Shap-E, 3DTopia-XL, LN3Diff</span>), exhibiting <span class="hl-evidence">not only more vivid appearances and finer geometries but also more precise alignment with provided text and image prompts</span>. Generated assets demonstrate an <span class="hl-evidence">unprecedented level of quality with vibrant colors, vivid details, complex structures, and flat faces with sharp edges</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在重建評估中，該方法在所有評估指標上均優於所有基準方法，包括 PSNR、LPIPS、倒角距離（Chamfer Distance）與 F 分數，甚至在幾何品質上超越了專注於形狀編碼的 CLAY。在生成方面，定性比較展示了相較於二維輔助方法（InstantMesh、LGM）與三維方法（GaussianCube、Shap-E、3DTopia-XL、LN3Diff）的優越性，不僅呈現更鮮明的外觀與更精細的幾何，還展現出與所提供文字及影像提示更精準的對齊。生成的資產展現了前所未有的品質水準，具備鮮豔的色彩、生動的細節、複雜的結構，以及平整的表面與銳利的邊緣。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實證——以定量與定性結果全面驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是實證支柱，覆蓋兩個維度：（1）重建品質的全面領先；（2）生成品質對多種基準方法的優越。超越專注形狀的 CLAY 尤其能支撐「統一表示兼顧幾何與外觀」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「前所未有的品質水準」等極端措辭在學術論文中需謹慎使用。且比較對象中未包含同期最強的一些方法（如 Rodin），可能存在選擇性基準比較的疑慮。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：定量指標、使用者研究與消融實驗 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Quantitative evaluation on <span class="hl-evidence">Toys4k</span> using <span class="hl-evidence">Frechet Distance, Kernel Distance, and CLIP Score</span> confirms the method <span class="hl-evidence">significantly surpasses previous methods across all evaluated metrics</span>. A <span class="hl-evidence">user study with over 100 participants</span> across 68 text and 67 image prompts shows the method is <span class="hl-evidence">strongly preferred by users</span> with clear margins. Ablation studies reveal three critical findings: <span class="hl-evidence">64&sup3; resolution provides a significant boost over 32&sup3;</span>; <span class="hl-evidence">replacing diffusion with rectified flow improves both quality and prompt alignment at any generation stage</span>; and <span class="hl-evidence">increasing model size consistently improves generation performance</span> on both training distribution and held-out test sets, demonstrating favorable <span class="hl-thesis">scaling behavior up to 2 billion parameters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Toys4k 上使用 Frechet 距離、核心距離（Kernel Distance）與 CLIP 分數的定量評估，確認該方法在所有評估指標上顯著超越先前方法。涵蓋 68 個文字提示與 67 個影像提示、超過 100 名參與者的使用者研究顯示，該方法以明顯的優勢獲得使用者偏好。消融研究揭示了三項關鍵發現：64 立方解析度相比 32 立方有顯著提升；以矯正流取代擴散模型在任何生成階段都能改善品質與提示對齊度；而增大模型規模能持續改善生成表現——無論在訓練分布還是留出測試集上皆然，展現了高達 20 億參數的良好擴展行為。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    多維度驗證——以定量指標、使用者研究與消融實驗三管齊下。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段強化了兩項核心論點：（1）矯正流優於擴散模型（消融實驗直接證明）；（2）方法具備良好的擴展性（規模越大效果越好），暗示未來的進一步擴展潛力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融實驗的設計系統且全面，是論文最具說服力的部分之一。但使用者研究的 100 人規模相對較小，且未報告參與者的專業背景分布——專業三維藝術家與一般使用者的偏好可能存在顯著差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">TRELLIS</span>, introducing a <span class="hl-thesis">structured latent representation that allows decoding to versatile output formats by comprehensively encoding both geometry and appearance information into localized latents anchored on a sparse 3D grid</span>. Paired with <span class="hl-method">rectified flow transformers scaled to 2 billion parameters</span> and trained on <span class="hl-evidence">500K diverse 3D objects</span>, the approach <span class="hl-thesis">demonstrates superiority in 3D generation in terms of quality, versatility, and editability</span>. The <span class="hl-thesis">strong scaling behavior and favorable comparison to existing methods</span> highlight <span class="hl-thesis">strong potential for real-world applications in digital production</span>, suggesting that structured sparse latent representations paired with large-scale flow-based generation provide a promising foundation for the future of 3D content creation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 TRELLIS，引入一種結構化潛在表示，透過將幾何與外觀資訊全面編碼至錨定於稀疏三維網格上的局部潛在向量，實現對多種輸出格式的解碼。搭配擴展至 20 億參數的矯正流 Transformer 並在 50 萬個多樣化三維物件上訓練，該方法在三維生成的品質、通用性與可編輯性方面均展現出優越性。良好的擴展行為與對現有方法的有利比較，凸顯了其在數位製作領域中的強大實際應用潛力，表明結構化稀疏潛在表示搭配大規模基於流的生成，為三維內容創作的未來提供了有前景的基礎。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的結構，完成論證閉環：從「統一表示 + 矯正流 + 大規模訓練」的技術貢獻，推廣至「三維內容創作的未來基礎」的宏觀展望。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論措辭自信而不過度誇大（「有前景的基礎」而非「最終解決方案」），語氣適切。但未充分討論局限性——如對高度算力的依賴、對訓練資料多樣性的敏感度、以及在超出訓練分布的罕見類別上的泛化能力。作為 Spotlight 論文，讀者期待更坦誠的局限性分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                三維生成品質落後二維<br>表示多樣性導致幾何/外觀取捨
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                結構化稀疏潛在表示<br>統一多格式解碼
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                50 萬資產訓練、20 億參數<br>全指標超越基準方法
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                稀疏結構 + 矯正流<br>兼顧效率與擴展性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                結構化潛在表示是<br>三維內容創作的基礎
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將幾何與外觀資訊編碼至錨定於稀疏三維網格的局部潛在向量，搭配大規模矯正流 Transformer，能夠實現跨多種表示格式的高品質、可編輯三維資產生成。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>統一表示的多格式解碼能力：</strong>同一個 SLat 潛在空間能解碼為三維高斯、輻射場與網格三種截然不同的格式，且重建品質全面超越專注單一格式的基準方法（甚至在幾何上超越專攻形狀的 CLAY）。消融實驗系統性地驗證了解析度、生成範式與模型規模三個維度的設計選擇，擴展行為的持續改善暗示方法尚未觸及性能天花板。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>算力門檻與可複現性：</strong>20 億參數模型需 64 張 A100 GPU 訓練，50 萬資產需大規模渲染與 GPT-4o 字幕生成，使方法的可複現性受限於擁有工業級資源的機構。此外，以三維高斯端到端訓練編碼器、其他格式解碼器僅在凍結編碼器上訓練的策略，可能使非高斯格式的品質成為「二等公民」，削弱「通用性」宣稱的實質力度。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DepthCrafter: Generating Consistent Long Depth Sequences for Open-world Videos — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .highlight-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #5b9bd5, #3a7bd5);
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                DepthCrafter: Generating Consistent Long Depth Sequences for Open-world Videos
+                <span class="course-tag">CVPR 2025</span>
+                <span class="highlight-badge">Highlight</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2409.02095" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-formulation">3.2 擴散模型公式</a>
+        <a href="#sec-training">3.3 訓練策略</a>
+        <a href="#sec-inference">3.4 長影片推論</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.3 消融研究</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Despite significant advancements in <span class="hl-concept">monocular depth estimation</span> for static images, <span class="hl-thesis">estimating video depth in the open world remains challenging</span>, since open-world videos are extremely diverse in content, motion, camera movement, and length. We present <span class="hl-concept">DepthCrafter</span>, a method for <span class="hl-thesis">generating temporally consistent long depth sequences for open-world videos without requiring supplementary information such as camera poses or optical flow</span>. <span class="hl-method">We train a video-to-depth model from a pre-trained image-to-video diffusion model, through a three-stage training strategy with paired video-depth datasets</span>. Our approach enables <span class="hl-evidence">generation of depth sequences up to 110 frames</span> with variable lengths and processes longer videos through <span class="hl-method">segment-wise estimation with seamless stitching</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管單目深度估測在靜態影像上已有重大進展，但在開放世界影片中估測深度仍然極具挑戰性，因為開放世界影片在內容、運動、相機運動與長度上極為多樣。本文提出 DepthCrafter，一種在不需要相機姿態或光流等輔助資訊的前提下，為開放世界影片生成時間一致的長深度序列之方法。我們從預訓練的影像轉影片擴散模型出發，透過三階段訓練策略搭配配對的影片-深度資料集來訓練影片轉深度模型。此方法能生成長達 110 幀的可變長度深度序列，並透過分段式估測與無縫拼接處理更長的影片。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「靜態影像已解決、影片仍待突破」的對比引出研究缺口，再概述 DepthCrafter 的定位與核心策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要兼具「問題定義」與「方案預告」的功能：先界定開放世界影片深度估測的多元挑戰（內容多樣性、時間一致性、序列長度），再以一句話涵蓋三階段訓練與分段推論兩大技術支柱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「不需要相機姿態或光流」作為核心賣點極具吸引力，但此主張的代價（如深度精度是否因此下降）需待實驗驗證。此外，「開放世界」的範疇極廣，摘要未界定其邊界條件。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與挑戰 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Video depth estimation</span> presents fundamental challenges in computer vision. While <span class="hl-evidence">recent advances in foundation models</span> have improved <span class="hl-concept">single-image depth estimation</span>, these methods <span class="hl-rebuttal">lack temporal consistency when applied to videos</span>. The paper identifies three core challenges: <span class="hl-thesis">comprehensive video content understanding</span>, <span class="hl-thesis">maintaining long and variable temporal context</span>, and <span class="hl-thesis">processing extremely long videos</span>. Observing the strong capability of <span class="hl-concept">diffusion models</span> in generating various types of videos, the authors leverage <span class="hl-method">video diffusion models for depth estimation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影片深度估測是電腦視覺中的根本性挑戰。雖然基礎模型的近期進展已改善了單張影像深度估測的表現，但這些方法在應用於影片時缺乏時間一致性。本文指出三項核心挑戰：全面的影片內容理解、維持長且可變的時間上下文，以及處理極長影片。鑒於擴散模型在生成各類影片方面的強大能力，作者利用影片擴散模型進行深度估測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從單張深度估測的成功切入，揭示影片場景的三重挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以基礎模型的成功為跳板，指出「時間一致性」這一關鍵缺口，再以三項挑戰系統性地勾勒問題空間，為擴散模型的引入提供合理動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將三項挑戰並列呈現營造出問題的全面性，但未區分這三者的困難度層次。「觀察到擴散模型的強大能力」作為轉折略顯跳躍——為何擴散模型特別適合解決這三項挑戰？需要更細緻的論證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：貢獻 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key contributions of this work include: (1) <span class="hl-thesis">a novel method for generating temporally consistent long depth sequences for open-world videos</span> by leveraging video diffusion model priors; (2) <span class="hl-method">a three-stage training strategy</span> that enables <span class="hl-evidence">variable-length depth generation up to 110 frames</span>, harvesting diverse video content understanding, precise depth details, and long temporal context support; and (3) <span class="hl-method">an inference strategy for segment-wise processing</span> of videos beyond 110 frames with <span class="hl-method">a mortise-and-tenon style latent interpolation</span> ensuring temporal smoothness across segments.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究的主要貢獻包含：(1) 一種利用影片擴散模型先驗，為開放世界影片生成時間一致長深度序列的新方法；(2) 一種三階段訓練策略，能實現長達 110 幀的可變長度深度生成，兼顧多樣化影片內容理解、精確深度細節與長時間上下文支援；(3) 一種分段式處理超過 110 幀影片的推論策略，搭配榫卯式潛在空間內插以確保跨段的時間平滑性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    列舉貢獻——以結構化清單明確界定本文的三項技術突破。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的三項挑戰，此段的三項貢獻形成一對一的回應關係：挑戰(1)對應貢獻(1)、挑戰(2)對應貢獻(2)、挑戰(3)對應貢獻(3)，展現問題與解決方案的嚴密對稱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「榫卯式潛在空間內插」是極具畫面感的隱喻，有助讀者直覺理解跨段拼接的概念。但 110 幀的上限約為 3-4 秒（30fps），對於長影片處理而言仍是相當短的片段，分段拼接的累積誤差是否可控尚待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：單目深度估測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Deep neural networks</span> dominate <span class="hl-concept">monocular depth estimation</span>. Methods like <span class="hl-concept">MiDaS</span> present <span class="hl-method">"affine-invariant loss for training on mixed datasets,"</span> enabling robust generalization across domains. Recent approaches including <span class="hl-concept">Depth-Anything</span> and <span class="hl-concept">Marigold</span> leverage <span class="hl-method">diffusion priors for zero-shot transfer</span>, achieving impressive results on diverse benchmarks. However, <span class="hl-rebuttal">"all these methods are tailored for static images, without considering the temporal information in videos,"</span> leading to <span class="hl-rebuttal">flickering and inconsistent depth estimates</span> when applied frame by frame.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度神經網路主導了單目深度估測領域。MiDaS 等方法提出仿射不變損失以在混合資料集上訓練，實現跨領域的穩健泛化能力。近期的 Depth-Anything 與 Marigold 等方法利用擴散先驗進行零樣本遷移，在多種基準上取得出色結果。然而，這些方法皆針對靜態影像設計，未考慮影片中的時間資訊，導致逐幀應用時產生閃爍與不一致的深度估測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——概述單目深度估測的發展脈絡與靜態影像方法的侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「成就-缺口」的敘事結構：先肯定單目深度估測的長足進展（MiDaS、Depth-Anything、Marigold），再以「皆針對靜態影像」一句話揭示整個研究分支的根本侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以直接引用「all these methods are tailored for static images」增強批判力度。但 Marigold 等擴散式方法的架構天然具備擴展至影片的潛力（透過時間注意力層），作者在此可能低估了現有方法的可延伸性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：影片深度估測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Video depth estimation</span> methods fall into two categories: <span class="hl-concept">test-time optimization</span> methods and <span class="hl-concept">feed-forward prediction</span> methods. Test-time optimization approaches typically require <span class="hl-rebuttal">camera poses, limiting their applicability to open-world videos</span> where such information is unavailable. Feed-forward methods like <span class="hl-concept">DeepV2D</span> and <span class="hl-concept">NVDS</span> face challenges <span class="hl-rebuttal">"due to the limited training data and model capacity"</span> when addressing diverse in-the-wild content. The concurrent work <span class="hl-concept">ChronoDepth</span> <span class="hl-rebuttal">"only supports a short temporal context, i.e. 10 frames,"</span> whereas the proposed method <span class="hl-thesis">"supports variable-length temporal context, up to 110 frames."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影片深度估測方法分為兩類：測試時最佳化方法與前饋預測方法。測試時最佳化方法通常需要相機姿態，限制了其在缺乏此類資訊的開放世界影片中的適用性。前饋方法如 DeepV2D 和 NVDS 在處理多樣化的野外內容時，受限於有限的訓練資料與模型容量。同期工作 ChronoDepth 僅支援短時間上下文（即 10 幀），而本文方法支援可變長度的時間上下文，最長達 110 幀。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    競品分析——系統性列舉影片深度估測兩大流派的不足，並與同期工作進行差異化定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在論證鏈中扮演「消除替代方案」的角色：測試時最佳化需要相機姿態（不符合開放世界假設）、前饋方法受限於資料與容量、ChronoDepth 的 10 幀太短。逐步排除後，DepthCrafter 的 110 幀可變長度方案成為唯一合理選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 ChronoDepth 的 10 幀與自身的 110 幀進行直接數值對比，修辭效果強烈。但幀數多寡並非品質的充分條件——更長的序列可能伴隨更大的誤差累積，需以實驗資料佐證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：影片擴散模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Diffusion models</span> have achieved <span class="hl-evidence">high-fidelity image generation results</span> and have been extended to <span class="hl-concept">video generation</span>. <span class="hl-concept">Stable Video Diffusion (SVD)</span> provides popular open-source pre-trained models for <span class="hl-method">image-to-video generation tasks</span>. The <span class="hl-concept">EDM framework</span> offers a principled approach for training and sampling diffusion models. The authors observe that <span class="hl-thesis">the rich spatiotemporal priors embedded in video diffusion models can be repurposed for dense prediction tasks</span> like depth estimation, providing both <span class="hl-method">content understanding from the spatial layers and temporal consistency from the temporal layers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                擴散模型在影像生成方面已達到高保真度，並已被擴展至影片生成。Stable Video Diffusion（SVD）提供了廣受歡迎的開源預訓練模型，用於影像轉影片生成任務。EDM 框架為擴散模型的訓練與取樣提供了有原則的方法論。作者觀察到，影片擴散模型中蘊含的豐富時空先驗可被重新利用於密集預測任務（如深度估測），空間層提供內容理解能力，時間層則確保時間一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術基礎鋪設——介紹影片擴散模型作為本文方法的技術基石。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了關鍵的技術轉移論述：影片生成模型中的時空先驗不僅能生成影片，更能被「重新利用」於深度估測。這是整篇論文的核心洞見所在。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將空間層與時間層分別對應到「內容理解」與「時間一致性」是一個清晰的功能分解。但擴散模型的先驗是為了生成逼真影片而學習的，將其用於深度估測是否會引入不適當的歸納偏差（如偏好視覺上合理但幾何上不正確的深度），值得深思。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Preliminaries of Video Diffusion Models — 影片擴散模型預備知識</h3>
+
+    <!-- 方法段落 1：擴散模型基礎 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper adopts the <span class="hl-concept">EDM framework</span> for <span class="hl-concept">diffusion models</span>. The forward process progressively adds <span class="hl-method">Gaussian noise</span> to the data: <span class="hl-method">x_t = x_0 + sigma_t * epsilon, epsilon ~ N(0, I)</span>. The denoiser is trained via <span class="hl-method">denoising score matching</span>, learning to reverse this corruption process. The <span class="hl-method">EDM preconditioning strategy parameterizes the denoiser by combining skip connections with learned functions</span>, providing a stable and efficient training framework. <span class="hl-concept">Stable Video Diffusion (SVD)</span> builds upon this foundation, operating in a <span class="hl-method">latent space encoded by a Variational Autoencoder (VAE)</span> with a U-Net architecture containing both spatial and temporal attention layers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文採用 EDM 框架建構擴散模型。前向過程逐步向資料添加高斯雜訊：x_t = x_0 + sigma_t * epsilon，其中 epsilon 服從標準常態分布。去噪器透過去噪分數匹配進行訓練，學習逆轉此退化過程。EDM 預處理策略透過結合跳躍連接與學習函數來參數化去噪器，提供穩定且高效的訓練框架。Stable Video Diffusion（SVD）在此基礎上建構，在由變分自編碼器（VAE）編碼的潛在空間中運作，其 U-Net 架構包含空間與時間注意力層。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學基礎建立——定義擴散過程的形式化框架與 SVD 架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續方法改造奠定基礎：讀者需理解 EDM 的前向/逆向過程與 SVD 的潛在空間運作方式，才能理解作者如何將影片生成模型改造為深度估測模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以精簡的數學公式呈現擴散過程，平衡了嚴謹性與可讀性。但未深入討論 EDM 相對於 DDPM/DDIM 等其他擴散框架的優勢，讀者可能疑惑為何選擇此特定框架。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 擴散模型公式化 ====== -->
+    <h3 class="subsection-heading" id="sec-formulation">3.2 Formulation with Diffusion Models — 擴散模型公式化</h3>
+
+    <!-- 潛在空間轉換 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To generate high-resolution depth sequences without sacrificing computational efficiency, the authors adopt the framework of <span class="hl-concept">Latent Diffusion Models (LDMs)</span> that <span class="hl-method">perform in a low-dimensional latent space, rather than the original data space</span>. The transformation between the latent and data spaces is achieved by a <span class="hl-concept">Variational Autoencoder (VAE)</span>, which was originally designed for encoding and decoding video frames in SVD. The authors found that <span class="hl-evidence">it can be directly used for depth sequences with only a negligible reconstruction error</span>, eliminating the need to train a separate depth-specific VAE.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為在不犧牲計算效率的前提下生成高解析度深度序列，作者採用潛在擴散模型（LDM）框架，在低維潛在空間而非原始資料空間中進行運算。潛在空間與資料空間之間的轉換由變分自編碼器（VAE）實現，該 VAE 原本設計用於 SVD 中影片幀的編碼與解碼。作者發現此 VAE 可直接用於深度序列，重建誤差可忽略不計，無需另外訓練深度專用的 VAE。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術決策說明——論證潛在空間操作的合理性與 VAE 重用的可行性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決了一個潛在的技術質疑：影片用的 VAE 能否編碼深度圖？「可忽略不計的重建誤差」這項實證發現是整個方法成立的前提條件之一。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「可忽略不計的重建誤差」是一個強有力但需定量驗證的主張。深度圖的值域分布與 RGB 影像截然不同，VAE 的瓶頸層是否會丟失關鍵的深度細節（如薄結構、深度不連續處）是值得追問的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 以影片為條件 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">SVD</span> is an image-to-video diffusion model that generates videos <span class="hl-method">conditioned on a single image</span>. The conditional image is fed into the U-Net in two ways: <span class="hl-method">concatenating its latent to the input latent, and injecting its CLIP embedding to the intermediate features via cross-attention</span>. In contrast, <span class="hl-thesis">DepthCrafter involves the generation of depth sequences conditioned on video frames in a frame-to-frame fashion</span>. Specifically, <span class="hl-method">the video latents are concatenated frame-wisely to the input noisy depth latent</span>, and <span class="hl-method">CLIP embeddings are injected frame by frame via cross-attention</span>, providing more comprehensive information from the video frames for accurate depth estimation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SVD 是一個以單張影像為條件生成影片的擴散模型。條件影像以兩種方式輸入 U-Net：將其潛在表示串接至輸入潛在表示，以及透過交叉注意力將其 CLIP 嵌入注入中間特徵。相對地，DepthCrafter 以逐幀方式根據影片幀生成深度序列。具體而言，影片潛在表示逐幀串接至帶有雜訊的深度潛在表示，而 CLIP 嵌入也逐幀透過交叉注意力注入，為精確的深度估測提供來自影片幀的更全面資訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心改造說明——詳述如何將「影像轉影片」模型改造為「影片轉深度」模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了方法的核心架構創新：從「單張影像條件」到「逐幀影片條件」的轉換。這是 DepthCrafter 區別於 SVD 原始設計的關鍵修改，使模型能從每一幀獲取深度估測所需的上下文資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    透過與 SVD 原始設計的明確對比（單張 vs. 逐幀），讓讀者清楚理解改造的幅度與方向。然而，逐幀注入 CLIP 嵌入是否會顯著增加記憶體消耗與推論時間？作者未在此處討論計算開銷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 訓練策略 ====== -->
+    <h3 class="subsection-heading" id="sec-training">3.3 Training — 訓練策略</h3>
+
+    <!-- 資料集建構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors compiled <span class="hl-method">paired datasets of two styles: realistic and synthetic</span>. The <span class="hl-concept">realistic dataset</span> is large-scale and diverse, comprising approximately <span class="hl-evidence">200K paired video-depth sequences with lengths of 50-200 frames</span>, obtained from <span class="hl-method">binocular videos processed with BiDAStereo</span>. The <span class="hl-concept">synthetic dataset</span> combines <span class="hl-evidence">DynamicReplica and MatrixCity</span> with approximately <span class="hl-evidence">3K fine-grained annotations of 150 frames</span>. This dual-dataset design reflects a deliberate trade-off: <span class="hl-thesis">the realistic dataset provides content diversity while the synthetic dataset provides geometric accuracy</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者編制了兩種風格的配對資料集：寫實與合成。寫實資料集規模龐大且多樣化，包含約 20 萬組長度為 50-200 幀的配對影片-深度序列，取自經 BiDAStereo 處理的雙目影片。合成資料集結合了 DynamicReplica 與 MatrixCity，包含約 3,000 組 150 幀的精細標註。此雙資料集設計反映了一項刻意的權衡：寫實資料集提供內容多樣性，合成資料集則提供幾何精確度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料基礎說明——描述訓練資料的來源、規模與設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為三階段訓練策略提供資料層面的支撐：寫實資料集支撐前兩階段的泛化能力培養，合成資料集支撐第三階段的精度微調。兩者的互補性是策略設計的基石。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    20 萬組寫實序列的規模令人印象深刻，但這些資料來自 BiDAStereo 生成的偽深度標籤而非真實感測器，其精度上限受限於立體匹配演算法。3,000 組合成資料是否足以彌補此精度差距？資料集品質的量化分析則付之闕如。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 三階段訓練策略 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors design <span class="hl-thesis">a three-stage training strategy to harvest the variety of video content, precise depth details, and support for long and variable sequences</span>. <strong>Stage 1:</strong> <span class="hl-method">Full model training on the large realistic dataset with sequence lengths randomly sampled from [1, 25] frames</span>, enabling the model to learn variable-length generation and adapt to the video-to-depth task. <strong>Stage 2:</strong> <span class="hl-method">"We only fine-tune the temporal layers of the model still on our large realistic dataset, with the sequence length randomly sampled from [1, 110] frames."</span> This selective fine-tuning <span class="hl-thesis">reduces memory consumption while extending the temporal context</span>. <strong>Stage 3:</strong> <span class="hl-method">"We fine-tune the spatial layers of the model on our small synthetic dataset, with a fixed sequence length of 45 frames"</span> to learn precise depth details from high-quality geometric annotations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者設計了三階段訓練策略，以兼顧影片內容的多樣性、精確的深度細節，以及對長且可變序列的支援。第一階段：在大型寫實資料集上進行完整模型訓練，序列長度從 [1, 25] 幀中隨機取樣，使模型學會可變長度生成並適應影片轉深度的任務。第二階段：僅在同一寫實資料集上微調模型的時間層，序列長度從 [1, 110] 幀中隨機取樣，此選擇性微調在減少記憶體消耗的同時延伸了時間上下文。第三階段：在小型合成資料集上微調空間層，固定序列長度為 45 幀，以從高品質幾何標註中學習精確的深度細節。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法論——詳述三階段漸進式訓練的每一步設計與目的。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文技術論述的核心支柱。三階段的設計邏輯層層遞進：先建立基礎能力（Stage 1），再擴展時間跨度（Stage 2），最後精煉空間細節（Stage 3）。每階段選擇性凍結/微調不同層，體現了對模型架構功能的深刻理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將空間層與時間層分別在不同階段微調是一項精巧的工程設計，但也引入了階段順序敏感性問題。Stage 3 僅微調空間層且固定 45 幀，是否會覆蓋 Stage 2 中時間層學到的長序列能力？此外，各階段的訓練步數（80K、40K、10K）的選擇依據未被充分說明。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 極長影片推論 ====== -->
+    <h3 class="subsection-heading" id="sec-inference">3.4 Inference for Extremely Long Videos — 極長影片推論</h3>
+
+    <!-- 分段推論策略 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For videos exceeding 110 frames, the authors design <span class="hl-method">an inference strategy to infer extremely long depth sequences in a segment-wise manner and seamlessly stitch them together</span>. The video is divided into overlapping segments. Rather than purely initializing the input latent with <span class="hl-concept">Gaussian noise</span>, the authors <span class="hl-method">"initialize the latent of the overlapped frames by adding noise to the denoised latent from the previous segment, to anchor the scale and shift."</span> This anchoring mechanism ensures that consecutive segments share consistent depth scale.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於超過 110 幀的影片，作者設計了一種以分段方式推論極長深度序列並無縫拼接的策略。影片被分割為重疊的片段。不同於純粹以高斯雜訊初始化輸入潛在表示，作者透過在前一段的去噪潛在表示上添加雜訊來初始化重疊幀的潛在表示，以錨定尺度與偏移。此錨定機制確保連續片段共享一致的深度尺度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推論策略設計——說明如何將模型能力擴展至任意長度影片。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應緒論中的第三項挑戰（處理極長影片）。分段策略使 110 幀的訓練限制不再成為應用瓶頸，而錨定機制解決了分段間尺度不一致的問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「以前段結果加噪作為後段初始化」是一個直覺且有效的設計，但會引入前向誤差傳播風險：若某段估測偏差較大，後續所有段都會受到影響。作者未討論此累積誤差的上界或緩解機制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 榫卯式內插 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To further ensure temporal smoothness, the authors craft <span class="hl-method">a mortise-and-tenon style latent interpolation strategy to stitch consecutive segments together</span>. Specifically, <span class="hl-method">the latent of the overlapped frames from two adjacent segments is interpolated with linearly decreasing weights</span>. This design draws analogy from traditional woodworking joints: <span class="hl-thesis">just as mortise-and-tenon joints create seamless connections between wooden pieces without nails, this interpolation creates smooth transitions between depth segments without visible boundaries</span>. The result is <span class="hl-evidence">temporally smooth depth sequences across the full video length</span>, regardless of how many segments are needed.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為進一步確保時間平滑性，作者設計了榫卯式潛在空間內插策略以拼接連續片段。具體而言，相鄰兩段重疊幀的潛在表示以線性遞減權重進行內插。此設計類比傳統木工接合：正如榫卯接頭在不使用釘子的情況下於木件之間創造無縫連接，此內插在深度片段之間創造平滑過渡而不留可見邊界。最終結果是跨越完整影片長度的時間平滑深度序列，不受所需片段數量的限制。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    細節補充——描述跨段拼接的具體實現機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段與上段形成互補：上段解決「尺度一致性」（錨定機制），此段解決「時間平滑性」（內插策略）。兩者合力構成完整的長影片推論解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「榫卯式」這一中國傳統工藝的隱喻極富文化巧思，令技術概念生動易懂。但線性權重內插是最簡單的融合方式，是否存在更優的非線性融合策略？此外，重疊區域的長度如何影響拼接品質未被系統性討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗設定 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The model is implemented based on <span class="hl-concept">SVD</span> using the <span class="hl-method">diffusers library</span>. Training resolution is <span class="hl-evidence">320 x 640</span>, with inference supporting any resolution including <span class="hl-evidence">576 x 1024</span>. Training uses the <span class="hl-method">Adam optimizer with learning rate 1e-5, batch size 8</span>, and iterations of <span class="hl-evidence">80K, 40K, and 10K across the three stages</span>. The full training requires <span class="hl-evidence">eight NVIDIA A100 GPUs for approximately five days</span>. During inference, <span class="hl-method">classifier-free guidance</span> improves depth details with <span class="hl-evidence">25 denoising steps</span>. Evaluation spans five benchmarks: <span class="hl-evidence">Sintel (23 synthetic sequences), ScanNet v2 (100 indoor sequences), KITTI (13 driving scenes), Bonn (5 dynamic indoor videos), and NYU-v2 (654 test images)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模型基於 SVD 以 diffusers 函式庫實作。訓練解析度為 320 x 640，推論時支援任意解析度，包含 576 x 1024。訓練採用 Adam 最佳化器，學習率為 1e-5、批次大小為 8，三階段的迭代次數分別為 80K、40K 與 10K。完整訓練需要八張 NVIDIA A100 GPU，耗時約五天。推論時採用無分類器引導以改善深度細節，搭配 25 步去噪。評估橫跨五個基準：Sintel（23 組合成序列）、ScanNet v2（100 組室內序列）、KITTI（13 組駕駛場景）、Bonn（5 組動態室內影片）及 NYU-v2（654 張測試影像）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定——提供可再現性所需的所有超參數與基準資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立實驗的可信度基礎：五個涵蓋合成/室內/駕駛/動態場景的基準確保了評估的全面性，而詳細的超參數記錄則保證了可再現性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    八張 A100 訓練五天的計算成本相當高昂，這限制了方法的可及性。另外，訓練解析度（320x640）與推論解析度（576x1024）的差距可能影響泛化表現，但作者未討論此解析度遷移的影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 定量結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                DepthCrafter achieves <span class="hl-thesis">state-of-the-art performance across all evaluation datasets</span>. Following conventional practice, the evaluation uses <span class="hl-method">a shared scale and shift across the entire video</span>, which is more challenging but necessary for ensuring temporal consistency. On <span class="hl-evidence">Sintel, DepthCrafter achieves an AbsRel of 0.292 and delta-1 of 0.697, representing a 23.6% improvement in delta-1 over Depth-Anything-V2</span> (AbsRel 0.367, delta-1 0.554). On <span class="hl-evidence">KITTI, DepthCrafter achieves AbsRel of 0.110 and delta-1 of 0.881</span>, outperforming Depth-Anything-V2 (AbsRel 0.140, delta-1 0.804). Qualitative testing on <span class="hl-evidence">DAVIS, Sora-generated videos, and open-world content</span> further demonstrates temporal consistency, with temporal profiles showing <span class="hl-evidence">"DepthCrafter can produce temporally consistent depth sequences with fine-grained details across various open-world videos, while both NVDS and Depth-Anything exhibit zigzag artifacts."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DepthCrafter 在所有評估資料集上均達到最先進的表現。依循慣例，評估採用跨整部影片共享的尺度與偏移，這更具挑戰性但對確保時間一致性至關重要。在 Sintel 上，DepthCrafter 達到 AbsRel 0.292、delta-1 0.697，相較 Depth-Anything-V2（AbsRel 0.367、delta-1 0.554）在 delta-1 上提升了 23.6%。在 KITTI 上，DepthCrafter 達到 AbsRel 0.110、delta-1 0.881，優於 Depth-Anything-V2（AbsRel 0.140、delta-1 0.804）。在 DAVIS、Sora 生成影片及開放世界內容上的定性測試進一步展示了時間一致性，時間剖面圖顯示 DepthCrafter 能在各類開放世界影片上產生具有精細細節的時間一致深度序列，而 NVDS 與 Depth-Anything 則呈現鋸齒狀偽影。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證支撐——以定量資料與定性分析驗證方法的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的實證核心，直接回應摘要中「時間一致」的核心主張。資料涵蓋合成（Sintel）與真實（KITTI）場景，定量與定性並陳，形成多角度的證據網。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    23.6% 的 delta-1 提升極為顯著，是有說服力的資料。但 AbsRel 0.292 的絕對值仍然偏高，意味著深度估測仍有約 30% 的相對誤差。此外，「全影片共享尺度」的評估協議雖更嚴格，但也可能對偏好短序列的方法不公平。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 單張深度估測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-rebuttal">"Although our model is designed for video depth estimation, it can also perform single-image depth estimation"</span> on <span class="hl-evidence">NYU-v2</span>, achieving <span class="hl-evidence">competitive performance</span> with <span class="hl-evidence">"more detailed depth maps than Depth-Anything-V2."</span> This demonstrates that the video-oriented training does not sacrifice single-image capability but rather enhances it through <span class="hl-thesis">the rich priors learned from diverse video content</span>. The model generalizes across <span class="hl-evidence">variable sequence lengths from 50 to 110 frames</span>, confirming the effectiveness of the variable-length training strategy.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管模型是為影片深度估測而設計，但在 NYU-v2 上也能進行單張影像深度估測，達到具競爭力的表現，且產生比 Depth-Anything-V2 更為精細的深度圖。這表明以影片為導向的訓練不僅未犧牲單張影像能力，反而透過從多樣化影片內容中學習的豐富先驗加以增強。模型在 50 至 110 幀的可變序列長度上均展現泛化能力，驗證了可變長度訓練策略的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    反駁潛在疑慮——預防「影片專用模型是否犧牲單張能力」的質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是防禦性論證：預見讀者可能質疑「專注影片是否犧牲了靜態影像表現」，主動以 NYU-v2 資料回應。這不僅消除疑慮，還將其轉化為額外優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將潛在弱點（專為影片設計）轉化為優勢（影片先驗反而增強單張能力）是高明的修辭策略。但「具競爭力」一詞較為模糊——與 Depth-Anything-V2 相比是持平、略勝還是略遜？缺乏精確資料使這一主張的說服力打折。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.3 消融研究 ====== -->
+    <h3 class="subsection-heading" id="sec-ablation">4.3 Ablation Studies — 消融研究</h3>
+
+    <!-- 三階段訓練消融 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-method">three-stage training effectiveness</span> is validated through progressive evaluation on the <span class="hl-evidence">Sintel dataset</span>. The authors observe that <span class="hl-evidence">"the performance of our model almost improves as the training progresses, indicating the effectiveness of the three-stage training strategy."</span> Although <span class="hl-rebuttal">the AbsRel metric slightly increases in Stage 2</span>, the <span class="hl-evidence">delta-1 metric consistently improves</span>, and <span class="hl-thesis">Stage 2 is essential for supporting the long temporal context up to 110 frames</span>. This trade-off between short-sequence precision and long-sequence capability is acknowledged as an inherent design choice.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三階段訓練的有效性透過在 Sintel 資料集上的逐步評估得到驗證。作者觀察到模型的表現幾乎隨訓練進程持續改善，證實了三階段訓練策略的有效性。雖然 AbsRel 指標在第二階段略有上升，但 delta-1 指標持續改善，且第二階段對支援長達 110 幀的長時間上下文不可或缺。短序列精度與長序列能力之間的此一權衡被承認為固有的設計選擇。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——透過消融實驗確認每個訓練階段的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究是方法論文的標配驗證環節，此段特別聚焦於 Stage 2 的「AbsRel 上升但 delta-1 改善」這一看似矛盾的結果，並以「長序列支援的必要代價」加以合理化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦誠承認 Stage 2 帶來 AbsRel 的輕微退化是值得肯定的學術誠信。然而，僅在 Sintel 上進行消融研究可能不足以代表所有場景類型。此外，未提供各階段獨立的詳細資料表格，使讀者難以自行判斷每階段的邊際貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 推論策略消融 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-method">inference strategy effectiveness</span> is demonstrated through comparison of three variants. The <span class="hl-rebuttal">baseline approach using direct averaging produces "overlapped jaggies" in temporal profiles</span>. Adding the <span class="hl-method">noise initialization variant "alleviates the flickering artifacts in the static regions"</span> by anchoring depth scale across segments. The <span class="hl-thesis">full method combining both initialization and mortise-and-tenon interpolation</span> achieves the best result, able to <span class="hl-evidence">"produce smooth depth sequences in both static and dynamic regions."</span> The method also facilitates downstream applications including <span class="hl-evidence">foreground matting, depth slicing, fog effects, and depth-conditioned video generation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                推論策略的有效性透過三種變體的比較加以展示。基線方法採用直接平均，在時間剖面圖中產生重疊鋸齒。加入雜訊初始化變體後，透過錨定跨段深度尺度，減輕了靜態區域的閃爍偽影。結合初始化與榫卯式內插的完整方法取得最佳結果，能在靜態與動態區域皆產生平滑的深度序列。此方法也促成了下游應用，包含前景去背、深度切片、霧化效果及深度條件影片生成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證與應用展示——驗證推論策略各組件的貢獻，並展示實際應用場景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    漸進式消融（基線 -> +初始化 -> +內插）清晰展示了每個組件的增量貢獻。末段的應用列舉則將技術貢獻延伸至實用價值層面，增強論文的影響力論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三種變體的漸進對比是消融研究的經典範式，邏輯清晰。但「靜態與動態區域皆平滑」的主張較為定性——若能提供量化指標（如時間一致性分數）將更具說服力。下游應用雖豐富，但僅為概念性展示而非系統性評估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">"We present DepthCrafter, a novel method for open-world video depth estimation by leveraging video diffusion models."</span> The approach generates <span class="hl-thesis">temporally consistent depth sequences from single frames to extremely long videos without supplementary information</span>. Key achievements include <span class="hl-evidence">state-of-the-art performance under zero-shot settings</span>, <span class="hl-evidence">support for variable-length sequences</span>, and <span class="hl-evidence">enabling diverse downstream applications</span>. The authors acknowledge that <span class="hl-rebuttal">computational and memory costs remain limitations "due to the large model size and the iterative denoising process,"</span> pointing toward efficiency optimization as an important direction for future work.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 DepthCrafter，一種利用影片擴散模型進行開放世界影片深度估測的新方法。此方法在不需要輔助資訊的前提下，能從單幀到極長影片生成時間一致的深度序列。主要成就包括在零樣本設定下達到最先進的表現、支援可變長度序列，以及促成多樣化的下游應用。作者承認計算與記憶體成本仍是侷限，源於大型模型規模與迭代式去噪過程，並指出效率最佳化是未來工作的重要方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻、列舉成就並坦承侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的結構，從方法回到成就再到侷限，形成完整的論證閉環。以「零樣本設定下的最先進表現」作為最強總結，有效鞏固讀者印象。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦承計算成本的侷限展現了學術誠信，但未量化具體的推論速度或記憶體需求，使讀者難以評估實際部署的可行性。另外，未討論深度品質在極端場景（如劇烈光照變化、嚴重遮擋、透明物件）下的表現，這些邊界條件對實際應用至關重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                開放世界影片深度估測<br>缺乏時間一致性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                影片擴散模型先驗<br>可轉移至深度估測
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                五大基準最先進表現<br>delta-1 提升 23.6%
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                三階段訓練+榫卯式拼接<br>兼顧精度與長度
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                擴散模型先驗是影片<br>深度估測的有效路徑
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將預訓練影片擴散模型的時空先驗重新利用於深度估測任務，搭配三階段訓練策略與榫卯式分段拼接，能在零樣本設定下為任意長度的開放世界影片生成時間一致的高品質深度序列。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>擴散先驗轉移的洞見與三階段訓練的精巧設計：</strong>將影片生成模型的時空先驗轉移至深度估測是一項富有洞見的創新，而三階段策略（全模型適應 -> 時間層擴展 -> 空間層精煉）展現了對模型架構功能的深刻理解。在 Sintel 上 delta-1 提升 23.6% 的實證資料有力支撐了此設計的有效性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>計算成本與分段拼接的累積誤差：</strong>八張 A100 訓練五天的門檻、迭代式去噪的推論延遲，以及分段處理長影片時前向誤差傳播的風險，構成了方法在實際部署上的主要障礙。消融研究僅限於 Sintel 單一資料集，且未量化推論策略的計算開銷，削弱了方法在效率面向上的說服力。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniGen: Unified Image Generation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                OmniGen: Unified Image Generation
+                <span class="course-tag">CVPR 2025</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2409.11340" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-model">2. 模型設計</a>
+        <a href="#sec-training">2.2 訓練策略</a>
+        <a href="#sec-dataset">3. X2I 資料集</a>
+        <a href="#sec-experiments">4. 實驗結果</a>
+        <a href="#sec-analysis">5. 進階分析</a>
+        <a href="#sec-limitations">6. 限制與討論</a>
+        <a href="#sec-related">7. 相關工作</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The emergence of <span class="hl-concept">Large Language Models (LLMs)</span> has unified language generation tasks and revolutionized human-machine interaction. However, in the realm of image generation, <span class="hl-thesis">a unified model capable of handling various tasks within a single framework remains largely unexplored</span>. In this work, we introduce <span class="hl-concept">OmniGen</span>, a new <span class="hl-concept">diffusion model</span> for <span class="hl-thesis">unified image generation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大型語言模型（LLM）的出現統一了語言生成任務，並徹底改變了人機互動的方式。然而，在影像生成領域中，一個能在單一框架內處理多種任務的統一模型仍鮮少被探索。本研究提出 OmniGen，一個全新的擴散模型，旨在實現統一的影像生成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    破題引言——以 LLM 的成功為類比，指出影像生成領域缺乏統一模型的缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：透過「語言生成已統一，影像生成尚未統一」的對比，建立研究動機與問題意識。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 LLM 類比影像生成具備強大的修辭效果，但語言與影像在模態本質上差異甚大。語言的離散序列化與影像的連續高維空間是否真能以相同方式「統一」，仍值得商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Unlike popular diffusion models (e.g., <span class="hl-concept">Stable Diffusion</span>), OmniGen <span class="hl-thesis">no longer requires additional modules such as ControlNet or IP-Adapter to process diverse control conditions</span>. OmniGen is characterized by the following features: 1) <span class="hl-thesis">Unification</span>: OmniGen not only demonstrates text-to-image generation capabilities but also inherently supports various downstream tasks, such as <span class="hl-concept">image editing</span>, <span class="hl-concept">subject-driven generation</span>, and <span class="hl-concept">visual-conditional generation</span>. Additionally, OmniGen can handle classic <span class="hl-concept">computer vision tasks</span> by transforming them into image generation tasks. 2) <span class="hl-thesis">Simplicity</span>: The architecture is highly simplified, eliminating the need for additional text encoders. 3) <span class="hl-thesis">Knowledge Transfer</span>: Benefit from learning in a unified format, OmniGen effectively transfers knowledge across different tasks, manages unseen tasks and domains, and exhibits novel capabilities.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                不同於主流擴散模型（如 Stable Diffusion），OmniGen 不再需要 ControlNet 或 IP-Adapter 等額外模組來處理多樣化的控制條件。OmniGen 具備以下特徵：(1) 統一性：不僅能進行文字生成影像，還原生支援影像編輯、主體驅動生成、視覺條件生成等多種下游任務，甚至能將經典電腦視覺任務轉化為影像生成任務來處理。(2) 簡潔性：架構高度精簡，無需額外的文字編碼器。(3) 知識遷移：得益於統一格式的學習，OmniGen 能有效地在不同任務間遷移知識，處理未見過的任務與領域，並展現新穎的能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心貢獻預告——以三大特徵（統一、簡潔、遷移）概括 OmniGen 的定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要後半段承擔「方案亮點展示」的功能，以列舉式結構清楚呈現三項核心優勢，為後續章節的展開奠定框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以三點式列舉使核心貢獻一目了然。然而，「無需額外模組」的聲明需要在實驗中證明 OmniGen 在各項任務上確實能匹敵那些使用專門模組的方法。摘要中迴避了性能數值，是否意味著在某些任務上仍有差距？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The pursuit of <span class="hl-concept">Artificial General Intelligence (AGI)</span> has intensified the demand for generative foundation models capable of handling a wide variety of tasks within a single framework. In the field of <span class="hl-concept">Natural Language Processing (NLP)</span>, <span class="hl-concept">Large Language Models (LLMs)</span> have become exemplary in achieving this goal, demonstrating remarkable versatility across numerous language tasks such as question answering, text summarization, and code generation. However, <span class="hl-thesis">the field of visual generation has yet to reveal a counterpart that mirrors the universality of LLMs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對通用人工智慧（AGI）的追求加劇了對能在單一框架中處理多種任務的生成基礎模型之需求。在自然語言處理（NLP）領域，大型語言模型已成為達成此目標的典範，在問答、文字摘要與程式碼生成等眾多語言任務中展現卓越的通用性。然而，視覺生成領域尚未出現能與 LLM 的通用性相匹配的對應模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——以 AGI 願景為宏觀背景，從 NLP 的統一成功對比視覺生成的缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：先建立「統一模型是 AGI 的趨勢」這一前提，再指出影像生成領域落後於 NLP，為本文的研究動機提供正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 AGI 的宏大敘事開場具備強烈的吸引力，但 LLM 在 NLP 中的「統一」本身也面臨質疑（如幻覺問題、推理不穩定性）。此處的類比暗示影像生成也應走同樣的統一路線，但影像生成的多模態複雜性可能需要不同的解決思路。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Current image generation models have demonstrated proficiency in specialized tasks. For instance, state-of-the-art models such as the <span class="hl-concept">Stable Diffusion series</span>, <span class="hl-concept">DALL-E</span>, and <span class="hl-concept">Imagen</span> have made significant strides in text-to-image generation. Meanwhile, many efforts have been proposed to extend diffusion models for specific tasks: <span class="hl-concept">ControlNet</span> and <span class="hl-concept">T2i-Adapter</span> design additional networks for visual conditions; <span class="hl-concept">InstructPix2Pix</span> is trained for image editing tasks. <span class="hl-rebuttal">Despite their strengths, those models are limited by their task-specific nature and do not exhibit the comprehensive perceptual understanding and generative capabilities required for a universal model</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有影像生成模型已在特定任務上展現出色的能力。例如，Stable Diffusion 系列、DALL-E 和 Imagen 等最先進模型在文字生成影像方面取得了長足進步。同時，許多研究致力於為特定任務擴展擴散模型：ControlNet 和 T2i-Adapter 設計了額外的網路來處理視覺條件；InstructPix2Pix 則專為影像編輯任務而訓練。儘管這些模型各有所長，但它們受限於任務特定的性質，無法展現通用模型所需的全面感知理解與生成能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——系統性列舉當前擴散模型生態系的碎片化問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題深化」段：從「缺乏統一模型」的抽象陳述，具體化為「每個任務都需要專門的模組或訓練」的工程痛點，為引出 OmniGen 的統一方案鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以列舉方式呈現多個專門模型，暗示現況的「碎片化」是不理想的。但專門模型在各自任務上的性能往往優於通用模型——作者需在實驗中證明 OmniGen 不會因追求通用性而犧牲各任務的性能。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">Is it possible to address various image generation tasks within a single diffusion framework, akin to how GPT handles language tasks?</span> If a universal model is available, <span class="hl-thesis">the need for training additional modules (e.g., ControlNet, IP-Adapter, T2I-Adapter) in practical applications can be eliminated</span>. Motivated by this potential, we explore a unified framework for image generation, named <span class="hl-concept">OmniGen</span>. Unlike popular diffusion models, OmniGen features a very concise structure, comprising only two main components: <span class="hl-method">a VAE and a transformer model</span>, without any additional encoders. OmniGen supports <span class="hl-method">arbitrarily interleaved text and image inputs</span> as conditions to guide image generation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                是否有可能在單一擴散框架內處理各種影像生成任務，如同 GPT 處理語言任務一般？若有通用模型可用，在實際應用中訓練額外模組（如 ControlNet、IP-Adapter、T2I-Adapter）的需求將得以消除。基於此潛力，我們探索了一個名為 OmniGen 的統一影像生成框架。不同於主流擴散模型，OmniGen 具備極為精簡的架構，僅由兩個主要元件組成：一個 VAE 和一個 Transformer 模型，無需任何額外編碼器。OmniGen 支援任意交錯排列的文字與影像輸入作為生成條件。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以修辭性提問引出 OmniGen 的核心設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證的「轉折」段：從問題批判過渡到方案提出。「能否像 GPT 一樣？」的設問句具有強烈的引導性，讓讀者自然地接受「統一」是正確的方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    修辭性提問是極具說服力的寫作技巧，但也暗含了一個未經論證的假設：影像生成的「統一」與語言生成的「統一」具有同等的可行性與必要性。此外，「僅需 VAE + Transformer」的簡潔性主張需要仔細對照——模型內部的 Transformer 可能承擔了原本由多個模組分擔的複雜性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 模型設計 ====== -->
+    <h2 class="section-heading" id="sec-model">2. OmniGen — 模型設計</h2>
+    <h3 class="subsection-heading">2.1 Model Design — 模型設計原則</h3>
+
+    <!-- 模型設計段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">The design principles of OmniGen are as follows: 1) Universality: accepting any form of image and text inputs for various tasks; 2) Conciseness: avoiding overly complex structural designs and numerous additional components.</span> The OmniGen framework adopts an architecture comprised of a <span class="hl-concept">Variational Autoencoder (VAE)</span> and a <span class="hl-concept">pre-trained large transformer model</span>. Specifically, VAE extracts continuous visual features from images, while the transformer model generates images based on input conditions. We use the <span class="hl-evidence">VAE from SDXL</span> and freeze it during training. We use <span class="hl-concept">Phi-3</span> to initialize the transformer model, <span class="hl-method">inheriting its excellent text processing capabilities</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                OmniGen 的設計原則如下：(1) 通用性：接受任何形式的影像與文字輸入以處理各種任務；(2) 簡潔性：避免過度複雜的結構設計與眾多額外元件。OmniGen 框架採用由變分自編碼器（VAE）和預訓練大型 Transformer 模型組成的架構。具體而言，VAE 從影像中擷取連續視覺特徵，而 Transformer 模型根據輸入條件生成影像。我們使用 SDXL 的 VAE 並在訓練過程中凍結其參數；以 Phi-3 初始化 Transformer 模型，繼承其優異的文字處理能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構總覽——闡述設計原則並介紹兩大核心元件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法論的基石段：先立原則（通用、簡潔），再以具體架構實現。以 Phi-3 初始化 Transformer 是關鍵決策，使模型繼承了預訓練語言模型的文字理解能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 Phi-3 初始化是一個巧妙的策略——利用現有 LLM 的文字能力免去額外文字編碼器的需求。但這也意味著模型對 Phi-3 的依賴性較高。若 Phi-3 的文字理解存在盲點，將直接影響 OmniGen 的條件理解能力。此外，凍結 VAE 限制了模型在低階視覺特徵上的適應能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模型設計段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Unlike state-of-the-art diffusion models that require <span class="hl-rebuttal">additional encoders to pre-process conditional information (such as CLIP text encoder and image encoder)</span>, <span class="hl-thesis">OmniGen inherently encodes conditional information by itself</span>, significantly simplifying the pipeline. Furthermore, OmniGen <span class="hl-method">jointly models text and images within a single model</span>, rather than independently modeling different input conditions with separate encoders as in existing works, <span class="hl-rebuttal">which lacks interaction between different modality conditions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                不同於需要額外編碼器（如 CLIP 文字編碼器和影像編碼器）來預處理條件資訊的最先進擴散模型，OmniGen 本身即能編碼條件資訊，大幅簡化了處理流程。此外，OmniGen 在單一模型內聯合建模文字與影像，而非像現有研究那樣以獨立的編碼器分別處理不同的輸入條件——後者缺乏不同模態條件之間的互動。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    差異化定位——與現有擴散模型架構進行直接對比。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接架構介紹，此段透過對比強化 OmniGen 的簡潔性優勢。「聯合建模」vs「分離編碼」的對比是核心論點的技術支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「缺乏模態間互動」的批評精準地指出了現有管線的結構性弱點。然而，CLIP 等預訓練編碼器本身已在大規模多模態資料上學習了豐富的表示——OmniGen 放棄這些編碼器是否真的帶來淨增益，需要消融實驗來驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模型設計段落 3 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The input to the model can be <span class="hl-method">multimodal interleaved text and images in free form</span>. We utilize the tokenizer of Phi-3 to process text without any modifications. For images, we employ a <span class="hl-method">VAE with a simple linear layer to extract latent representations</span>, then flatten them into a sequence of visual tokens. We encapsulate each image sequence with two special tokens: <span class="hl-method">"&lt;img&gt;" and "&lt;/img&gt;"</span> before inserting it into the text tokens sequence. Different from text, which can be decomposed into discrete tokens, <span class="hl-thesis">we argue that images should be modeled as a whole</span>. Therefore, we modify the common causal attention mechanism, integrating it with <span class="hl-method">bidirectional attention</span>: <span class="hl-method">causal attention is applied to each element in the sequence, but bidirectional attention is applied within each image sequence</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模型的輸入可以是自由形式的多模態交錯文字與影像。我們直接使用 Phi-3 的分詞器處理文字，無需任何修改。對於影像，我們利用 VAE 搭配簡單的線性層來擷取潛在表示，然後將其展平為視覺 token 序列。每個影像序列在插入文字 token 序列前，以兩個特殊 token（「&lt;img&gt;」和「&lt;/img&gt;」）加以封裝。不同於可被分解為離散 token 的文字，我們主張影像應作為整體來建模。因此，我們修改了常見的因果注意力機制，將其與雙向注意力整合：對序列中的每個元素施加因果注意力，但在每個影像序列內部施加雙向注意力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——描述輸入格式與注意力機制的創新設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的核心技術貢獻之一：混合注意力機制的設計。因果注意力保持序列的自迴歸性質，雙向注意力則允許影像內部的全域互動，兼顧了兩種模態的特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「影像應作為整體建模」是一個有力的論點，直接驅動了混合注意力的設計。但特殊 token 封裝影像的做法是否能充分表達影像的空間結構仍存疑——展平後的 token 序列是否丟失了二維空間資訊，需要實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.2 訓練策略 ====== -->
+    <h3 class="subsection-heading" id="sec-training">2.2 Training Strategy — 訓練策略</h3>
+
+    <!-- 訓練策略段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we use <span class="hl-method">rectified flow</span> to optimize the parameters of the model. Different from DDPM, <span class="hl-method">flow matching conducts the forward process by linearly interpolating between noise and data in a straight line</span>. The model is trained to directly regress the target velocity given the noised data, timestep, and condition information. For <span class="hl-concept">image editing tasks</span>, the difference between input and target images is often small, which allows the model to learn an <span class="hl-rebuttal">unexpected shortcut: simply copying the input image</span>. To mitigate this, we <span class="hl-method">amplify the loss in regions where changes occur</span>, assigning higher weights to altered regions than those without changes.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究使用修正流（rectified flow）來最佳化模型參數。不同於 DDPM，流匹配透過在雜訊與資料之間進行直線線性內插來執行前向過程。模型被訓練為根據加噪資料、時間步長與條件資訊直接迴歸目標速度。對於影像編輯任務，輸入與目標影像之間的差異通常很小，這使得模型可能學到一個意外的捷徑：直接複製輸入影像。為緩解此問題，我們在發生變化的區域放大損失權重，使有修改的區域獲得比未修改區域更高的權重。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練機制——說明損失函數設計與編輯任務的特殊處理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了多任務訓練中的實際挑戰（複製捷徑問題）及其解決方案，展現了作者對訓練穩定性的深入理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「複製捷徑」問題的發現與區域加權損失的解決方案展現了紮實的工程洞見。但區域權重的計算依賴於輸入與目標影像的潛在表示差異，若 VAE 的潛在空間對細微變化不夠敏感，可能導致權重分配不準確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 訓練策略段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We <span class="hl-method">gradually increase the image resolution during the training process</span>. Low resolution is data-efficient, while high resolution can enhance the aesthetic quality. The training pipeline consists of <span class="hl-evidence">five stages</span>: starting from <span class="hl-evidence">256x256 with 500K steps</span>, progressing through <span class="hl-evidence">512x512 (300K steps)</span>, <span class="hl-evidence">1024x1024 (100K steps)</span>, <span class="hl-evidence">2240x2240 (30K steps)</span>, and finally <span class="hl-evidence">multi-resolution training (80K steps)</span>. We adopt the <span class="hl-method">AdamW optimizer</span> with beta=(0.9, 0.999). All experiments are conducted on <span class="hl-evidence">104 A800 GPUs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在訓練過程中逐步提高影像解析度。低解析度具備資料效率，而高解析度能提升美學品質。訓練管線包含五個階段：從 256x256（500K 步）起步，依序推進至 512x512（300K 步）、1024x1024（100K 步）、2240x2240（30K 步），最終進行多解析度訓練（80K 步）。我們採用 AdamW 最佳化器，beta 設為 (0.9, 0.999)。所有實驗在 104 張 A800 GPU 上進行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供訓練細節——完整呈現多階段訓練管線與計算資源。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為可重現性提供關鍵資訊，同時透過漸進式訓練的設計展現對大規模訓練的成熟理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    五階段漸進式訓練是成熟的做法，但 104 張 A800 GPU 的算力需求極高，這限制了該研究的可重現性。作者未討論更低算力下的替代方案或效率最佳化策略，對於資源有限的研究者而言，此方法的實用性存疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. X2I 資料集 ====== -->
+    <h2 class="section-heading" id="sec-dataset">3. X2I Dataset — X2I 資料集</h2>
+
+    <!-- 資料集段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To achieve robust multi-task processing capabilities, it is essential to train models on <span class="hl-thesis">large-scale and diverse datasets</span>. In this work, we have constructed the first <span class="hl-concept">large-scale unified image generation dataset</span>, which we refer to as the <span class="hl-concept">X2I dataset</span>, meaning <span class="hl-thesis">"anything to image"</span>. We have converted these data into a <span class="hl-method">unified format</span>. The entire dataset comprises approximately <span class="hl-evidence">0.1 billion images</span>. It includes: <span class="hl-evidence">text-to-image data</span> from multiple open-source datasets (Recap-DataComp, SAM-LLaVA, ShareGPT4V, LAION-Aesthetic, etc.), <span class="hl-evidence">multi-modal to image data</span> for editing, virtual try-on, and style transfer, as well as <span class="hl-evidence">computer vision tasks</span> such as human pose estimation, edge detection, and image deblurring.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                要達成穩健的多任務處理能力，在大規模且多樣化的資料集上訓練模型至關重要。本研究首次建構了大規模統一影像生成資料集，命名為 X2I 資料集，意為「任何輸入到影像」。我們將所有資料轉換為統一格式，整個資料集包含約一億張影像。其中涵蓋：來自多個開源資料集（Recap-DataComp、SAM-LLaVA、ShareGPT4V、LAION-Aesthetic 等）的文字生成影像資料、用於編輯、虛擬試穿和風格遷移的多模態生成影像資料，以及人體姿態估計、邊緣偵測和影像去模糊等電腦視覺任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料集概覽——介紹 X2I 資料集的規模、組成與設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    資料集是統一模型成功的基礎。此段建立「資料驅動」的論證邏輯：統一的模型需要統一的資料，而 X2I 正是為此目標量身打造的。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首次建構」的宣稱強調了資料集的開創性。但一億張影像的規模雖大，其中包含了來自不同來源的資料品質參差不齊。作者在後文提及使用內部高品質資料進行後期訓練，暗示開源資料的品質可能不足，但此差異的影響未被定量分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 資料集段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">subject-driven image generation</span>, we constructed both a <span class="hl-evidence">large-scale foundational dataset (GRIT-Entity, 6 million pairs)</span> and a <span class="hl-evidence">high-quality advanced dataset (Web Images, 533,000 pairs)</span>. The GRIT-Entity dataset leveraged the GRIT dataset with <span class="hl-method">Grounding DINO for text-to-bounding-box grounding and SAM for segmentation</span>. The Web Images dataset was built using <span class="hl-method">natural images of well-known individuals</span>, starting with <span class="hl-evidence">2,000 names expanded to approximately 10,000 name pairs</span>, with <span class="hl-method">InternVL for cross-verification filtering</span>. We also constructed a <span class="hl-concept">few-shot to image dataset</span> to stimulate the model's <span class="hl-thesis">in-context learning capabilities</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                針對主體驅動影像生成，我們建構了大規模基礎資料集（GRIT-Entity，600 萬對）與高品質進階資料集（網路影像，53.3 萬對）。GRIT-Entity 資料集利用 GRIT 資料集，搭配 Grounding DINO 進行文字到邊界框定位，以及 SAM 進行分割。網路影像資料集使用知名人物的自然影像建構，從 2,000 個名字擴展至約 10,000 個名字對，並以 InternVL 進行交叉驗證過濾。我們還建構了少樣本生成影像資料集，以激發模型的情境學習（in-context learning）能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料集細節——詳述主體驅動生成與少樣本學習的資料建構流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展現了資料建構的精細工程，從自動標註到人工驗證，每一步都有明確的方法論支撐。少樣本資料集的引入則為後續「浮現能力」的分析埋下伏筆。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    資料建構流程中使用了多個外部模型（Grounding DINO、SAM、InternVL、GPT-4o），形成了對這些模型品質的隱性依賴。若這些模型的輸出存在系統性偏差，將傳遞至 X2I 資料集，進而影響 OmniGen 的訓練。此外，使用知名人物影像可能引發隱私與倫理問題，作者未加以討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗結果 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experimental Results — 實驗結果</h2>
+
+    <!-- 實驗段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate text-to-image generation capability on the <span class="hl-evidence">GenEval benchmark</span>. Our model achieved <span class="hl-evidence">an overall score of 0.70</span>, compared to <span class="hl-evidence">SD3's 0.68</span> (current state-of-the-art). Notably, <span class="hl-thesis">our model has only 3.8 billion parameters, whereas SD3 has a total of 12.7 billion parameters (more than three times ours)</span>. Current diffusion models typically adopt an encoder-decoder architecture with an additional text encoder <span class="hl-rebuttal">that alone is larger than our entire model</span>. Besides, we employed only <span class="hl-evidence">0.1 billion image data, whereas SD3 used over 1 billion</span> (more than ten times ours), highlighting the role of <span class="hl-thesis">multitask data X2I in enhancing text-to-image capabilities</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 GenEval 基準測試上評估文字生成影像的能力。我們的模型取得了 0.70 的整體分數，相較於最先進的 SD3 之 0.68。值得注意的是，我們的模型僅有 38 億參數，而 SD3 總共有 127 億參數（超過我們的三倍）。現行擴散模型通常採用編碼器-解碼器架構，其額外的文字編碼器單獨就比我們整個模型還大。此外，我們僅使用了一億張影像資料，而 SD3 使用了超過十億張（超過我們的十倍），凸顯了多任務資料集 X2I 在提升文字生成影像能力上的作用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗結果——以 GenEval 基準展示文字生成影像的競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱段：不僅展示性能優勢，還從參數量與資料量兩個維度強調效率優勢，形成「更少資源、更好結果」的強力論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    參數量與資料量的對比極具說服力，但 GenEval 基準主要衡量組合性生成能力（物件計數、位置等），未涵蓋美學品質。作者自己也承認此基準「不反映影像的美學品質」，這是一個重要的限制。此外，SD3 的額外文字編碼器在推論時凍結，比較參數量時將其計入可能有些不公平。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">image editing</span>, we compare on the <span class="hl-evidence">EMU-Edit dataset</span> with seven different operations. OmniGen achieves <span class="hl-evidence">CLIP-I of 0.836, CLIP-T of 0.233, and DINO of 0.804</span>, <span class="hl-evidence">significantly outperforming InstructPix2Pix</span> and exhibiting <span class="hl-evidence">comparable performance to the state-of-the-art EMU-Edit</span>. For <span class="hl-concept">subject-driven generation</span> on <span class="hl-evidence">DreamBench</span>, OmniGen achieves <span class="hl-evidence">DINO of 0.801 and CLIP-I of 0.847</span>, <span class="hl-evidence">significantly outperforming Re-Imagen and Kosmos-G</span> and demonstrating <span class="hl-evidence">superior subject fidelity relative to SuTI</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在影像編輯方面，我們在 EMU-Edit 資料集上比較了七種不同操作。OmniGen 達到 CLIP-I 0.836、CLIP-T 0.233、DINO 0.804，顯著優於 InstructPix2Pix，並展現與最先進的 EMU-Edit 相當的性能。在 DreamBench 的主體驅動生成任務中，OmniGen 達到 DINO 0.801 和 CLIP-I 0.847，顯著優於 Re-Imagen 和 Kosmos-G，且在主體保真度上優於 SuTI。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    多任務評估——展示在影像編輯與主體驅動生成上的競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段擴展實證範圍：從文字生成影像延伸到編輯與主體驅動生成，證明 OmniGen 的「統一性」並非空談，而是在多個任務上都具備競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「顯著優於」和「相當於」的措辭精心控制了預期：在某些基準上超越，在某些基準上持平。但值得注意的是，在影像編輯上 OmniGen 仍略遜於專門的 EMU-Edit（特別是 CLIP-I 和 DINO），暗示專門模型在特定任務上仍有優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">visual conditional controls</span>, OmniGen achieves <span class="hl-evidence">optimal results on segmentation mask (mIoU: 44.23) and HED edge map (SSIM: 0.8237)</span>, and obtains <span class="hl-evidence">competitive results for canny edge map (F1: 35.54) and depth map (RMSE: 28.54)</span>. Compared to <span class="hl-concept">ControlNet</span> and <span class="hl-concept">ControlNet++</span>, our model demonstrates <span class="hl-thesis">strong spatial controllability without requiring any additional control modules</span>. Furthermore, OmniGen can handle various <span class="hl-concept">computer vision tasks</span> such as <span class="hl-evidence">deraining, deblurring, inpainting, human pose recognition, and depth estimation</span>, <span class="hl-thesis">directly using the generation model to complete traditional vision tasks in a single step</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在視覺條件控制方面，OmniGen 在語意分割遮罩（mIoU: 44.23）和 HED 邊緣圖（SSIM: 0.8237）上取得最佳結果，並在 Canny 邊緣圖（F1: 35.54）和深度圖（RMSE: 28.54）上獲得具競爭力的結果。相較於 ControlNet 和 ControlNet++，我們的模型展現出強大的空間可控性，且無需任何額外控制模組。此外，OmniGen 能處理各種電腦視覺任務，如去雨、去模糊、影像修補、人體姿態辨識和深度估計，直接以生成模型在單一步驟中完成傳統視覺任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    視覺控制與 CV 任務——展示空間可控性與跨領域能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證的高潮段：OmniGen 不僅匹敵專門的控制模組，還能處理傳統 CV 任務，徹底模糊了「生成模型」與「感知模型」的界線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    在分割和 HED 上超越 ControlNet++ 是強有力的證據。然而，將 CV 任務「轉化為」影像生成任務的做法雖然展現了模型的通用性，但在精確度要求極高的應用場景中（如自動駕駛的深度估計），這種轉化方式的可靠性尚未被充分驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 進階分析 ====== -->
+    <h2 class="section-heading" id="sec-analysis">5. Further Analysis — 進階分析</h2>
+
+    <!-- 浮現能力段落 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                By standardizing all tasks into a unified format and training on the X2I dataset, <span class="hl-thesis">OmniGen can acquire universal knowledge and allow knowledge transfer across different scenarios and tasks</span>, thus enabling generation capabilities on <span class="hl-thesis">unseen tasks and domains</span>. We illustrate several <span class="hl-concept">emerging capabilities</span>: <span class="hl-evidence">Task Composition</span> — the model can simultaneously process multiple instructions, including those for different tasks (image inpainting and color change) as well as multiple instructions for the same task. <span class="hl-evidence">Implicit Combination</span> — the model can extract relevant conditional information from reference images and generate new images based on captured conditions, <span class="hl-thesis">with all processing completed internally</span>, negating the need for explicit conditional extraction using other models.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                透過將所有任務標準化為統一格式並在 X2I 資料集上訓練，OmniGen 得以獲取通用知識並在不同場景與任務間進行知識遷移，從而在未見過的任務與領域上展現生成能力。我們展示了數種浮現能力：任務組合——模型能同時處理多個指令，包括不同任務的指令（影像修補與顏色變更）以及同一任務的多個指令。隱式組合——模型能從參考影像中擷取相關條件資訊並據此生成新影像，所有處理均在模型內部完成，無需使用其他模型進行顯式條件擷取。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    浮現能力展示——揭示統一訓練帶來的意外收穫。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段超越了「完成已知任務」的範疇，展示模型能做到「未被明確訓練」的事情，為統一訓練的價值提供了最有力的論據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「浮現能力」的敘事極具吸引力，但需謹慎區分「真正的浮現」與「訓練資料的隱性覆蓋」。例如，任務組合可能只是因為訓練資料中隱含了類似的組合模式。缺乏嚴格的消融實驗來量化浮現能力的程度與邊界。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 推理與 CoT 段落 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We explored the <span class="hl-concept">reasoning capabilities</span> of the model. When given an instruction without explicitly specifying the object, such as <span class="hl-evidence">"Where can I wash my hands? Please help me find the right place,"</span> <span class="hl-thesis">the model can recognize image contents and infer that a sink is needed</span>, consequently identifying the area of the sink in the image. We also explored a <span class="hl-concept">Chain-of-Thought (CoT)</span> approach for image generation, inspired by human drawing behavior: <span class="hl-method">drawing the basic outline, incrementally adding details, making modifications, and applying colors</span>. <span class="hl-rebuttal">Unfortunately, the quality of the final generated images does not surpass that of the original model</span>. The step-by-step approach may incorporate erroneous modifications. However, we posit that <span class="hl-thesis">supervising the drawing process of images is a promising direction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們探索了模型的推理能力。當給定未明確指定物件的指令（如「我在哪裡可以洗手？請幫我找到合適的位置」），模型能辨識影像內容並推斷需要水槽，進而在影像中標示出水槽的位置。我們還探索了影像生成的思維鏈（CoT）方法，靈感來自人類繪畫行為：先畫基本輪廓，逐步添加細節，進行修改，最後上色。遺憾的是，最終生成影像的品質並未超越原始模型。逐步生成的方式可能引入錯誤修改。然而，我們認為監督影像的繪製過程是一個有前景的方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    前瞻探索——展示推理能力與 CoT 的初步嘗試，坦承其局限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在論證結構中扮演「誠實的讓步」角色：CoT 的探索雖未成功，但作者選擇報告負面結果，增強了全文的可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    報告 CoT 的失敗是難能可貴的學術誠實。推理能力的展示（水槽辨識）雖然直觀，但僅為個案，缺乏系統性評估。將影像生成類比為人類繪畫的逐步過程是有趣的方向，但目前的實現方式過於簡化——人類繪畫涉及高層次的構圖規劃，而非單純的逐步細化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 情境學習段落 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">In-context Learning</span> enables the model to complete <span class="hl-thesis">novel tasks by providing an example</span>: the model can successfully generate images based on <span class="hl-evidence">scribble data, which is not encountered during training</span>. We show examples from the <span class="hl-evidence">FSS dataset</span>, which contains objects never seen or annotated in previous datasets. When provided with an example, the model makes accurate predictions, demonstrating that <span class="hl-thesis">in-context learning can enhance the model's generalization ability across different domains</span>. Furthermore, the <span class="hl-concept">end-to-end workflow</span> enabled by OmniGen <span class="hl-thesis">significantly simplifies the existing multi-model pipeline</span>: users can specify objects within images through textual instructions and generate new images without preliminary operations such as image cropping or loading additional models for preprocessing.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                情境學習使模型能透過提供範例來完成新穎任務：模型能成功根據塗鴉資料（訓練期間未曾遇到）生成影像。我們展示了 FSS 資料集的範例，其中包含先前資料集中從未見過或標註過的物件。當提供範例時，模型能做出準確的預測，證明情境學習能增強模型在不同領域的泛化能力。此外，OmniGen 實現的端到端工作流程大幅簡化了現有的多模型管線：使用者可透過文字指令指定影像中的物件並生成新影像，無需進行影像裁剪或載入額外模型進行前處理等前置操作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    泛化能力驗證——以情境學習與端到端工作流程展示實用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為「統一模型」的核心論點提供最具實用性的支持：不僅性能好，而且簡化了整個工作流程，降低了使用門檻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    端到端工作流程的簡化是極具實用吸引力的賣點。然而，情境學習的展示僅基於有限的案例，缺乏系統性的基準測試。此外，「簡化工作流程」的宣稱假設使用者的需求與 OmniGen 的能力完全匹配——在實際應用中，使用者可能需要更精細的控制，而這恰恰是專門模組（如 ControlNet）的優勢所在。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 限制與討論 ====== -->
+    <h2 class="section-heading" id="sec-limitations">6. Limitations — 限制與討論</h2>
+
+    <!-- 限制段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We summarize the limitations of the current model: 1) Similar to existing diffusion models, <span class="hl-rebuttal">OmniGen is sensitive to text prompts</span>; detailed text descriptions result in higher-quality images. 2) The current model's <span class="hl-rebuttal">text rendering capabilities are limited</span>; it can handle short text segments but fails to accurately generate longer texts. Due to resource constraints, <span class="hl-rebuttal">the number of input images during training is limited to a maximum of three</span>. 3) Generated images may contain <span class="hl-rebuttal">erroneous details, especially small and delicate parts</span>; facial features occasionally do not fully align in subject-driven tasks, and <span class="hl-rebuttal">incorrect depictions of hands</span> also occur. 4) <span class="hl-rebuttal">OmniGen cannot process unseen image types</span> (e.g., surface normal estimation).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們總結當前模型的限制：(1) 與現有擴散模型類似，OmniGen 對文字提示詞較為敏感，詳細的文字描述能產生更高品質的影像。(2) 目前的文字渲染能力有限，能處理短文字片段但無法準確生成較長文字。受限於運算資源，訓練時輸入影像數量上限為三張。(3) 生成的影像可能包含錯誤的細節，尤其是小而精細的部分；在主體驅動生成任務中，面部特徵偶爾無法完全對齊，手部描繪的錯誤也時有發生。(4) OmniGen 無法處理未見過的影像類型（如表面法線估計）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    誠實的自我批評——系統性列舉模型的四項主要限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在論證結構中扮演「讓步」角色：主動承認不足以增強全文的學術可信度，同時暗示這些問題是可以透過更多資料與訓練來解決的。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    四項限制的列舉是典型的學術慣例，但某些限制（如手部生成錯誤、提示詞敏感性）是整個擴散模型領域的共同問題，並非 OmniGen 特有。作者巧妙地將這些限制歸因於「資料不足」而非架構缺陷，暗示只要投入更多資源即可解決，但這一假設並未被驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 限制段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-rebuttal">We believe that most limitations can be addressed by training the model on more related data.</span> Moreover, compared to most models, <span class="hl-thesis">fine-tuning OmniGen for downstream tasks is simpler</span>, as it <span class="hl-thesis">inherently supports various image generation tasks without the need for extensive efforts and costs to build additional networks</span>. This work represents the <span class="hl-thesis">first attempt at a general-purpose image generation model</span>, and there remain several unresolved issues. We will <span class="hl-evidence">open-source the related resources</span> to foster advancements in this field.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們相信大多數限制可以透過在更多相關資料上訓練模型來解決。此外，相較於多數模型，針對下游任務微調 OmniGen 更為簡便，因為它原生支援各種影像生成任務，無需耗費大量心力與成本來建構額外的網路。本研究代表了通用影像生成模型的首次嘗試，仍有許多未解決的問題。我們將開源相關資源以促進該領域的發展。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望與收束——在承認限制後提出正面展望，以開源承諾收尾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結語段將限制轉化為未來機會，以「首次嘗試」自我定位，既謙遜又為後續研究預留空間。開源承諾則為學術社群的驗證與擴展提供了基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「首次嘗試」定位是聰明的策略——降低了讀者對完美性能的預期。開源承諾增加了工作的可信度與影響力。但「更多資料即可解決」的樂觀假設忽略了可能的架構性瓶頸，例如單一 Transformer 在處理極度多樣化任務時的容量限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">7. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">generative foundation model</span> serves as the core of many contemporary AI systems. The <span class="hl-concept">GPT series</span> demonstrated that language models can learn numerous tasks via training on large-scale datasets. <span class="hl-concept">Multimodal large language models</span> such as <span class="hl-concept">LLaVA</span> have been proposed to integrate vision and language capabilities. However, <span class="hl-rebuttal">despite their ability to handle mixed text and image inputs, they lack the capability to generate images</span>. Recently, works such as <span class="hl-concept">Chameleon</span>, <span class="hl-concept">TransFusion</span>, and <span class="hl-concept">Show-O</span> have explored unified models supporting both text and image generation. Nonetheless, <span class="hl-rebuttal">like most existing diffusion models, they can only perform text-to-image tasks and cannot handle more complex and various visual generation tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                生成基礎模型是眾多當代人工智慧系統的核心。GPT 系列證明了語言模型能透過大規模資料集訓練來學習眾多任務。多模態大型語言模型（如 LLaVA）被提出以整合視覺與語言能力，然而儘管能處理混合文字與影像輸入，它們卻缺乏生成影像的能力。近期，Chameleon、TransFusion 和 Show-O 等工作探索了同時支援文字與影像生成的統一模型。然而，如同多數現有擴散模型，它們只能執行文字生成影像任務，無法處理更複雜多樣的視覺生成任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 OmniGen 放置於生成基礎模型的演進脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術譜系：LLM -> MLLM -> 統一生成模型 -> OmniGen。每一層級都指出前者的不足，使 OmniGen 成為自然的演進結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    線性演進的敘事清晰有力，但可能過度簡化了研究領域的實際狀態。Chameleon 和 Show-O 等並行工作被迅速帶過，未深入比較它們與 OmniGen 在架構上的異同。此外，「無法處理複雜視覺生成任務」的批評對這些並行工作是否公平，值得商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent advancements in <span class="hl-concept">diffusion models</span> have been remarkable. Models like <span class="hl-concept">ControlNet</span> and <span class="hl-concept">T2i-Adapter</span> introduce supplementary networks for visual-conditioned generation. <span class="hl-concept">InstructPix2Pix</span> addresses image editing by augmenting the model with additional input channels. <span class="hl-concept">SEED-X</span> and <span class="hl-concept">Kosmos-G</span> employ an MLLM to replace the CLIP encoder. <span class="hl-rebuttal">However, these methods are task-specific, extending capabilities by modifying the model architecture.</span> In contrast, <span class="hl-thesis">OmniGen natively supports various image generative tasks, unifying all tasks into a single framework</span>. Multi-task learning enhances capabilities and also leads to the <span class="hl-thesis">emergence of new abilities</span>. Furthermore, OmniGen <span class="hl-thesis">no longer requires any preprocessing steps or assistance from other models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                擴散模型的近期進展令人矚目。ControlNet 和 T2i-Adapter 等模型引入了補充網路以實現視覺條件生成。InstructPix2Pix 透過為模型添加額外輸入通道來處理影像編輯。SEED-X 和 Kosmos-G 則以 MLLM 取代 CLIP 編碼器。然而，這些方法都是任務特定的，透過修改模型架構來擴展能力。相比之下，OmniGen 原生支援各種影像生成任務，將所有任務統一於單一框架中。多任務學習不僅增強了能力，還促成了新能力的浮現。此外，OmniGen 不再需要任何前處理步驟或其他模型的輔助。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    擴散模型文獻回顧——以任務特定性為主軸批判現有方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段透過詳列專門方法的「碎片化」問題，反襯 OmniGen「統一框架」的價值。「浮現能力」的再次提及呼應了第五章的分析結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將所有現有方法歸類為「任務特定」是一種策略性的簡化。實際上，ControlNet 等方法的模組化設計恰恰是一種靈活的工程策略——用戶可以按需組合模組。OmniGen 的「統一」在簡化工作流程的同時，是否也犧牲了這種靈活性，是值得進一步探討的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                影像生成任務碎片化<br>每個任務需專門模組
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                統一擴散框架<br>VAE + Transformer 架構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                GenEval / EMU-Edit / DreamBench<br>多任務基準測試驗證
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                坦承限制但歸因於<br>資料規模而非架構缺陷
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                統一模型可行且<br>具備浮現能力與遷移性
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過精簡的 VAE + Transformer 架構與統一格式的 X2I 資料集，單一擴散模型即可取代現有需要多個專門模組（ControlNet、IP-Adapter 等）的碎片化管線，在文字生成影像、影像編輯、主體驅動生成及電腦視覺任務上均展現具競爭力的性能與知識遷移能力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>效率與性能的雙重優勢：</strong>以僅 38 億參數和一億張影像資料，在 GenEval 上超越擁有 127 億參數和十億張資料的 SD3（0.70 vs 0.68），同時在視覺條件控制上匹敵甚至超越專門的 ControlNet++，有力地證明了統一訓練不僅不犧牲性能，反而能透過多任務互惠帶來增益。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>浮現能力缺乏系統性量化：</strong>任務組合、隱式推理與情境學習等「浮現能力」主要以定性案例展示，缺乏系統性的基準測試與統計分析。此外，模型對 104 張 A800 GPU 的計算需求極高，限制了可重現性；而 CoT 探索的失敗也暗示統一框架在某些方向上的局限性尚未被充分理解。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

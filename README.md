@@ -107,3 +107,20 @@ https://jung217.github.io/CvHub/
 | 4D Gaussian Splatting for Real-Time Dynamic Scene Rendering | 動態 3D 渲染 |
 | EfficientSAM: Leveraged Masked Image Pretraining for Efficient Segment Anything | 高效分割 |
 | Objects as Volumes: A Stochastic Geometry View of Opaque Solids | 渲染理論 (Honorable Mention) |
+
+## CVPR 2025
+
+| 論文 | 領域 |
+|------|------|
+| VGGT: Visual Geometry Grounded Transformer | 3D 多視角幾何 (Best Paper) |
+| Neural Inverse Rendering from Propagating Light | 逆渲染 (Best Student Paper) |
+| MegaSaM: Accurate, Fast and Robust Structure and Motion from Casual Dynamic Videos | 結構與運動 (Honorable Mention) |
+| Navigation World Models | 世界模型 (Honorable Mention) |
+| Molmo and PixMo: Open Weights and Open Data for State-of-the-Art VLMs | 視覺語言模型 (Honorable Mention) |
+| 3D Student Splatting and Scooping | 神經渲染 (Honorable Mention) |
+| Generative Multimodal Pretraining with Discrete Diffusion Timestep Tokens (DDT-LLaMA) | 多模態預訓練 (Best Student Paper Honorable Mention) |
+| MASt3R-SLAM: Real-Time Dense SLAM with 3D Reconstruction Priors | 即時 SLAM |
+| Janus: Decoupling Visual Encoding for Unified Multimodal Understanding and Generation | 統一多模態 |
+| TRELLIS: Structured 3D Latents for Scalable and Versatile 3D Generation | 3D 生成 |
+| DepthCrafter: Generating Consistent Long Depth Sequences for Open-world Videos | 影片深度估測 |
+| OmniGen: Unified Image Generation | 統一影像生成 |

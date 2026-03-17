@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Inverse Rendering from Propagating Light — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Neural Inverse Rendering from Propagating Light
+                <span class="course-tag">CVPR 2025</span>
+                <span class="best-paper-badge">Best Student Paper Award</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2506.05347" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-background">3. 背景</a>
+        <a href="#sec-method">4. 方法</a>
+        <a href="#sec-cache">4.2 時間解析輻射快取</a>
+        <a href="#sec-inverse">4.3 逆渲染</a>
+        <a href="#sec-results">5. 實驗結果</a>
+        <a href="#sec-discussion">6. 討論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-thesis">the first system for physically-based neural inverse rendering from multi-viewpoint videos of propagating light</span>. Our approach extends <span class="hl-concept">neural radiance caching</span> through <span class="hl-method">time-resolved techniques</span>, storing infinite-bounce radiance at any point from any direction. The model accounts for <span class="hl-concept">direct and indirect light transport</span>, enabling <span class="hl-evidence">state-of-the-art 3D reconstruction with strong indirect light from flash lidar systems</span>. Additional capabilities include <span class="hl-evidence">view synthesis of propagating light</span>, decomposition of measurements into direct and indirect components, and <span class="hl-evidence">multi-view time-resolved relighting</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出首個基於物理的神經逆渲染系統，能從傳播光的多視角影片中恢復場景屬性。我們的方法透過時間解析技術擴展神經輻射快取，儲存任意點、任意方向的無限次反射輻射值。此模型同時考慮直接與間接光傳輸，能在具有強烈間接光的閃光光達系統下達成最先進的三維重建。額外功能包含傳播光的視角合成、將量測訊號分解為直接與間接成分，以及多視角時間解析重新打光。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從「逆渲染」到「時間解析輻射快取」，最終列舉系統的多項能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題定義與貢獻預告」的雙重功能：先以「首個」宣示新穎性，再以能力清單展示系統的廣泛適用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首個」的宣稱極具學術衝擊力，有效建立了研究的獨特定位。然而，「無限次反射」的表述需在方法章節中驗證——實際上輻射快取是以近似方式處理多次反射，而非真正的無限遞迴求解。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與應用場景 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Ultrafast imaging systems like lidar</span> illuminate scenes with light pulses and capture backscattered echoes from propagating wavefronts. <span class="hl-method">Precise measurement of speed-of-light time delays</span> enables <span class="hl-evidence">3D reconstruction</span>, making lidar systems popular in <span class="hl-evidence">autonomous driving, augmented reality, and remote sensing</span> applications. Conventional lidar relies on <span class="hl-concept">time-resolved measurements of direct light transport</span> — light reflecting directly from surfaces back to sensors. Measurements of <span class="hl-concept">indirect light transport</span>, involving multiple scattering events before sensor arrival, are typically <span class="hl-rebuttal">ignored or discarded</span> because modeling indirect light requires <span class="hl-rebuttal">computationally expensive inverse rendering using recursive path tracing procedures</span>. However, <span class="hl-thesis">indirect light measurements provide rich information about material properties, appearance, and geometry</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                光達等超快成像系統以光脈衝照射場景，並捕捉傳播波前的反向散射回波。透過精確量測光速時間延遲，可進行三維重建，使光達系統廣泛應用於自動駕駛、擴增實境與遙測領域。傳統光達依賴直接光傳輸的時間解析量測——即光從表面直接反射回感測器。涉及多次散射事件的間接光傳輸量測通常被忽略或丟棄，因為建模間接光需要透過遞迴路徑追蹤進行計算成本極高的逆渲染。然而，間接光量測提供了關於材質屬性、外觀與幾何的豐富資訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從光達技術的廣泛應用切入，指出間接光被忽略的現狀。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定光達的價值，再揭示「間接光被丟棄」這一核心缺口，為本文方法鋪路。以應用場景（自駕、AR、遙測）建立實用性動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「豐富資訊」的主張是全文的核心假設，但作者尚未提供量化證據說明間接光對最終重建品質的提升幅度。此處以直覺性論述建立動機，具體驗證留待實驗章節。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有方法的限制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Conventional lidar systems <span class="hl-rebuttal">pre-process captured time-resolved measurements into 3D point clouds representing geometry estimates based on direct light transport</span>. Recent work leverages multi-viewpoint lidar measurements for 3D reconstruction and <span class="hl-concept">novel view synthesis</span>, but existing methods use <span class="hl-rebuttal">point cloud representations or direct-only time-resolved measurements, thus ignoring indirect light</span>. The work relates closely to <span class="hl-concept">Malik et al.</span>, which uses lidar measurements and <span class="hl-concept">neural radiance fields</span> representations to render videos of propagating light from novel viewpoints. However, while their representation is effective for view synthesis, <span class="hl-rebuttal">it lacks a physically-based model, preventing accurate geometry reconstruction or scene rendering under novel illumination</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統光達系統將捕捉的時間解析量測預處理為基於直接光傳輸的三維點雲幾何估計。近期研究利用多視角光達量測進行三維重建與新視角合成，但現有方法採用點雲表示或僅考慮直接光的時間解析量測，從而忽略了間接光。本研究與 Malik 等人的工作密切相關，該研究使用光達量測與神經輻射場表示來從新視角渲染傳播光影片。然而，其表示雖對視角合成有效，卻缺乏基於物理的模型，無法進行精確的幾何重建或在新照明條件下渲染場景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——系統性列舉現有光達重建方法的局限性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題—解決方案」論證中的問題深化：從傳統點雲方法的侷限到 Malik 等人缺乏物理模型的弱點，逐步收窄至本文要填補的精確缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 Malik 等人（作者自己的先前工作）定位為最接近的前作，既展現誠實也凸顯進步。但批評自己先前工作「缺乏物理模型」時，未詳述該工作在何種場景下仍有優勢，可能使讀者低估先前方法的適用性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：本文方案與貢獻 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper proposes <span class="hl-thesis">a method for inverse rendering from multi-viewpoint, time-resolved measurements of propagating light from flash lidar systems</span>. The approach uses a <span class="hl-method">hybrid neural representation, modeling geometry through volume rendering and appearance through a physically-based model simulating global illumination using a radiance cache</span>. Instead of integrating light paths via path tracing, the <span class="hl-concept">radiance cache</span> stores <span class="hl-method">time-resolved radiance arriving at any point in a volume from any direction</span>. The representation is optimized in an <span class="hl-method">amortized fashion</span>, eliminating recursive rendering integral evaluation. Our contributions include: <span class="hl-thesis">(1) a method for neural inverse rendering of propagating light using physically-based models with time-resolved radiance caching</span>; <span class="hl-evidence">(2) a new multi-viewpoint, time-resolved flash lidar measurement dataset</span>; and <span class="hl-evidence">(3) demonstrations showing state-of-the-art geometry reconstruction under strong indirect light, and novel-view propagating light rendering in scenes with varying reflectance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種從閃光光達系統的多視角時間解析傳播光量測中進行逆渲染的方法。此方法採用混合神經表示，透過體積渲染建模幾何、透過模擬全域照明的基於物理模型建模外觀，並使用輻射快取。輻射快取儲存到達體積中任意點、來自任意方向的時間解析輻射值，而非透過路徑追蹤積分光路。該表示以攤銷方式最佳化，免除遞迴渲染積分的求解。本文貢獻包含：(1) 使用基於物理模型與時間解析輻射快取的傳播光神經逆渲染方法；(2) 全新的多視角時間解析閃光光達量測資料集；(3) 在強烈間接光下達成最先進幾何重建，以及在不同反射率場景中渲染新視角傳播光的展示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——完整概述方法架構並明列三項貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「現有方法不足」過渡到「本文方案」。攤銷最佳化直接回應「遞迴路徑追蹤計算成本高」的缺陷，輻射快取回應「物理模型缺失」的問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項貢獻的清單式呈現使讀者一目了然。「攤銷方式最佳化」是關鍵的技術選擇——它以訓練時間換取推論時的效率，但訓練成本是否可接受需待實驗驗證。作者在討論章節坦承最佳化需超過一天。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：時間解析成像 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Time-of-flight systems such as lidar</span> measure flight times by marking backscattered pulse arrival times. These systems typically combine <span class="hl-method">nanosecond or picosecond pulsed lasers with fast photodiodes or single-photon avalanche diodes (SPADs)</span> to measure ultrafast light variations. Resulting <span class="hl-concept">time-resolved measurements</span> capture direct and indirect light transport, recording <span class="hl-evidence">videos of propagating light at ultrafast timescales</span>. This work uses lidar systems with <span class="hl-method">picosecond pulsed lasers and SPADs</span> to capture multi-view propagating light videos. <span class="hl-thesis">This work is the first to capture multi-view photon count histogram datasets where both flash lidar light sources and sensors vary in position</span>, and develops <span class="hl-thesis">the first physically-based time-resolved inverse rendering technique using multi-viewpoint propagating light videos</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                飛行時間系統（如光達）透過標記反向散射脈衝的到達時間來量測飛行時間。這些系統通常結合奈秒或皮秒脈衝雷射與快速光電二極體或單光子崩潰二極體（SPAD），以量測超快光變化。所得的時間解析量測捕捉直接與間接光傳輸，記錄超快時間尺度上的傳播光影片。本研究使用搭載皮秒脈衝雷射與 SPAD 的光達系統，捕捉多視角傳播光影片。本研究首次捕捉閃光光達光源與感測器皆改變位置的多視角光子計數直方圖資料集，並開發出首個使用多視角傳播光影片的基於物理時間解析逆渲染技術。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——概述時間解析成像的硬體基礎與本文的定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以硬體層面的技術發展為背景，建立本研究的感測器基礎。兩個「首次」的宣稱同時出現，強化了本文在資料集與方法上的雙重新穎性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將硬體背景與方法創新並列呈現，使讀者理解此工作不僅是演算法創新，也涉及實驗設置的創新。然而，對連續波飛行時間（CW-ToF）系統的比較相對簡略，可能忽略其在某些應用場景中的優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：時間解析渲染 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Time-resolved path-tracing renderers</span> simulate propagating light wavefronts and account for <span class="hl-method">birefringence, refraction, and volumetric scattering effects</span>. Recently, <span class="hl-concept">differentiable time-resolved renderers</span> have been developed; however, robust analysis-by-synthesis scene reconstruction using these methods <span class="hl-rebuttal">remains an open problem due to computational complexity and sensitivity to initialization and noise</span>. In the area of <span class="hl-concept">non-line-of-sight (NLOS) imaging</span>, techniques model two-bounce, three-bounce, or higher-order scattering events to recover occluded geometry. <span class="hl-thesis">This work performs physically-based modeling of multiply scattered light without restrictive assumptions on scene geometry or material properties</span>, integrating the approach into inverse rendering frameworks for captured multi-viewpoint experiments.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                時間解析路徑追蹤渲染器模擬傳播光波前，並考慮雙折射、折射與體積散射效應。近期已開發出可微分的時間解析渲染器；然而，使用這些方法進行穩健的分析合成式場景重建，由於計算複雜度及對初始化與雜訊的敏感性，仍是開放問題。在非視線成像（NLOS）領域中，相關技術建模二次、三次或更高階散射事件以恢復遮蔽幾何。本研究在不對場景幾何或材質屬性施加限制性假設的前提下，進行多次散射光的基於物理建模，並將此方法整合至已捕捉多視角實驗的逆渲染框架中。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將本方法放置於時間解析渲染與 NLOS 成像的學術脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立關鍵區分：可微分渲染器雖有潛力但不穩定，NLOS 方法需限制性假設。本方法無需這些限制，佔據了更廣泛的適用空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需限制性假設」的宣稱需謹慎檢視——實際上該方法仍假設 Disney-GGX BRDF 模型、點光源近似等，這些本身也是對真實場景的簡化。作者的措辭更精確地說是「較少」而非「無」限制性假設。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：基於物理的逆渲染 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Inverse rendering</span> aims to recover scene attributes like materials, lighting, and geometry from images. Recent <span class="hl-concept">physically-based rendering techniques using NeRFs</span> have made inverse rendering considerably more robust, but either <span class="hl-rebuttal">consider only direct illumination or require explicitly simulating multiple light bounces to model indirect light, which is computationally expensive</span>. Another approach uses <span class="hl-concept">radiance caches</span> — data structures storing hemispheric incoming radiance at every point. <span class="hl-method">Combining radiance caches with NeRFs leads to more efficient indirect light modeling</span>. However, <span class="hl-thesis">no previous technique performs physically-based inverse rendering from multi-viewpoint time-resolved measurements</span>. This work develops a new <span class="hl-concept">time-resolved radiance cache</span> enabling <span class="hl-thesis">neural inverse rendering from propagating light videos</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                逆渲染旨在從影像中恢復材質、照明與幾何等場景屬性。近期使用 NeRF 的基於物理渲染技術使逆渲染更加穩健，但要麼僅考慮直接照明，要麼需要顯式模擬多次光反射來建模間接光，這在計算上代價高昂。另一種方法使用輻射快取——在每個點儲存半球入射輻射的資料結構。將輻射快取與 NeRF 結合可實現更高效的間接光建模。然而，此前沒有任何技術從多視角時間解析量測中進行基於物理的逆渲染。本研究開發了全新的時間解析輻射快取，實現從傳播光影片的神經逆渲染。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    確立研究缺口——指出現有逆渲染方法在時間解析維度的空白。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    整個相關工作章節的收束：三個子節分別從成像、渲染、逆渲染三條脈絡彙聚於同一結論——時間解析的基於物理逆渲染尚無人涉足。這為本文的貢獻提供了最強的動機支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「沒有任何先前技術」做為相關工作章節的結尾，是經典的「填補空白」論證策略。輻射快取作為技術橋樑被巧妙引入——它既是已驗證的有效工具，又自然地延伸至時間解析領域，降低了讀者對新方法可行性的疑慮。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 背景：NeRF 輻射快取 ====== -->
+    <h2 class="section-heading" id="sec-background">3. Background: Radiance Caching with NeRFs — 背景：NeRF 輻射快取</h2>
+
+    <!-- 背景段落 1：渲染方程式 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">rendering equation</span> models outgoing radiance in direction &omega;<sub>o</sub> at point <strong>x</strong> along ray <strong>x</strong>(t) = <strong>o</strong> &minus; t&omega;<sub>o</sub>:
+                L<sub>o</sub>(<strong>x</strong>(t), &omega;<sub>o</sub>) = &int;<sub>&Omega;</sub> f(<strong>x</strong>, &omega;<sub>i</sub>, &omega;<sub>o</sub>) L<sub>i</sub>(<strong>x</strong>, &omega;<sub>i</sub>) (<strong>n</strong> &middot; &omega;<sub>i</sub>) d&omega;<sub>i</sub>.
+                The equation integrates <span class="hl-method">incident radiance L<sub>i</sub> arriving to <strong>x</strong> from direction &omega;<sub>i</sub>, weighted by the BRDF f</span>, over the positive hemisphere with respect to normal <strong>n</strong>. <span class="hl-rebuttal">Naive evaluation leads to exponential computation increases since the equation must be evaluated recursively to compute incident radiance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                渲染方程式建模在點 x 沿射線 x(t) = o - t&omega;<sub>o</sub> 的方向 &omega;<sub>o</sub> 上的出射輻射。此方程式對入射輻射 L<sub>i</sub>（從方向 &omega;<sub>i</sub> 到達 x）以 BRDF f 加權後，在法向量 n 的正半球上進行積分。直接求解會導致計算量指數級增長，因為必須遞迴地求解入射輻射。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學基礎鋪設——定義渲染方程式並指出其計算瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續所有技術推導的數學起點。遞迴求解的指數增長問題直接引出輻射快取的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    先呈現「困難」再提供「解決方案」是標準的技術寫作手法。渲染方程式的遞迴性質是電腦圖學的基礎知識，此處的複述為非專業讀者提供了必要背景。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 背景段落 2：輻射快取 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To avoid this computational penalty, <span class="hl-concept">radiance caching</span> removes the problematic recursion by <span class="hl-method">replacing incident radiance L<sub>i</sub> in the rendering equation with cache lookups L<sub>i</sub><sup>cache</sup></span>. The integral can be efficiently approximated through cache sampling and BRDF sampling using <span class="hl-method">multiple importance sampling</span>. Recent work demonstrates that <span class="hl-concept">NeRFs provide accurate radiance cache modeling</span>. Specifically, L<sub>i</sub><sup>cache</sup>(<strong>x</strong>, &omega;<sub>i</sub>) can be computed by <span class="hl-method">volume rendering the NeRF along a secondary ray</span>, where outgoing radiance at each secondary ray point is predicted by the NeRF and combined using <span class="hl-method">quadrature weights accounting for transmittance and absorption along the ray</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為避免此計算代價，輻射快取透過以快取查詢 L<sub>i</sub><sup>cache</sup> 取代渲染方程式中的入射輻射 L<sub>i</sub>，移除了棘手的遞迴。此積分可透過快取取樣與 BRDF 取樣的多重重要性取樣有效地近似。近期研究證明 NeRF 能提供精確的輻射快取建模。具體而言，L<sub>i</sub><sup>cache</sup> 可透過沿次級射線對 NeRF 進行體積渲染來計算，其中次級射線上每個點的出射輻射由 NeRF 預測，並以考慮射線上透射率與吸收的正交權重加以組合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術引介——解釋輻射快取如何解決遞迴問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是從「傳統渲染」過渡到「本文方法」的橋樑：先建立穩態輻射快取的概念，再由此自然延伸到時間解析版本。NeRF 作為快取的參數化工具被確立。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將已有的穩態輻射快取作為「已驗證的基礎設施」引入，降低了讀者對新方法的技術門檻。但這也暗示本方法的核心創新在於「時間解析化」的擴展，而非輻射快取本身——讀者可能質疑此擴展的技術深度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">4. Method — 方法</h2>
+    <h3 class="subsection-heading">4.1 Physically-Based Time-Resolved Rendering — 基於物理的時間解析渲染</h3>
+
+    <!-- 方法段落 1：時間解析渲染方程式 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A lidar measurement is modeled by casting a <span class="hl-method">primary ray <strong>x</strong>(t) = <strong>o</strong> &minus; t&omega;<sub>o</sub></span> into the scene. The <span class="hl-concept">time-resolved rendering equation</span> is a modified version of the standard rendering equation, adding <span class="hl-concept">time of flight &tau;</span>:
+                L<sub>o</sub>(<strong>x</strong>(t), &omega;<sub>o</sub>, &tau;) = &int;<sub>&Omega;</sub> f(<strong>x</strong>(t), &omega;<sub>i</sub>, &omega;<sub>o</sub>) L<sub>i</sub>(<strong>x</strong>(t), &omega;<sub>i</sub>, &tau;) (<strong>n</strong> &middot; &omega;<sub>i</sub>) d&omega;<sub>i</sub>.
+                The reflectance f is modeled using the <span class="hl-concept">Disney-GGX BRDF</span>, depending on scene material properties. <span class="hl-method">Incident radiance is decomposed into two components: L<sub>i</sub> = L<sub>i</sub><sup>dir</sup> + L<sub>i</sub><sup>cache</sup></span>, comprising a direct component and an indirect component evaluated using the radiance cache.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                光達量測透過向場景投射主射線 x(t) = o - t&omega;<sub>o</sub> 來建模。時間解析渲染方程式是標準渲染方程式的修改版本，加入了飛行時間 &tau;。反射率 f 使用 Disney-GGX BRDF 建模，取決於場景材質屬性。入射輻射被分解為兩個成分：直接成分 L<sub>i</sub><sup>dir</sup> 與透過輻射快取求值的間接成分 L<sub>i</sub><sup>cache</sup>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心公式推導——定義時間解析渲染方程式與入射輻射的分解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文方法論的數學核心。在穩態渲染方程式中加入飛行時間 &tau; 是看似簡單但影響深遠的修改——它將整個渲染框架從「空間域」擴展到「時空域」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將入射輻射分解為直接與間接成分是關鍵的設計決策。直接成分可解析求解（已知光源位置），間接成分交由快取處理。此分解策略有效地將無限遞迴問題轉化為「一次直接 + 快取查詢」的高效結構。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 2：直接光建模 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">direct component</span> models light emitted from the lidar source at <strong>x</strong><sub>l</sub>, propagating to scene point <strong>x</strong>, and scattering directly back to the sensor. It is given as:
+                L<sub>i</sub><sup>dir</sup>(<strong>x</strong>(t), &omega;<sub>i</sub>, &tau;) = &delta;(&omega;<sub>l</sub> &minus; &omega;<sub>i</sub>) L<sub>i</sub><sup>l</sup>(&omega;<sub>l</sub>, &tau; &minus; ||<strong>x</strong>(t) &minus; <strong>x</strong><sub>l</sub>|| / c) / ||<strong>x</strong>(t) &minus; <strong>x</strong><sub>l</sub>||&sup2;.
+                The model accounts for <span class="hl-method">inverse-square law intensity falloff</span> and <span class="hl-method">time delay to position <strong>x</strong>(t) based on light speed c</span>. The <span class="hl-concept">time-resolved radiance cache</span> L<sub>i</sub><sup>cache</sup> is evaluated using <span class="hl-method">secondary rays cast from primary ray points</span>, applying <span class="hl-method">time-resolved volume rendering</span> where light incident at a point is the sum of <span class="hl-method">delayed copies of light leaving each point along the secondary ray</span>, with delays depending on distance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                直接成分建模從光達光源 x<sub>l</sub> 發出、傳播至場景點 x 並直接散射回感測器的光。此模型考慮了反平方律強度衰減以及基於光速 c 到位置 x(t) 的時間延遲。時間解析輻射快取 L<sub>i</sub><sup>cache</sup> 透過從主射線點投射的次級射線來求值，應用時間解析體積渲染，其中到達某點的入射光是沿次級射線各點離開光的延遲副本之總和，延遲量取決於距離。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    詳細推導——分別定義直接光與間接光的時間解析渲染公式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將抽象的時間解析渲染方程式具體化：直接光有解析解（Dirac delta 函數），間接光透過次級射線的體積渲染近似。「延遲副本之總和」是整個時間解析框架的物理直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    反平方律與光速延遲的顯式建模展現了方法的物理嚴謹性。然而，點光源假設（Dirac delta）在實際閃光光達中可能不完全成立——實際光源有一定的空間與時間分布，作者在附錄中透過校準程序處理此問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.2 時間解析輻射快取 ====== -->
+    <h3 class="subsection-heading" id="sec-cache">4.2 Time-Resolved Radiance Cache — 時間解析輻射快取</h3>
+
+    <!-- 快取段落 1：表示與架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The cache is parameterized using <span class="hl-method">multi-resolution hash encoding</span> H<sup>app</sup> to learn position-dependent appearance feature <strong>f</strong><sup>app</sup>. Similarly, hash encoding-based neural network N<sup>geom</sup> represents scene geometry through <span class="hl-method">density and normals</span>. <span class="hl-thesis">Density values used for volume rendering are shared across both the physically-based model and radiance cache</span>, ensuring geometric consistency. The <span class="hl-concept">radiance cache output is decomposed into direct and indirect components</span>: L<sub>o</sub><sup>cache</sup> = L<sub>o</sub><sup>cache,dir</sup> + L<sub>o</sub><sup>cache,indir</sup>. The direct component uses a <span class="hl-method">neural network learning the BRDF</span>, while the indirect component employs a <span class="hl-method">split-sum approximation</span> that efficiently factorizes the integral into a product of an integrated BRDF term and an integrated incident radiance term, both predicted by neural networks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                快取使用多解析度雜湊編碼 H<sup>app</sup> 來學習位置相依的外觀特徵 f<sup>app</sup>。類似地，基於雜湊編碼的神經網路 N<sup>geom</sup> 透過密度與法向量表示場景幾何。用於體積渲染的密度值在基於物理模型與輻射快取之間共享，確保幾何一致性。輻射快取的輸出分解為直接與間接成分。直接成分使用學習 BRDF 的神經網路，間接成分則採用分裂求和近似，將積分有效地分解為積分 BRDF 項與積分入射輻射項的乘積，兩者皆由神經網路預測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構細節——描述輻射快取的神經網路參數化與分解策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的工程核心。密度共享確保幾何一致性，分裂求和近似確保計算效率。兩者結合使得時間解析逆渲染在實際硬體上可行。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多解析度雜湊編碼是 Instant NGP 的成熟技術，此處的借用展現了良好的技術整合能力。分裂求和近似雖提升效率，但引入了因式分解誤差——在強烈方向性反射（如鏡面反射）場景中，此近似可能不夠精確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快取段落 2：間接光的條件化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key design choice is that the <span class="hl-concept">indirect radiance component is conditioned on the light source position <strong>x</strong><sub>l</sub></span>, because <span class="hl-thesis">indirect light depends on where the light source illuminates the scene</span>. Following Malik et al., L<sub>i,&Omega;</sub><sup>indir</sup> <span class="hl-method">predicts a vector representing radiance over discretized time intervals</span>. The network f<sub>&Omega;</sub><sup>indir</sup> predicts the integrated BRDF and L<sub>i,&Omega;</sub><sup>indir</sup> predicts the integrated incident radiance, both conditioned on <span class="hl-method">appearance features, normals, outgoing direction, and light source position</span>. This conditioning on <strong>x</strong><sub>l</sub> enables <span class="hl-evidence">relighting capabilities</span> — by changing the light source position at inference time, the system can synthesize time-resolved measurements under novel illumination conditions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個關鍵的設計選擇是間接輻射成分以光源位置 x<sub>l</sub> 為條件，因為間接光取決於光源照射場景的位置。遵循 Malik 等人的做法，L<sub>i,&Omega;</sub><sup>indir</sup> 預測一個表示離散時間區間上輻射的向量。網路 f<sub>&Omega;</sub><sup>indir</sup> 預測積分 BRDF，L<sub>i,&Omega;</sub><sup>indir</sup> 預測積分入射輻射，兩者皆以外觀特徵、法向量、出射方向與光源位置為條件。此對 x<sub>l</sub> 的條件化賦予了重新打光能力——在推論時改變光源位置，系統即可合成新照明條件下的時間解析量測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計動機——解釋光源位置條件化的物理直覺與實用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段連結方法設計與應用能力：光源位置條件化不僅是物理正確的選擇，更直接賦予系統重新打光的功能。這是方法論與應用價值的交匯點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將技術細節與應用能力直接關聯是說服力極強的寫作策略。然而，以光源位置為條件的間接光預測可能在光源位置遠離訓練分布時泛化能力有限——重新打光的品質可能隨光源偏移量增大而下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.3 從傳播光進行逆渲染 ====== -->
+    <h3 class="subsection-heading" id="sec-inverse">4.3 Inverse Rendering from Propagating Light — 從傳播光進行逆渲染</h3>
+
+    <!-- 逆渲染段落 1：損失函數 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The representation is optimized by <span class="hl-method">minimizing differences between lidar measurements and renderer output</span>:
+                L<sub>data</sub> = &sum; &alpha;(L<sub>i</sub><sup>cache</sup>) ||L<sub>i</sub> &minus; L<sub>i</sub><sup>meas</sup>||&sup2;.
+                The function &alpha; is chosen to <span class="hl-method">more strongly penalize darker region errors, improving perceptual quality similar to tonemapping curves</span>. A <span class="hl-concept">radiometric prior</span> constrains cache-rendered direct and indirect light consistency with the full physically-based model, by supervising the cache with the physically-based model's outputs. The complete photometric loss function is:
+                L<sub>data</sub> + &lambda;<sub>cache</sub> L<sub>cache</sub> + &lambda;<sub>dir</sub> L<sub>dir</sub> + &lambda;<sub>indir</sub> L<sub>indir</sub>.
+                <span class="hl-evidence">By minimizing this loss, the method recovers scene material models (parameterized using Disney-GGX), scene geometry, normals, and appearance parameters.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                該表示透過最小化光達量測與渲染器輸出之間的差異來最佳化。函數 &alpha; 被選擇為對較暗區域的誤差施加更強的懲罰，類似色調映射曲線以改善感知品質。一個輻射度量先驗約束快取渲染的直接與間接光與完整基於物理模型的一致性。完整的光度損失函數包含資料項、快取監督項、直接光一致性項與間接光一致性項。透過最小化此損失，該方法恢復場景材質模型（以 Disney-GGX 參數化）、場景幾何、法向量與外觀參數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    最佳化框架——定義損失函數與正則化策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成方法論的最後拼圖：從表示（4.1-4.2）到最佳化（4.3）。多項損失的加權組合確保幾何、材質與光傳輸的聯合恢復。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    色調映射式的加權函數 &alpha; 是實用但啟發式的設計——它改善了暗區的重建品質，但引入了超參數 &beta; 的敏感度。輻射度量先驗是維持物理一致性的關鍵約束，避免快取「走捷徑」學到非物理的解。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 逆渲染段落 2：額外正則化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Beyond the photometric loss, the method includes <span class="hl-method">a regularizer L<sub>normals</sub> tying predicted normals to analytic density field normals</span>; <span class="hl-method">a smoothness penalty L<sub>geom</sub> on analytic normals</span>; <span class="hl-method">a smoothness penalty L<sub>mat</sub> on predicted BRDF parameters</span>; <span class="hl-method">proposal resampling and distortion losses from Zip-NeRF</span>; and a <span class="hl-method">mask loss L<sub>mask</sub></span>. <span class="hl-method">Multiple importance sampling</span> is used for secondary rays based on BRDF and a <span class="hl-concept">learnable importance sampler</span> for incident illumination. The learnable importance sampler is supervised with loss L<sub>vMF</sub>. <span class="hl-method">Time-resolved direct outgoing light is represented as a one-hot vector where each bin corresponds to a discrete time interval</span>, and <span class="hl-method">indirect light as a dense vector of the same size</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                除光度損失外，方法還包含：將預測法向量與解析密度場法向量綁定的正則項；解析法向量的平滑懲罰項；預測 BRDF 參數的平滑懲罰項；來自 Zip-NeRF 的提議重取樣與失真損失；以及遮罩損失。次級射線採用基於 BRDF 的多重重要性取樣與用於入射照明的可學習重要性取樣器。直接出射光以獨熱向量表示（每個區間對應一個離散時間區間），間接光以相同大小的密集向量表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    完整方法細節——列舉所有正則化項與取樣策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示系統的工程完整性：多項正則化確保最佳化的穩定性與物理合理性。可學習重要性取樣器是提升取樣效率的關鍵組件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    大量正則化項的存在暗示裸損失函數不足以穩定最佳化——這是複雜物理模型的常見挑戰。直接光的獨熱與間接光的密集向量表示是巧妙的設計：前者利用了直接光的時間局部性，後者則捕捉間接光的時間擴散特性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 實驗結果 ====== -->
+    <h2 class="section-heading" id="sec-results">5. Results — 實驗結果</h2>
+
+    <!-- 實驗段落 1：評估設置 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The system is evaluated on three tasks: <span class="hl-evidence">(1) time-resolved lidar measurement view synthesis, (2) integrated steady-state lidar image view synthesis, and (3) geometry reconstruction</span>. Rendered integrated lidar images are assessed using <span class="hl-evidence">PSNR, SSIM, and LPIPS</span>. Time-resolved measurement accuracy is evaluated using <span class="hl-evidence">transient intersection-over-union (T-IOU)</span>. Mean absolute error and L1 error measure normal and depth accuracy, respectively. The method is compared to state-of-the-art baselines: <span class="hl-concept">T-NeRF</span>, which accounts only for direct light; and <span class="hl-concept">Flying with Photons (FWP++)</span>, which predicts time-resolved radiance at every spatial point but lacks a physically-based model. <span class="hl-rebuttal">Both baselines are implemented using the same hash-encoding-based neural representation, with identical regularizers and hyperparameters for fairness</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                系統在三項任務上進行評估：(1) 時間解析光達量測的視角合成；(2) 積分穩態光達影像的視角合成；(3) 幾何重建。積分光達影像以 PSNR、SSIM 與 LPIPS 評估。時間解析量測精度以瞬態交並比（T-IOU）評估。法向量與深度精度分別以平均絕對誤差與 L1 誤差衡量。方法與最先進基線比較：僅考慮直接光的 T-NeRF，以及預測每個空間點時間解析輻射但缺乏基於物理模型的 FWP++。為公平起見，兩個基線均使用相同的雜湊編碼神經表示，以及相同的正則化器與超參數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設計——定義評估任務、指標與基線方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為定量比較建立公平的評估框架。三項任務涵蓋了不同層面的能力驗證：視角合成（渲染品質）、幾何重建（場景理解），與時間解析精度（物理正確性）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調基線使用相同神經表示與超參數是確保公平性的有力舉措，消除了「架構差異」這一常見的實驗混淆因素。T-IOU 是作者先前工作提出的指標，使用自定指標可能引起偏見疑慮，但其定義具有物理直覺性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：模擬結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">simulated scenes (Cornell box, pots, peppers, kitchen)</span>, the method achieves <span class="hl-evidence">PSNR of 30.99 dB compared to T-NeRF's 22.44 dB and FWP++'s 29.00 dB</span>. More critically, <span class="hl-evidence">normal estimation MAE is 8.45 degrees versus T-NeRF's 28.00 and FWP++'s 22.80</span>, demonstrating substantially better geometry recovery. Since <span class="hl-rebuttal">T-NeRF models only direct light, it fails to recover accurate geometry under strong indirect light from specular reflections and diffuse inter-reflections</span>, introducing floating artifacts. Conversely, <span class="hl-rebuttal">FWP++ models both direct and indirect radiance but lacks a physically-accurate rendering model, causing it to overfit</span> — it uses <span class="hl-rebuttal">mirror scene copies to explain specular reflections and incorrect depths for diffuse inter-reflections</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在模擬場景（康乃爾盒、壺、辣椒、廚房）上，本方法達到 30.99 dB 的 PSNR，相比 T-NeRF 的 22.44 dB 與 FWP++ 的 29.00 dB。更關鍵的是，法向量估計 MAE 為 8.45 度，遠優於 T-NeRF 的 28.00 度與 FWP++ 的 22.80 度，展現了顯著更佳的幾何恢復。由於 T-NeRF 僅建模直接光，在強烈間接光（鏡面反射與漫反射互射）下無法恢復精確幾何，產生浮動偽影。相反地，FWP++ 雖建模直接與間接輻射，但缺乏基於物理的精確渲染模型而導致過擬合——它使用鏡像場景副本來解釋鏡面反射，並以錯誤深度解釋漫反射互射。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量驗證——以模擬資料的數值結果證明方法的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最強的實證支柱：法向量 MAE 從 28.00/22.80 降至 8.45，改進幅度極為顯著。同時分析基線失敗的具體原因，展現了物理建模的關鍵性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對基線失敗模式的詳細分析（浮動偽影、鏡像副本）具有極強的說服力——不僅展示「我們更好」，更解釋「為什麼更好」。然而，模擬場景相對簡單（物件級場景），在更複雜的真實場景中是否仍能維持此優勢需待進一步驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：真實捕捉結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">captured scenes (globe, house, spheres, statue)</span>, the method demonstrates <span class="hl-evidence">more accurate geometry recovery than FWP++, especially for areas with indirect light presence, such as wall corners and candle bottoms</span>. However, <span class="hl-rebuttal">FWP++ shows slight view synthesis improvements in captured data — the physically-grounded approach may be more sensitive to system calibration and model mismatch</span>. The approach further enables <span class="hl-evidence">time-resolved view synthesis and relighting</span>, which has not previously been demonstrated from captured multi-view, time-resolved measurements. The system also demonstrates <span class="hl-evidence">time-resolved imaging without lidar supervision</span> — the model can be trained using continuous-wave time-of-flight measurements or even intensity images, recovering direct and indirect light transport effects from each input type.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在捕捉場景（地球儀、房屋、球體、雕像）上，方法展現了比 FWP++ 更精確的幾何恢復，尤其在間接光存在的區域，如牆角與蠟燭底部。然而，FWP++ 在捕捉資料上展現出略微更佳的視角合成——基於物理的方法可能對系統校準與模型不匹配更為敏感。該方法進一步實現了時間解析視角合成與重新打光，這是此前從未在捕捉的多視角時間解析量測中展示過的。系統還展示了無需光達監督的時間解析成像——模型可使用連續波飛行時間量測甚至強度影像進行訓練，從每種輸入類型中恢復直接與間接光傳輸效應。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    真實世界驗證——以捕捉資料結果佐證方法的實用性，同時坦承限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段平衡了優勢與限制的呈現：幾何重建優勢明確，但視角合成略遜。重新打光與無光達監督的額外能力展示了系統的廣泛潛力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦承 FWP++ 在視角合成上略勝一籌是學術誠信的展現，但將原因歸於「校準敏感度」可能過於樂觀——這也可能反映物理模型本身的限制。無光達監督的展示（從 CW-ToF 或強度影像恢復時間解析資訊）是令人印象深刻的額外貢獻，大幅擴展了方法的適用範圍。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 討論 ====== -->
+    <h2 class="section-heading" id="sec-discussion">6. Discussion — 討論</h2>
+
+    <!-- 討論段落 1：限制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method relies on a <span class="hl-rebuttal">more constrained physical model than other approaches, including FWP++</span>. Some <span class="hl-rebuttal">captured data performance degradation compared to baselines is observed, where model mismatch is a potential issue</span>. This might be mitigated through improved physical setup calibration. Additionally, <span class="hl-rebuttal">the method requires more than one day of optimization on a single GPU</span> due to <span class="hl-rebuttal">time-consuming physical light transport simulation, I/O penalties from loading large time-resolved measurement vectors, and GPU memory bandwidth requirements</span>. Addressing this might involve using neural representations predicting time-resolved signals at single time instants rather than complete vectors, or using <span class="hl-concept">faster neural representations like 3D Gaussian Ray Tracing or EVER</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本方法依賴比其他方法（包括 FWP++）更受約束的物理模型。在某些捕捉資料上觀察到相較基線的效能下降，模型不匹配是潛在原因。這可能透過改善物理設置校準來緩解。此外，方法在單一 GPU 上需要超過一天的最佳化時間，原因包括耗時的物理光傳輸模擬、載入大型時間解析量測向量的輸入/輸出代價，以及 GPU 記憶體頻寬需求。解決此問題可能涉及使用預測單一時間瞬間（而非完整向量）的神經表示，或使用如三維高斯射線追蹤或 EVER 等更快的神經表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自我批判——誠實列舉方法的主要限制與潛在解決方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    討論章節的限制分析為全文的主張劃定邊界：物理模型約束帶來精確性的同時也引入了敏感性，計算成本是實用化的主要障礙。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦承限制是強論文的標誌。但「超過一天的最佳化」在實際應用中可能是重大障礙。提及 3D Gaussian Ray Tracing 與 EVER 作為未來方向，展示了對領域最新進展的掌握，也為後續研究指明了路線。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 討論段落 2：影響與未來應用 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Although <span class="hl-rebuttal">non-line-of-sight imaging is not tackled</span>, the framework <span class="hl-thesis">could principally extend to this application in unconstrained conditions, like non-line-of-sight imaging with non-planar relay surfaces</span>. Due to <span class="hl-evidence">widespread lidar technology usage</span>, the work has potential impact in <span class="hl-evidence">autonomous navigation or remote sensing — especially in scenarios with strong indirect lighting effects</span>. The physically-based decomposition of direct and indirect light transport opens avenues for improved depth estimation in challenging multi-bounce environments, where <span class="hl-thesis">conventional lidar processing pipelines fail due to indirect light contamination</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                雖然本文未處理非視線成像，但此框架原則上可擴展至無約束條件下的此類應用，例如使用非平面中繼面的非視線成像。由於光達技術的廣泛使用，本研究在自動導航或遙測領域具有潛在影響——特別是在存在強烈間接光效應的場景中。直接與間接光傳輸的基於物理分解，為在具有挑戰性的多次反射環境中改善深度估計開闢了途徑，因為傳統光達處理管線在間接光汙染下會失效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望未來——描述方法的潛在擴展方向與實際應用影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應緒論的動機：從光達在自駕與遙測的應用出發，最終回到這些應用場景中的具體改進。形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 NLOS 成像列為未來方向既是誠實的限制聲明，也是擴展研究空間的策略。自駕場景中的間接光汙染問題確實存在，但從實驗室規模的物件場景到自駕的大規模戶外場景，其間的技術鴻溝（計算成本、感測器差異、動態場景）未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                傳統光達忽略間接光<br>喪失豐富場景資訊
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                時間解析輻射快取<br>實現基於物理的逆渲染
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                模擬與真實場景驗證<br>幾何 MAE 降至 8.45 度
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                物理模型約束帶來<br>校準敏感性與計算成本
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                首個傳播光逆渲染系統<br>開拓時間解析成像新方向
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將時間解析輻射快取與基於物理的渲染模型結合，首次從多視角傳播光影片中實現神經逆渲染，恢復場景幾何、材質與外觀，並支援新視角合成與重新打光。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>基線失敗模式的深入分析：</strong>不僅展示數值優勢（法向量 MAE 8.45 度 vs. 22.80/28.00 度），更具體解釋 T-NeRF 產生浮動偽影、FWP++ 產生鏡像副本的物理原因，直接證明了基於物理建模的必要性。同時，無光達監督的時間解析成像展示，大幅擴展了方法的適用範圍。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>真實場景的視角合成退化：</strong>在捕捉資料上，較不受約束的 FWP++ 在視角合成指標上略勝一籌，暴露了物理模型在面對實際系統校準誤差時的脆弱性。此外，超過一天的 GPU 最佳化時間嚴重限制了方法的實用性，從實驗室場景到自駕等大規模應用的可擴展性尚待驗證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>
