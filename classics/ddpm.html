@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Denoising Diffusion Probabilistic Models — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Denoising Diffusion Probabilistic Models
+                <span class="course-tag">Classic &middot; NeurIPS 2020</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2006.11239" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-background">2. 背景</a>
+        <a href="#sec-diffusion">3. 擴散模型與去噪自編碼器</a>
+        <a href="#sec-forward">3.1 前向過程</a>
+        <a href="#sec-reverse">3.2 反向過程</a>
+        <a href="#sec-simplified">3.4 簡化目標</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-thesis">high quality image synthesis results using diffusion probabilistic models</span>, a class of <span class="hl-concept">latent variable models</span> inspired by considerations from <span class="hl-concept">nonequilibrium thermodynamics</span>. Our best results are obtained by training on a <span class="hl-method">weighted variational bound</span> designed according to a novel connection between <span class="hl-concept">diffusion probabilistic models</span> and <span class="hl-concept">denoising score matching with Langevin dynamics</span>, and our models naturally admit a <span class="hl-method">progressive lossy decompression scheme</span> that can be interpreted as a generalization of autoregressive decoding. On the unconditional <span class="hl-evidence">CIFAR10 dataset, we obtain an Inception score of 9.46 and a state-of-the-art FID score of 3.17</span>. On <span class="hl-evidence">256x256 LSUN, we obtain sample quality similar to ProgressiveGAN</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們展示了<span class="hl-thesis">使用擴散機率模型進行高品質影像合成的成果</span>，這是一類受<span class="hl-concept">非平衡熱力學</span>啟發的<span class="hl-concept">潛在變數模型</span>。最佳結果來自於在一個<span class="hl-method">加權變分界限</span>上進行訓練，該界限的設計源自<span class="hl-concept">擴散機率模型</span>與<span class="hl-concept">去噪分數匹配結合朗之萬動力學</span>之間的新穎連結，而我們的模型天然具有一套<span class="hl-method">漸進式有損解壓縮方案</span>，可詮釋為自迴歸解碼的一般化。在無條件 <span class="hl-evidence">CIFAR10 資料集上，我們取得 Inception 分數 9.46 與當時最先進的 FID 分數 3.17</span>。在 <span class="hl-evidence">256x256 LSUN 上，我們取得與 ProgressiveGAN 相當的樣本品質</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以簡潔語言勾勒研究動機、方法核心、理論連結與實驗成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時承擔「成果宣告」與「理論定位」：先宣告影像合成品質，再點明理論貢獻（變分界限與分數匹配的連結），最後以定量指標收尾，建立完整的價值主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者策略性地強調 FID 分數（3.17）為「最先進」，但同時以「similar to ProgressiveGAN」描述 LSUN 結果，措辭較為保守。摘要未提及對數似然度不具競爭力一事，留待正文揭露——這是一種有效的資訊排序策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：生成模型背景 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Deep generative models of all kinds have recently demonstrated <span class="hl-evidence">high quality samples in a wide variety of data modalities</span>. <span class="hl-concept">GANs</span>, <span class="hl-concept">autoregressive models</span>, <span class="hl-concept">flows</span>, and <span class="hl-concept">VAEs</span> have synthesized striking image and audio samples, and energy-based modeling and score matching have produced <span class="hl-evidence">images comparable to those of GANs</span>. This paper presents progress in <span class="hl-concept">diffusion probabilistic models</span>. A <span class="hl-concept">diffusion probabilistic model</span> is a <span class="hl-method">parameterized Markov chain trained using variational inference to produce samples matching the data after finite time</span>. Transitions of the chain learn to <span class="hl-method">reverse a diffusion process</span>, which is a Markov chain that <span class="hl-method">gradually adds noise to the data</span> in the opposite direction of sampling until signal is destroyed.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                各類深度生成模型近期已在<span class="hl-evidence">廣泛的資料模態中展示了高品質的樣本</span>。<span class="hl-concept">GAN</span>、<span class="hl-concept">自迴歸模型</span>、<span class="hl-concept">流模型</span>與 <span class="hl-concept">VAE</span> 已合成了令人矚目的影像與音訊樣本，而基於能量的建模與分數匹配也產出了<span class="hl-evidence">可與 GAN 匹敵的影像</span>。本文呈現<span class="hl-concept">擴散機率模型</span>方面的進展。<span class="hl-concept">擴散機率模型</span>是一種<span class="hl-method">以變分推論訓練的參數化馬可夫鏈，在有限時間步後產生與資料匹配的樣本</span>。該鏈的轉移過程學習<span class="hl-method">反轉一個擴散過程</span>——一條在取樣的反方向上<span class="hl-method">逐步對資料加入噪聲</span>直到訊號被破壞的馬可夫鏈。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——概述當前生成模型的全景，並定義擴散機率模型的基本概念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先列舉四大主流生成模型（GAN / 自迴歸 / 流 / VAE）的成就，建立「生成式建模已取得重大進展」的共識，再將擴散模型引入此圖譜中，暗示它將加入這個精英行列。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「Markov chain that gradually adds noise」的物理直覺引入擴散模型的定義，比純數學定義更易被讀者接受。但此段並未明確說明擴散模型相較於其他方法的獨特優勢，留給讀者一個「為何關注擴散模型」的懸念。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：擴散模型的能力宣告 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Diffusion models</span> are <span class="hl-thesis">straightforward to define and efficient to train</span>, but to the best of our knowledge, <span class="hl-rebuttal">there has been no demonstration that they are capable of generating high quality samples</span>. We show that diffusion models actually are capable of <span class="hl-thesis">generating high quality samples, sometimes better than the published results on other types of generative models</span>. In addition, we show that a certain parameterization of diffusion models reveals an <span class="hl-thesis">equivalence with denoising score matching over multiple noise levels</span> during training and with <span class="hl-concept">annealed Langevin dynamics</span> during sampling. We obtained our best sample quality results using this parameterization, so we consider <span class="hl-thesis">this connection to be one of our primary contributions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">擴散模型</span><span class="hl-thesis">定義直觀且訓練高效</span>，但據我們所知，<span class="hl-rebuttal">此前尚無研究證明它們能生成高品質的樣本</span>。我們證明擴散模型實際上能夠<span class="hl-thesis">產生高品質的樣本，有時甚至優於其他類型生成模型已發表的結果</span>。此外，我們展示了擴散模型的某種參數化揭示了其在訓練期間<span class="hl-thesis">與多噪聲尺度下去噪分數匹配的等價性</span>，以及在取樣期間與<span class="hl-concept">退火朗之萬動力學</span>的等價性。我們的最佳樣本品質結果即來自此參數化方式，因此我們認為<span class="hl-thesis">這一連結是我們的主要貢獻之一</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    宣告核心貢獻——明確指出兩大突破：樣本品質與理論連結。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接前段的背景鋪陳，此段扮演「轉折」角色：以「no demonstration」建立研究缺口，隨即以「actually are capable」填補該缺口。同時預告了理論貢獻——擴散模型與分數匹配 / 朗之萬動力學的統一觀點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「to the best of our knowledge」是學術論文中常用的謹慎措辭，但也隱含了 Sohl-Dickstein et al. (2015) 的原始工作在品質上確實不盡理想的事實。作者將自身的實證結果與理論發現並列為「primary contributions」，顯示他們認為兩者同等重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：對數似然度的誠實揭露 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Despite their sample quality, <span class="hl-rebuttal">our models do not have competitive log likelihoods compared to other likelihood-based models</span> (although our log likelihoods are <span class="hl-evidence">better than those obtained by large estimates reported for energy based models and score matching</span>). We find that <span class="hl-thesis">the majority of our models' lossless codelengths are consumed to describe imperceptible image details</span>. We present a more refined analysis of this phenomenon in terms of <span class="hl-method">lossy compression</span>, and we show that the <span class="hl-thesis">sampling procedure of diffusion models is a type of progressive decoding that resembles autoregressive decoding along a generalized bit ordering</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管樣本品質優異，<span class="hl-rebuttal">我們的模型在對數似然度上無法與其他基於似然度的模型競爭</span>（但我們的對數似然度<span class="hl-evidence">優於基於能量的模型和分數匹配所報告的大型估計值</span>）。我們發現<span class="hl-thesis">模型的無損碼長中，大部分被用於描述人眼無法察覺的影像細節</span>。我們以<span class="hl-method">有損壓縮</span>的框架對此現象進行了更精細的分析，並展示<span class="hl-thesis">擴散模型的取樣過程是一種漸進式解碼，類似於沿廣義位元排序的自迴歸解碼</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    誠實揭露限制——主動承認對數似然度的不足，並將其轉化為新的理論洞見。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈中的「讓步-反擊」環節：先坦承似然度弱點，再立即將劣勢重新框架為「擴散模型是出色的有損壓縮器」的正面敘事。此段同時引出「漸進式解碼」的概念，為後續章節鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「似然度不佳」重新詮釋為「大部分碼長用於描述不可感知的細節」是極為高明的論證轉向。這暗示似然度指標本身可能不是衡量生成模型品質的最佳標準——一個相當大膽的主張。但此論點需要嚴謹的實證支撐，不能僅靠直覺。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 背景 ====== -->
+    <h2 class="section-heading" id="sec-background">2. Background — 背景</h2>
+
+    <!-- 背景段落 1：前向過程定義 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Diffusion probabilistic models</span> are <span class="hl-concept">latent variable models</span> of the form p<sub>&theta;</sub>(x<sub>0</sub>) := &int; p<sub>&theta;</sub>(x<sub>0:T</sub>) dx<sub>1:T</sub>, where x<sub>1</sub>, ..., x<sub>T</sub> are latents of the same dimensionality as the data x<sub>0</sub> ~ q(x<sub>0</sub>). The joint distribution p<sub>&theta;</sub>(x<sub>0:T</sub>) is called the <span class="hl-concept">reverse process</span>, defined as a <span class="hl-method">Markov chain with learned Gaussian transitions starting at p(x<sub>T</sub>) = N(x<sub>T</sub>; 0, I)</span>. What distinguishes diffusion models from other latent variable models is that the approximate posterior q(x<sub>1:T</sub>|x<sub>0</sub>), called the <span class="hl-concept">forward process</span> or <span class="hl-concept">diffusion process</span>, is <span class="hl-thesis">fixed to a Markov chain that gradually adds Gaussian noise</span> according to a variance schedule &beta;<sub>1</sub>, ..., &beta;<sub>T</sub>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">擴散機率模型</span>是形如 p<sub>&theta;</sub>(x<sub>0</sub>) := &int; p<sub>&theta;</sub>(x<sub>0:T</sub>) dx<sub>1:T</sub> 的<span class="hl-concept">潛在變數模型</span>，其中 x<sub>1</sub>, ..., x<sub>T</sub> 為與資料 x<sub>0</sub> ~ q(x<sub>0</sub>) 具有相同維度的潛在變數。聯合分布 p<sub>&theta;</sub>(x<sub>0:T</sub>) 稱為<span class="hl-concept">反向過程</span>，定義為<span class="hl-method">從 p(x<sub>T</sub>) = N(x<sub>T</sub>; 0, I) 出發、具有學習式高斯轉移的馬可夫鏈</span>。擴散模型區別於其他潛在變數模型之處在於：近似後驗 q(x<sub>1:T</sub>|x<sub>0</sub>)——即<span class="hl-concept">前向過程</span>或<span class="hl-concept">擴散過程</span>——被<span class="hl-thesis">固定為一條依據方差排程 &beta;<sub>1</sub>, ..., &beta;<sub>T</sub> 逐步加入高斯噪聲的馬可夫鏈</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學定義——以嚴謹的機率語言定義擴散模型的前向與反向過程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立全文的數學基礎。反向過程（學習的）與前向過程（固定的）的二元對稱結構是理解整篇論文的鑰匙：訓練的目標就是學會反轉一個已知的噪聲添加過程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「固定前向過程」是擴散模型相對於 VAE 的關鍵簡化——無需同時學習編碼器與解碼器。但作者在此階段未討論方差排程 &beta;<sub>t</sub> 的選擇對模型效能的影響，將此問題推遲至實驗章節。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 背景段落 2：封閉式取樣與變分界限 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A notable property of the forward process is that it admits <span class="hl-method">sampling x<sub>t</sub> at an arbitrary timestep t in closed form</span>: using the notation &alpha;<sub>t</sub> := 1 - &beta;<sub>t</sub> and <span style="text-decoration:overline">&alpha;</span><sub>t</sub> := &prod;<sub>s=1</sub><sup>t</sup> &alpha;<sub>s</sub>, we have <span class="hl-method">q(x<sub>t</sub>|x<sub>0</sub>) = N(x<sub>t</sub>; &radic;<span style="text-decoration:overline">&alpha;</span><sub>t</sub> x<sub>0</sub>, (1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>)I)</span>. Training is efficient by optimizing random terms of the variational bound L with stochastic gradient descent. The forward process posteriors, conditioned on x<sub>0</sub>, are tractable: <span class="hl-method">q(x<sub>t-1</sub>|x<sub>t</sub>, x<sub>0</sub>) = N(x<sub>t-1</sub>; <span style="text-decoration:tilde">&mu;</span><sub>t</sub>(x<sub>t</sub>, x<sub>0</sub>), <span style="text-decoration:tilde">&beta;</span><sub>t</sub>I)</span>, enabling <span class="hl-thesis">closed-form KL divergence computation</span> rather than high-variance Monte Carlo estimates.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                前向過程的一個重要特性是可<span class="hl-method">在任意時間步 t 以封閉形式取樣 x<sub>t</sub></span>：令 &alpha;<sub>t</sub> := 1 - &beta;<sub>t</sub> 且 <span style="text-decoration:overline">&alpha;</span><sub>t</sub> := &prod;<sub>s=1</sub><sup>t</sup> &alpha;<sub>s</sub>，則 <span class="hl-method">q(x<sub>t</sub>|x<sub>0</sub>) = N(x<sub>t</sub>; &radic;<span style="text-decoration:overline">&alpha;</span><sub>t</sub> x<sub>0</sub>, (1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>)I)</span>。透過隨機梯度下降最佳化變分界限 L 的隨機項，訓練得以高效進行。在以 x<sub>0</sub> 為條件時，前向過程的後驗分布是可解析的：<span class="hl-method">q(x<sub>t-1</sub>|x<sub>t</sub>, x<sub>0</sub>)</span> 具有封閉形式的高斯分布，從而能<span class="hl-thesis">以封閉形式計算 KL 散度</span>，而非仰賴高方差的蒙地卡羅估計。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推導關鍵性質——證明前向過程的可解析性及其對訓練效率的影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解答了「為何擴散模型可被有效訓練」的核心問題。封閉形式的 q(x<sub>t</sub>|x<sub>0</sub>) 意味著無需逐步執行前向過程即可直接跳至任意噪聲等級，而可解析的後驗使損失函數的計算精確而穩定。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    這些數學性質看似技術細節，實則是擴散模型之所以實用的根本原因。作者巧妙地將繁重的推導壓縮為關鍵結果的呈現，讓讀者在不陷入細節的情況下掌握核心直覺：「可以一步跳到任意噪聲程度」與「損失可精確計算」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 背景段落 3：變分界限結構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The variational bound can be further rewritten to be evaluated with <span class="hl-method">closed-form expressions rather than Monte Carlo estimates</span>, decomposing into: <span class="hl-method">L<sub>T</sub></span>, which compares the final latent distribution to the prior; <span class="hl-method">L<sub>t-1</sub></span> terms for 1 &lt; t &le; T, each a <span class="hl-evidence">KL divergence between two Gaussians</span> that can be computed exactly; and <span class="hl-method">L<sub>0</sub></span>, a <span class="hl-evidence">reconstruction term</span>. All KL divergences are between Gaussians, so they can be <span class="hl-thesis">calculated in closed form instead of with high variance Monte Carlo estimates</span>, a significant advantage over other variational methods that require such approximations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                變分界限可進一步改寫為<span class="hl-method">以封閉形式表達而非蒙地卡羅估計</span>，分解為：<span class="hl-method">L<sub>T</sub></span>，比較最終潛在分布與先驗分布；對於 1 &lt; t &le; T 的各 <span class="hl-method">L<sub>t-1</sub></span> 項，各為<span class="hl-evidence">兩個高斯分布之間的 KL 散度</span>，可精確計算；以及 <span class="hl-method">L<sub>0</sub></span>，即<span class="hl-evidence">重建項</span>。所有 KL 散度均為高斯分布間的散度，因此可<span class="hl-thesis">以封閉形式計算而非依賴高方差的蒙地卡羅估計</span>——這是相較於需要此類近似的其他變分方法的顯著優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    細化變分界限——將損失函數拆解為可逐項分析的結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為第 3 節的簡化目標函數奠定基礎。L<sub>T</sub> / L<sub>t-1</sub> / L<sub>0</sub> 的三項分解是後續設計選擇（固定 L<sub>T</sub>、重參數化 L<sub>t-1</sub>、離散化 L<sub>0</sub>）的框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者將「封閉形式 KL 散度」反覆強調為優勢，暗示對照 VAE 中常見的蒙地卡羅 ELBO 估計問題。但此優勢的代價是前向過程必須固定——損失了 VAE 中編碼器可學習的彈性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 擴散模型與去噪自編碼器 ====== -->
+    <h2 class="section-heading" id="sec-diffusion">3. Diffusion Models and Denoising Autoencoders — 擴散模型與去噪自編碼器</h2>
+
+    <!-- 3.1 前向過程 -->
+    <h3 class="subsection-heading" id="sec-forward">3.1 Forward Process and L<sub>T</sub> — 前向過程與 L<sub>T</sub></h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We ignore the fact that the <span class="hl-concept">forward process variances</span> &beta;<sub>t</sub> are learnable by reparameterization and instead <span class="hl-method">fix them to constants</span>. Thus, the approximate posterior q has <span class="hl-thesis">no learnable parameters</span>, so L<sub>T</sub> is a constant during training and <span class="hl-method">can be ignored</span>. This design choice simplifies the optimization and <span class="hl-thesis">removes the need to jointly learn the forward process</span>, focusing all capacity on the reverse process parameterization.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們忽略<span class="hl-concept">前向過程方差</span> &beta;<sub>t</sub> 可透過重參數化來學習這一事實，而是<span class="hl-method">將其固定為常數</span>。因此，近似後驗 q <span class="hl-thesis">不具有可學習的參數</span>，使得 L<sub>T</sub> 在訓練期間為常數，<span class="hl-method">可被忽略</span>。此設計選擇簡化了最佳化過程，<span class="hl-thesis">免除了聯合學習前向過程的需求</span>，將所有模型容量集中於反向過程的參數化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計決策——解釋固定前向過程方差的選擇及其影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    第一個關鍵的簡化決策。固定 &beta;<sub>t</sub> 不僅降低了最佳化的複雜度，更在概念上強化了擴散模型的核心理念：前向過程是「物理般」的噪聲添加，不應被干預。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「ignore the fact」這個措辭暗示這是一個務實的選擇而非理論必然。後續研究（如 Improved DDPM）證明學習方差排程確實能帶來改進，顯示此簡化雖有效但非最優。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 反向過程 -->
+    <h3 class="subsection-heading" id="sec-reverse">3.2 Reverse Process and L<sub>1:t-1</sub> — 反向過程與 L<sub>1:t-1</sub></h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For the reverse process p<sub>&theta;</sub>(x<sub>t-1</sub>|x<sub>t</sub>) = N(x<sub>t-1</sub>; &mu;<sub>&theta;</sub>(x<sub>t</sub>, t), &Sigma;<sub>&theta;</sub>(x<sub>t</sub>, t)), we first set <span class="hl-method">&Sigma;<sub>&theta;</sub>(x<sub>t</sub>, t) = &sigma;<sub>t</sub><sup>2</sup>I to untrained time dependent constants</span>. Experimentally, both <span class="hl-evidence">&sigma;<sub>t</sub><sup>2</sup> = &beta;<sub>t</sub> and &sigma;<sub>t</sub><sup>2</sup> = <span style="text-decoration:tilde">&beta;</span><sub>t</sub></span> had similar results. With this choice, L<sub>t-1</sub> reduces to comparing the <span class="hl-method">true denoising mean</span> to the <span class="hl-method">predicted mean &mu;<sub>&theta;</sub></span>. The training objective becomes: <span class="hl-method">L<sub>t-1</sub> = E<sub>q</sub>[ (1/2&sigma;<sub>t</sub><sup>2</sup>) || &mu;&#771;<sub>t</sub>(x<sub>t</sub>, x<sub>0</sub>) - &mu;<sub>&theta;</sub>(x<sub>t</sub>, t) ||<sup>2</sup> ] + C</span>, where C is a constant independent of &theta;.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於反向過程 p<sub>&theta;</sub>(x<sub>t-1</sub>|x<sub>t</sub>) = N(x<sub>t-1</sub>; &mu;<sub>&theta;</sub>(x<sub>t</sub>, t), &Sigma;<sub>&theta;</sub>(x<sub>t</sub>, t))，我們首先將 <span class="hl-method">&Sigma;<sub>&theta;</sub>(x<sub>t</sub>, t) = &sigma;<sub>t</sub><sup>2</sup>I 設為不可訓練的時間相依常數</span>。實驗上，<span class="hl-evidence">&sigma;<sub>t</sub><sup>2</sup> = &beta;<sub>t</sub> 與 &sigma;<sub>t</sub><sup>2</sup> = <span style="text-decoration:tilde">&beta;</span><sub>t</sub></span> 兩者產生了相近的結果。在此設定下，L<sub>t-1</sub> 簡化為比較<span class="hl-method">真實去噪均值</span>與<span class="hl-method">預測均值 &mu;<sub>&theta;</sub></span>。訓練目標變為：<span class="hl-method">L<sub>t-1</sub> = E<sub>q</sub>[ (1/2&sigma;<sub>t</sub><sup>2</sup>) || &mu;&#771;<sub>t</sub>(x<sub>t</sub>, x<sub>0</sub>) - &mu;<sub>&theta;</sub>(x<sub>t</sub>, t) ||<sup>2</sup> ] + C</span>，其中 C 為與 &theta; 無關的常數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    固定方差選擇——第二個關鍵簡化，將反向過程的方差也設為常數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    延續 3.1 的簡化策略：先固定前向方差，再固定反向方差，使得訓練目標完全聚焦於學習去噪均值 &mu;<sub>&theta;</sub>。此處的均方誤差形式為後續的 &epsilon;-預測重參數化做好了準備。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    兩種方差選擇（&beta;<sub>t</sub> 與 <span style="text-decoration:tilde">&beta;</span><sub>t</sub>）的實驗等價性暗示模型對此超參數不太敏感。然而，後續研究發現在少步取樣情境下方差選擇確實會產生顯著差異，此處的結論可能不具完全的一般性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 續：epsilon 預測參數化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further <span class="hl-method">reparameterize using x<sub>t</sub>(x<sub>0</sub>, &epsilon;) = &radic;<span style="text-decoration:overline">&alpha;</span><sub>t</sub> x<sub>0</sub> + &radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>) &epsilon;</span> for &epsilon; ~ N(0, I), which reveals that &mu;<sub>&theta;</sub> must predict <span class="hl-method">(1/&radic;&alpha;<sub>t</sub>)(x<sub>t</sub> - (&beta;<sub>t</sub>/&radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>)) &epsilon;)</span>. We propose the parameterization: <span class="hl-thesis">&mu;<sub>&theta;</sub>(x<sub>t</sub>, t) = (1/&radic;&alpha;<sub>t</sub>)(x<sub>t</sub> - (&beta;<sub>t</sub>/&radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>)) &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t))</span>, where <span class="hl-concept">&epsilon;<sub>&theta;</sub></span> is a neural network that <span class="hl-thesis">predicts the noise &epsilon; from x<sub>t</sub></span>. The sampling procedure then computes x<sub>t-1</sub> = (1/&radic;&alpha;<sub>t</sub>)(x<sub>t</sub> - (&beta;<sub>t</sub>/&radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>)) &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t)) + &sigma;<sub>t</sub>z, resembling <span class="hl-concept">Langevin dynamics</span> with &epsilon;<sub>&theta;</sub> as a <span class="hl-thesis">learned gradient of the data density</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步<span class="hl-method">以 x<sub>t</sub>(x<sub>0</sub>, &epsilon;) = &radic;<span style="text-decoration:overline">&alpha;</span><sub>t</sub> x<sub>0</sub> + &radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>) &epsilon;</span> 進行重參數化（其中 &epsilon; ~ N(0, I)），揭示 &mu;<sub>&theta;</sub> 須預測 <span class="hl-method">(1/&radic;&alpha;<sub>t</sub>)(x<sub>t</sub> - (&beta;<sub>t</sub>/&radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>)) &epsilon;)</span>。我們提出如下參數化：<span class="hl-thesis">&mu;<sub>&theta;</sub>(x<sub>t</sub>, t) = (1/&radic;&alpha;<sub>t</sub>)(x<sub>t</sub> - (&beta;<sub>t</sub>/&radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>)) &epsilon;<sub>&theta;</sub>(x<sub>t</sub>, t))</span>，其中 <span class="hl-concept">&epsilon;<sub>&theta;</sub></span> 是一個<span class="hl-thesis">從 x<sub>t</sub> 預測噪聲 &epsilon; 的神經網路</span>。取樣過程隨即計算 x<sub>t-1</sub>，其形式類似於<span class="hl-concept">朗之萬動力學</span>，而 &epsilon;<sub>&theta;</sub> 扮演<span class="hl-thesis">資料密度之學習式梯度</span>的角色。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——提出 &epsilon;-預測參數化，這是全文最重要的方法論貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的論證樞紐。從「預測均值」到「預測噪聲」的重參數化看似僅是數學技巧，卻帶來三重意義：(1) 簡化了訓練目標；(2) 建立了與分數匹配的理論等價性；(3) 使取樣過程與朗之萬動力學產生連結。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「predicts the noise」是極具啟發性的直覺——訓練一個去噪器等價於學習資料分布的分數函數。這一洞見後來成為整個擴散模型領域的基礎範式。作者以「resembling Langevin dynamics」建立跨領域的理論橋樑，增強了結果的可信度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.4 簡化訓練目標 -->
+    <h3 class="subsection-heading" id="sec-simplified">3.4 Simplified Training Objective — 簡化訓練目標</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                With the reverse process and decoder defined above, the variational bound is clearly differentiable with respect to &theta; and ready for training. However, we found it beneficial to sample quality to train on a <span class="hl-thesis">simplified variant</span>: <span class="hl-method">L<sub>simple</sub>(&theta;) := E<sub>t,x<sub>0</sub>,&epsilon;</sub> [ || &epsilon; - &epsilon;<sub>&theta;</sub>(&radic;<span style="text-decoration:overline">&alpha;</span><sub>t</sub> x<sub>0</sub> + &radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>) &epsilon;, t) ||<sup>2</sup> ]</span>, where t is uniform between 1 and T. Since our simplified objective <span class="hl-rebuttal">discards the weighting in the original variational bound</span>, it is a <span class="hl-method">weighted variational bound that emphasizes different aspects of reconstruction</span>. Our diffusion process setup causes the simplified objective to <span class="hl-thesis">down-weight loss terms corresponding to small t</span>, training the network to <span class="hl-thesis">focus on more difficult, larger noise-level denoising tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在上述反向過程與解碼器的定義下，變分界限對 &theta; 顯然可微分，可直接用於訓練。然而，我們發現對樣本品質而言，以一個<span class="hl-thesis">簡化變體</span>來訓練更為有益：<span class="hl-method">L<sub>simple</sub>(&theta;) := E<sub>t,x<sub>0</sub>,&epsilon;</sub> [ || &epsilon; - &epsilon;<sub>&theta;</sub>(&radic;<span style="text-decoration:overline">&alpha;</span><sub>t</sub> x<sub>0</sub> + &radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>) &epsilon;, t) ||<sup>2</sup> ]</span>，其中 t 在 1 到 T 之間均勻取樣。由於簡化目標<span class="hl-rebuttal">捨棄了原始變分界限中的加權</span>，它實質上是一個<span class="hl-method">強調不同重建面向的加權變分界限</span>。我們的擴散過程設定使簡化目標<span class="hl-thesis">降低對應於小 t 的損失項權重</span>，引導網路<span class="hl-thesis">專注於更困難的大噪聲等級去噪任務</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出簡化目標——將訓練損失簡化為直觀的噪聲預測均方誤差。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成了從「完整變分界限」到「簡潔實用損失」的最後一步簡化。L<sub>simple</sub> 的形式極其直觀——就是讓網路預測所加入的噪聲——這使得擴散模型的訓練不再需要深厚的機率論背景即可實現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「found it beneficial to sample quality」意味著此簡化在理論上並不完全合理——它不再是嚴格的變分界限最佳化。但作者巧妙地從加權重分配的角度解釋了為何這反而更好：讓網路更關注高噪聲情境有助於生成品質。這一實用主義導向的設計成為後續 DDIM、DALL-E 等工作的基礎。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.4 續：訓練與取樣演算法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To summarize, <span class="hl-method">training amounts to: (1) sample x<sub>0</sub> from the data, (2) sample t uniformly from {1,...,T}, (3) sample &epsilon; ~ N(0, I), (4) take a gradient descent step on || &epsilon; - &epsilon;<sub>&theta;</sub>(&radic;<span style="text-decoration:overline">&alpha;</span><sub>t</sub> x<sub>0</sub> + &radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>) &epsilon;, t) ||<sup>2</sup></span>. <span class="hl-method">Sampling amounts to: start from x<sub>T</sub> ~ N(0, I), then iteratively compute x<sub>t-1</sub> from x<sub>t</sub> using &epsilon;<sub>&theta;</sub> for t = T, T-1, ..., 1</span>. The algorithm is <span class="hl-thesis">remarkably simple</span>: it resembles <span class="hl-concept">denoising score matching</span> training over multiple noise levels with <span class="hl-concept">annealed Langevin dynamics</span> sampling. The complete procedure uses a <span class="hl-concept">U-Net backbone</span> with <span class="hl-method">group normalization, self-attention at 16x16 resolution, and Transformer sinusoidal position embeddings</span> for time conditioning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                總結而言，<span class="hl-method">訓練流程為：(1) 從資料中取樣 x<sub>0</sub>；(2) 從 {1,...,T} 均勻取樣 t；(3) 取樣 &epsilon; ~ N(0, I)；(4) 對 || &epsilon; - &epsilon;<sub>&theta;</sub>(&radic;<span style="text-decoration:overline">&alpha;</span><sub>t</sub> x<sub>0</sub> + &radic;(1 - <span style="text-decoration:overline">&alpha;</span><sub>t</sub>) &epsilon;, t) ||<sup>2</sup> 執行梯度下降</span>。<span class="hl-method">取樣流程為：從 x<sub>T</sub> ~ N(0, I) 開始，利用 &epsilon;<sub>&theta;</sub> 迭代計算 x<sub>t-1</sub>，由 t = T, T-1, ..., 1</span>。該演算法<span class="hl-thesis">極其簡潔</span>：它類似於在多個噪聲尺度上的<span class="hl-concept">去噪分數匹配</span>訓練搭配<span class="hl-concept">退火朗之萬動力學</span>取樣。完整流程使用一個 <span class="hl-concept">U-Net 骨幹網路</span>，配備<span class="hl-method">群組正規化、16x16 解析度的自注意力機制，以及 Transformer 正弦位置嵌入</span>作為時間條件化機制。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結演算法——將訓練與取樣流程提煉為可直接實現的步驟。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    全方法章節的收束：前面的數學推導在此化為四步訓練與迭代取樣的具體演算法。同時補充了網路架構的選擇，使方法描述完整可復現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「remarkably simple」的自我評價精準地捕捉了此方法的核心優勢——相較於 GAN 需要精細的判別器-生成器平衡，擴散模型的訓練流程如同訓練一個標準的去噪自編碼器。架構選擇（U-Net + 自注意力）與後來的標準實踐完全一致，顯示作者的設計直覺極佳。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：樣本品質 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We set <span class="hl-method">T = 1000</span> for all experiments. The forward process variances are set to constants <span class="hl-method">increasing linearly from &beta;<sub>1</sub> = 10<sup>-4</sup> to &beta;<sub>T</sub> = 0.02</span>. These were chosen to be small relative to data scaled to [-1, 1], ensuring that the reverse and forward processes have approximately the same functional form while minimizing the signal-to-noise ratio at x<sub>T</sub>. On <span class="hl-evidence">CIFAR10, our model achieves an Inception Score of 9.46 and FID of 3.17</span>. Our unconditional model <span class="hl-thesis">achieves better sample quality than most models in the literature, including class conditional models</span>. We find that training on the true variational bound yields better codelengths, but <span class="hl-thesis">the simplified objective yields the best sample quality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                所有實驗中我們設定 <span class="hl-method">T = 1000</span>。前向過程方差設為<span class="hl-method">從 &beta;<sub>1</sub> = 10<sup>-4</sup> 線性遞增至 &beta;<sub>T</sub> = 0.02</span> 的常數。這些值被選定為相對於縮放至 [-1, 1] 的資料而言足夠小，以確保反向與前向過程具有近似相同的函數形式，同時使 x<sub>T</sub> 處的訊噪比最小化。在 <span class="hl-evidence">CIFAR10 上，我們的模型達到 Inception 分數 9.46 與 FID 3.17</span>。我們的無條件模型<span class="hl-thesis">在樣本品質上超越了文獻中大多數模型，包括條件式模型</span>。我們發現在真正的變分界限上訓練能產生更佳的碼長，但<span class="hl-thesis">簡化目標則產出最佳的樣本品質</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定與核心結果——報告超參數選擇與定量效能指標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱：FID 3.17 不僅是一個數字，更是「擴散模型可以生成高品質樣本」這一核心主張的最直接證據。「超越條件式模型」的比較尤其大膽——無條件模型在更困難的設定下仍勝出。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    T=1000 意味著生成一張影像需要 1000 次網路前向傳播，這是擴散模型最大的實用瓶頸。作者在此段未討論取樣速度問題，僅專注於品質指標。此外，「簡化目標產出最佳品質」但「變分界限產出最佳碼長」的權衡揭示了一個有趣的張力：最佳化似然度與最佳化感知品質並非同一目標。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：消融研究 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Ablation studies</span> reveal several key findings. <span class="hl-evidence">Predicting &epsilon;</span>, as proposed, performs approximately as well as predicting the posterior mean when trained on the variational bound with fixed variances, but <span class="hl-thesis">much better with the simplified objective</span>. Learning reverse process variances &Sigma;<sub>&theta;</sub> via a parameterized diagonal <span class="hl-rebuttal">led to unstable training and poorer sample quality compared to fixed variances</span>. On <span class="hl-evidence">LSUN 256x256</span>, our samples achieve quality <span class="hl-evidence">similar to ProgressiveGAN</span>, a strong GAN baseline. These results confirm that each design choice — <span class="hl-thesis">fixed variances, &epsilon;-prediction, and simplified objective — contributes to the final performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-evidence">消融研究</span>揭示了幾項關鍵發現。我們所提出的 <span class="hl-evidence">&epsilon; 預測</span>方式，在以固定方差的變分界限訓練時，其表現與預測後驗均值大致相當，但在<span class="hl-thesis">簡化目標下則顯著更優</span>。透過參數化對角矩陣來學習反向過程方差 &Sigma;<sub>&theta;</sub>，<span class="hl-rebuttal">會導致訓練不穩定且樣本品質較差</span>。在 <span class="hl-evidence">LSUN 256x256</span> 上，我們的樣本品質<span class="hl-evidence">與 ProgressiveGAN 相當</span>——一個強勁的 GAN 基線。這些結果確認了每個設計選擇——<span class="hl-thesis">固定方差、&epsilon;-預測與簡化目標——皆對最終效能有所貢獻</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供消融證據——驗證各設計選擇的個別貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究是方法論文的論證核心之一，此段系統性地證明：(1) &epsilon;-預測優於均值預測；(2) 固定方差優於學習方差；(3) 簡化目標優於嚴格變分界限。三個結論相互支撐，構成完整的設計正當性論證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「led to unstable training」這個負面結果反而增強了論文的可信度——誠實報告失敗的嘗試是優良學術實踐。然而，「similar to ProgressiveGAN」的措辭比摘要中更為明確，暗示在 LSUN 上擴散模型並未超越 GAN，僅達到持平。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：漸進式編碼 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our analysis of <span class="hl-concept">progressive coding</span> reveals that <span class="hl-thesis">the majority of the lossless codelength describes imperceptible image details</span>. While lossless codelengths are <span class="hl-rebuttal">not competitive with other likelihood-based generative models</span>, we conclude that <span class="hl-thesis">diffusion models have an inductive bias that makes them excellent lossy compressors</span>. Treating L<sub>1</sub>+...+L<sub>T</sub> as rate and L<sub>0</sub> as distortion, our best CIFAR10 model has <span class="hl-evidence">1.78 bits/dim rate and 1.97 bits/dim distortion (corresponding to 0.95 RMSE on a 0-255 scale)</span>. More than <span class="hl-evidence">half of the lossless codelength describes imperceptible distortions</span>. The progressive generation reveals that <span class="hl-thesis">large scale image features appear first and fine details appear last</span>, hinting at what may be understood as conceptual compression.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們對<span class="hl-concept">漸進式編碼</span>的分析揭示了<span class="hl-thesis">無損碼長中的絕大部分用於描述人眼無法感知的影像細節</span>。雖然無損碼長<span class="hl-rebuttal">無法與其他基於似然度的生成模型競爭</span>，但我們得出結論：<span class="hl-thesis">擴散模型具有使其成為出色有損壓縮器的歸納偏置</span>。以 L<sub>1</sub>+...+L<sub>T</sub> 作為位元率、L<sub>0</sub> 作為失真度，我們最佳的 CIFAR10 模型具有 <span class="hl-evidence">1.78 bits/dim 的位元率與 1.97 bits/dim 的失真度（對應 0-255 尺度上 0.95 的均方根誤差）</span>。<span class="hl-evidence">超過一半的無損碼長描述了不可感知的失真</span>。漸進式生成過程揭示<span class="hl-thesis">大尺度影像特徵先出現，精細細節後出現</span>，暗示了可被理解為概念性壓縮的現象。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    壓縮分析——以率失真理論框架重新詮釋擴散模型的似然度表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成了緒論中預告的「讓步-反擊」：承認無損壓縮不佳，但以率失真分析證明擴散模型實為優秀的有損壓縮器。「大尺度先、細節後」的觀察更進一步暗示擴散過程捕捉了資料的語義層次結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「conceptual compression」是一個引人遐想但尚未嚴格定義的術語。作者以「hinting at」的謹慎措辭留有餘地。從粗到細的生成順序後來被 Cascaded Diffusion Models 等後續工作進一步利用，證明此觀察具有深遠的實用意義。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-thesis">high quality image samples using diffusion models</span>, and we have found connections among <span class="hl-concept">diffusion models</span> and <span class="hl-concept">variational inference</span> for training Markov chains, <span class="hl-concept">denoising score matching</span> and <span class="hl-concept">annealed Langevin dynamics</span> (and energy-based models by extension), <span class="hl-concept">autoregressive models</span>, and <span class="hl-concept">progressive lossy compression</span>. Since diffusion models seem to have <span class="hl-thesis">excellent inductive biases for image data</span>, investigating their utility for <span class="hl-rebuttal">other data modalities</span> and as <span class="hl-rebuttal">components in other types of generative models and machine learning systems</span> is a fruitful area for future work.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們展示了<span class="hl-thesis">使用擴散模型生成的高品質影像樣本</span>，並發現了<span class="hl-concept">擴散模型</span>與以下領域之間的連結：用於訓練馬可夫鏈的<span class="hl-concept">變分推論</span>、<span class="hl-concept">去噪分數匹配</span>與<span class="hl-concept">退火朗之萬動力學</span>（進而延伸至基於能量的模型）、<span class="hl-concept">自迴歸模型</span>，以及<span class="hl-concept">漸進式有損壓縮</span>。鑒於擴散模型似乎對影像資料具有<span class="hl-thesis">出色的歸納偏置</span>，探索其在<span class="hl-rebuttal">其他資料模態</span>中的效用，以及作為<span class="hl-rebuttal">其他類型生成模型和機器學習系統之組件</span>的可能性，是充滿前景的未來研究方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申雙重貢獻（實證品質 + 理論連結）並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以「connections」為關鍵詞，呼應全文的理論統一主題。從擴散模型出發，串聯了變分推論、分數匹配、自迴歸解碼與壓縮理論——這種跨領域的統一視角是論文最深遠的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論的展望極具先見之明：「other data modalities」後來體現為 Diffusion-TTS（音訊）、DiffuSeq（文本）等；「components in other systems」則體現為 DALL-E 2、Stable Diffusion 中的擴散組件。但結論未討論取樣速度問題——這是後續 DDIM、DPM-Solver 等工作的直接動機。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                擴散模型被認為<br>無法生成高品質樣本
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                &epsilon;-預測參數化<br>+ 簡化訓練目標
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                CIFAR10 FID 3.17<br>LSUN 媲美 GAN
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                似然度不佳但大部分<br>碼長描述不可感知細節
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                擴散模型是具出色<br>歸納偏置的生成模型
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將擴散模型重新參數化為噪聲預測任務並以簡化訓練目標進行最佳化，可以從一個理論上簡潔但此前表現不佳的生成框架中，產出媲美甚至超越主流生成模型的高品質影像樣本。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>&epsilon;-預測的理論與實務統一：</strong>從預測均值到預測噪聲的重參數化，不僅產生了更簡潔的訓練演算法（四行虛擬碼即可描述），更揭示了擴散模型與去噪分數匹配、朗之萬動力學之間的深層等價性。這種「一個技巧同時改善實務效能與理論理解」的成果在機器學習研究中極為罕見。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>取樣效率的迴避：</strong>T=1000 的迭代取樣意味著生成一張影像需要約 20 秒（相比 GAN 的毫秒級），但論文幾乎未討論這一關鍵限制。此外，簡化目標偏離了嚴格的變分界限，其理論正當性僅以實驗結果支撐——為何下降小 t 的權重會改善品質，缺乏從第一性原理出發的解釋。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>
