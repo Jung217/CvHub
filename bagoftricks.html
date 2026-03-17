@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bag of Tricks for Image Classification with CNNs — 雙欄批注版</title>
+    <!-- 引入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Lora', 'Georgia', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #e8e0d0;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-subtitle {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 13px;
+            color: #9aa8b8;
+            margin-bottom: 12px;
+        }
+
+        .navbar-home {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 13px;
+            color: #7eb8e0;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+
+        .navbar-home:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        /* 顏色圖例 */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .legend-item {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #c0c8d4;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .legend-color.yellow { background-color: #fce4a8; }
+        .legend-color.red    { background-color: #f5b7b1; }
+        .legend-color.blue   { background-color: #a8d4f0; }
+        .legend-color.green  { background-color: #a8e6cf; }
+        .legend-color.purple { background-color: #d4b8e8; }
+
+        /* ===== 章節導航條 (sticky) ===== */
+        .section-nav {
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            background-color: #22303f;
+            border-bottom: 2px solid #2d4a5e;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 13px;
+            color: #8fa4b8;
+            text-decoration: none;
+            padding: 10px 16px;
+            display: inline-block;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .section-nav a:hover,
+        .section-nav a.active {
+            color: #ffffff;
+            border-bottom-color: #5ba3d9;
+            background-color: rgba(91, 163, 217, 0.08);
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a2332;
+            border-bottom: 3px solid #1a2332;
+            padding-bottom: 8px;
+            margin: 40px 0 24px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2a3f54;
+            border-bottom: 2px solid #d0d0d0;
+            padding-bottom: 6px;
+            margin: 30px 0 18px;
+        }
+
+        /* ===== 雙欄佈局 ===== */
+        .dual-column {
+            display: flex;
+            gap: 28px;
+            margin-bottom: 28px;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+            position: sticky;
+            top: 60px;
+        }
+
+        /* 英文原文段落 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 15.5px;
+            line-height: 1.85;
+            color: #2c2c2c;
+            margin-bottom: 0;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            border: none;
+            border-top: 1px solid #d8d2c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文區塊 */
+        .zh-text {
+            background-color: #f0ece2; /* 淺米色背景 */
+            border-left: 3px solid #b8a88a;
+            padding: 14px 18px;
+            font-family: 'Lora', serif;
+            font-size: 15px;
+            line-height: 1.85;
+            color: #3a3a3a;
+            margin-bottom: 0;
+            text-align: justify;
+        }
+
+        /* ===== 高亮標注樣式（五類維度） ===== */
+        .hl-yellow { background-color: #fce4a8; padding: 1px 3px; border-radius: 2px; } /* 核心論點 */
+        .hl-red    { background-color: #f5b7b1; padding: 1px 3px; border-radius: 2px; } /* 關鍵概念 */
+        .hl-blue   { background-color: #a8d4f0; padding: 1px 3px; border-radius: 2px; } /* 實證證據 */
+        .hl-green  { background-color: #a8e6cf; padding: 1px 3px; border-radius: 2px; } /* 讓步/反駁 */
+        .hl-purple { background-color: #d4b8e8; padding: 1px 3px; border-radius: 2px; } /* 方法論 */
+
+        /* ===== 批注卡片 ===== */
+        .annotation-card {
+            background-color: #f7f5f0;
+            border-radius: 6px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            border: 1px solid #e0dcd4;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .annotation-card.yellow-border { border-left: 4px solid #e6c34d; }
+        .annotation-card.red-border    { border-left: 4px solid #d9534f; }
+        .annotation-card.blue-border   { border-left: 4px solid #5ba3d9; }
+        .annotation-card.green-border  { border-left: 4px solid #5cb85c; }
+        .annotation-card.purple-border { border-left: 4px solid #9b59b6; }
+
+        .annotation-label {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+            color: #6a7585;
+        }
+
+        .annotation-card h4 {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a2332;
+            margin-bottom: 8px;
+        }
+
+        .annotation-card p,
+        .annotation-card li {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 13px;
+            line-height: 1.65;
+            color: #4a4a4a;
+        }
+
+        .annotation-card ul {
+            padding-left: 16px;
+            margin-top: 4px;
+        }
+
+        .annotation-card li {
+            margin-bottom: 4px;
+        }
+
+        .annotation-card strong {
+            color: #1a2332;
+        }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            background-color: #1a2332;
+            color: #e8e0d0;
+            padding: 40px 36px;
+            border-radius: 8px;
+            margin-top: 50px;
+        }
+
+        .argument-overview h2 {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #ffffff;
+            border-bottom: 2px solid #3d5a7a;
+            padding-bottom: 10px;
+        }
+
+        .argument-overview h3 {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0 10px;
+            color: #7eb8e0;
+        }
+
+        .argument-overview p,
+        .argument-overview li {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 14px;
+            line-height: 1.75;
+            color: #c0c8d4;
+        }
+
+        .argument-overview ul {
+            padding-left: 20px;
+        }
+
+        .argument-overview li {
+            margin-bottom: 6px;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 16px;
+        }
+
+        .overview-box {
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            padding: 18px 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .overview-box.strong { border-left: 4px solid #5cb85c; }
+        .overview-box.weak   { border-left: 4px solid #d9534f; }
+
+        .overview-box h4 {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .overview-box.strong h4 { color: #a8e6cf; }
+        .overview-box.weak h4   { color: #f5b7b1; }
+
+        .overview-box p {
+            font-size: 13px;
+        }
+
+        .logic-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin: 12px 0 20px;
+        }
+
+        .logic-node {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 13px;
+            background-color: rgba(91,163,217,0.15);
+            border: 1px solid rgba(91,163,217,0.3);
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: #a8d4f0;
+        }
+
+        .logic-arrow {
+            color: #5ba3d9;
+            font-size: 18px;
+        }
+
+        /* ===== 響應式設計（移動端單欄） ===== */
+        @media (max-width: 900px) {
+            .dual-column {
+                flex-direction: column;
+            }
+
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+                position: static;
+            }
+
+            .navbar { padding: 14px 16px; }
+            .main-container { padding: 16px 16px 40px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { padding: 8px 10px; font-size: 12px; }
+            .overview-grid { grid-template-columns: 1fr; }
+            .argument-overview { padding: 24px 18px; }
+        }
+
+        /* 段落間距容器 */
+        .para-block {
+            margin-bottom: 32px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== 頂部導航欄 ===== -->
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="index.html" class="navbar-home">&larr; 返回首頁</a>
+        <div class="navbar-title">Bag of Tricks for Image Classification with Convolutional Neural Networks</div>
+        <div class="navbar-subtitle">CVPR 2019 &middot; Tong He, Zhi Zhang, Hang Zhang, Zhongyue Zhang, Junyuan Xie, Mu Li</div>
+        <div class="legend">
+            <div class="legend-item"><span class="legend-color yellow"></span>核心論點 / Thesis</div>
+            <div class="legend-item"><span class="legend-color red"></span>關鍵概念 / 術語</div>
+            <div class="legend-item"><span class="legend-color blue"></span>實證證據 / 數據</div>
+            <div class="legend-item"><span class="legend-color green"></span>讓步與反駁</div>
+            <div class="legend-item"><span class="legend-color purple"></span>方法論說明</div>
+        </div>
+    </div>
+</nav>
+
+<!-- ===== 章節導航條 ===== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#abstract">摘要</a>
+        <a href="#sec1">1. 緒論</a>
+        <a href="#sec2">2. 訓練流程</a>
+        <a href="#sec3">3. 高效訓練</a>
+        <a href="#sec4">4. 模型微調</a>
+        <a href="#sec5">5. 訓練精煉</a>
+        <a href="#sec6">6. 遷移學習</a>
+        <a href="#sec7">7. 結論</a>
+        <a href="#overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ===== 主體內容 ===== -->
+<div class="main-container">
+
+    <!-- ============================== -->
+    <!--           摘要 Abstract         -->
+    <!-- ============================== -->
+    <h2 class="section-heading" id="abstract">Abstract — 摘要</h2>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    <span class="hl-yellow">Much of the recent progress made in image classification research can be credited to training procedure refinements</span>, such as changes in <span class="hl-red">data augmentations</span> and <span class="hl-red">optimization methods</span>. The authors examine a collection of training refinements and evaluate their impact through <span class="hl-purple">ablation studies</span>. They raise <span class="hl-red">ResNet-50</span>'s <span class="hl-blue">top-1 validation accuracy from 75.3% to 79.29%</span> on <span class="hl-red">ImageNet</span>. The improvements also translate to better <span class="hl-blue">transfer learning performance in object detection and semantic segmentation</span>.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    近年來影像分類研究的諸多進展，在很大程度上可歸功於訓練流程的改進，例如資料增強策略與優化方法的調整。作者系統性地檢視了一系列訓練精煉技巧，並透過消融實驗評估其各自的影響。他們在 ImageNet 資料集上將 ResNet-50 的 top-1 驗證準確率從 75.3% 提升至 79.29%。這些改進同樣延伸至遷移學習場景，在物件偵測與語義分割任務中帶來更優的效能。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card yellow-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：全文論點總覽</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>摘要作為全文濃縮，一次性呈現核心主張——訓練技巧而非架構創新才是近年進步的主因——並以具體數據量化貢獻。</li>
+                    <li><strong>邏輯角色：</strong>論證鏈的起點，建構「問題（被忽視的技巧）→ 方法（系統整理）→ 成果（4% 精度提升 + 遷移效益）」的完整框架。</li>
+                    <li><strong>論證技巧：</strong>以鮮明的數據對比（75.3% → 79.29%）製造衝擊力，暗示僅靠訓練技巧便可達到與架構改進相當的增益。同時預告遷移學習結果，拓展論文的適用範圍。潛在漏洞：未說明這些技巧是否存在超參數敏感性。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!--       1. 緒論 Introduction       -->
+    <!-- ============================== -->
+    <h2 class="section-heading" id="sec1">1. Introduction — 緒論</h2>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    Deep <span class="hl-red">convolutional neural networks (CNNs)</span> have dominated image classification since <span class="hl-red">AlexNet</span> in 2012. Various architectures emerged — <span class="hl-red">VGG, NiN, Inception, ResNet, DenseNet, NASNet</span>. <span class="hl-yellow">"These advancements did not solely come from improved model architecture. Training procedure refinements, including changes in loss functions, data preprocessing, and optimization methods also played a major role."</span> The authors examine <span class="hl-yellow">"a collection of training procedure and model architecture refinements that improve model accuracy but barely change computational complexity."</span> Their ResNet-50 with all tricks <span class="hl-blue">outperforms SE-ResNeXt-50</span> while maintaining <span class="hl-blue">similar computational costs</span>.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    自 2012 年 AlexNet 問世以來，深度卷積神經網路便主宰了影像分類領域。隨後湧現出 VGG、NiN、Inception、ResNet、DenseNet、NASNet 等多種架構。然而，這些進步並非僅來自模型架構的改良——訓練流程的精煉，包括損失函數、資料前處理與優化方法的變更，同樣扮演了關鍵角色。作者系統性地檢視了一系列能提升模型精度卻幾乎不增加計算複雜度的訓練流程與架構微調技巧。經過全部技巧加持的 ResNet-50 在效能上超越了 SE-ResNeXt-50，同時維持相近的計算成本。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card green-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：問題界定與研究動機</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>先回顧架構演進史，再點明研究缺口——社群過度關注架構創新，忽視了訓練技巧的貢獻。</li>
+                    <li><strong>邏輯角色：</strong>作為論證鏈的「問題提出」環節，為後續系統性整理提供正當性，並以「超越 SE-ResNeXt-50」的結果預告研究價值。</li>
+                    <li><strong>論證技巧：</strong>採用「讓步—轉折」策略，先肯定架構研究的貢獻，再強調被遺漏的面向。將 SE-ResNeXt-50 這一知名強基線作為比較對象，增強說服力。巧妙使用「barely change computational complexity」化解讀者對額外成本的擔憂。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!--       2. 訓練流程                -->
+    <!-- ============================== -->
+    <h2 class="section-heading" id="sec2">2. Training Procedures — 訓練流程</h2>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    The <span class="hl-purple">baseline training procedure</span> includes: <span class="hl-purple">random crop with aspect ratio in [3/4, 4/3]</span>, <span class="hl-purple">horizontal flip with 0.5 probability</span>, <span class="hl-purple">PCA noise addition</span>, and <span class="hl-purple">RGB normalization</span>. Model parameters use <span class="hl-red">Xavier initialization</span>. Training uses <span class="hl-red">Nesterov SGD</span> for <span class="hl-blue">120 epochs</span> with <span class="hl-blue">batch size 256</span>, initial <span class="hl-blue">learning rate 0.1</span> divided by 10 at <span class="hl-blue">epochs 30, 60, 90</span>. This baseline achieves <span class="hl-blue">75.87% top-1 accuracy</span>.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    基線訓練流程包含以下設定：隨機裁切（長寬比範圍 [3/4, 4/3]）、以 0.5 機率進行水平翻轉、PCA 色彩雜訊增強，以及 RGB 通道正規化。模型參數採用 Xavier 初始化。訓練使用 Nesterov SGD 優化器，共訓練 120 個 epoch，批次大小為 256，初始學習率設為 0.1 並在第 30、60、90 個 epoch 時縮減十分之一。此基線設定可達到 75.87% 的 top-1 準確率。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card purple-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：建立實驗基線</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>詳盡記錄基線設定的每個細節，為後續消融實驗提供明確的對照基準。</li>
+                    <li><strong>邏輯角色：</strong>在論證結構中扮演「實驗基礎」的角色——所有後續改進均以此基線為起點，確保比較的公平性與可重現性。</li>
+                    <li><strong>論證技巧：</strong>透過極為細緻的超參數列舉（學習率衰減時間點、裁切比例範圍等），展現科學嚴謹度。75.87% 的基線數字看似平凡，實則為後文每個「增量」的累積效果埋下伏筆。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!--       3. 高效訓練                -->
+    <!-- ============================== -->
+    <h2 class="section-heading" id="sec3">3. Efficient Training — 高效訓練</h2>
+
+    <!-- 3.1 大批次訓練 -->
+    <h3 class="subsection-heading">3.1 Large-batch Training — 大批次訓練</h3>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    Four heuristics are proposed to make large-batch training effective: <span class="hl-purple">Linear Scaling Learning Rate</span> — scaling the initial learning rate as <span class="hl-purple">"0.1 &times; b/256"</span> where b is the new batch size; <span class="hl-purple">Learning Rate Warmup</span> — because <span class="hl-green">"at the beginning all parameters are far from the final solution"</span>, a gradual ramp-up prevents training instability; <span class="hl-purple">Zero &gamma;</span> — initializing the <span class="hl-red">batch normalization &gamma; parameter</span> to 0 at residual block endpoints, effectively turning residual blocks into identity mappings initially; and <span class="hl-purple">No Bias Decay</span> — applying <span class="hl-red">weight decay</span> only on convolutional and fully-connected layer weights, not biases or BN parameters.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    為使大批次訓練有效運作，作者提出四項啟發式策略：線性縮放學習率——將初始學習率按「0.1 &times; b/256」比例放大（b 為新批次大小）；學習率預熱——由於訓練初期所有參數距離最終解仍很遠，透過逐步提升學習率來避免訓練不穩定；零 &gamma; 初始化——在殘差區塊的末端將批次正規化的 &gamma; 參數初始化為零，使殘差區塊在訓練初期等效為恆等映射；以及無偏差衰減——僅對卷積層和全連接層的權重施加權重衰減，不包含偏差項或批次正規化參數。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card purple-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：提出高效訓練策略</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>逐一介紹四項解決大批次訓練困難的啟發式方法，每項都給出直覺解釋與理論依據。</li>
+                    <li><strong>邏輯角色：</strong>從基線出發的第一組改進，屬於「不改變模型、只調整訓練方式」的範疇，為論文的核心主張——訓練技巧的價值——提供首批佐證。</li>
+                    <li><strong>論證技巧：</strong>「Zero &gamma;」與「No Bias Decay」這類細微技巧往往散落在各論文的腳註中，作者將其系統化整理並賦予統一的命名，提升了知識的可傳播性。引用「far from the final solution」的直覺解釋也降低了讀者理解門檻。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 低精度訓練 -->
+    <h3 class="subsection-heading">3.2 Low-precision Training — 低精度訓練</h3>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    Modern hardware like the <span class="hl-red">Nvidia V100</span> offers dramatically different throughput at different precisions: <span class="hl-blue">"14 TFLOPS in FP32 but over 100 TFLOPS in FP16."</span> By adopting <span class="hl-purple">mixed-precision training (FP16)</span> with a <span class="hl-blue">batch size of 1024</span>, per-epoch training time is <span class="hl-blue">reduced from 13.3 to 4.4 minutes</span> while <span class="hl-blue">accuracy improves by 0.5%</span>.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    現代硬體如 Nvidia V100 在不同精度下的運算吞吐量差異巨大：FP32 下為 14 TFLOPS，FP16 下則超過 100 TFLOPS。透過採用混合精度訓練（FP16）並將批次大小擴大至 1024，每個 epoch 的訓練時間從 13.3 分鐘縮短至 4.4 分鐘，同時準確率反而提升了 0.5%。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card blue-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：提供實證數據支撐</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>以硬體規格的具體數據說明低精度訓練的可行性與效益，屬於「實證證據」段落。</li>
+                    <li><strong>邏輯角色：</strong>補充前一小節的大批次訓練策略，展示在實際工程場景中同時獲得速度與精度雙贏的可能性。</li>
+                    <li><strong>論證技巧：</strong>FP32/FP16 的 7 倍算力差距（14 vs 100+ TFLOPS）是極具說服力的數據。訓練時間的 3 倍加速搭配精度提升 0.5%，形成「更快且更好」的敘事，破除讀者對低精度可能損失精度的直覺擔憂。但值得注意的是，此處未討論混合精度訓練在數值穩定性上的潛在風險。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!--       4. 模型微調                -->
+    <!-- ============================== -->
+    <h2 class="section-heading" id="sec4">4. Model Tweaks — 模型微調</h2>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    Three incremental modifications to the <span class="hl-red">ResNet architecture</span> are proposed: <span class="hl-purple">ResNet-B</span> — swap stride positions in the downsampling residual blocks to <span class="hl-yellow">preserve information flow</span> through the 1&times;1 convolution; <span class="hl-purple">ResNet-C</span> — replace the initial <span class="hl-red">7&times;7 convolution</span> <span class="hl-purple">"with three consecutive 3&times;3 convolutions"</span>, maintaining the same receptive field while reducing parameters; <span class="hl-purple">ResNet-D</span> — add <span class="hl-purple">"a 2&times;2 average pooling layer with stride 2 before the convolution"</span> in the shortcut connection of downsampling blocks. The combined tweaks yield approximately <span class="hl-blue">1% improvement in top-1 accuracy</span>, with practical <span class="hl-blue">throughput decrease of only 3%</span>.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    作者對 ResNet 架構提出三項漸進式修改：ResNet-B——調換下採樣殘差區塊中的步幅位置，以保留通過 1&times;1 卷積的資訊流；ResNet-C——以三個連續的 3&times;3 卷積取代原始的 7&times;7 卷積，在維持相同感受野的同時減少參數量；ResNet-D——在下採樣區塊的捷徑連接中，在卷積之前加入 2&times;2 平均池化層（步幅為 2）。這三項組合調整大約帶來 1% 的 top-1 精度提升，而實際吞吐量僅下降 3%。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card purple-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：架構層面的微幅調整</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>展示三種對 ResNet 的小幅架構修改，每項修改都有明確的設計動機與量化效益。</li>
+                    <li><strong>邏輯角色：</strong>從純粹的「訓練技巧」過渡到「輕量架構改進」，拓展論文的技巧維度。在論證鏈中作為「累積改進」的中間環節。</li>
+                    <li><strong>論證技巧：</strong>以遞進命名（B → C → D）暗示三項修改的累積性與相容性。「1% 改進、3% 吞吐量損失」的量化呈現精準地回應了成本效益的疑慮。值得注意的是，這些修改雖冠以「tweak」之名，實質上改變了模型結構，與前文「不改架構」的主旨存在微妙張力。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!--       5. 訓練精煉                -->
+    <!-- ============================== -->
+    <h2 class="section-heading" id="sec5">5. Training Refinements — 訓練精煉</h2>
+
+    <!-- 5.1 餘弦學習率衰減 -->
+    <h3 class="subsection-heading">5.1 Cosine Learning Rate Decay — 餘弦學習率衰減</h3>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    <span class="hl-purple">Cosine learning rate decay</span> <span class="hl-yellow">"potentially improves the training progress"</span> compared to <span class="hl-red">step decay</span>. Instead of abruptly reducing the learning rate at fixed epochs, the cosine schedule smoothly decreases it following a half-cosine curve, providing a more gradual transition that allows the model to continue learning effectively throughout training.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    相較於階梯式衰減，餘弦學習率衰減策略能更有效地促進訓練過程。不同於在固定 epoch 時驟然降低學習率，餘弦排程遵循半餘弦曲線平滑地遞減學習率，提供更漸進的過渡，使模型在整個訓練過程中持續有效學習。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card yellow-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：引入改進訓練策略</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>作為訓練精煉系列的首項，介紹餘弦排程對比階梯衰減的優勢。</li>
+                    <li><strong>邏輯角色：</strong>開啟第 5 節「訓練精煉」的累積論證——每項技巧獨立帶來增量，最終疊加出顯著提升。</li>
+                    <li><strong>論證技巧：</strong>使用「potentially improves」的謹慎措辭避免過度宣稱，同時直覺上「平滑優於突變」的邏輯易於被讀者接受。但缺乏理論分析，更偏向經驗性觀察。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5.2 標籤平滑 -->
+    <h3 class="subsection-heading">5.2 Label Smoothing — 標籤平滑</h3>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    <span class="hl-purple">Label smoothing</span> replaces the hard one-hot target with a smoothed distribution: <span class="hl-purple">"1&minus;&epsilon; for the correct class, &epsilon;/(K&minus;1) for others"</span>, where <span class="hl-red">&epsilon;</span> is a small constant and <span class="hl-red">K</span> is the number of classes. This approach <span class="hl-yellow">encourages "finite output and can generalize better"</span> by preventing the model from becoming over-confident on training examples.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    標籤平滑技術將硬性的 one-hot 目標替換為平滑化的分佈：正確類別的標籤設為 1&minus;&epsilon;，其餘類別設為 &epsilon;/(K&minus;1)，其中 &epsilon; 為一小常數，K 為類別總數。此方法鼓勵模型產生有限的輸出值，從而獲得更好的泛化能力，避免模型在訓練樣本上過度自信。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card purple-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：介紹正則化技巧</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>引入標籤平滑作為損失函數層面的正則化手段，解釋其數學形式與直覺動機。</li>
+                    <li><strong>邏輯角色：</strong>累積論證的第二環——從學習率排程轉向損失函數設計，拓展技巧的維度範圍。</li>
+                    <li><strong>論證技巧：</strong>簡潔的數學公式搭配「finite output」的直覺解釋，兼顧嚴謹性與可讀性。此處暗含一個重要洞察：標準交叉熵鼓勵 logits 趨向無窮大，而標籤平滑提供了自然的約束。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5.3 知識蒸餾 -->
+    <h3 class="subsection-heading">5.3 Knowledge Distillation — 知識蒸餾</h3>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    <span class="hl-purple">Knowledge distillation</span> <span class="hl-yellow">"uses a teacher model to help train the current model (student)."</span> The student network learns not only from the hard labels but also from the <span class="hl-red">soft probability distribution</span> produced by a pre-trained, typically larger <span class="hl-red">teacher model</span>. This transfers the teacher's learned knowledge of inter-class similarities to the student.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    知識蒸餾利用一個教師模型來輔助訓練當前的學生模型。學生網路不僅從硬標籤學習，還從預訓練的（通常更大的）教師模型所產生的軟機率分佈中學習。這一過程將教師模型對類別間相似性的認知傳遞給學生模型。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card yellow-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：引入外部知識源</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>介紹知識蒸餾作為一種借助外部強模型提升小模型能力的方法。</li>
+                    <li><strong>邏輯角色：</strong>累積論證的第三環，技巧維度從「損失函數」擴展到「學習目標設計」，展示跨層面的系統性整理。</li>
+                    <li><strong>論證技巧：</strong>「teacher-student」的隱喻讓方法論直覺易懂。值得注意的是，知識蒸餾需要額外的教師模型訓練成本，但論文在此並未深入討論這一前提條件。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5.4 Mixup 訓練 -->
+    <h3 class="subsection-heading">5.4 Mixup Training — 混合增強訓練</h3>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    <span class="hl-purple">Mixup</span> training <span class="hl-purple">"randomly samples two examples and forms a new example by weighted linear interpolation"</span> of both the inputs and their labels. This <span class="hl-red">data augmentation technique</span> effectively regularizes the model by encouraging <span class="hl-yellow">linear behavior between training examples</span> in the input space.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    Mixup 訓練隨機抽取兩個樣本，透過對輸入與標籤進行加權線性內插來合成新的訓練範例。這種資料增強技術透過鼓勵模型在輸入空間中的訓練樣本之間呈現線性行為，有效地發揮正則化作用。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card purple-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：資料增強層面的正則化</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>介紹 Mixup 作為最後一項核心訓練精煉技巧，從資料層面實現正則化。</li>
+                    <li><strong>邏輯角色：</strong>累積論證的第四環，至此四項技巧涵蓋了學習率、損失函數、學習目標與資料增強四個維度，展現全面性。</li>
+                    <li><strong>論證技巧：</strong>「線性內插」的操作既簡單又直覺，不需要額外的網路架構或計算。但此處隱含一個假設——線性內插在語義空間中是合理的——這對於高度非線性的分類邊界可能不總是成立。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5.5 疊加效果 -->
+    <h3 class="subsection-heading">5.5 Stacking Results — 疊加效果</h3>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    Stacking all refinements yields cumulative gains: <span class="hl-blue">cosine decay contributes +0.75%</span>, <span class="hl-blue">label smoothing adds +0.4%</span>, and <span class="hl-blue">mixup contributes +0.84%</span>, ultimately <span class="hl-yellow">achieving 79.29% top-1 accuracy</span> — a total gain of nearly <span class="hl-blue">4 percentage points</span> over the original baseline.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    將所有精煉技巧疊加後產生累積增益：餘弦衰減貢獻 +0.75%，標籤平滑增加 +0.4%，Mixup 貢獻 +0.84%，最終達到 79.29% 的 top-1 準確率——相較原始基線累計提升近 4 個百分點。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card blue-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：量化累積效益</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>以具體數據總結各項技巧的個別貢獻與總體效果，作為第 5 節的結論性段落。</li>
+                    <li><strong>邏輯角色：</strong>論證鏈的「成果匯總」節點，將前述各技巧的增量效益可視化，驗證「小技巧疊加出大改進」的核心命題。</li>
+                    <li><strong>論證技巧：</strong>逐項列出百分比增量是極為有效的呈現方式，讓讀者清楚看到每項技巧的邊際貢獻。79.29% 這一最終數字呼應摘要，形成首尾一致的論述。然而，各技巧之間的交互作用未被深入分析——增量是否可以簡單加總？是否存在互相衝突的情況？</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!--       6. 遷移學習                -->
+    <!-- ============================== -->
+    <h2 class="section-heading" id="sec6">6. Transfer Learning — 遷移學習</h2>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    The trained models are evaluated on downstream tasks. For <span class="hl-red">Faster-RCNN</span> on <span class="hl-red">PASCAL VOC</span>, the best classifier achieves <span class="hl-blue">81.33% mAP</span>. For <span class="hl-red">FCN</span> on <span class="hl-red">ADE20K</span>, cosine decay proves effective, but <span class="hl-green">"models trained with label smoothing, distillation and mixup favor softened labels, blurred pixel-level information may degrade overall pixel-level accuracy."</span> This reveals <span class="hl-green">a nuanced trade-off</span>: techniques that improve classification may not universally benefit dense prediction tasks.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    訓練完成的模型在下游任務上進行評估。在 PASCAL VOC 上使用 Faster-RCNN 進行物件偵測時，最佳分類器達到 81.33% mAP。在 ADE20K 上使用 FCN 進行語義分割時，餘弦衰減策略證實有效，但以標籤平滑、知識蒸餾和 Mixup 訓練的模型因偏好軟化標籤，其模糊的像素級資訊可能導致整體像素級精度下降。這揭示了一個微妙的權衡：能改善分類效能的技巧未必普遍有利於密集預測任務。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card green-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：驗證泛化能力與揭示局限</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>將分類模型應用於偵測與分割等遷移任務，同時坦誠承認部分技巧的負面效應。</li>
+                    <li><strong>邏輯角色：</strong>在論證鏈中扮演「外部驗證 + 讓步反駁」的雙重角色。81.33% mAP 證實遷移價值，而像素級精度下降則展現學術誠信。</li>
+                    <li><strong>論證技巧：</strong>這是全文最具自我批判精神的段落。作者主動揭示標籤平滑與 Mixup 在語義分割中的限制，而非迴避不利結果。這種透明度反而增強了全文的可信度。「softened labels → blurred pixel-level information」的因果推論邏輯清晰，為後續研究指明了方向。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!--       7. 結論                    -->
+    <!-- ============================== -->
+    <h2 class="section-heading" id="sec7">7. Conclusion — 結論</h2>
+
+    <div class="dual-column">
+        <div class="left-col">
+            <div class="para-block">
+                <p class="en-text">
+                    The paper presents <span class="hl-yellow">twelve techniques for improving CNN training</span>, introducing <span class="hl-yellow">"minor modifications to the model architecture, data preprocessing, loss function, and learning rate schedule."</span> While <span class="hl-green">individually modest</span>, <span class="hl-yellow">collectively they significantly boost accuracy</span> and <span class="hl-blue">benefit transfer learning</span> across multiple downstream tasks.
+                </p>
+                <hr class="lang-divider">
+                <div class="zh-text">
+                    本論文提出十二項改善 CNN 訓練的技巧，涉及對模型架構、資料前處理、損失函數與學習率排程的微幅修改。這些技巧單獨來看效果溫和，但累積起來卻能顯著提升精度，並在多項下游任務的遷移學習中帶來效益。
+                </div>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card yellow-border">
+                <div class="annotation-label">批注</div>
+                <h4>段落功能：總結全文核心主張</h4>
+                <ul>
+                    <li><strong>段落功能：</strong>以簡潔的語言重申論文的核心貢獻——系統化整理十二項訓練技巧——並強調累積效應。</li>
+                    <li><strong>邏輯角色：</strong>論證鏈的終點，將所有技巧收束為一個統一的訊息，首尾呼應摘要中的數據。</li>
+                    <li><strong>論證技巧：</strong>「individually modest, collectively significant」的對比修辭是全文最精煉的概括，也是讀者最容易記住的 takeaway。結論刻意保持精簡，避免過度延伸，這與論文務實的工程風格一致。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!--       底部論證結構總覽            -->
+    <!-- ============================== -->
+    <div class="argument-overview" id="overview">
+        <h2>論證結構總覽</h2>
+
+        <h3>全文邏輯骨架</h3>
+        <div class="logic-flow">
+            <span class="logic-node">問題：訓練技巧被忽視</span>
+            <span class="logic-arrow">&rarr;</span>
+            <span class="logic-node">基線：標準 ResNet-50 訓練流程</span>
+            <span class="logic-arrow">&rarr;</span>
+            <span class="logic-node">高效訓練：大批次 + FP16</span>
+            <span class="logic-arrow">&rarr;</span>
+            <span class="logic-node">模型微調：ResNet-B/C/D</span>
+            <span class="logic-arrow">&rarr;</span>
+            <span class="logic-node">訓練精煉：餘弦衰減 + 標籤平滑 + 蒸餾 + Mixup</span>
+            <span class="logic-arrow">&rarr;</span>
+            <span class="logic-node">實證：75.3% → 79.29%</span>
+            <span class="logic-arrow">&rarr;</span>
+            <span class="logic-node">遷移驗證：偵測與分割</span>
+            <span class="logic-arrow">&rarr;</span>
+            <span class="logic-node">結論：小技巧累積大改進</span>
+        </div>
+
+        <h3>作者核心主張（一句話版本）</h3>
+        <p>透過系統性地疊加十二項低成本的訓練技巧與架構微調，可以在不顯著增加計算開銷的情況下，將 ResNet-50 在 ImageNet 上的 top-1 準確率提升近 4 個百分點，且改進可遷移至下游視覺任務。</p>
+
+        <h3>論證最強處 vs 最弱處</h3>
+        <div class="overview-grid">
+            <div class="overview-box strong">
+                <h4>最強處</h4>
+                <p>透過嚴格的消融實驗，逐一量化每項技巧的邊際貢獻（餘弦 +0.75%、標籤平滑 +0.4%、Mixup +0.84%），讓讀者清楚了解各項技巧的價值排序，並以累積至 79.29% 的最終結果驗證疊加效應的真實性。這種工程導向的實證風格具有極高的實用價值與可重現性。</p>
+            </div>
+            <div class="overview-box weak">
+                <h4>最弱處</h4>
+                <p>論文缺乏對各技巧之間交互作用的深入分析——各項增量是否可以簡單加總？是否存在技巧間的衝突或冗餘？此外，第 6 節揭示的遷移學習局限（標籤平滑與 Mixup 對像素級任務的負面影響）在結論中被輕描淡寫，未提供修正方案或適用性指南。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== 導航條高亮腳本 ===== -->
+<script>
+    /* 章節導航條：根據滾動位置高亮當前章節連結 */
+    (function() {
+        var navLinks = document.querySelectorAll('.section-nav a');
+        var sections = [];
+        navLinks.forEach(function(link) {
+            var targetId = link.getAttribute('href').replace('#', '');
+            var target = document.getElementById(targetId);
+            if (target) sections.push({ el: target, link: link });
+        });
+
+        function onScroll() {
+            var scrollY = window.scrollY + 80;
+            var current = null;
+            sections.forEach(function(sec) {
+                if (sec.el.offsetTop <= scrollY) current = sec;
+            });
+            navLinks.forEach(function(l) { l.classList.remove('active'); });
+            if (current) current.link.classList.add('active');
+        }
+
+        window.addEventListener('scroll', onScroll);
+        onScroll();
+    })();
+</script>
+
+</body>
+</html>
