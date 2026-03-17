@@ -39,3 +39,20 @@ https://jung217.github.io/CvHub/
 | X3D: Expanding Architectures for Efficient Video Recognition | 影片辨識 |
 | DeepCap: Monocular Human Performance Capture Using Weak Supervision | 人體動態捕捉 |
 | Adversarial Latent Autoencoders (ALAE) | 生成模型 |
+
+## CVPR 2021
+
+| 論文 | 領域 |
+|------|------|
+| GIRAFFE: Representing Scenes as Compositional Generative Neural Feature Fields | 場景生成 (Best Paper) |
+| Exploring Simple Siamese Representation Learning (SimSiam) | 自監督學習 (Honorable Mention) |
+| NeRF in the Wild: Neural Radiance Fields for Unconstrained Photo Collections | 新視角合成 |
+| RepVGG: Making VGG-Style ConvNets Great Again | 網路架構 |
+| Rethinking Semantic Segmentation from a Sequence-to-Sequence Perspective (SETR) | 語義分割 |
+| D-NeRF: Neural Radiance Fields for Dynamic Scenes | 動態場景 |
+| Real-Time High-Resolution Background Matting | 影像摳圖 (Honorable Mention) |
+| End-to-End Video Instance Segmentation with Transformers (VisTR) | 影片實例分割 |
+| RAFT-3D: Scene Flow Using Rigid-Motion Embeddings | 場景流 |
+| Tokens-to-Token ViT: Training Vision Transformers from Scratch on ImageNet | Vision Transformer |
+| UP-DETR: Unsupervised Pre-training for Object Detection with Transformers | 物件偵測 |
+| Learning High Fidelity Depths of Dressed Humans by Watching Social Media Dance Videos | 人體深度估計 (Honorable Mention) |
