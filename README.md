@@ -6,6 +6,108 @@
 
 https://jung217.github.io/CvHub/
 
+## CVPR 2013
+
+| 論文 | 領域 |
+|------|------|
+| Fast, Accurate Detection of 100,000 Object Classes on a Single Machine | 物件偵測 (Best Paper) |
+| Discriminative Non-blind Deblurring | 影像復原 (Best Student Paper) |
+| Lost! Leveraging the Crowd for Probabilistic Visual Self-Localization | 視覺定位 (Honorable Mention) |
+| Online Object Tracking: A Benchmark (OTB) | 目標追蹤 |
+| SLAM++: Simultaneous Localisation and Mapping at the Level of Objects | SLAM |
+| Pedestrian Detection with Unsupervised Multi-Stage Feature Learning | 行人偵測 |
+| Perceptual Organization and Recognition of Indoor Scenes from RGB-D Images | RGB-D 場景理解 |
+| HON4D: Histogram of Oriented 4D Normals for Activity Recognition | 動作辨識 |
+| Joint 3D Scene Reconstruction and Class Segmentation | 3D 重建 |
+| Hierarchical Saliency Detection | 顯著性偵測 |
+| Detecting and Aligning Faces by Image Retrieval | 人臉偵測 |
+| Multi-target Tracking by Lagrangian Relaxation to Min-cost Network Flow | 多目標追蹤 |
+
+## CVPR 2014
+
+| 論文 | 領域 |
+|------|------|
+| Rich Feature Hierarchies for Accurate Object Detection and Semantic Segmentation (R-CNN) | 物件偵測 |
+| DeepFace: Closing the Gap to Human-Level Performance in Face Verification | 人臉辨識 |
+| What Camera Motion Reveals About Shape with Unknown BRDF | 3D 形狀 (Best Paper) |
+| Learning and Transferring Mid-Level Image Representations using CNNs | 遷移學習 |
+| Multiscale Combinatorial Grouping (MCG) | 分割 |
+| Partial Optimality by Pruning for MAP-inference | 最佳化 (Best Student Paper) |
+| 3D Shape and Indirect Appearance by Structured Light Transport | 3D 光傳輸 (Honorable Mention) |
+| Deep Learning Face Representation from Predicting 10,000 Classes (DeepID) | 人臉辨識 |
+| Caffe: Convolutional Architecture for Fast Feature Embedding | 框架 |
+| Human Action Recognition by Representing 3D Skeletons as Points in a Lie Group | 動作辨識 |
+| Fast and Accurate Image Matching with Cascade Hashing for 3D Reconstruction | 3D 重建 |
+| Multi-Object Tracking via Constrained Sequential Labeling | 多目標追蹤 |
+
+## CVPR 2015
+
+| 論文 | 領域 |
+|------|------|
+| DynamicFusion: Reconstruction and Tracking of Non-rigid Scenes in Real-Time | 3D 重建 (Best Paper) |
+| Fully Convolutional Networks for Semantic Segmentation (FCN) | 語義分割 (Honorable Mention) |
+| Going Deeper with Convolutions (GoogLeNet/Inception) | 網路架構 |
+| FaceNet: A Unified Embedding for Face Recognition and Clustering | 人臉辨識 |
+| Show and Tell: A Neural Image Caption Generator | 影像描述 |
+| Long-Term Recurrent Convolutional Networks (LRCN) | 影片理解 |
+| Hypercolumns for Object Segmentation and Fine-grained Localization | 分割 |
+| 3D ShapeNets: A Deep Representation for Volumetric Shapes | 3D 形狀 |
+| Category-Specific Object Reconstruction from a Single Image | 3D 重建 (Best Student Paper) |
+| Picture: A Probabilistic Programming Language for Scene Perception | 場景理解 (Honorable Mention) |
+| Deformable Part Models are Convolutional Neural Networks | 物件偵測 |
+| Hierarchical Recurrent Neural Network for Skeleton Based Action Recognition | 動作辨識 |
+
+## CVPR 2016
+
+| 論文 | 領域 |
+|------|------|
+| Structural-RNN: Deep Learning on Spatio-Temporal Graphs | 時空圖 (Best Student Paper) |
+| Sublabel-Accurate Relaxation of Nonconvex Energies | 最佳化 (Honorable Mention) |
+| Rethinking the Inception Architecture for Computer Vision (Inception v3) | 網路架構 |
+| Learning Deep Features for Discriminative Localization (CAM) | 可解釋性 |
+| Context Encoders: Feature Learning by Inpainting | 影像修復 |
+| Deep Sliding Shapes for Amodal 3D Object Detection in RGB-D Images | 3D 偵測 |
+| Stacked Attention Networks for Image Question Answering | VQA |
+| NTU RGB+D: A Large Scale Dataset for 3D Human Activity Analysis | 動作辨識 |
+| Training Region-based Object Detectors with Online Hard Example Mining (OHEM) | 物件偵測 |
+| Temporal Action Localization in Untrimmed Videos via Multi-stage CNNs | 影片理解 |
+| Learning Dense Correspondence via 3D-Guided Cycle Consistency | 3D 對應 |
+| Single Image 3D Interpreter Network | 3D 理解 |
+
+## CVPR 2017
+
+| 論文 | 領域 |
+|------|------|
+| Densely Connected Convolutional Networks (DenseNet) | 網路架構 (Best Paper) |
+| Learning from Simulated and Unsupervised Images through Adversarial Training (SimGAN) | GAN (Best Paper) |
+| PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation | 3D 點雲 |
+| Feature Pyramid Networks for Object Detection (FPN) | 物件偵測 |
+| Image-to-Image Translation with Conditional Adversarial Networks (pix2pix) | GAN |
+| Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields (OpenPose) | 姿態估計 |
+| Pyramid Scene Parsing Network (PSPNet) | 語義分割 |
+| Aggregated Residual Transformations for Deep Neural Networks (ResNeXt) | 網路架構 |
+| Photo-Realistic Single Image Super-Resolution Using a GAN (SRGAN) | 超解析度 |
+| Deformable Convolutional Networks | 物件偵測 |
+| Annotating Object Instances with a Polygon-RNN | 實例分割 (Honorable Mention) |
+| Computational Imaging on the Electric Grid | 計算攝影 (Best Student Paper) |
+
+## CVPR 2018
+
+| 論文 | 領域 |
+|------|------|
+| Taskonomy: Disentangling Task Transfer Learning | 遷移學習 (Best Paper) |
+| Total Capture: A 3D Deformation Model for Tracking Faces, Hands, and Bodies | 3D 人體 (Best Student Paper) |
+| Non-local Neural Networks | 影片理解 |
+| Squeeze-and-Excitation Networks (SENet) | 網路架構 |
+| StarGAN: Unified GANs for Multi-Domain Image-to-Image Translation | GAN |
+| MobileNetV2: Inverted Residuals and Linear Bottlenecks | 高效架構 |
+| High-Resolution Image Synthesis with Conditional GANs (pix2pixHD) | 影像合成 |
+| DensePose: Dense Human Pose Estimation In The Wild | 姿態估計 |
+| Progressive Growing of GANs (ProGAN) | GAN |
+| A Closer Look at Spatiotemporal Convolutions for Action Recognition (R(2+1)D) | 影片理解 |
+| Deep Learning of Graph Matching | 圖匹配 (Honorable Mention) |
+| SPLATNet: Sparse Lattice Networks for Point Cloud Processing | 點雲 (Honorable Mention) |
+
 ## CVPR 2019
 
 | 論文 | 領域 |

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; gap: 16px; align-items: center; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                PointNet: Deep Learning on Point Sets for 3D Classification and Segmentation
+                <span class="course-tag">CVPR 2017</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1612.00593" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-symmetry">3.2 對稱函數</a>
+        <a href="#sec-alignment">3.3 對齊網路</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Point cloud</span> is an important type of geometric data structure. Due to its irregular format, most researchers <span class="hl-rebuttal">transform such data to regular 3D voxel grids or collections of images</span>. This, however, renders data unnecessarily voluminous and causes issues. In this paper, we design <span class="hl-concept">a novel type of neural network that directly consumes point clouds</span>, which well <span class="hl-thesis">respects the permutation invariance of points in the input</span>. Our network, named <span class="hl-concept">PointNet</span>, provides <span class="hl-thesis">a unified architecture for applications ranging from object classification, part segmentation, to scene semantic parsing</span>. Though simple, PointNet is <span class="hl-evidence">highly efficient and effective</span>. Empirically, it shows strong performance on par or even better than state of the art. Theoretically, we provide analysis towards understanding what the network has learned and why the network is robust with respect to <span class="hl-evidence">input perturbation and corruption</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                點雲是一種重要的幾何資料結構。由於其不規則的格式，大多數研究者將此類資料轉換為規則的三維體素網格或影像集合。然而，這使資料變得不必要地龐大並引發問題。本文設計了一種直接處理點雲的新型神經網路，充分尊重輸入中點的排列不變性。我們的網路命名為 PointNet，為從物件分類、零件分割到場景語義解析等應用提供了統一的架構。儘管簡潔，PointNet 卻高度高效且有效。實證上，它展現了與最先進方法相當甚至更優的強勁表現。理論上，我們提供了分析以理解網路學到了什麼，以及為何網路對輸入擾動和損壞具有穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——指出點雲處理的痛點，提出直接消費點雲的網路方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「問題-方案-驗證」三段式展開：轉換方法的不足 -> PointNet 的排列不變設計 -> 實證+理論的雙重驗證。同時強調「統一架構」的泛用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    罕見地在摘要中承諾理論分析，這大幅提升了論文的學術可信度。但「簡潔」與「高效」的並列暗示了一個可能的妥協——PointNet 逐點獨立處理的設計是否犧牲了局部幾何結構的捕捉能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Typical convolutional architectures require <span class="hl-rebuttal">highly regular input data formats, like those of image grids or 3D voxels</span>, in order to perform weight sharing and other kernel optimizations. Since <span class="hl-concept">point clouds</span> or meshes are <span class="hl-rebuttal">not in a regular format</span>, most researchers typically transform such data to regular 3D voxel grids or collections of images before feeding it to a deep net. This data representation transformation, however, renders the data <span class="hl-rebuttal">unnecessarily voluminous — while also introducing quantization artifacts</span> that can obscure natural invariances of the data. For this reason, we focus on a different input representation and design a <span class="hl-thesis">deep net that directly takes point clouds as input</span> while <span class="hl-thesis">respecting the permutation invariance of the point set</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                典型的摺積架構需要高度規則的輸入資料格式，如影像網格或三維體素，以執行權重共享和其他核心最佳化。由於點雲或網格並非規則格式，大多數研究者通常在餵入深度網路之前，將此類資料轉換為規則的三維體素網格或影像集合。然而，此資料表示轉換使資料變得不必要地龐大——同時引入量化偽影，可能遮蔽資料的自然不變性。因此，我們專注於不同的輸入表示，設計一個直接以點雲作為輸入的深度網路，同時尊重點集的排列不變性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——指出現有方法將點雲轉換為規則格式的弊端。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「規則格式的暴政」建立問題意識：體素化和多視角投影都是對點雲的「削足適履」。這為直接處理點雲的革命性設計建立了充分的動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「量化偽影遮蔽自然不變性」是精準的技術批評。但作者未提及多視角方法（如 MVCNN）在精度上的優勢——此方法在某些基準上仍優於 PointNet，暗示規則格式的資訊保留能力不容忽視。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">Key to our approach is the use of a single symmetric function, max pooling</span>. The network effectively learns a set of optimization functions/criteria that select interesting or informative points of the point cloud and encode the reason why they are informative. The final fully connected layers of the network aggregate these learned optimal values into the <span class="hl-method">global descriptor for the entire shape (for classification) or combined with per-point features for per-point labeling (for segmentation)</span>. Our input format is easy to apply <span class="hl-method">rigid or affine transformations</span> to, as each point transforms independently. We provide a <span class="hl-evidence">theoretical analysis demonstrating the network learns to approximate any continuous set function</span> and showing its <span class="hl-evidence">robustness to perturbation and corruption via a bounded critical point set</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們方法的關鍵在於使用單一對稱函數——最大池化。網路有效地學習一組最佳化函數/準則，用以選擇點雲中有趣或有資訊量的點，並編碼它們之所以有資訊量的原因。網路的最終全連接層將這些學得的最佳值聚合為整個形狀的全域描述子（用於分類），或與逐點特徵結合以進行逐點標記（用於分割）。我們的輸入格式易於套用剛體或仿射變換，因為每個點獨立變換。我們提供了理論分析，證明網路能學習逼近任何連續集合函數，並透過有界的關鍵點集展示其對擾動和損壞的穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    概述核心機制——以最大池化實現排列不變性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    揭示 PointNet 的數學核心：對稱函數（max pooling）是解決排列不變性的優雅方案。理論保證（通用逼近定理、穩健性）為此簡潔設計提供了堅實的數學基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 max pooling 詮釋為「選擇資訊性點」是極具洞察力的直覺解釋。但 max pooling 的逐維度操作意味著全域特徵丟失了點與點之間的空間關係——這正是後續 PointNet++ 要解決的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior approaches for 3D deep learning fall into three categories. <span class="hl-concept">Volumetric CNNs</span> apply 3D convolutions on voxelized shapes, but are <span class="hl-rebuttal">constrained by data sparsity and computation cost of 3D convolutions, with resolution typically limited to 30x30x30</span>. <span class="hl-concept">Multi-view CNNs</span> render 3D shapes into 2D images and apply image CNNs, achieving <span class="hl-evidence">dominant performance on shape classification</span>, but are <span class="hl-rebuttal">difficult to extend to 3D tasks like point classification and shape completion</span>. <span class="hl-concept">Spectral CNNs</span> on meshes are <span class="hl-rebuttal">limited to manifold meshes and are not straightforward to apply to non-isometric shapes</span>. A fundamental challenge across these methods is that <span class="hl-thesis">none directly operates on the raw point cloud as an unordered set</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的三維深度學習方法可分為三類。體積摺積神經網路在體素化形狀上應用三維摺積，但受限於資料稀疏性與三維摺積的計算成本，解析度通常限制在 30x30x30。多視角摺積神經網路將三維形狀渲染為二維影像並應用影像 CNN，在形狀分類上取得主導表現，但難以擴展到三維任務如點分類和形狀補全。網格上的頻譜摺積神經網路受限於流形網格，且不易應用於非等距形狀。這些方法的根本挑戰在於：沒有任何一種方法直接對原始點雲作為無序集合進行操作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——系統性列舉三類 3D 深度學習方法的侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以排除法建立 PointNet 的必要性：體素（效率差）、多視角（任務受限）、頻譜（表示受限）三條路線各有死胡同，唯一的出路是直接處理點雲。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將三類方法的不同弱點歸結為同一根本原因（非直接操作點雲），邏輯清晰有力。但多視角方法的「難以擴展」論述略顯牽強——後續研究已展示多視角方法在分割任務上也能取得不錯表現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Deep Learning on Point Sets — 方法</h2>
+    <h3 class="subsection-heading">3.1 Properties of Point Sets</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our input is a subset of points from an Euclidean space. It has three main properties. <span class="hl-concept">Unordered</span>: Unlike pixel arrays in images or voxel arrays in volumetric grids, <span class="hl-thesis">a point cloud is a set of points without specific ordering</span>. A network that consumes N 3D point sets needs to be <span class="hl-thesis">invariant to N! permutations of the input set</span>. <span class="hl-concept">Interaction among points</span>: The points come from a space with a distance metric. It means that <span class="hl-thesis">neighboring points form a meaningful subset and the model needs to be able to capture local structures from nearby points and the combinatorial interactions among local structures</span>. <span class="hl-concept">Invariance under transformations</span>: As a geometric object, the learned representation of the point set should be <span class="hl-thesis">invariant under certain transformations such as rotation and translation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的輸入是歐幾里得空間中點的子集。它具有三個主要性質。無序性：與影像中的像素陣列或體積網格中的體素陣列不同，點雲是沒有特定排序的點集合。一個消費 N 個三維點集的網路需要對輸入集合的 N! 種排列具有不變性。點間互動：點來自具有距離度量的空間。這意味著相鄰的點形成有意義的子集，模型需要能夠從鄰近點捕捉局部結構以及局部結構之間的組合互動。變換不變性：作為幾何物件，點集的學習表示應對某些變換如旋轉和平移具有不變性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題形式化——從數學性質出發定義點集處理的三大挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將直覺性的「點雲很難處理」轉化為三個精確的數學需求：排列不變性、局部結構捕捉、變換不變性。每個需求直接對應後續架構中的一個設計模組。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三性質的列舉非常系統化，為架構設計提供了清晰的規範。值得注意的是，PointNet 最終主要解決了第一和第三個性質，對第二個性質（局部結構）的處理較為薄弱——這成為後續改進的主要方向。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 對稱函數 -->
+    <h3 class="subsection-heading" id="sec-symmetry">3.2 Symmetry Function for Unordered Input — 無序輸入的對稱函數</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To make a model invariant to input permutation, three strategies exist: sort input into a canonical order; treat the input as a sequence to train an RNN, but augment training data by all kinds of permutations; use a <span class="hl-method">simple symmetric function to aggregate the information from each point</span>. We argue that <span class="hl-rebuttal">sorting is not a natural solution — there does not exist an ordering in high dimensional space that is stable with respect to point perturbations</span>. RNNs also <span class="hl-rebuttal">fail to scale to thousands of input elements</span>. We approximate a general function defined on a point set by applying a <span class="hl-method">symmetric function on transformed elements</span>: <span class="hl-method">f({x_1, ..., x_n}) ~ g(h(x_1), ..., h(x_n))</span> where h is a multi-layer perceptron and g is <span class="hl-method">a composition of a single variable function and a max pooling function</span>. This is <span class="hl-thesis">our key insight and forms the basis of our PointNet architecture</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為使模型對輸入排列不變，存在三種策略：將輸入排序為標準順序；將輸入視為序列以訓練 RNN，但以各種排列增強訓練資料；使用簡單的對稱函數來聚合每個點的資訊。我們論證排序不是自然的解決方案——在高維空間中不存在對點擾動穩定的排序。RNN 也無法擴展到數千個輸入元素。我們透過在變換後的元素上應用對稱函數來逼近定義在點集上的一般函數：f({x_1, ..., x_n}) ~ g(h(x_1), ..., h(x_n))，其中 h 是多層感知器，g 是單變數函數與最大池化函數的組合。這是我們的核心洞見，構成 PointNet 架構的基礎。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術決策——以排除法論證 max pooling 是解決排列不變性的最佳策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三策略的逐一排除（排序不穩定、RNN 不可擴展）最終收束至對稱函數，並以具體的數學形式 f ~ g(h(x_1),...,h(x_n)) 給出解決方案。論證結構嚴謹。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以排除法建立 max pooling 的必要性非常有說服力。但「高維空間不存在穩定排序」的論述可能過於絕對——PointNet 自身的 T-Net 就使用了學習到的正則化變換，暗示某種形式的正則化排序是可能的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 對齊網路 -->
+    <h3 class="subsection-heading" id="sec-alignment">3.3 Joint Alignment Network — 聯合對齊網路</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The semantic labeling of a point cloud has to be <span class="hl-thesis">invariant if the point cloud is subject to certain geometric transformations such as rigid transformation</span>. We therefore expect that <span class="hl-method">the learnt representation by our point set is invariant to these transformations</span>. A natural solution is to <span class="hl-method">align all input set to a canonical space before feature extraction</span>. We predict an <span class="hl-concept">affine transformation matrix by a mini-network (T-net)</span> and directly apply this transformation to the coordinates of input points. This idea can be further extended to the <span class="hl-method">alignment of feature space</span>, with a <span class="hl-method">regularization loss L_reg = ||I - AA^T||^2</span> to constrain the feature transformation matrix to be close to orthogonal.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                點雲的語義標記在點雲遭受某些幾何變換（如剛體變換）時必須保持不變。因此我們期望由點集學得的表示對這些變換不變。一個自然的解決方案是在特徵提取之前將所有輸入集合對齊到一個標準空間。我們透過一個迷你網路（T-net）預測仿射變換矩陣，並直接將此變換應用於輸入點的座標。此概念可進一步擴展到特徵空間的對齊，透過正則化損失 L_reg = ||I - AA^T||^2 來約束特徵變換矩陣接近正交。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    變換不變性設計——以學習到的對齊變換解決第三個性質需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應前文第三個性質（變換不變性）：T-net 借鏡 Spatial Transformer Network 的概念，但擴展到三維點雲和特徵空間。正交正則化約束是關鍵的穩定性保障。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    特徵空間對齊是獨特的創新——不僅對齊輸入座標，還對齊高維特徵。但正交約束的 L2 正則化是軟約束，無法保證嚴格正交性，可能在某些極端情況下失效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">ModelNet40 3D classification, PointNet achieved 89.2% overall accuracy</span>, representing <span class="hl-evidence">state-of-the-art performance among methods based on 3D input</span>, outperforming volumetric approaches while being significantly faster than multi-view methods. On <span class="hl-evidence">ShapeNet part segmentation, PointNet achieved 83.7% mean IoU, improving 2.3% over prior methods</span>. On <span class="hl-evidence">Stanford 3D semantic parsing, PointNet achieved 47.71% mean IoU versus 20.12% for handcrafted feature baselines</span>. Ablation studies validated that <span class="hl-method">max pooling substantially outperformed alternatives</span>, input and feature transformations provided incremental gains, and <span class="hl-evidence">robustness tests confirmed stability against missing points, outliers, and perturbations</span>. PointNet demonstrated <span class="hl-evidence">141x more efficient than MVCNN and 8x more efficient than volumetric approaches in FLOPs/sample</span>, with <span class="hl-evidence">linear O(N) complexity</span> in point count.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ModelNet40 三維分類上，PointNet 達到了 89.2% 的整體準確率，代表了基於三維輸入之方法中的最先進表現，超越體積方法且比多視角方法快得多。在 ShapeNet 零件分割上，PointNet 達到 83.7% 的平均 IoU，比先前方法提升 2.3%。在 Stanford 三維語義解析上，PointNet 達到 47.71% 的平均 IoU，遠超手工特徵基線的 20.12%。消融研究驗證了最大池化大幅優於替代方案，輸入和特徵變換提供了增量提升，穩健性測試確認了對缺失點、離群值和擾動的穩定性。PointNet 展現了比 MVCNN 高 141 倍、比體積方法高 8 倍的 FLOPs/樣本效率，具有對點數量的線性 O(N) 複雜度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面實驗驗證——跨多任務、多維度展示 PointNet 的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱覆蓋四個維度：(1) 三項任務的精度；(2) 與多種方法的比較；(3) 消融與穩健性驗證；(4) 計算效率。形成極為完整的驗證網路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    141 倍效率提升是壓倒性的數據。但分類精度 89.2% 低於 MVCNN 的 90.1%，作者以「基於 3D 輸入的方法中最佳」限定了比較範圍——這是合理但需要讀者注意的語境限定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have proposed <span class="hl-concept">PointNet</span>, a <span class="hl-thesis">novel deep net that directly consumes point clouds</span>. Our network provides <span class="hl-thesis">a unified approach to a number of 3D recognition tasks</span> including object classification, part segmentation, and semantic segmentation while <span class="hl-evidence">obtaining on par or better results than state of the art on standard benchmarks</span>. We also provide <span class="hl-evidence">theoretical analysis and visualizations towards understanding the network</span>. The key contributions are the novel architecture design, comprehensive empirical validation, theoretical analysis revealing learned representations, and interpretable visualizations showing that the network learns to summarize a shape by a sparse set of key points. The general applicability extends beyond 3D point sets to <span class="hl-thesis">any unordered set processing domain</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 PointNet，一種直接消費點雲的新型深度網路。我們的網路為多項三維辨識任務提供了統一方法，包括物件分類、零件分割與語義分割，同時在標準基準上取得與最先進方法相當或更優的結果。我們也提供了理論分析與視覺化以理解網路。關鍵貢獻包括新穎的架構設計、全面的實證驗證、揭示學習到之表示的理論分析，以及可解釋的視覺化，展示網路學會以稀疏的關鍵點集合來摘要一個形狀。其泛用性超越三維點集，延伸至任何無序集合處理領域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申統一架構的價值並擴展應用視野。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論從具體（3D 任務）擴展到抽象（任何無序集合），暗示 PointNet 的影響力可能超越電腦視覺領域。「以稀疏關鍵點摘要形狀」的可解釋性發現為後續研究提供了重要線索。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論策略性地將 PointNet 定位為通用集合處理架構，而非僅是 3D 工具。但未坦承局部特徵捕捉的不足——這在實務中限制了 PointNet 在細粒度分割任務上的表現，也是 PointNet++ 的直接動機。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                點雲不規則格式<br>轉換浪費且失真
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                對稱函數（max pool）<br>直接處理點雲
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                多任務 SOTA<br>141 倍效率提升
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                理論保證：通用逼近<br>穩健性：有界關鍵點集
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                通用無序集合<br>處理架構
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過對稱函數（最大池化）直接處理無序點雲，PointNet 在不犧牲精度的前提下，以遠超傳統方法的效率提供了分類、分割和語義解析的統一架構，並具有理論保證的穩健性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論與實證的雙重支撐：</strong>罕見地在一篇系統論文中同時提供通用逼近定理（Theorem 1）和穩健性保證（Theorem 2），使架構設計不僅基於實驗直覺，更有嚴格的數學基礎。「以稀疏關鍵點摘要形狀」的可視化發現進一步將抽象理論轉化為直覺理解。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>局部結構捕捉的缺失：</strong>PointNet 的逐點獨立處理設計雖然優雅地解決了排列不變性，但本質上忽略了點的空間鄰域資訊。在需要精細局部特徵的任務（如細粒度零件分割、形狀對應）上，此缺陷直接限制了表現上限。作者列舉的第二個性質（點間互動）在架構中並未被充分解決。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

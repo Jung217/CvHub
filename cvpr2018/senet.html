@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squeeze-and-Excitation Networks — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Squeeze-and-Excitation Networks
+                <span class="course-tag">CVPR 2018</span>
+            </div>
+            <div>
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1709.01507" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. SE 區塊</a>
+        <a href="#sec-squeeze">3.1 擠壓</a>
+        <a href="#sec-excitation">3.2 激發</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">5. 消融研究</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The central building block of <span class="hl-concept">convolutional neural networks (CNNs)</span> is the <span class="hl-concept">convolution operator</span>, which enables networks to construct informative features by <span class="hl-rebuttal">fusing both spatial and channel-wise information within local receptive fields at each layer</span>. We propose the <span class="hl-concept">Squeeze-and-Excitation (SE) block</span>, an architectural unit designed to <span class="hl-thesis">improve the representational power of a network by enabling it to perform dynamic channel-wise feature recalibration</span>. <span class="hl-evidence">SE networks formed the foundation of our ILSVRC 2017 classification submission which won first place and reduced the top-5 error to 2.251%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                摺積神經網路的核心建構元件是摺積運算子，它使網路能夠在每一層的局部感受野內融合空間與通道資訊來建構有用的特徵。我們提出擠壓與激發（SE）區塊，一種架構單元，旨在透過動態通道級特徵重校準來提升網路的表示能力。SE 網路構成了我們 ILSVRC 2017 分類競賽提交的基礎，贏得了第一名並將 top-5 錯誤率降至 2.251%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以摺積的侷限性引出 SE 區塊的核心創新，並以競賽冠軍結果作為有力佐證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「問題 -> 方案 -> 成果」的三段式結構展開：摺積的通道融合是隱式的 -> SE 區塊使其顯式且動態 -> ILSVRC 冠軍證明其效力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 ILSVRC 冠軍作為開場的「權威論證」極具說服力。但 2.251% 的 top-5 錯誤率是整個系統的結果，SE 區塊的獨立貢獻需在後續實驗中分離。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                CNNs have proven to be effective models for image understanding. At each convolutional layer, a set of <span class="hl-concept">filters</span> express <span class="hl-rebuttal">local spatial connectivity patterns along input channels</span>. However, the <span class="hl-rebuttal">channel relationships are implicitly modeled by the filters</span> and are <span class="hl-rebuttal">entangled with spatial information</span>. We argue that <span class="hl-thesis">explicitly modeling the interdependencies between channels of convolutional features can significantly improve feature quality</span>. To achieve this, we propose an SE block that operates in two phases: <span class="hl-method">squeeze</span> (aggregating spatial information) and <span class="hl-method">excitation</span> (learning channel-wise dependencies).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                CNN 已被證明是影像理解的有效模型。在每一摺積層，一組濾波器表達輸入通道上的局部空間連接模式。然而，通道關係被濾波器隱式建模，且與空間資訊糾纏在一起。我們主張，顯式建模摺積特徵通道間的相互依賴性，可以顯著提升特徵品質。為達此目的，我們提出以兩個階段運作的 SE 區塊：擠壓（聚合空間資訊）與激發（學習通道級依賴關係）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立動機——指出摺積運算中通道關係的隱式性問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：「隱式 vs. 顯式」通道建模的對比，為 SE 區塊的存在提供必要性論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「通道關係是隱式的」這一觀察雖然正確，但標準摺積中的 1x1 摺積本質上就在進行通道混合。SE 區塊的真正創新在於「自適應」而非「顯式」本身。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior work has explored <span class="hl-concept">deeper architectures</span> (VGGNet, ResNet, Inception) and <span class="hl-concept">architectural search methods</span> (NAS) to improve representations. <span class="hl-concept">Attention mechanisms</span> have been applied in various forms: <span class="hl-concept">spatial attention</span> focuses on informative spatial regions, while <span class="hl-concept">channel attention</span> has been less explored. The SE block can be viewed as <span class="hl-thesis">a lightweight gating mechanism applied to channels</span>, related to but distinct from <span class="hl-concept">highway networks</span> and <span class="hl-concept">gated recurrent units</span>. The key difference is that <span class="hl-thesis">SE blocks operate as self-attention on channel features, conditioned on the input</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前研究已探索了更深的架構（VGGNet、ResNet、Inception）與架構搜尋方法（NAS）來改善表示。注意力機制以各種形式被應用：空間注意力聚焦於有資訊量的空間區域，而通道注意力則較少被探索。SE 區塊可視為應用於通道的輕量級閘控機制，與高速公路網路和閘控遞迴單元相關但有所區別。關鍵差異在於 SE 區塊作為通道特徵上的自注意力運作，以輸入為條件。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 SE 區塊放置在注意力機制與閘控網路的交叉點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    區分「空間注意力」（已充分探索）與「通道注意力」（較少探索），精確定義 SE 區塊填補的學術空缺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 SE 區塊連結到「自注意力」的概念增強了其理論深度。但與閘控機制的類比可能使讀者疑惑：SE 區塊的真正新穎性在哪裡？答案在於其特定的「擠壓-激發」兩階段設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Squeeze-and-Excitation Block — SE 區塊</h2>
+    <h3 class="subsection-heading" id="sec-squeeze">3.1 Squeeze: Global Information Embedding — 擠壓：全域資訊嵌入</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The squeeze operation aggregates feature maps across spatial dimensions to produce a <span class="hl-method">channel descriptor</span>. This is achieved through <span class="hl-method">global average pooling</span>, generating a vector <span class="hl-method">z of dimension C</span> where each element z_c is the spatial average of the c-th channel. The rationale is that <span class="hl-thesis">each channel of the output after convolution is unable to exploit contextual information outside of its local receptive field</span>. The squeeze operation addresses this by <span class="hl-method">embedding global spatial information into the channel descriptor</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                擠壓運算跨空間維度聚合特徵圖以產生通道描述子。這透過全域平均池化實現，產生一個維度為 C 的向量 z，其中每個元素 z_c 是第 c 個通道的空間平均值。基本原理是：摺積後每個通道的輸出無法利用其局部感受野之外的上下文資訊。擠壓運算透過將全域空間資訊嵌入通道描述子來解決此問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第一階段——定義擠壓運算的形式與動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    擠壓是 SE 區塊的「資訊收集」步驟：將 H x W 的空間資訊壓縮為一個純量，為後續的通道間建模創造前提條件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    全域平均池化是極其簡潔的設計選擇，但也丟失了所有空間位置資訊。後續消融研究顯示全域平均優於最大池化，但未探索保留部分空間資訊的替代方案。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-excitation">3.2 Excitation: Adaptive Recalibration — 激發：自適應重校準</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The excitation operation uses the channel descriptor to learn <span class="hl-method">channel-wise dependencies</span>. It employs a <span class="hl-method">bottleneck architecture with two fully-connected layers</span>: first a <span class="hl-method">dimensionality reduction layer with ratio r</span> (default r=16) followed by ReLU, then a <span class="hl-method">dimensionality increasing layer</span> followed by <span class="hl-method">sigmoid activation</span>. The output is a set of <span class="hl-method">per-channel modulation weights</span> that are applied to the original feature maps via <span class="hl-method">channel-wise multiplication</span>. This mechanism <span class="hl-thesis">introduces dynamics conditioned on the input, which can be regarded as a self-attention function on channels</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                激發運算使用通道描述子來學習通道級依賴關係。它採用具有兩層全連接層的瓶頸架構：先以比率 r（預設 r=16）進行維度縮減並接 ReLU，再進行維度擴增並接 sigmoid 啟動函數。輸出是一組逐通道的調變權重，透過逐通道乘法應用於原始特徵圖。此機制引入了以輸入為條件的動態性，可視為通道上的自注意力函數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第二階段——描述激發運算的具體架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    激發是 SE 區塊的「決策」步驟：基於全域資訊，學習哪些通道應被增強、哪些應被抑制。瓶頸設計（r=16）控制了參數開銷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    sigmoid 輸出的 [0,1] 範圍天然適合作為通道權重（可以完全抑制或保留某通道）。但 r=16 的選擇是經驗性的——過小的 r 增加計算量，過大的 r 可能限制通道間互動的建模能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>ImageNet classification:</strong> <span class="hl-evidence">SE-ResNet-50 achieves 6.62% top-5 error versus ResNet-50's 7.48%</span> — a substantial improvement. More remarkably, <span class="hl-evidence">SE-ResNet-101 (6.07% error) outperforms the deeper ResNet-152 (6.34% error)</span>, demonstrating that SE blocks provide more effective improvement than simply adding more layers. The <span class="hl-evidence">computational overhead is minimal: only a 0.26% increase in GFLOPs</span> for SE-ResNet-50. SE blocks generalize across architectures: they improve <span class="hl-evidence">VGGNet, Inception, ResNeXt, and MobileNet</span> consistently.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ImageNet 分類：SE-ResNet-50 達到 6.62% 的 top-5 錯誤率，相對於 ResNet-50 的 7.48% 有顯著改善。更引人注目的是，SE-ResNet-101（6.07%）優於更深的 ResNet-152（6.34%），證明 SE 區塊比單純增加更多層數提供更有效的改善。計算額外開銷極小：SE-ResNet-50 僅增加 0.26% 的 GFLOPs。SE 區塊可跨架構泛化：一致地改善 VGGNet、Inception、ResNeXt 與 MobileNet。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗——以 ImageNet 上的全面數據展示 SE 區塊的效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三重論證：(1) 絕對改善（6.62% vs. 7.48%）；(2) 效率論述（SE-101 勝 ResNet-152，且計算更少）；(3) 泛化性（跨架構一致改善）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    SE-ResNet-101 優於 ResNet-152 的比較極為巧妙——它直接回應了「為何不直接加深網路」的質疑。0.26% 的 GFLOPs 增加幾乎可忽略，使採用 SE 區塊成為「幾乎免費的改善」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Beyond classification:</strong> On <span class="hl-evidence">COCO object detection with Faster R-CNN, SE blocks provide a 2.4% AP improvement over the ResNet-50 baseline</span>. On <span class="hl-evidence">Places365 scene classification, SE-ResNet-152 surpasses the previous state-of-the-art</span>. On <span class="hl-evidence">CIFAR-10 and CIFAR-100, SE blocks improve ResNet-110, ResNet-164, and WideResNet across the board</span>. These results confirm that <span class="hl-thesis">the benefits of channel recalibration extend well beyond ImageNet classification to diverse tasks and datasets</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                分類之外：在使用 Faster R-CNN 的 COCO 物件偵測中，SE 區塊相對於 ResNet-50 基線帶來 2.4% 的 AP 改善。在 Places365 場景分類中，SE-ResNet-152 超越先前最先進水準。在 CIFAR-10 和 CIFAR-100 上，SE 區塊全面改善了 ResNet-110、ResNet-164 和 WideResNet。這些結果確認通道重校準的效益遠超 ImageNet 分類，延伸至多樣化的任務與資料集。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    跨任務驗證——將 SE 區塊的效益延伸至偵測、場景分類等領域。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    支撐「通用改善工具」的主張：在不同任務（分類、偵測）、不同資料集（ImageNet、COCO、Places、CIFAR）上均有效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    跨任務的一致改善是最具說服力的證據類型。但 2.4% AP 在 COCO 上的改善是否在統計顯著性範圍內，未被明確討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-ablation">5. Ablation Studies — 消融研究</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Comprehensive ablation studies reveal several design insights. <span class="hl-evidence">Reduction ratio r=16 provides the optimal accuracy-complexity tradeoff</span>. <span class="hl-evidence">Global average pooling outperforms max pooling for the squeeze operation</span>. For the excitation nonlinearity, <span class="hl-evidence">sigmoid is essential — replacing it with ReLU causes significant performance degradation</span>, since ReLU's zero-clipping prevents the suppression of uninformative channels. A <span class="hl-evidence">role analysis of SE activations shows that early layers exhibit class-agnostic behavior</span> (similar weights across categories), while <span class="hl-evidence">deeper layers become increasingly class-specific</span>, dynamically selecting the most relevant channels for each input.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                全面的消融研究揭示了若干設計洞見。縮減比率 r=16 提供了最佳的精度—複雜度權衡。全域平均池化在擠壓運算上優於最大池化。對於激發的非線性函數，sigmoid 至關重要——以 ReLU 替代會導致顯著的效能下降，因為 ReLU 的零截斷阻止了對無資訊通道的抑制。SE 啟動值的角色分析顯示，淺層表現出類別無關的行為（跨類別的相似權重），而深層則變得愈加類別特定，動態選擇對每個輸入最相關的通道。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深入分析——以系統性消融驗證各設計選擇的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究回答「為何這樣設計」的問題，將方法從「有效的黑箱」提升為「每個組件都有理由」的透明設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    sigmoid vs. ReLU 的分析特別有啟發性——它揭示了通道抑制（而非僅增強）的重要性。角色分析展示了 SE 區塊學到了有意義的表示，而非隨機的權重調整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have proposed the <span class="hl-concept">Squeeze-and-Excitation block</span>, a <span class="hl-thesis">lightweight architectural unit that enhances the representational capacity of CNNs by explicitly modeling channel interdependencies</span>. Through the <span class="hl-method">squeeze operation</span> (global information embedding) and the <span class="hl-method">excitation operation</span> (adaptive recalibration), SE blocks learn to <span class="hl-thesis">dynamically emphasize informative features and suppress less useful ones</span>. With <span class="hl-evidence">minimal computational overhead (~0.26% GFLOPs increase)</span>, SE blocks deliver consistent improvements across <span class="hl-evidence">multiple architectures, datasets, and tasks</span>, including the <span class="hl-evidence">winning entry of ILSVRC 2017 with 2.251% top-5 error</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了擠壓與激發區塊，一種透過顯式建模通道相互依賴性來增強 CNN 表示能力的輕量級架構單元。透過擠壓運算（全域資訊嵌入）與激發運算（自適應重校準），SE 區塊學習動態地強調有資訊量的特徵並抑制較無用的特徵。以極小的計算額外開銷（約 0.26% GFLOPs 增加），SE 區塊在多種架構、資料集與任務上提供一致的改善，包括以 2.251% top-5 錯誤率贏得 ILSVRC 2017 的冠軍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以三個關鍵數字（0.26% 開銷、2.251% 錯誤率、跨架構泛化）收束論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應摘要，以「輕量級 + 高效益 + 泛用性」的三角論述完成論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論謹慎地聚焦於已驗證的成果，未做過度外推。但未討論 SE 區塊的理論極限——當網路已非常深且通道數極大時，SE 區塊的邊際效益是否會遞減？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                摺積隱式處理<br>通道間依賴關係
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                顯式通道重校準<br>提升表示能力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ILSVRC 2017 冠軍<br>跨架構一致改善
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                僅 0.26% 計算增加<br>消融確認各組件必要
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                輕量級通用改善工具<br>適用於任何 CNN
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過擠壓（全域池化）與激發（自適應閘控）兩步驟，SE 區塊以極低的計算成本顯式建模通道間依賴關係，為任何 CNN 架構帶來一致且顯著的效能提升。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>極高的效率—效果比：</strong>僅增加 0.26% 的計算量即獲得接近一個百分點的 top-5 錯誤率改善，且此改善跨越多種架構（VGG、ResNet、Inception、MobileNet）與多種任務（分類、偵測、分割）一致重現。SE-ResNet-101 優於 ResNet-152 的結果直接證明了「智慧勝於蠻力」。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>全域池化的資訊壓縮代價：</strong>擠壓運算將整個空間維度壓縮為單一純量，丟失了所有空間分布資訊。對於需要精細空間推理的任務（如小物件偵測），這種壓縮可能不是最佳策略。作者未探索保留部分空間資訊的替代擠壓方式。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

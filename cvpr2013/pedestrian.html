@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedestrian Detection with Unsupervised Multi-Stage Feature Learning — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Pedestrian Detection with Unsupervised Multi-Stage Feature Learning
+                <span class="course-tag">CVPR 2013</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1212.0142" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-multiscale">3.2 多尺度架構</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Pedestrian detection</span> is a key problem for automotive safety and surveillance. Most state-of-the-art systems rely on <span class="hl-rebuttal">hand-crafted features</span> such as <span class="hl-concept">HOG (Histogram of Oriented Gradients)</span> combined with linear or kernel-based classifiers. We propose an approach that <span class="hl-thesis">replaces hand-crafted features with features learned in an unsupervised manner</span> using a <span class="hl-concept">multi-stage convolutional architecture</span>. Each stage consists of <span class="hl-method">convolutional filtering, non-linear activation, and spatial pooling</span>, with filters learned via <span class="hl-method">unsupervised methods (PSD — Predictive Sparse Decomposition)</span>. Our multi-stage system <span class="hl-evidence">significantly outperforms HOG-based methods on the INRIA and Caltech pedestrian benchmarks</span>, demonstrating that <span class="hl-thesis">learned features can surpass carefully engineered ones for pedestrian detection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                行人偵測是汽車安全與監控的關鍵問題。大多數最先進的系統依賴手工設計的特徵，如方向梯度直方圖（HOG）結合線性或基於核的分類器。我們提出一種以非監督式方式學習的特徵取代手工特徵的方法，使用多階段摺積架構。每個階段由摺積濾波、非線性啟動及空間池化組成，濾波器透過非監督式方法（PSD——預測稀疏分解）學習。我們的多階段系統在 INRIA 和 Caltech 行人基準上顯著優於基於 HOG 的方法，證明了學習特徵在行人偵測上可超越精心設計的特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——提出「非監督學習特徵取代手工特徵」的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立了「手工 vs 學習」的二元對立，並以基準結果直接宣告學習特徵的勝利。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「非監督式」學習的強調是本文的一大賣點——不需要標註資料來學習特徵。但此時 AlexNet 已於 2012 年發表，監督式深度學習即將席捲視覺領域，本文的非監督路線在歷史上屬於過渡方案。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Pedestrian detection</span> has been extensively studied due to its critical role in <span class="hl-evidence">autonomous driving, advanced driver assistance systems (ADAS), and intelligent surveillance</span>. The dominant paradigm involves <span class="hl-concept">sliding window detection</span> with <span class="hl-concept">HOG features</span> and a <span class="hl-concept">linear SVM classifier</span>, as proposed by Dalal and Triggs. While numerous refinements have been proposed — <span class="hl-concept">multi-scale HOG, HOG+LBP combinations, channel features</span> — the <span class="hl-rebuttal">core limitation remains: the features are hand-designed and may not capture the most discriminative patterns for pedestrian/non-pedestrian classification</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                行人偵測因其在自動駕駛、先進駕駛輔助系統（ADAS）與智慧監控中的關鍵角色而被廣泛研究。主流範式涉及滑動視窗偵測配合 HOG 特徵和線性 SVM 分類器，如 Dalal 和 Triggs 所提出。雖然已有眾多改進——多尺度 HOG、HOG+LBP 組合、通道特徵——但核心限制仍在：特徵是手工設計的，可能無法捕捉行人/非行人分類中最具判別力的模式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    研究背景——概述 HOG 為中心的行人偵測範式及其根本限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「手工特徵的天花板」論點：即使精心改進 HOG，仍受限於人類設計能力的上限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉多種 HOG 變體後仍認定「核心限制」，暗示手工特徵設計的邊際報酬遞減。但部分手工特徵（如 Dollar 的 ACF）在速度上仍具顯著優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Deep learning</span> approaches, particularly <span class="hl-concept">convolutional neural networks (ConvNets)</span>, have recently shown remarkable success in <span class="hl-evidence">image classification (Krizhevsky et al., 2012)</span>. However, these successes rely on <span class="hl-rebuttal">large-scale supervised training data</span>, which may not always be available. We explore an alternative: <span class="hl-thesis">using unsupervised feature learning to train convolutional filters</span>, which are then combined with a supervised classifier for the final detection task. This <span class="hl-thesis">two-phase approach (unsupervised pre-training + supervised fine-tuning) reduces the dependency on labeled data</span> while still leveraging the representational power of deep architectures.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度學習方法，特別是摺積神經網路（ConvNet），近期在影像分類（Krizhevsky 等人，2012）上展現了卓越的成功。然而，這些成功依賴大規模的監督式訓練資料，而這些資料並非總是可取得。我們探索一種替代方案：使用非監督式特徵學習來訓練摺積濾波器，再結合監督式分類器完成最終的偵測任務。此兩階段方法（非監督預訓練 + 監督微調）降低了對標註資料的依賴，同時仍能利用深層架構的表示能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法定位——在全監督深度學習與手工特徵之間開闢第三條路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承認 AlexNet 的成功但指出其「大資料依賴」，為非監督學習提供立足點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「標註資料不總是可取得」的論點在 2013 年合理，但隨著大規模資料集（ImageNet、COCO）的普及，此動機的說服力在歷史上快速減弱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">HOG detector</span> by Dalal and Triggs has been the foundation of pedestrian detection for nearly a decade. Key extensions include <span class="hl-concept">deformable part models (DPM)</span> by Felzenszwalb et al., which model pedestrians as collections of parts, and <span class="hl-concept">channel features</span> by Dollar et al., which aggregate multiple feature channels (gradient magnitude, color channels) efficiently. On the learning side, <span class="hl-concept">sparse coding</span> and <span class="hl-concept">autoencoders</span> have been used for unsupervised feature learning in various recognition tasks but <span class="hl-rebuttal">have not been systematically applied to pedestrian detection with multi-scale architectures</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Dalal 和 Triggs 的 HOG 偵測器近十年來一直是行人偵測的基礎。關鍵擴展包括 Felzenszwalb 等人的可變形零件模型（DPM）——將行人建模為零件的集合，以及 Dollar 等人的通道特徵——有效聚合多個特徵通道（梯度幅度、顏色通道）。在學習方面，稀疏編碼和自編碼器已被用於各種識別任務的非監督式特徵學習，但尚未被系統性地應用於具有多尺度架構的行人偵測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——從手工特徵到學習特徵的演進脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    指出非監督特徵學習已在其他任務上成功，但在行人偵測上尚有空白——此即本文的切入點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    文獻選擇恰當地覆蓋了兩條主要路線。但稀疏編碼在行人偵測上的先前嘗試可能存在但未被引用。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Unsupervised Feature Learning</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our feature learning approach uses <span class="hl-concept">Predictive Sparse Decomposition (PSD)</span>, which learns a <span class="hl-method">dictionary of convolutional filters by jointly minimizing a reconstruction error and a sparsity penalty</span>. Given a set of <span class="hl-method">unlabeled image patches</span> extracted from natural images, PSD learns filters that produce <span class="hl-method">sparse feature maps when convolved with input images</span>. Unlike standard sparse coding (which requires iterative inference at test time), PSD trains an <span class="hl-method">encoder network that directly predicts the sparse codes in a single forward pass</span>, making it suitable for real-time applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的特徵學習方法使用預測稀疏分解（PSD），它透過同時最小化重建誤差與稀疏懲罰來學習摺積濾波器字典。給定一組從自然影像中提取的未標註影像區塊，PSD 學習的濾波器在與輸入影像摺積時能產生稀疏特徵圖。不同於標準稀疏編碼（在測試時需要迭代推論），PSD 訓練一個能在單次前向傳播中直接預測稀疏編碼的編碼器網路，使其適合即時應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    特徵學習核心——描述 PSD 如何從未標註資料中學習濾波器。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    PSD 是實現「非監督特徵學習」承諾的技術手段：從自然影像統計中自動發現有用的濾波器。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    PSD 的「前向傳播預測」相對於傳統稀疏編碼的「迭代推論」是重要的速度優勢。但學習到的濾波器是否真的比隨機濾波器好多少？後續研究顯示隨機濾波器有時也能達到不錯的效果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-multiscale">3.2 Multi-Scale Architecture — 多尺度架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key contribution is our <span class="hl-method">multi-stage, multi-scale convolutional architecture</span>. The first stage applies <span class="hl-method">64 learned 7x7 filters</span> to the input image, followed by <span class="hl-method">absolute value rectification and contrast normalization</span>. The output is passed to a <span class="hl-method">2x2 average pooling layer</span>. The second stage applies <span class="hl-method">another set of learned filters</span> to the pooled features, with the same non-linearity and pooling. To capture both <span class="hl-method">fine details and coarse structure</span>, we extract features from <span class="hl-method">multiple stages and combine them via concatenation</span> before the final classifier. This <span class="hl-thesis">"multi-scale feature" strategy allows the classifier to leverage both low-level edges and higher-level shape information</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項關鍵貢獻是我們的多階段、多尺度摺積架構。第一階段將 64 個學習得到的 7x7 濾波器套用至輸入影像，接著進行絕對值整流與對比度正規化。輸出被傳入 2x2 平均池化層。第二階段將另一組學習的濾波器套用至池化後的特徵，具有相同的非線性與池化。為了同時捕捉細節與粗略結構，我們從多個階段提取特徵並在最終分類器前透過串接來組合。此「多尺度特徵」策略允許分類器同時利用低階邊緣與高階形狀資訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構設計——描述多階段特徵提取與組合策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    多尺度特徵串接是本文的架構創新：不只用最深層的特徵，而是結合各層的資訊，此設計後來在 FPN 等架構中被廣泛採用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多尺度串接的設計直覺上合理——行人偵測需要同時辨識輪廓（低階）和整體形狀（高階）。但簡單串接可能引入冗餘特徵，增加分類器的負擔。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The final detection system combines <span class="hl-method">the multi-stage convolutional features with a linear SVM classifier</span>. We also investigate <span class="hl-method">boosting and neural network classifiers</span> as alternatives. The detection pipeline follows the standard <span class="hl-method">sliding window approach with multi-scale image pyramid</span>, applying the learned feature extractor and classifier at each window position and scale. <span class="hl-method">Non-maximum suppression</span> is used to merge overlapping detections. While the feature extraction is more expensive than HOG computation, the system can be <span class="hl-evidence">accelerated using GPU implementation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最終的偵測系統結合了多階段摺積特徵與線性 SVM 分類器。我們同時研究了提升法（boosting）和神經網路分類器作為替代方案。偵測管線遵循標準的滑動視窗方法搭配多尺度影像金字塔，在每個視窗位置與尺度套用學習的特徵提取器和分類器。非最大值抑制用於合併重疊的偵測。雖然特徵提取比 HOG 計算更昂貴，但系統可透過 GPU 實作來加速。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    偵測管線——描述從特徵到最終偵測的完整流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    保持滑動視窗範式但替換特徵提取器，使方法可直接與 HOG 基準比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    保持偵測管線不變而只替換特徵，實現了嚴格的控制變因比較。但承認「更昂貴」暗示速度可能是實際部署的瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on the <span class="hl-evidence">INRIA Person dataset</span> and the <span class="hl-evidence">Caltech Pedestrian benchmark</span>. On INRIA, our multi-stage system with unsupervised features achieves <span class="hl-evidence">a miss rate of 13.1% at 1 FPPI (false positives per image)</span>, compared to <span class="hl-evidence">23.1% for the standard HOG+SVM baseline</span>. This represents a <span class="hl-evidence">relative improvement of 43%</span>. On the more challenging Caltech benchmark, we achieve <span class="hl-evidence">significant improvements over HOG</span> across all occlusion levels and pedestrian scales. The two-stage architecture outperforms the single-stage variant by <span class="hl-evidence">approximately 5% in miss rate</span>, confirming the value of hierarchical feature learning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 INRIA 行人資料集和 Caltech 行人基準上進行評估。在 INRIA 上，我們使用非監督特徵的多階段系統在 1 FPPI（每張影像的誤報數）時達到 13.1% 的漏檢率，相比標準 HOG+SVM 基準的 23.1%。這代表了 43% 的相對改進。在更具挑戰性的 Caltech 基準上，我們在所有遮擋等級和行人尺度上都顯著優於 HOG。兩階段架構比單階段變體在漏檢率上改善了約 5%，確認了層次式特徵學習的價值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量驗證——以兩個基準上的具體數字支撐核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    43% 的相對改進有力地證明了「學習特徵優於手工特徵」的論點，消融研究則驗證了多階段設計的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    改進幅度令人印象深刻，但僅與 HOG+SVM 基準比較——更強的手工特徵方法（如 ACF）和監督式深度學習方法未被納入比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further analyze <span class="hl-evidence">the learned filters</span> and find they exhibit <span class="hl-evidence">meaningful structure: first-stage filters resemble Gabor-like edge detectors at various orientations and frequencies</span>, while <span class="hl-evidence">second-stage filters capture more complex patterns like corners and junctions</span>. This hierarchical emergence of feature complexity — from edges to parts — <span class="hl-thesis">mirrors the design philosophy of hand-crafted feature hierarchies but arises automatically from the data</span>. We also show that <span class="hl-evidence">features learned from general natural images transfer well to the pedestrian detection task</span>, suggesting strong generalizability.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步分析學習到的濾波器，發現它們展現出有意義的結構：第一階段的濾波器類似於各種方向與頻率的 Gabor 式邊緣偵測器，而第二階段的濾波器捕捉了更複雜的模式如角落和交叉點。此特徵複雜度的層次式湧現——從邊緣到零件——反映了手工特徵層次的設計哲學，但自動從資料中產生。我們同時展示從一般自然影像中學習的特徵能良好地遷移至行人偵測任務，顯示強大的泛化能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    可解釋性分析——展示學習濾波器的語意結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從「黑箱」質疑中為方法辯護：學習的濾波器並非隨機，而是有意義的層次結構，增強了可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    濾波器可視化是有效的解釋工具。「自動發現類似手工設計的結構」的觀察極為有力——但也可解讀為「學習只是重新發現了人們已知的東西」，削弱了學習方法的必要性論述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have demonstrated that <span class="hl-thesis">unsupervised multi-stage feature learning can significantly improve pedestrian detection</span> compared to traditional hand-crafted features. Our <span class="hl-concept">convolutional architecture with PSD-learned filters</span> achieves state-of-the-art results on standard benchmarks while <span class="hl-thesis">requiring no labeled data for the feature learning stage</span>. The learned features exhibit interpretable hierarchical structure and transfer across tasks. Our work provides <span class="hl-thesis">strong evidence that the era of hand-crafted features in pedestrian detection may be drawing to a close</span>, and that learned representations — whether unsupervised or supervised — are the path forward.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們已證明非監督式多階段特徵學習相比傳統手工特徵能顯著改善行人偵測。我們使用 PSD 學習濾波器的摺積架構在標準基準上達到最先進的結果，同時特徵學習階段無需標註資料。學習到的特徵展現出可解釋的層次結構且能跨任務遷移。我們的研究提供了強有力的證據，表明行人偵測中手工特徵的時代可能正在走向終結，而學習的表示——無論是非監督式或監督式——才是前進的方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與宣言——宣告手工特徵時代的終結。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將實驗結果提升至範式轉移的層次，從具體的行人偵測推廣至「學習 vs 手工」的根本方向判斷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「手工特徵時代終結」的宣言大膽且被歷史證明是正確的。但作者將功勞歸於「非監督學習」，而實際上終結手工特徵的是監督式深度學習（R-CNN 於同年出現）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>手工特徵（HOG）<br>限制了偵測效能</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>非監督學習的<br>摺積特徵更優</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>INRIA 漏檢率<br>降低 43%</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>學習濾波器具<br>可解釋層次結構</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>手工特徵時代<br>正在終結</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過非監督式預測稀疏分解學習的多階段摺積特徵，在行人偵測上顯著超越 HOG 等手工特徵，證明了特徵學習在視覺偵測中的根本優越性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>嚴格控制的比較實驗：</strong>保持偵測管線（滑動視窗 + SVM）不變，僅替換特徵提取器，使 HOG vs 學習特徵的比較極為公正。43% 的相對改進在控制變因下難以歸因於其他因素。多階段消融進一步確認了層次特徵的價值。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>歷史時機的尷尬：</strong>本文強調非監督學習，但同年 R-CNN 的出現證明了全監督深度學習在偵測上的壓倒性優勢。非監督預訓練路線在 ImageNet 等大規模標註資料集的普及下迅速失去了實用價值。此外，計算成本的比較不充分——學習特徵的推論成本遠高於 HOG。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

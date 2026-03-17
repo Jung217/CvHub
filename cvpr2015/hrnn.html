@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hierarchical Recurrent Neural Network for Skeleton Based Action Recognition — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Hierarchical Recurrent Neural Network for Skeleton Based Action Recognition
+                <span class="course-tag">CVPR 2015</span>
+            </div>
+            <div>
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-hierarchy">3.2 階層結構</a>
+        <a href="#sec-temporal">3.3 時序建模</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Human action recognition from <span class="hl-concept">skeleton data</span> has attracted increasing attention due to the availability of <span class="hl-evidence">depth sensors and real-time pose estimation algorithms</span>. Existing methods typically <span class="hl-rebuttal">concatenate all joint coordinates into a single feature vector, ignoring the spatial structure of the human skeleton</span>. In this paper, we propose a <span class="hl-concept">hierarchical recurrent neural network (HRNN)</span> that <span class="hl-thesis">decomposes the human skeleton into five anatomical groups (two arms, two legs, and a torso) and processes them in a bottom-up hierarchy</span>. At the lowest level, <span class="hl-method">individual body part subnets capture part-specific motion patterns</span>. At higher levels, <span class="hl-method">these part representations are progressively fused to form a full-body representation</span>. This hierarchical decomposition <span class="hl-thesis">naturally encodes the physical structure of the human body into the network architecture</span>. We demonstrate <span class="hl-evidence">state-of-the-art performance on several benchmark datasets</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由於深度感測器和即時姿態估計演算法的可用性，從骨架資料進行人體動作辨識日益受到關注。現有方法通常將所有關節座標串接為單一特徵向量，忽略了人體骨架的空間結構。在本文中，我們提出一種階層式遞迴神經網路（HRNN），將人體骨架分解為五個解剖學群組（兩隻手臂、兩條腿和軀幹），並以由下而上的階層方式處理。在最低層，個別身體部位子網路捕捉部位特定的動作模式。在較高層，這些部位表示被漸進式融合以形成全身表示。這種階層分解將人體的物理結構自然地編碼到網路架構中。我們在數個基準資料集上展示了最先進的效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「現有方法忽略骨架空間結構」為問題切入，引出階層式 RNN 的解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立了清晰的「問題（忽略結構）-> 方案（階層分解）-> 驗證（最先進效能）」三段式論證。五個解剖學群組的具體數字使方法立即變得直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「自然地編碼物理結構」是核心賣點——網路架構反映了問題的內在結構。但五組分法是否是唯一或最佳的分解方式（例如可否更細或更粗），需要消融實驗支持。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Skeleton-based action recognition</span> has emerged as an important research direction due to several advantages: <span class="hl-evidence">skeleton data is compact, view-invariant to a large extent, and robust to background clutter and illumination changes</span>. With the popularization of <span class="hl-evidence">Microsoft Kinect</span> and advances in <span class="hl-evidence">real-time pose estimation</span>, large-scale skeleton datasets have become available. However, most existing approaches treat the skeleton as a <span class="hl-rebuttal">flat vector of joint coordinates, applying standard classifiers (SVMs, random forests) or feeding the entire vector into a single RNN</span>. This <span class="hl-rebuttal">ignores the rich structural information inherent in the human body's kinematic tree</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於骨架的動作辨識已成為一個重要的研究方向，原因在於若干優勢：骨架資料緊湊、在很大程度上視角不變，且對背景雜亂和照明變化具有穩健性。隨著 Microsoft Kinect 的普及和即時姿態估計的進步，大規模骨架資料集已經可用。然而，大多數現有方法將骨架視為關節座標的扁平向量，應用標準分類器（SVM、隨機森林）或將整個向量饋入單一 RNN。這忽略了人體動力學樹中固有的豐富結構資訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——肯定骨架資料的優勢並指出現有方法的結構性缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    先建立骨架辨識的價值（緊湊、視角不變、穩健），再指出「扁平向量」的處理方式未能利用此結構——為階層式方法提供動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「動力學樹」一詞巧妙連接了人體解剖學與圖結構，暗示網路架構應反映此樹結構。但骨架資料的「視角不變」僅在理想情況下成立——Kinect 的關節估計在遮擋情況下仍有顯著誤差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose to <span class="hl-thesis">exploit the physical structure of the human body by designing a hierarchical RNN architecture</span>. The key observation is that human actions are composed of <span class="hl-thesis">coordinated movements of body parts</span>: for instance, "walking" involves coordinated leg motions, "clapping" involves coordinated arm motions, and "bowing" primarily involves torso motion. By <span class="hl-method">first extracting part-level temporal representations and then combining them hierarchically</span>, the network can learn <span class="hl-method">both part-specific patterns and inter-part coordination at different levels of abstraction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提議透過設計階層式 RNN 架構來利用人體的物理結構。關鍵觀察在於人體動作由身體部位的協調運動組成：例如，「行走」涉及腿部的協調運動，「拍手」涉及手臂的協調運動，「鞠躬」主要涉及軀幹運動。透過先提取部位層級的時序表示，然後階層式地結合它們，網路能在不同抽象層級上學習部位特定模式和部位間的協調。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心概念——以具體動作範例說明階層分解的直覺合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「行走」「拍手」「鞠躬」三個日常動作建立直覺：不同動作由不同部位組合驅動，因此部件層級的表示學習是有價值的。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    日常動作的例子使抽象概念直覺化。但許多動作涉及全身協調（如跳舞、武術），五組分法可能過於僵硬——部位間的交互作用在最低層就被忽略了。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Hand-crafted feature approaches</span> for skeleton action recognition include <span class="hl-concept">covariance descriptors, Lie group representations, and actionlets</span>. While effective, these methods require <span class="hl-rebuttal">domain expertise to design features and may not generalize across datasets</span>. <span class="hl-concept">Deep learning approaches</span> have begun to be applied: <span class="hl-concept">Du et al.</span> used standard RNNs on concatenated joint vectors, and <span class="hl-concept">Veeriah et al.</span> explored differential RNNs. However, these methods <span class="hl-rebuttal">do not explicitly model the spatial structure of the skeleton</span>. <span class="hl-concept">Graph-based approaches</span> model joint relationships but typically use <span class="hl-rebuttal">static graph structures that do not capture temporal dynamics</span>. Our HRNN <span class="hl-thesis">uniquely combines structural decomposition with recurrent temporal modeling</span> in an end-to-end trainable framework.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                骨架動作辨識的手工設計特徵方法包括共變異數描述子、李群表示和 actionlets。雖然有效，這些方法需要領域專業知識來設計特徵，且可能無法跨資料集推廣。深度學習方法已開始被應用：Du 等人在串接的關節向量上使用標準 RNN，Veeriah 等人探索了微分 RNN。然而，這些方法未顯式建模骨架的空間結構。基於圖的方法建模關節關係，但通常使用靜態圖結構，無法捕捉時序動態。我們的 HRNN 在端對端可訓練框架中獨特地結合了結構分解與遞迴時序建模。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——將 HRNN 定位於手工特徵、深度學習、圖方法的交叉點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三方對比：手工特徵（不通用）、平坦 RNN（忽略結構）、靜態圖（忽略時序），HRNN 同時處理空間結構和時序動態。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以排除法建立研究空白是有效的。但後續的 ST-GCN（2018）展示了圖摺積網路能同時處理空間和時序，暗示 HRNN 的固定階層可能不是最佳的結構編碼方式。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Skeleton Decomposition</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The human skeleton (typically <span class="hl-evidence">20-25 joints from a Kinect sensor</span>) is decomposed into <span class="hl-method">five anatomical groups</span>: <span class="hl-method">left arm (shoulder, elbow, wrist, hand), right arm, left leg (hip, knee, ankle, foot), right leg, and torso (spine, neck, head)</span>. Each group contains the <span class="hl-method">3D coordinates of its constituent joints at each time step</span>. This decomposition follows the <span class="hl-thesis">natural kinematic chain of the human body</span> — joints within the same group tend to move in a coordinated manner, while inter-group coordination encodes higher-level action semantics.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人體骨架（通常來自 Kinect 感測器的 20-25 個關節）被分解為五個解剖學群組：左臂（肩、肘、腕、手）、右臂、左腿（髖、膝、踝、腳）、右腿和軀幹（脊椎、頸、頭）。每個群組包含其組成關節在每個時間步的三維座標。此分解遵循人體的自然動力學鏈——同一群組內的關節傾向於協調運動，而群組間的協調則編碼更高層級的動作語意。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法核心第一部分——定義骨架的空間分解策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了空間分解的生物學合理性：動力學鏈中相鄰關節的協同運動為群組劃分提供了物理基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    五組分法直覺且易於實作。但此分解是固定的——不同動作可能需要不同的分組（例如「雙手舉物」時雙臂應視為一組）。自適應分組策略可能更優。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-hierarchy">3.2 Hierarchical Architecture — 階層架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">hierarchical RNN</span> consists of multiple layers. At the <span class="hl-method">first layer, five independent bidirectional RNNs</span> (one per body part group) process the temporal sequences of their respective joint coordinates. Each part-level RNN produces a <span class="hl-method">hidden state sequence capturing the temporal dynamics of that body part</span>. At the <span class="hl-method">second layer, the hidden states from related parts are concatenated and fed into higher-level RNNs</span>: the left arm and right arm representations are combined, the left leg and right leg are combined, and the torso representation is carried forward. At the <span class="hl-method">third (top) layer, all representations are fused into a single RNN</span> that produces the <span class="hl-method">final full-body temporal representation</span>. The last hidden state of the top-level RNN is fed into a <span class="hl-method">softmax classifier for action classification</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                階層式 RNN 由多個層次組成。在第一層，五個獨立的雙向 RNN（每個身體部位群組一個）處理各自關節座標的時序序列。每個部位層級 RNN 產生一個隱藏狀態序列，捕捉該身體部位的時序動態。在第二層，相關部位的隱藏狀態被串接並饋入更高層 RNN：左臂和右臂的表示被結合，左腿和右腿被結合，軀幹表示則直接延續。在第三（頂）層，所有表示被融合至一個單一 RNN，產生最終的全身時序表示。頂層 RNN 的最後隱藏狀態被饋入 softmax 分類器以進行動作分類。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法核心第二部分——描述三層階層架構的具體組成。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三層結構（部位 -> 肢體 -> 全身）完美對應了人體的解剖階層：關節 -> 肢體 -> 全身。雙向 RNN 的使用使每個時間步都能同時利用過去和未來的資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    漸進式融合策略使每一層的輸入維度保持可控。但固定的三層結構缺乏靈活性——是否三層就是最佳深度？更深或更淺的階層是否影響效能需要消融驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-temporal">3.3 Temporal Modeling — 時序建模</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Each RNN in the hierarchy uses <span class="hl-method">bidirectional connections</span> to capture both forward and backward temporal context. We employ <span class="hl-concept">Long Short-Term Memory (LSTM)</span> units to address the <span class="hl-rebuttal">vanishing gradient problem</span> inherent in standard RNNs when processing long sequences. The <span class="hl-method">LSTM's gating mechanism (input gate, forget gate, output gate)</span> allows the network to selectively remember or forget information across time steps. For action recognition, this is particularly important because <span class="hl-thesis">discriminative motion patterns may occur at any point in the sequence, and the network must learn to attend to the most informative temporal segments</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                階層中的每個 RNN 使用雙向連接以捕捉前向和後向的時序上下文。我們採用長短期記憶（LSTM）單元來處理標準 RNN 在處理長序列時固有的梯度消失問題。LSTM 的閘門機制（輸入閘、遺忘閘、輸出閘）允許網路跨時間步選擇性地記憶或遺忘資訊。對於動作辨識，這尤其重要，因為具鑑別力的動作模式可能在序列的任何時刻出現，網路必須學習關注最具資訊量的時序片段。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法細節——描述時序建模的技術選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段處理「如何在時間維度上建模」的問題，與前段的空間分解互補。雙向 LSTM 確保時序資訊的完整利用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    LSTM 作為成熟的序列模型是安全的技術選擇。但「選擇性關注」的主張需要注意力機制的顯式引入來驗證——標準 LSTM 的「關注」是隱式的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on three benchmark datasets: <span class="hl-evidence">NTU RGB+D (the largest skeleton dataset at the time with 56,880 sequences and 60 action classes)</span>, <span class="hl-evidence">SBU Kinect Interaction</span>, and <span class="hl-evidence">CMU Motion Capture</span>. On <span class="hl-evidence">NTU RGB+D</span>, our HRNN achieves <span class="hl-evidence">significant improvements over flat RNN baselines</span> in both cross-subject and cross-view evaluation protocols. Compared to <span class="hl-concept">hand-crafted feature methods</span> (Lie Group, Skeletal Quads, Dynamic Skeletons), <span class="hl-evidence">HRNN outperforms all baselines by clear margins</span>. On <span class="hl-evidence">SBU Kinect Interaction</span> (two-person interactions), the hierarchical architecture also demonstrates <span class="hl-evidence">superior performance, showing that the part-level decomposition is beneficial even for interaction recognition</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在三個基準資料集上評估：NTU RGB+D（當時最大的骨架資料集，包含 56,880 個序列和 60 個動作類別）、SBU Kinect Interaction 和 CMU Motion Capture。在 NTU RGB+D 上，我們的 HRNN 在跨受試者和跨視角評估協定中均較扁平 RNN 基線達到顯著改進。相比手工設計特徵方法（李群、骨架四元組、動態骨架），HRNN 以明確的差距超越所有基線。在 SBU Kinect Interaction（雙人互動）上，階層架構同樣展示了優異效能，顯示部位層級分解即使在互動辨識中也是有益的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗驗證——在三個不同規模和類型的資料集上展示效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三個資料集的選擇具有互補性：NTU RGB+D 測試大規模通用性、SBU 測試互動場景、CMU 測試運動捕捉精度。跨資料集的一致改進強化了方法的穩健性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「明確的差距」措辭模糊——具體數字更有說服力。此外，與同期其他深度學習方法（而非僅手工特徵）的比較更能體現 HRNN 的實際優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Ablation studies</span> validate the hierarchical design: <span class="hl-evidence">the three-layer HRNN consistently outperforms a single-layer flat RNN that receives all joints simultaneously</span>. The <span class="hl-evidence">part-level decomposition alone (first layer only) already provides improvements over the flat baseline</span>, confirming that respecting the body's spatial structure is beneficial. The <span class="hl-evidence">additional fusion layers further improve performance by capturing inter-part coordination</span>. Analysis of <span class="hl-concept">per-action performance</span> reveals that the hierarchical model is <span class="hl-evidence">especially beneficial for actions involving specific body parts</span> (e.g., "waving" benefits from arm-specific processing), while maintaining competitiveness on full-body actions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究驗證了階層設計：三層 HRNN 一致優於同時接收所有關節的單層扁平 RNN。僅部位層級分解（僅第一層）相較於扁平基線已帶來改進，確認了尊重身體空間結構是有益的。額外的融合層透過捕捉部位間協調進一步提升了效能。逐動作效能分析揭示，階層模型對涉及特定身體部位的動作特別有益（如「揮手」受惠於手臂專用處理），同時在全身動作上也維持了競爭力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融研究——逐步驗證階層設計各組件的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    四層消融（扁平 vs 一層分解 vs 兩層融合 vs 三層完整）建立了漸進式的改進證據鏈。逐動作分析進一步揭示了「何時」階層架構最有幫助。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「揮手」受惠於手臂處理的逐動作分析非常有說服力。但對於全身動作「維持競爭力」（而非超越）暗示階層分解在這些場景中可能引入了不必要的資訊瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-concept">hierarchical recurrent neural network</span> for <span class="hl-concept">skeleton-based action recognition</span> that <span class="hl-thesis">explicitly encodes the physical structure of the human body into the network architecture</span>. By <span class="hl-method">decomposing the skeleton into anatomical groups and processing them in a bottom-up hierarchy</span>, the network learns <span class="hl-thesis">part-specific temporal patterns and inter-part coordination at multiple levels of abstraction</span>. Experimental results on multiple benchmarks demonstrate the <span class="hl-evidence">effectiveness of this structure-aware approach</span>. The proposed framework is <span class="hl-thesis">general and could be extended to other articulated structures beyond the human body</span>, such as animal locomotion or robotic manipulation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一種用於基於骨架動作辨識的階層式遞迴神經網路，將人體的物理結構顯式編碼到網路架構中。透過將骨架分解為解剖學群組並以由下而上的階層方式處理，網路在多個抽象層級上學習部位特定的時序模式和部位間的協調。在多個基準上的實驗結果展示了此結構感知方法的有效性。所提出的框架具有通用性，可擴展至人體以外的其他關節式結構，如動物運動或機器人操作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申結構感知的核心貢獻並展望更廣泛的應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以「通用性」作為提升——從人體動作推廣至任何關節式結構，擴大了方法的影響範圍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    動物和機器人的展望增添了想像空間，但未提供任何初步驗證。結論也未討論固定階層的局限性——後續的圖神經網路方法（如 ST-GCN）提供了更靈活的結構編碼。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>扁平向量忽略<br>骨架空間結構</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>階層 RNN 編碼<br>人體動力學樹</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>三個資料集<br>一致超越基線</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>LSTM 解決<br>長序列梯度消失</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>結構感知架構<br>可推廣至其他領域</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>將人體骨架分解為解剖學群組並以階層式雙向 LSTM 由下而上處理，能在多個抽象層級上捕捉部位特定動作模式與部位間協調，實現最先進的骨架動作辨識。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>架構與問題結構的天然對應：</strong>五組分法直接映射人體的解剖學結構，使網路架構具有物理可解釋性。消融研究清楚展示了從扁平到階層的逐步改進，且逐動作分析精準指出了階層模型的優勢場景。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>固定階層的靈活性不足：</strong>五組的劃分和三層的階層深度都是人工設定的，缺乏自適應性。對於需要全身協調的動作，早期的部位隔離可能引入資訊瓶頸。後續的圖摺積網路（ST-GCN）展示了更靈活的關節交互建模方式。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

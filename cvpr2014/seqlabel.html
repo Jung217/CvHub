@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Object Tracking via Constrained Sequential Labeling — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Multi-Object Tracking via Constrained Sequential Labeling
+                <span class="course-tag">CVPR 2014</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_cvpr_2014/html/Chen_Multi-Object_Tracking_via_2014_CVPR_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-constraints">3.2 約束傳播</a>
+        <a href="#sec-learning">3.3 約束學習</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We address the problem of <span class="hl-concept">tracking multiple objects in densely packed environments</span> where <span class="hl-rebuttal">occlusion and posture variation</span> present significant challenges. Rather than relying solely on detection, we propose <span class="hl-concept">Constrained Sequential Labeling (CSL)</span>, which <span class="hl-thesis">formulates tracking as labeling mid-level features by object identifiers</span> while maintaining <span class="hl-method">hard constraints through constraint propagation</span>. The CSL method enables <span class="hl-thesis">flexible cost functions and constraints to represent complex dependencies beyond standard network-flow approaches</span>. We include a <span class="hl-method">learning algorithm for constraints with proven convergence properties</span>. Testing on challenging footage from <span class="hl-evidence">volleyball, basketball, and pedestrian scenarios</span> demonstrates improved performance relative to existing methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們處理在密集環境中追蹤多個物件的問題，其中遮擋與姿態變異帶來重大挑戰。我們不單純依賴偵測，而是提出約束序列標記（CSL），將追蹤形式化為以物件識別子標記中階特徵的過程，同時透過約束傳播維持硬約束。CSL 方法支援靈活的成本函數與約束來表示超越標準網路流方法的複雜依賴關係。我們納入了一個具有已證明收斂性質的約束學習演算法。在排球、籃球與行人等具挑戰性場景的影片上測試，展示了相對於現有方法的效能提升。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——將多物件追蹤重新框架為約束序列標記問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建構了「框架重塑」的論證：從追蹤的傳統視角（偵測+關聯）轉向序列標記視角，由此獲得表達力的提升。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「超越標準網路流」的主張暗示更強的建模能力，但也可能意味著更高的計算複雜度。「已證明收斂性質」為理論背書增添了學術嚴謹性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Multi-object tracking (MOT)</span> in crowded scenes is a fundamental yet challenging task. The dominant paradigm — <span class="hl-concept">tracking-by-detection</span> — first detects objects in each frame, then associates detections across frames. This approach is typically formulated as a <span class="hl-concept">data association problem</span>, solved via <span class="hl-concept">network flow optimization</span> or <span class="hl-concept">Hungarian algorithm</span>. However, these formulations <span class="hl-rebuttal">assume pairwise costs between detections and cannot express higher-order dependencies</span> such as <span class="hl-rebuttal">"two tracks should not overlap in space" or "a track's appearance should vary smoothly"</span>. In densely packed scenarios like <span class="hl-evidence">team sports</span>, these limitations lead to frequent <span class="hl-rebuttal">identity switches and fragmented trajectories</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在擁擠場景中的多物件追蹤是一項基礎但具挑戰性的任務。主流範式——偵測式追蹤——首先在每個影格中偵測物件，然後跨影格關聯偵測結果。此方法通常被形式化為資料關聯問題，透過網路流最佳化或匈牙利演算法求解。然而，這些形式化假設偵測之間的成對成本，無法表達更高階的依賴關係，例如「兩條軌跡不應在空間上重疊」或「軌跡的外觀應平滑變化」。在團隊運動等密集場景中，這些限制導致頻繁的身份切換與碎片化軌跡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出偵測式追蹤的成對成本限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：先概述 MOT 的主流範式，再以「成對成本」的數學限制為突破口，為引入高階約束建立需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體的約束範例（空間不重疊、外觀平滑）使「高階依賴」具體化。但網路流方法實際上可透過邊容量約束部分地表達空間不重疊——作者的批判可能過度簡化了基準方法的能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose a fundamentally different formulation: <span class="hl-thesis">Constrained Sequential Labeling (CSL)</span>. Instead of associating detections, we <span class="hl-method">extract mid-level features (superpixels or detection fragments) and assign each an object identity label</span>. The labeling is performed sequentially over time, with <span class="hl-method">hard constraints</span> enforced through <span class="hl-method">constraint propagation</span> — a technique borrowed from <span class="hl-concept">constraint satisfaction problems (CSP)</span> in artificial intelligence. This formulation naturally accommodates <span class="hl-thesis">higher-order dependencies, arbitrary cost functions, and domain-specific constraints</span> that are difficult or impossible to express in flow-based frameworks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一個本質上不同的形式化：約束序列標記（CSL）。我們不關聯偵測結果，而是提取中階特徵（超像素或偵測片段）並為每個指定一個物件身份標籤。標記在時間上依序進行，透過約束傳播來強制執行硬約束——這是一種借鑒自人工智慧中約束滿足問題（CSP）的技術。此形式化自然地容納了在流式框架中難以或無法表達的高階依賴關係、任意成本函數與領域特定約束。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心框架——從資料關聯轉向序列標記。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的核心轉折：將 MOT 重新框架為 CSP，借用 AI 中的約束傳播技術來處理計算機視覺問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「借鑒自 CSP」的跨領域遷移是新穎的觀點，但約束傳播的效率高度依賴約束的結構——在物件數量大時，約束傳播的計算複雜度可能成為瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Multi-object tracking</span> methods can be categorized by their optimization strategy. <span class="hl-concept">Network-flow methods</span> model tracking as minimum-cost flow and can be solved <span class="hl-evidence">globally optimally in polynomial time</span>, but are <span class="hl-rebuttal">limited to pairwise interactions</span>. <span class="hl-concept">Conditional Random Field (CRF)</span> approaches can encode richer dependencies but require <span class="hl-rebuttal">approximate inference</span>. <span class="hl-concept">Multiple Hypothesis Tracking (MHT)</span> maintains a tree of hypotheses but is <span class="hl-rebuttal">exponential in the number of objects</span>. Our CSL approach combines the <span class="hl-thesis">expressiveness of CRF-like models with the efficiency of constraint propagation</span>, offering a middle ground between optimality and expressiveness.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多物件追蹤方法可依其最佳化策略分類。網路流方法將追蹤建模為最小成本流，可在多項式時間內求得全域最優解，但僅限於成對互動。條件隨機場（CRF）方法可編碼更豐富的依賴關係，但需要近似推論。多假說追蹤（MHT）維護一棵假說樹，但在物件數量上呈指數級增長。我們的 CSL 方法結合了類 CRF 模型的表達力與約束傳播的效率，在最優性與表達力之間提供了一個中間地帶。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——以最佳化策略為軸線比較三類 MOT 方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以三方比較（網路流、CRF、MHT）定位 CSL：比網路流更具表達力，比 CRF 更高效，比 MHT 更可擴展。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「中間地帶」的定位策略避免了與任何單一方法的直接對抗。但此定位也意味著 CSL 在任何單一維度上都不是最優——讀者可能質疑是否存在真正需要此折衷的應用場景。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Sequential Labeling Formulation</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                At each time step t, we extract a set of <span class="hl-method">mid-level features F_t = {f_1, ..., f_m}</span> from the video frame. Each feature is a <span class="hl-method">localized region (e.g., a detection bounding box or a superpixel cluster)</span> characterized by <span class="hl-method">position, appearance histogram, and motion vector</span>. The goal is to assign each feature a <span class="hl-method">label from the set {0, 1, ..., K}</span>, where labels 1 through K represent tracked objects and label 0 represents background. The labeling at time t is denoted <span class="hl-method">L_t = {l_1, ..., l_m}</span>. A <span class="hl-method">cost function C(L_t | L_{t-1}, F_t)</span> evaluates the quality of the labeling given the previous labeling and current features.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在每個時間步 t，我們從影片影格中提取一組中階特徵 F_t = {f_1, ..., f_m}。每個特徵是一個局部化的區域（如偵測邊界框或超像素簇），以位置、外觀直方圖與運動向量來描述。目標是為每個特徵指定一個來自集合 {0, 1, ..., K} 的標籤，其中標籤 1 到 K 代表被追蹤的物件，標籤 0 代表背景。時間 t 的標記記為 L_t = {l_1, ..., l_m}。成本函數 C(L_t | L_{t-1}, F_t) 在給定前一時間步的標記與當前特徵下，評估標記的品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    形式化定義——建立序列標記問題的數學框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將直覺性的「為每個區域指定身份」轉化為嚴格的最佳化問題。成本函數的馬可夫性質（僅依賴前一步）使序列處理成為可能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    馬可夫假設（僅看前一步）簡化了計算但可能丟失長程依賴。在長時間遮擋後的重新識別場景中，此假設可能過度限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-constraints">3.2 Constraint Propagation — 約束傳播</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key novelty lies in incorporating <span class="hl-method">hard constraints</span> into the labeling process via <span class="hl-concept">constraint propagation</span>. We define several types of constraints: <span class="hl-method">(1) Uniqueness: each object label appears at most once per time step</span>; <span class="hl-method">(2) Spatial exclusion: features within a certain distance cannot share the same non-background label</span>; <span class="hl-method">(3) Appearance consistency: the appearance of a tracked object should not change drastically between consecutive frames</span>. These constraints are enforced by <span class="hl-method">iteratively pruning the domain of possible labels for each feature</span>, a process analogous to <span class="hl-concept">arc consistency</span> in constraint satisfaction. This pruning dramatically <span class="hl-evidence">reduces the search space</span>, making the optimization tractable.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                關鍵創新在於透過約束傳播將硬約束納入標記過程。我們定義了幾種約束類型：(1) 唯一性：每個物件標籤在每個時間步最多出現一次；(2) 空間排斥：在一定距離內的特徵不能共享相同的非背景標籤；(3) 外觀一致性：被追蹤物件的外觀在連續影格之間不應有劇烈變化。這些約束透過迭代修剪每個特徵的可能標籤域來強制執行——此過程類似於約束滿足中的弧一致性。此修剪大幅縮減了搜尋空間，使最佳化在計算上可行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——描述三類硬約束及其強制執行機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的支柱：約束傳播既是理論創新（將 CSP 引入 MOT），也是實用工具（大幅縮減搜尋空間）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三類約束的設計直覺且實用，但「硬約束」意味著對違反的零容忍——在雜訊環境下（偵測器輸出不穩定），某些約束可能過度嚴格，導致可行解不存在。軟約束的替代方案未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-learning">3.3 Constraint Learning — 約束學習</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than manually tuning the constraint parameters, we propose a <span class="hl-method">learning algorithm that automatically determines the constraint thresholds from training data</span>. The learning procedure minimizes a <span class="hl-method">loss function that penalizes both missed constraints (leading to identity switches) and overly strict constraints (leading to track fragmentation)</span>. We prove that this learning algorithm <span class="hl-evidence">converges to a fixed point</span> under mild assumptions. The learned constraints are <span class="hl-thesis">domain-adaptive: constraints learned for volleyball differ from those for pedestrian tracking</span>, reflecting the distinct spatial and temporal characteristics of each scenario.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們不手動調整約束參數，而是提出一個從訓練資料中自動決定約束閾值的學習演算法。學習程序最小化一個損失函數，同時懲罰遺漏的約束（導致身份切換）與過度嚴格的約束（導致軌跡碎片化）。我們證明此學習演算法在溫和的假設下收斂至不動點。學習到的約束具有領域適應性：為排球學習的約束不同於行人追蹤的約束，反映了每種場景獨特的時空特性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自動化——描述資料驅動的約束學習機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決了手動約束設計的可擴展性問題：從人工設定轉為資料驅動學習，使方法可適應不同的應用場景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    收斂性證明增強了理論背書。「遺漏約束 vs. 過度約束」的雙向懲罰設計體現了精度-召回的權衡思維。但「溫和假設」的具體內容未在摘要級描述中明確，讀者需查閱證明細節。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on <span class="hl-evidence">three challenging multi-object tracking scenarios: volleyball (6 players per team, frequent occlusion), basketball (5 players per team, fast motion), and pedestrian sequences from standard MOT benchmarks</span>. On the volleyball dataset, CSL achieves <span class="hl-evidence">significant reductions in identity switches (40-60% fewer) compared to network-flow baselines</span> while maintaining competitive MOTA scores. On basketball sequences, the <span class="hl-evidence">track fragmentation rate is reduced by 35%</span>. On standard pedestrian benchmarks, CSL achieves <span class="hl-evidence">competitive performance with state-of-the-art methods</span>. Ablation studies confirm that <span class="hl-evidence">constraint propagation is essential — removing it degrades performance to below the network-flow baseline</span>, and <span class="hl-evidence">learned constraints consistently outperform hand-tuned ones</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在三個具挑戰性的多物件追蹤場景上評估：排球（每隊 6 名球員，頻繁遮擋）、籃球（每隊 5 名球員，快速運動）以及標準 MOT 基準中的行人序列。在排球資料集上，CSL 相較於網路流基準達到了身份切換的顯著降低（減少 40-60%），同時維持具競爭力的 MOTA 分數。在籃球序列上，軌跡碎片化率降低了 35%。在標準行人基準上，CSL 達到與最先進方法相當的表現。消融研究確認了約束傳播是不可或缺的——移除它使效能退化至網路流基準以下，且學習到的約束一致優於手動調整的約束。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在運動與行人場景中驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱覆蓋三個維度：(1) 運動場景的身份切換降低；(2) 行人場景的競爭力表現；(3) 約束傳播與約束學習的消融驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    在運動場景（最需要高階約束的場景）上的大幅改善具說服力。但在行人場景上僅為「競爭力」而非「超越」，暗示 CSL 的優勢主要在密集互動場景中。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Constrained Sequential Labeling (CSL)</span>, a novel formulation for <span class="hl-concept">multi-object tracking</span> that <span class="hl-thesis">goes beyond pairwise data association by incorporating hard constraints through constraint propagation</span>. The approach naturally handles <span class="hl-method">higher-order dependencies</span> and is accompanied by a <span class="hl-method">constraint learning algorithm with convergence guarantees</span>. Experiments demonstrate that CSL is particularly effective in <span class="hl-evidence">densely packed scenarios with frequent occlusions</span>. Future work includes extending CSL to <span class="hl-concept">online tracking settings</span> and incorporating <span class="hl-concept">deep learning-based appearance models</span> for more robust feature representations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了約束序列標記（CSL），一種多物件追蹤的新形式化方法，透過約束傳播納入硬約束，超越了成對的資料關聯。此方法自然地處理高階依賴關係，並附帶具收斂保證的約束學習演算法。實驗展示 CSL 在頻繁遮擋的密集場景中特別有效。未來工作包括將 CSL 擴展至線上追蹤設定，以及納入基於深度學習的外觀模型以獲得更穩健的特徵表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——強調在密集場景中的特殊優勢並展望未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論誠實地聚焦於方法最擅長的場景（密集遮擋），而非泛稱全面優越。「深度學習外觀模型」的未來方向預示了 MOT 領域後續的演進方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    未討論的關鍵限制包括：方法的計算複雜度隨物件數量的增長行為，以及在全域最佳化層面相較於網路流的理論保證缺失。線上追蹤的擴展也是一個非平凡的挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                網路流追蹤無法<br>表達高階依賴
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                約束序列標記<br>支援硬約束傳播
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                身份切換減少 40-60%<br>運動與行人場景驗證
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                約束可從資料學習<br>具收斂保證
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                CSL 在密集場景中<br>顯著優於傳統方法
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將多物件追蹤重新框架為約束序列標記問題，透過約束傳播來強制執行唯一性、空間排斥與外觀一致性等硬約束，能有效降低密集場景中的身份切換與軌跡碎片化。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論與實務的結合：</strong>約束傳播的引入不僅帶來了理論上的表達力提升，更直接轉化為身份切換 40-60% 的實測降低。約束學習演算法的收斂性證明增添了學術嚴謹性，而領域適應的實驗結果則展示了方法的實用靈活性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>硬約束的脆弱性：</strong>在偵測器品質不穩定或場景極度擁擠時，硬約束可能導致約束衝突（無可行解）。此外，方法在行人場景上僅達到「競爭力」而非超越現有方法，暗示在不需高階約束的場景中，CSL 的額外複雜度未帶來顯著收益。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

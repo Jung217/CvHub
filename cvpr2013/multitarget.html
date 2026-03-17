@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-target Tracking by Lagrangian Relaxation to Min-cost Network Flow — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Multi-target Tracking by Lagrangian Relaxation to Min-cost Network Flow
+                <span class="course-tag">CVPR 2013</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_cvpr_2013/papers/Butt_Multi-target_Tracking_by_2013_CVPR_paper.pdf" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-trellis">3. 格架圖表示</a>
+        <a href="#sec-lagrangian">4. 拉格朗日鬆弛</a>
+        <a href="#sec-algorithm">5. 迭代求解</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present an approach for <span class="hl-concept">global multi-target tracking</span> that integrates <span class="hl-concept">higher-order motion constraints</span> such as <span class="hl-method">constant velocity</span> into a <span class="hl-concept">network flow framework</span>. Our method represents tracking paths in a <span class="hl-concept">trellis graph</span> where each node denotes a <span class="hl-method">candidate pair of matching observations between consecutive frames</span>. The original problem with higher-order constraints is <span class="hl-rebuttal">NP-hard and cannot be solved by standard min-cost network flow</span>. We employ an <span class="hl-method">iterative solution method that relaxes these extra constraints using Lagrangian relaxation</span>, resulting in a <span class="hl-thesis">series of subproblems that ARE solvable by min-cost flow</span>. The iterative procedure <span class="hl-thesis">progressively tightens the relaxation, converging toward an optimal solution</span> for the original problem. Experimental validation demonstrates <span class="hl-evidence">superior performance compared to conventional network-flow approaches and competing algorithms</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種全域多目標追蹤方法，將等速度等高階動作約束整合至網路流框架中。我們的方法在格架圖中表示追蹤路徑，其中每個節點表示連續影格間觀測值的候選匹配對。具有高階約束的原始問題屬於 NP 困難問題，無法透過標準最小成本網路流求解。我們採用迭代求解方法，使用拉格朗日鬆弛放鬆這些額外約束，產生一系列可透過最小成本流求解的子問題。此迭代程序漸進式地收緊鬆弛，朝向原始問題的最佳解收斂。實驗驗證展示了相較於傳統網路流方法及競爭演算法的優越效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以最佳化理論的語言概述從 NP 困難問題到可解子問題的轉化策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的核心論點是「拉格朗日鬆弛將不可解的問題轉化為可解的子問題序列」，這是嚴謹的數學論證路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「收斂向最佳解」的措辭需謹慎——拉格朗日鬆弛提供的是對偶下界，實際解與最佳解之間可能存在對偶間隙。作者需在方法章節中量化此間隙。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Multi-target tracking</span> aims to estimate the <span class="hl-method">trajectories of multiple objects simultaneously across video frames</span>. The <span class="hl-concept">tracking-by-detection paradigm</span> first obtains per-frame detections and then solves a <span class="hl-concept">data association problem</span> to link detections into trajectories. <span class="hl-concept">Min-cost network flow</span> has become a popular framework for global data association, as it can be <span class="hl-evidence">solved efficiently in polynomial time</span>. However, standard network flow formulations only support <span class="hl-rebuttal">pairwise (first-order) costs between consecutive detections</span>, which <span class="hl-rebuttal">cannot encode important motion constraints like velocity smoothness that involve three or more observations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多目標追蹤旨在跨影片影格同時估計多個物件的軌跡。追蹤偵測範式首先取得每影格的偵測結果，然後求解資料關聯問題以將偵測結果連結為軌跡。最小成本網路流已成為全域資料關聯的流行框架，因為它可在多項式時間內高效求解。然而，標準網路流公式只支持連續偵測之間的成對（一階）成本，無法編碼等速度平滑性等涉及三個以上觀測值的重要動作約束。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定位網路流追蹤的成就與一階約束的局限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證的起點：先肯定網路流的效率優勢（多項式時間），再指出其表達力限制（僅支持一階成本），為引入高階約束建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    效率 vs. 表達力的權衡是最佳化問題中的經典難題。作者清楚地框定了此權衡，但也需解釋為何高階約束（如等速度）對追蹤品質是必要的，而非僅是「有幫助」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To overcome this limitation, we propose a <span class="hl-concept">trellis graph representation</span> where <span class="hl-method">nodes correspond to pairs of matched detections</span> (observation pairs from consecutive frames) rather than individual detections. In this representation, <span class="hl-thesis">higher-order motion constraints become pairwise constraints between trellis nodes</span>, making them expressible in a flow framework. However, the trellis graph introduces <span class="hl-rebuttal">additional consistency constraints</span> (each detection can only participate in one pair) that violate the standard network flow structure. We handle this via <span class="hl-method">Lagrangian relaxation</span>, <span class="hl-thesis">decomposing the intractable problem into a sequence of standard min-cost flow problems with modified edge costs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為克服此限制，我們提出格架圖表示，其中節點對應匹配偵測對（來自連續影格的觀測對）而非個別偵測。在此表示中，高階動作約束變為格架節點之間的成對約束，使其可在流框架中表達。然而，格架圖引入了額外的一致性約束（每個偵測只能參與一個配對），違反了標準網路流的結構。我們透過拉格朗日鬆弛處理此問題，將不可解的問題分解為一系列具有修改邊成本的標準最小成本流問題。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——從格架圖到拉格朗日鬆弛的轉化路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示了關鍵的表示變換：原始空間中的高階約束 -> 格架空間中的成對約束 + 一致性約束 -> 拉格朗日鬆弛後的可解子問題。每步都有明確的數學動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    表示變換的策略巧妙——將問題的複雜性從約束形式轉移到圖結構，再透過鬆弛恢復可解性。但格架圖的節點數量是原始圖的平方級，可能帶來規模問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Network flow-based tracking</span> was popularized by Zhang et al., who showed that the <span class="hl-concept">minimum cost flow problem</span> could globally optimize <span class="hl-method">first-order data association costs</span>. Subsequent works extended this framework with <span class="hl-method">hierarchical association</span>, <span class="hl-method">occlusion handling</span>, and <span class="hl-method">appearance models</span>. However, all standard flow formulations remain <span class="hl-rebuttal">limited to pairwise terms</span>. Alternative approaches for incorporating higher-order constraints include <span class="hl-concept">discrete optimization via CRFs</span> and <span class="hl-concept">continuous optimization via trajectory smoothing</span>, but these <span class="hl-rebuttal">sacrifice the global optimality guarantees and polynomial-time solvability of network flow</span>. <span class="hl-concept">Lagrangian relaxation</span> has been applied in combinatorial optimization but is <span class="hl-thesis">new to the multi-target tracking domain</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於網路流的追蹤由 Zhang 等人普及，他們展示了最小成本流問題可全域最佳化一階資料關聯成本。後續研究以階層式關聯、遮擋處理與外觀模型擴展此框架。然而，所有標準流公式仍限於成對項。整合高階約束的替代方法包括透過 CRF 的離散最佳化和透過軌跡平滑的連續最佳化，但這些方法犧牲了網路流的全域最佳性保證與多項式時間可解性。拉格朗日鬆弛已在組合最佳化中被應用，但對多目標追蹤領域而言是新穎的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——定位拉格朗日鬆弛在追蹤領域的新穎性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「效率 vs. 表達力」的權衡組織文獻：標準流（高效但受限）vs. CRF/連續最佳化（靈活但無保證）。本文的拉格朗日鬆弛定位為在兩者之間的折衷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「犧牲全域最佳性」的批判針對 CRF 方法是準確的，但拉格朗日鬆弛自身也只提供近似解（下界），其「保證」的性質與標準網路流不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 格架圖表示 ====== -->
+    <h2 class="section-heading" id="sec-trellis">3. Trellis Graph Representation — 格架圖表示</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given detections D_t in frame t, we construct the <span class="hl-concept">trellis graph</span> as follows. Each <span class="hl-concept">trellis node</span> (i, j) at time t represents a <span class="hl-method">candidate matching between detection i in frame t-1 and detection j in frame t</span>. A trellis edge connects nodes (i, j) at time t to (j, k) at time t+1, with a cost that encodes the <span class="hl-method">second-order motion consistency</span>: specifically, the <span class="hl-method">deviation from constant velocity, computed as the acceleration magnitude ||v_{jk} - v_{ij}||</span>. This representation <span class="hl-thesis">naturally expresses velocity smoothness as a pairwise cost in the trellis graph</span>, even though it is a higher-order constraint in the original detection graph. The <span class="hl-rebuttal">key complication</span> is the <span class="hl-concept">consistency constraint</span>: each original detection must participate in <span class="hl-method">exactly one incoming and one outgoing trellis node</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                給定第 t 影格的偵測 D_t，我們如下建構格架圖。每個時間 t 的格架節點 (i, j) 代表第 t-1 影格偵測 i 與第 t 影格偵測 j 之間的候選匹配。格架邊連接時間 t 的節點 (i, j) 與時間 t+1 的節點 (j, k)，其成本編碼二階動作一致性：具體而言，即偏離等速度的程度，以加速度量值 ||v_{jk} - v_{ij}|| 計算。此表示自然地將速度平滑性表達為格架圖中的成對成本，即使它在原始偵測圖中是高階約束。關鍵的複雜之處是一致性約束：每個原始偵測必須恰好參與一個進入和一個離開的格架節點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學基礎——定義格架圖的節點、邊及成本。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法的核心數學構造：透過將「偵測對」作為節點，高階約束被降維為成對約束。加速度作為成本的選擇物理直覺明確。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    表示變換的數學推導清晰。但格架圖的節點數量為 O(|D|^2)，邊數為 O(|D|^3)，在偵測密集的場景中可能導致計算瓶頸。一致性約束的處理是方法的關鍵難點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 拉格朗日鬆弛 ====== -->
+    <h2 class="section-heading" id="sec-lagrangian">4. Lagrangian Relaxation — 拉格朗日鬆弛</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">consistency constraints</span> prevent direct application of min-cost flow to the trellis graph. We handle this via <span class="hl-concept">Lagrangian relaxation</span>: we <span class="hl-method">move the consistency constraints into the objective function using Lagrange multipliers</span>. For each original detection d, we introduce a <span class="hl-method">multiplier lambda_d</span> that penalizes violation of the constraint that d participates in exactly one trellis node pair. The resulting <span class="hl-concept">Lagrangian subproblem</span> has the structure of a <span class="hl-thesis">standard min-cost network flow problem with modified edge costs</span> (original costs plus Lagrange multiplier contributions). This subproblem can be solved <span class="hl-evidence">optimally in polynomial time using the successive shortest path algorithm</span>. The Lagrangian dual provides a <span class="hl-method">lower bound on the optimal objective value</span> of the original problem.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一致性約束阻止了對格架圖直接套用最小成本流。我們透過拉格朗日鬆弛處理此問題：使用拉格朗日乘子將一致性約束移入目標函數。對於每個原始偵測 d，我們引入乘子 lambda_d 來懲罰 d 恰好參與一個格架節點對之約束的違反。所得的拉格朗日子問題具有標準最小成本網路流問題的結構，只是邊成本經過修改（原始成本加上拉格朗日乘子的貢獻）。此子問題可使用逐次最短路徑演算法在多項式時間內最佳求解。拉格朗日對偶提供了原始問題最佳目標值的下界。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術——定義拉格朗日鬆弛的具體操作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法的理論核心：透過將困難約束「鬆弛」到目標函數中，不可解的問題被轉化為可解的子問題。每個子問題都是標準的網路流，可高效求解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    拉格朗日鬆弛的理論保證是清晰的：子問題的最佳值是原始問題的下界。但「下界」與「可行解」之間的間隙大小決定了方法的實際品質——作者需報告此間隙的統計分布。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 迭代求解 ====== -->
+    <h2 class="section-heading" id="sec-algorithm">5. Iterative Algorithm — 迭代求解</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We solve the <span class="hl-concept">Lagrangian dual</span> using <span class="hl-method">subgradient optimization</span>. At each iteration: (1) solve the min-cost flow subproblem with current multipliers to get a <span class="hl-method">lower bound and a relaxed solution</span>; (2) <span class="hl-method">project the relaxed solution to a feasible one</span> by resolving conflicts (when a detection appears in multiple trellis nodes) using a greedy heuristic; (3) <span class="hl-method">update the Lagrange multipliers</span> using the subgradient direction with a <span class="hl-method">diminishing step size</span>. The feasible solution provides an <span class="hl-method">upper bound</span>, and the gap between upper and lower bounds measures solution quality. In practice, <span class="hl-evidence">convergence is achieved within 20-50 iterations</span>, and the <span class="hl-evidence">optimality gap is typically below 1%</span>, indicating near-optimal solutions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們使用次梯度最佳化求解拉格朗日對偶。在每次迭代中：(1) 以當前乘子求解最小成本流子問題，獲得下界與鬆弛解；(2) 透過使用貪婪啟發式解決衝突（當偵測出現在多個格架節點中），將鬆弛解投影為可行解；(3) 使用遞減步長的次梯度方向更新拉格朗日乘子。可行解提供上界，上下界之間的間隙衡量解的品質。在實務上，收斂在 20-50 次迭代內達成，且最佳性間隙通常低於 1%，表明解接近最佳。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    完整演算法——三步迭代程序的詳細描述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將理論框架轉化為實際演算法。上下界的計算提供了解品質的可驗證度量，這是方法的重要理論優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    低於 1% 的最佳性間隙是極強的結果，幾乎等同於全域最佳。但此結果依賴於場景的複雜度——在目標密集、交叉頻繁的場景中，間隙可能顯著增大。「20-50 次迭代」乘以每次的最小成本流求解，總計算時間需要評估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on the <span class="hl-evidence">PETS 2009 benchmark</span> and <span class="hl-evidence">TUD-Stadtmitte pedestrian tracking dataset</span>. Metrics include <span class="hl-method">MOTA (Multiple Object Tracking Accuracy), MOTP (Multiple Object Tracking Precision), identity switches, and track fragmentations</span>. Compared to <span class="hl-evidence">standard min-cost flow (without velocity constraints), our method reduces identity switches by 25-40%</span> and <span class="hl-evidence">improves MOTA by 3-5 percentage points</span>. The velocity smoothness constraint is most impactful in <span class="hl-evidence">crowded scenes with frequent occlusions</span>, where naive first-order association often swaps identities. Against <span class="hl-evidence">discrete-continuous optimization methods</span> that also model motion smoothness, our approach achieves <span class="hl-evidence">comparable or better tracking accuracy with provable near-optimality guarantees (sub-1% gap)</span>. The runtime is <span class="hl-evidence">approximately 3x slower than standard min-cost flow</span> but remains tractable for practical sequences.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 PETS 2009 基準與 TUD-Stadtmitte 行人追蹤資料集上評估。指標包括 MOTA（多目標追蹤精確度）、MOTP（多目標追蹤精度）、身份切換次數與軌跡碎片化。相較於標準最小成本流（不含速度約束），我們的方法減少了 25-40% 的身份切換，並提升了 3-5 個百分點的 MOTA。速度平滑約束在頻繁遮擋的擁擠場景中影響最大，此類場景中單純的一階關聯經常交換身份。對比同樣建模動作平滑性的離散-連續最佳化方法，我們的方法達成相當或更好的追蹤精確度，同時具有可證明的近最佳性保證（低於 1% 的間隙）。執行時間約為標準最小成本流的 3 倍，但對實際序列仍然可行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供多維度的實驗證據——追蹤精確度、計算效率與最佳性保證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱，覆蓋：(1) 與無約束基線比較（25-40% 身份切換減少）；(2) 與高階方法比較（相當精確度 + 最佳性保證）；(3) 計算成本的透明報告。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    25-40% 的身份切換減少在實際應用中極有價值。3 倍的執行時間增加是合理的代價。但評估僅在兩個相對較小的資料集上進行，大規模場景（如 MOT Challenge 系列）的表現未被驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-concept">Lagrangian relaxation approach</span> for incorporating <span class="hl-thesis">higher-order motion constraints into min-cost network flow tracking</span>. The <span class="hl-method">trellis graph representation</span> enables expressing velocity smoothness as pairwise costs, and <span class="hl-method">Lagrangian relaxation</span> provides a principled way to handle the resulting consistency constraints. Our approach <span class="hl-thesis">bridges the gap between efficient first-order network flow methods and expressive but intractable higher-order formulations</span>, achieving <span class="hl-evidence">near-optimal solutions with provable quality bounds</span>. Future work includes extending to <span class="hl-rebuttal">even higher-order constraints (e.g., curvature)</span>, integrating <span class="hl-rebuttal">appearance models into the trellis framework</span>, and scaling to <span class="hl-rebuttal">large-scale tracking benchmarks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一種拉格朗日鬆弛方法，將高階動作約束整合至最小成本網路流追蹤中。格架圖表示使得速度平滑性可表達為成對成本，而拉格朗日鬆弛提供了處理所得一致性約束的有原則方式。我們的方法橋接了高效的一階網路流方法與表達力強但不可行的高階公式之間的差距，達成具有可證明品質界的近最佳解。未來工作包括擴展至更高階的約束（如曲率）、將外觀模型整合至格架框架中，以及擴展至大規模追蹤基準。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以「橋接差距」的隱喻重申方法定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論精確回扣摘要的核心論點，以「效率-表達力」的軸線定位方法的獨特價值。三個未來方向各自指向方法的擴展空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「可證明品質界」是區別於啟發式方法的根本優勢。但「曲率」等更高階約束會使格架圖更加膨脹，可擴展性是未被充分討論的潛在瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                標準網路流追蹤<br>僅支持一階約束
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                格架圖+拉格朗日鬆弛<br>整合高階動作約束
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                身份切換減少 25-40%<br>最佳性間隙低於 1%
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                計算成本僅為<br>標準流的 3 倍
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                橋接效率與<br>表達力的差距
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過格架圖表示將高階動作約束轉化為成對約束，再以拉格朗日鬆弛分解為可解的最小成本流子問題，能在保持計算可行性的前提下顯著改善多目標追蹤品質。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論保證與實務效能的結合：</strong>低於 1% 的最佳性間隙不僅是漂亮的數字，更意味著方法的解幾乎就是理論上的最佳解。同時，25-40% 的身份切換減少展示了高階約束在實務中的顯著價值。這種「既有理論保證又有實際改善」的雙重驗證在追蹤領域較為罕見。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>規模可擴展性的疑慮：</strong>格架圖的節點數量為偵測數的平方級，在目標密集的大規模場景中可能快速膨脹。實驗僅在兩個相對較小的資料集上進行，未涵蓋 MOT Challenge 等大規模基準。此外，貪婪啟發式的可行解投影缺乏理論保證，在極端情況下可能產生較差的上界。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

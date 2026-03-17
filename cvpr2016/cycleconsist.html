@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Dense Correspondence via 3D-Guided Cycle Consistency — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Learning Dense Correspondence via 3D-Guided Cycle Consistency
+                <span class="course-tag">CVPR 2016</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1604.05383" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-matchability">3.2 可匹配性預測</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper addresses <span class="hl-concept">dense visual correspondence across different object instances</span> without requiring <span class="hl-rebuttal">direct ground-truth correspondence labels</span>. The key innovation is exploiting <span class="hl-concept">cycle consistency</span> as a <span class="hl-thesis">"meta-supervision" signal</span>. During training, the authors use <span class="hl-method">3D CAD models to establish correspondence 4-cycles</span> — connecting pairs of real images through synthetic rendered views. A CNN is trained to predict <span class="hl-method">"synthetic-to-real, real-to-real and real-to-synthetic correspondences that are cycle-consistent"</span>. At test time, <span class="hl-thesis">no CAD models are required</span>, and the approach <span class="hl-evidence">outperforms SIFT flow on correspondence tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文處理不同物件實例間的密集視覺對應問題，無需直接的真實對應標籤。核心創新在於利用循環一致性作為「元監督」訊號。訓練階段中，作者使用三維 CAD 模型建立對應四元迴路——透過合成渲染視圖連接成對的真實影像。訓練一個 CNN 預測合成到真實、真實到真實以及真實到合成的循環一致對應。在測試階段無需 CAD 模型，且該方法在對應任務上優於 SIFT flow。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「無直接標註的學習」為核心賣點，預告循環一致性的創新監督方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的核心張力在於「訓練需要 CAD 模型但測試不需要」——這意味著 3D 知識被蒸餾到了 2D 對應網路中，是一個優雅的知識遷移策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「元監督」這一術語巧妙地將循環一致性包裝為超越傳統監督的高階概念。但依賴 CAD 模型意味著該方法僅適用於有現成 3D 模型的物件類別，泛化能力受限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Establishing <span class="hl-concept">dense correspondence between images</span> is a fundamental problem in computer vision, underlying tasks such as <span class="hl-evidence">3D reconstruction, pose estimation, and image editing</span>. While correspondence within the same instance (e.g., stereo matching) is well-studied, <span class="hl-concept">cross-instance correspondence</span> — matching semantically equivalent parts across different object instances — remains challenging. The core difficulty is that <span class="hl-rebuttal">ground-truth cross-instance correspondences are extremely expensive to annotate</span>. Existing methods either rely on <span class="hl-rebuttal">hand-crafted features like SIFT</span> that are not tuned for semantic matching, or require <span class="hl-rebuttal">dense manual annotations</span> that scale poorly.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                建立影像間的密集對應是電腦視覺中的基礎問題，支撐了三維重建、姿態估計與影像編輯等任務。雖然同一實例內的對應（如立體匹配）已被充分研究，跨實例對應——在不同物件實例間匹配語意等價的部位——仍具挑戰性。核心困難在於跨實例對應的真實標註極其昂貴。現有方法要麼依賴未針對語意匹配調校的手工特徵如 SIFT，要麼需要擴展性差的密集人工標註。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——區分同實例對應與跨實例對應，指出標註瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：將問題精確定位為「跨實例」而非「同實例」，並以標註成本為核心痛點，為循環一致性的「免標註」方案建立必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「標註昂貴」是深度學習時代的經典動機，但需注意作者的方法並非完全「免標註」——它依賴 CAD 模型作為替代監督源，這本身也有取得成本。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Traditional <span class="hl-concept">dense correspondence methods</span> include <span class="hl-concept">SIFT flow</span>, which computes dense pixel-wise matching using hand-crafted features. Recent deep learning approaches by <span class="hl-concept">Long et al.</span> learn correspondence features but require <span class="hl-rebuttal">direct supervision from manually annotated keypoints</span>. <span class="hl-concept">FlowNet</span> learns optical flow in a supervised manner but <span class="hl-rebuttal">cannot handle cross-instance matching</span> where appearance differs significantly. The use of <span class="hl-concept">3D models as bridges</span> for 2D tasks has been explored in recognition but <span class="hl-rebuttal">not previously applied to learning dense correspondence in an end-to-end fashion</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統密集對應方法包括使用手工特徵計算密集像素級匹配的 SIFT flow。近期由 Long 等人提出的深度學習方法學習對應特徵，但需要人工標註關鍵點的直接監督。FlowNet 以監督方式學習光流，但無法處理外觀差異顯著的跨實例匹配。使用三維模型作為二維任務橋梁的想法已在辨識領域被探索，但尚未以端到端方式應用於密集對應學習。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——將現有方法按監督需求分類並指出各自侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術定位：SIFT flow（無學習）-> Long et al.（需直接標註）-> FlowNet（同實例限定）-> 本文（跨實例 + 免直接標註）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以演進脈絡中的「尚未」（not previously applied）精確定位本文的新穎性。但 FlowNet 的侷限被略為簡化——有研究已嘗試將光流方法擴展到語意對應領域。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core idea uses <span class="hl-concept">cycle consistency</span> as a training signal. For each training quartet &lt;s1, s2, r1, r2&gt;, where <span class="hl-method">s represents synthetic rendered views and r represents real images</span> of the same object category, the network learns four correspondence flows forming a 4-cycle. The training objective minimizes <span class="hl-method">L_flow = distance(F_gt(s1,s2), F(s1,r1) composed with F(r1,r2) composed with F(r2,s2))</span>, comparing the <span class="hl-method">ground-truth synthetic-to-synthetic flow with the composed flow along the cycle</span>. Flow composition uses <span class="hl-method">bilinear interpolation for differentiability</span>, and a <span class="hl-method">truncated Euclidean loss with threshold T=15 pixels</span> provides robustness to outliers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                核心概念以循環一致性作為訓練訊號。對於每個訓練四元組 &lt;s1, s2, r1, r2&gt;，其中 s 代表同一物件類別的合成渲染視圖而 r 代表真實影像，網路學習形成四元迴路的四組對應流。訓練目標最小化 L_flow = distance(F_gt(s1,s2), F(s1,r1) 組合 F(r1,r2) 組合 F(r2,s2))，比較合成到合成的真實流與沿迴路的組合流。流的組合使用雙線性內插以確保可微分性，截斷歐幾里德損失（閾值 T=15 像素）則提供對離群值的穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——詳述循環一致性損失的數學形式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文技術核心：3D CAD 模型提供合成對之間的精確對應（免費的真實標註），而循環一致性將此監督訊號「傳導」到真實影像對。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以四元迴路的幾何直覺使抽象的「元監督」具體化。但迴路中的誤差會累積——若 s->r 的對應品質差，整個迴路的監督訊號便會退化。截斷損失部分緩解了此問題，但閾值 T=15 的選取缺乏理論依據。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 可匹配性預測 ====== -->
+    <h3 class="subsection-heading" id="sec-matchability">3.2 Matchability Prediction — 可匹配性預測</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Beyond flow prediction, the network also outputs <span class="hl-concept">matchability probability maps</span> indicating <span class="hl-method">whether a valid correspondence exists at each pixel</span>. A separate decoder branch produces these maps using <span class="hl-method">9 fractionally-strided convolution layers</span>. To prevent the trivial solution of predicting zero matchability everywhere, the authors <span class="hl-method">fix M(s1,r1) = 1 and M(r2,s2) = 1</span>, constraining the network to predict matchability only for the real-to-real flow. The matchability loss uses <span class="hl-method">cross-entropy with lambda = 100 weighting</span> in the combined objective.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                除了流預測，網路還輸出可匹配性機率圖，指示每個像素是否存在有效對應。一個獨立的解碼器分支使用 9 層分數步長摺積層產生這些圖。為防止網路處處預測零可匹配性的平凡解，作者固定 M(s1,r1) = 1 和 M(r2,s2) = 1，限制網路僅預測真實到真實流的可匹配性。可匹配性損失在組合目標中使用權重 lambda = 100 的交叉熵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    補充機制——處理「並非所有像素都有對應」的現實情境。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    可匹配性預測是使系統實用化的關鍵組件：現實中物件的遮擋、截斷意味著並非每個像素都能找到對應，此模組提供了「拒絕匹配」的能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    固定合成-真實對的可匹配性為 1 是一個巧妙的約束，避免了平凡解。但 lambda = 100 的高權重意味著可匹配性損失在目標中佔主導地位，可能壓抑流精度的最佳化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments evaluate <span class="hl-evidence">keypoint transfer</span> and <span class="hl-evidence">matchability prediction</span> on <span class="hl-evidence">PASCAL3D+ and PASCAL-Part</span> datasets. For keypoint transfer (PCK at alpha = 0.1), the method achieves <span class="hl-evidence">24.0% mean accuracy, compared to 19.6% for SIFT flow and 18.5% for Long et al.</span> Particularly strong gains appear on <span class="hl-evidence">"bottle" (40.3% vs. 28.3%) and "car" (33.3% vs. 22.4%)</span> categories. For matchability prediction, the method reaches <span class="hl-evidence">67.8% mean accuracy on PASCAL-Part vs. 57.1% for SIFT flow</span>. The network is trained on approximately <span class="hl-evidence">80,000 training quartets per category</span> from PASCAL3D+ and ShapeNet, using <span class="hl-method">Adam optimizer with learning rate 0.001</span> and a <span class="hl-method">two-stage training strategy: initialization with SIFT flow mimicry, then consistency fine-tuning for 200,000 iterations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗在 PASCAL3D+ 與 PASCAL-Part 資料集上評估關鍵點轉移與可匹配性預測。在關鍵點轉移（PCK alpha = 0.1）上，本方法達到 24.0% 平均準確率，相較 SIFT flow 的 19.6% 與 Long 等人的 18.5%。在「瓶子」（40.3% vs. 28.3%）與「汽車」（33.3% vs. 22.4%）類別上增益尤為顯著。在可匹配性預測上，本方法在 PASCAL-Part 上達到 67.8% 平均準確率，對比 SIFT flow 的 57.1%。網路以每類別約 80,000 個訓練四元組從 PASCAL3D+ 與 ShapeNet 訓練，使用 Adam 最佳化器（學習率 0.001）與兩階段訓練策略：先以 SIFT flow 模仿進行初始化，再以一致性微調 200,000 次迭代。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在兩個任務上系統性驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段覆蓋三個維度：(1) 整體改進（24.0% vs. 19.6%）；(2) 逐類別分析（瓶子與汽車）；(3) 訓練細節的完整披露以確保可重現性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「瓶子」與「汽車」的顯著改進暗示該方法對結構規律的物件特別有效——這些類別有豐富的 CAD 模型支援。但對形變大的軟性物件（如「貓」、「狗」），改進可能有限。SIFT flow 初始化的兩階段訓練暗示循環一致性損失的優化地景可能不夠平滑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper introduces a <span class="hl-thesis">"general learning framework for tasks without direct labels through cycle consistency as an example of meta-supervision"</span>. By leveraging <span class="hl-method">3D CAD models as bridges between real images</span>, the method learns <span class="hl-thesis">dense cross-instance correspondence without manual keypoint annotations</span>. The first <span class="hl-thesis">end-to-end trained ConvNet supervised by cycle-consistency outperforms state-of-the-art pairwise matching methods</span>. Feature analysis reveals that the network develops <span class="hl-evidence">implicit viewpoint sensitivity despite no explicit viewpoint supervision</span>, suggesting that 3D understanding emerges naturally from the cycle consistency objective.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一個通用學習框架，以循環一致性作為元監督的範例，用於無直接標籤的任務。透過利用三維 CAD 模型作為真實影像間的橋梁，該方法學習密集的跨實例對應而無需人工關鍵點標註。首個以循環一致性監督的端到端摺積網路優於最先進的成對匹配方法。特徵分析揭示網路發展出隱式的視角敏感性，儘管並無顯式的視角監督，暗示三維理解從循環一致性目標中自然浮現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——將具體方法提升為通用框架，強調浮現的三維理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將循環一致性從「特定工具」昇華為「通用原則」，大幅擴展了論文的影響力。「3D 理解的自然浮現」是令人驚喜的發現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「通用框架」的宣稱富有雄心，但實際上此方法的核心依賴——CAD 模型——限制了其通用性。對於缺乏 3D 模型的物件類別或非剛體物件，此框架的適用性仍未驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                跨實例密集對應<br>缺乏標註資料
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                循環一致性作為<br>元監督訊號
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                PASCAL3D+ 上<br>超越 SIFT flow
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                測試時不需<br>CAD 模型
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                循環一致性為<br>免標註學習的通用原則
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以三維 CAD 模型建立四元迴路的循環一致性約束，作為元監督訊號訓練 CNN 學習跨實例密集對應，測試時無需三維模型即可超越手工特徵方法。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>元監督的概念突破：</strong>將「循環一致性」從幾何約束提升為通用的學習原則，開創了「無直接標註的端到端學習」的新範式。3D 模型僅在訓練時使用而測試時不需的設計，使方法在部署上具有實用性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>對三維模型的隱性依賴：</strong>雖然測試時不需要 CAD 模型，但訓練時的依賴限制了方法的適用範圍——僅限於 ShapeNet 等資料庫有覆蓋的剛性物件類別。對於可形變物件、自然場景或抽象概念的跨實例對應，此方法尚無法處理。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

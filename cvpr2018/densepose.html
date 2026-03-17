@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DensePose: Dense Human Pose Estimation In The Wild — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                DensePose: Dense Human Pose Estimation In The Wild
+                <span class="course-tag">CVPR 2018</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1802.00434" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-dataset">3.2 資料集</a>
+        <a href="#sec-architecture">3.3 架構</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we establish <span class="hl-thesis">dense correspondences between an RGB image and a surface-based representation of the human body</span>. We first gather <span class="hl-evidence">dense correspondences for 50K persons appearing in the COCO dataset</span> by introducing an efficient <span class="hl-method">annotation pipeline</span>. We then use our dataset to train <span class="hl-concept">CNN-based systems</span> that deliver dense correspondence "in the wild," namely in the presence of <span class="hl-rebuttal">background clutter, occlusions, and scale variations</span>. We experiment with <span class="hl-method">region-based and fully-convolutional architectures</span> and observe that <span class="hl-thesis">region-based models substantially outperform fully-convolutional approaches</span>. We further use a <span class="hl-method">"teacher" inpainting network</span> to address the <span class="hl-rebuttal">challenge of sparse supervision</span>, resulting in improvements. Our system achieves real-time performance at <span class="hl-evidence">20-26 frames per second</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究建立了 RGB 影像與人體表面表示之間的密集對應關係。我們首先透過引入高效的標註流程，為 COCO 資料集中出現的五萬人收集密集對應標註。隨後利用此資料集訓練基於 CNN 的系統，在自然環境下（亦即存在背景雜訊、遮擋與尺度變化的情境中）實現密集對應預測。我們比較了基於區域與全摺積架構，觀察到基於區域的模型顯著優於全摺積方法。我們進一步使用「教師」修復網路來應對稀疏監督的挑戰，從而獲得改善。系統達到每秒 20-26 幀的即時效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以四步遞進（資料集、模型、架構比較、知識蒸餾）概述完整研究流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的雙重功能：定義「密集人體姿態估計」這一新任務，同時預告資料驅動的系統性解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調 50K 人的標註規模與即時效能（20-26 fps），從資料與效率兩端建立可信度。但「dense correspondences」的精確定義留待方法章節，讀者此時可能對任務範疇理解不足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Understanding humans in images is a fundamental problem in computer vision. Existing approaches typically focus on <span class="hl-concept">sparse representations</span> such as <span class="hl-concept">2D keypoints</span> or <span class="hl-concept">3D skeletal poses</span>. While these provide useful information, they <span class="hl-rebuttal">fail to capture the full complexity of human body surface geometry</span>. We argue that a <span class="hl-thesis">dense, surface-based correspondence map provides a substantially richer description</span> of human pose and body shape, enabling applications in <span class="hl-evidence">augmented reality, graphics, and human-computer interaction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                理解影像中的人類是電腦視覺的基礎問題。現有方法通常聚焦於稀疏表示，例如二維關鍵點或三維骨架姿態。雖然這些提供了有用的資訊，但它們無法捕捉人體表面幾何的完整複雜性。我們主張，密集的、基於表面的對應圖提供了對人體姿態與體型遠為豐富的描述，能促進擴增實境、圖學與人機互動等應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從稀疏姿態估計的侷限引出密集表面對應的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：先肯定關鍵點偵測的貢獻，再揭示「稀疏」的本質侷限，為「密集」表示的引入提供動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「richer description」的修辭構建說服力，但未量化「稀疏 vs. 密集」在下游任務中的實際性能差異。密集表示的優越性在此階段更像是直覺而非已被驗證的事實。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key challenge is the <span class="hl-rebuttal">lack of large-scale datasets with dense surface correspondence annotations</span>. Collecting such annotations is substantially more complex than labeling keypoints. We address this through a carefully designed <span class="hl-method">two-stage annotation pipeline</span>: first, annotators perform <span class="hl-method">semantic body part segmentation</span>; second, they identify <span class="hl-method">surface correspondences within each part using pre-rendered 3D body views</span>. This pipeline allows us to efficiently annotate the <span class="hl-evidence">DensePose-COCO dataset with over 5 million correspondence points across 50K persons</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                關鍵挑戰在於缺乏具備密集表面對應標註的大規模資料集。收集此類標註遠比標記關鍵點複雜。我們透過精心設計的兩階段標註流程來解決此問題：首先，標註者進行語意身體部位分割；接著，利用預渲染的三維身體視圖，在每個部位內辨識表面對應點。此流程使我們能高效地標註 DensePose-COCO 資料集，橫跨五萬人共計超過五百萬個對應點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料工程——描述如何克服標註瓶頸以建立大規模資料集。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「先有資料再有模型」的研究策略：本段證明資料集的建立不僅可行且具規模效益，為後續模型訓練提供堅實基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    五百萬對應點的數字令人印象深刻，但標註品質的評估（如標註者間一致性）在此段未被討論。兩階段流程的設計將複雜的三維對應分解為可管理的子任務，是巧妙的工程解決方案。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Human pose estimation</span> has progressed from <span class="hl-concept">pictorial structure models</span> to <span class="hl-concept">deep learning approaches</span>. <span class="hl-concept">Convolutional Pose Machines</span> and <span class="hl-concept">Stacked Hourglass Networks</span> have achieved impressive results for <span class="hl-evidence">2D keypoint detection</span>. <span class="hl-concept">Body model fitting</span> approaches like <span class="hl-concept">SMPL</span> reconstruct <span class="hl-evidence">3D body meshes from images</span>, but typically operate in a <span class="hl-rebuttal">top-down fashion requiring person detection and are computationally expensive</span>. <span class="hl-concept">Dense correspondence estimation</span> has been explored between image pairs, but establishing correspondences between <span class="hl-thesis">an image and a canonical 3D surface model in the wild remains an open challenge</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人體姿態估計已從圖像結構模型發展到深度學習方法。摺積姿態機與堆疊沙漏網路在二維關鍵點偵測方面取得了令人矚目的成果。如 SMPL 等身體模型擬合方法能從影像重建三維身體網格，但通常以由上而下的方式運作，需要人物偵測且計算成本高昂。影像對之間的密集對應估計已有探索，但在自然環境下建立影像與標準三維表面模型之間的對應仍是開放性挑戰。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理從稀疏到密集、從二維到三維的研究演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術譜系：2D 關鍵點 -> 3D 模型擬合 -> 密集對應，展示研究的自然演進，將 DensePose 定位為此趨勢的下一步。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 SMPL 的「計算昂貴」作為弱點凸顯，但 SMPL 提供的是完整的參數化身體模型，信息豐富度可能超過 DensePose 的 UV 對應圖。兩者的比較並非完全公平。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-dataset">3.1 DensePose-COCO Dataset — DensePose-COCO 資料集</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-concept">DensePose-COCO</span>, a large-scale dataset for dense human pose estimation. Our <span class="hl-method">annotation pipeline</span> consists of two stages. In the first stage, annotators <span class="hl-method">segment visible body parts into semantic regions</span> (head, torso, upper arms, lower arms, upper legs, lower legs, hands, feet). In the second stage, for each body part, annotators <span class="hl-method">identify corresponding surface points using six pre-rendered views of the SMPL body model</span>. This two-stage decomposition <span class="hl-thesis">reduces the cognitive load and enables efficient annotation</span>. The resulting dataset contains <span class="hl-evidence">over 5 million manually annotated correspondences across 50K persons</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們引入 DensePose-COCO，一個用於密集人體姿態估計的大規模資料集。標註流程包含兩個階段。第一階段，標註者將可見的身體部位分割為語意區域（頭部、軀幹、上臂、下臂、大腿、小腿、手部、足部）。第二階段，針對每個身體部位，標註者利用 SMPL 身體模型的六個預渲染視圖來辨識對應的表面點。這種兩階段分解降低了認知負擔並實現高效標註。所得資料集包含橫跨五萬人的超過五百萬個人工標註對應點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料集設計——詳述兩階段標註流程的具體操作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    本段是整個研究的基石：沒有此資料集，後續所有模型訓練與評估都不可能。SMPL 模型的使用將二維標註與三維表面連結起來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「降低認知負擔」的說法合理但缺乏量化支持——理想情況下應報告每人的標註時間與標註者間一致性。此外，SMPL 模型假設固定的身體拓撲，可能無法處理極端體型或非典型姿勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-architecture">3.2 Architecture — 架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">DensePose-RCNN</span>, built upon <span class="hl-concept">Mask R-CNN</span> with a <span class="hl-concept">Feature Pyramid Network (FPN)</span> backbone. The architecture uses <span class="hl-method">ROI-Align pooling</span> to extract region features, followed by <span class="hl-method">stacked 3x3 convolutional layers with 512 channels</span> for the dense prediction head. For each detected person, the network predicts <span class="hl-method">body part labels and UV coordinates</span> within each part. We compare this region-based approach with a <span class="hl-concept">fully-convolutional variant (DP-FCN)</span> and find that <span class="hl-thesis">region-based processing provides significantly better accuracy</span>, as it can <span class="hl-thesis">focus computational resources on individual person instances</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 DensePose-RCNN，建立在具有特徵金字塔網路（FPN）骨幹的 Mask R-CNN 之上。架構使用 ROI-Align 池化提取區域特徵，再經由堆疊的 3x3 摺積層（512 通道）進行密集預測。對每個偵測到的人物，網路預測身體部位標籤與各部位內的 UV 座標。我們將此基於區域的方法與全摺積變體（DP-FCN）比較，發現基於區域的處理提供顯著更高的準確度，因為它能將計算資源集中於個別人物實例。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心架構——描述 DensePose-RCNN 的設計及其相對於全摺積方法的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了「區域 vs. 全摺積」的關鍵比較，結論（區域更好）為後續實驗的架構選擇提供依據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    建立在 Mask R-CNN 上是務實的選擇，利用了成熟的偵測框架。但這也意味著系統的效能受限於人物偵測器的品質——漏檢的人物將完全沒有密集姿態預測。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教師網路 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key challenge is that ground-truth annotations are <span class="hl-rebuttal">spatially sparse — only a subset of surface points are annotated per person</span>. To address this, we introduce a <span class="hl-method">"teacher" inpainting network</span> that <span class="hl-method">completes the sparse annotations into dense correspondence maps</span>. The teacher is trained on the annotated points and then used to generate <span class="hl-method">dense pseudo-ground-truth for the full body surface</span>. Training DensePose-RCNN with this <span class="hl-concept">distilled supervision</span> yields <span class="hl-evidence">substantial improvements: AUC at 10cm threshold increases from 0.315 to 0.381</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個關鍵挑戰是真實標註在空間上是稀疏的——每個人僅有一部分表面點被標註。為解決此問題，我們引入一個「教師」修復網路，將稀疏標註補全為密集對應圖。教師網路在已標註的點上訓練，然後用於生成完整身體表面的密集偽真實標註。使用此蒸餾監督訓練 DensePose-RCNN 帶來了顯著改善：10 公分閾值下的 AUC 從 0.315 提升至 0.381。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略創新——以知識蒸餾解決稀疏監督問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應了資料標註的固有侷限：即使有五百萬個點，相對於人體表面仍是稀疏的。教師網路將「稀疏但真實」的標註擴展為「密集但近似」的監督。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    AUC 從 0.315 到 0.381 是 21% 的相對提升，令人信服。但偽真實標註的品質取決於教師網路的泛化能力——在標註稀疏的區域（如背部），教師的預測可能不夠可靠。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on the <span class="hl-evidence">DensePose-COCO benchmark</span> using two metrics: <span class="hl-method">Ratio of Correct Points (RCP) with area-under-curve measures</span>, and <span class="hl-method">Geodesic Point Similarity (GPS)</span> inspired by the Object Keypoint Similarity metric. Our best model, <span class="hl-concept">DensePose-RCNN with cascading and distillation</span>, achieves <span class="hl-evidence">AUC of 0.390 at 10cm and 0.664 at 30cm</span>. For comparison, <span class="hl-evidence">human performance reaches 0.563 and 0.835 respectively</span>. The <span class="hl-concept">fully-convolutional baseline (DP-FCN)</span> only achieves <span class="hl-evidence">0.253 at 10cm</span>, confirming the advantage of region-based processing. Per-instance evaluation using GPS yields <span class="hl-evidence">AP of 55.8 with ResNet-50 backbone</span>. The system operates at <span class="hl-evidence">20-26 fps on 240x320 images</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 DensePose-COCO 基準上使用兩項指標進行評估：正確點比率（RCP）的曲線下面積，以及受物件關鍵點相似度指標啟發的測地點相似度（GPS）。我們最佳的模型——具備級聯與蒸餾的 DensePose-RCNN——在 10 公分閾值下達到 AUC 0.390，在 30 公分閾值下達到 0.664。作為對比，人類表現分別為 0.563 與 0.835。全摺積基線（DP-FCN）在 10 公分時僅達到 0.253，確認了基於區域處理的優勢。使用 GPS 的逐實例評估得到 AP 55.8（ResNet-50 骨幹）。系統在 240x320 影像上達到每秒 20-26 幀。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面的定量評估——以多指標驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱包含四個維度：(1) 兩種評估指標的嚴謹性；(2) 與人類表現的差距提供改進空間的量化；(3) 架構比較驗證設計選擇；(4) 即時效能展示實用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提供人類表現上限是優秀的評估策略，讓讀者理解任務難度。但 AUC 0.390 vs. 人類 0.563 的差距（30%）暗示模型仍有很大改善空間。此外，評估僅在 COCO 上進行，跨資料集泛化性未被驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have introduced <span class="hl-concept">DensePose</span>, a system for <span class="hl-thesis">establishing dense correspondences between RGB images and the 3D surface of the human body</span>. Our contributions include the <span class="hl-evidence">DensePose-COCO dataset with 50K annotated persons and 5M+ correspondence points</span>, the <span class="hl-concept">DensePose-RCNN architecture</span> that leverages region-based processing, and a <span class="hl-method">teacher-student training scheme</span> for handling sparse supervision. We have shown that <span class="hl-thesis">dense human pose estimation is achievable at real-time speeds</span>, opening up applications in <span class="hl-thesis">augmented reality, graphics, and human-computer interaction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們引入了 DensePose 系統，用於建立 RGB 影像與人體三維表面之間的密集對應關係。貢獻包括：具有五萬個標註人物與超過五百萬對應點的 DensePose-COCO 資料集、利用區域處理的 DensePose-RCNN 架構，以及用於處理稀疏監督的師生訓練方案。我們展示了密集人體姿態估計可在即時速度下達成，為擴增實境、圖學與人機互動開啟了應用前景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申三大貢獻並展望應用方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應緒論的研究動機，形成閉環：從「稀疏姿態不夠」到「密集對應已可即時實現」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論簡潔但偏向樂觀，未討論模型與人類表現之間仍存在的顯著差距，以及對 SMPL 身體模型的依賴可能限制對非標準體型的泛化能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                稀疏關鍵點無法描述<br>完整人體表面幾何
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                密集表面對應提供<br>更豐富的人體描述
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                50K 人標註資料集<br>即時 20-26 fps 效能
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                教師網路解決<br>稀疏監督挑戰
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                密集姿態估計<br>可即時實現
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過大規模標註資料集、基於區域的 CNN 架構與師生蒸餾訓練策略，密集的影像-人體表面對應估計可在自然環境下以即時速度實現。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>資料驅動的系統性方法：</strong>從標註流程設計到模型架構到訓練策略，形成完整的技術堆疊。DensePose-COCO 資料集本身即為重大貢獻，為後續研究提供了標準化基準。區域模型 vs. 全摺積模型的比較設計嚴謹。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>與人類表現的差距：</strong>模型 AUC 0.390 vs. 人類 0.563（10cm 閾值下），差距達 31%，暗示密集姿態估計仍是極具挑戰性的任務。此外，系統對 SMPL 身體模型的依賴意味著它預設了固定的身體拓撲結構，可能無法處理著裝、配件或非人類姿態。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

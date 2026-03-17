@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Deep Features for Discriminative Localization (CAM) — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Learning Deep Features for Discriminative Localization (CAM)
+                <span class="course-tag">CVPR 2016</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1512.04150" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-cam">3. CAM 方法</a>
+        <a href="#sec-gap">3.1 全域平均池化</a>
+        <a href="#sec-localize">3.2 定位能力</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we revisit the <span class="hl-concept">global average pooling layer</span> proposed in Network in Network, and shed light on <span class="hl-thesis">how it explicitly enables the convolutional neural network to have remarkable localization ability despite being trained on image-level labels</span>. While this technique was previously proposed as a means for <span class="hl-rebuttal">regularizing training</span>, we find that it actually builds a <span class="hl-thesis">generic localizable deep representation</span> that can be applied to a variety of tasks. Despite the simplicity of our approach, we achieve <span class="hl-evidence">37.1% top-5 error for weakly-supervised object localization on ILSVRC 2014, which is remarkably close to the 34.2% top-5 error achieved by fully supervised methods</span>. We demonstrate that our network is able to localize the discriminative regions used for classification across different tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究重新審視 Network in Network 中提出的全域平均池化層，闡明它如何使摺積神經網路在僅以影像層級標籤訓練的情況下，仍具備卓越的定位能力。雖然此技術先前被視為一種訓練正則化手段，我們發現它實際上建構了一種可用於多種任務的通用可定位深度表示。儘管方法極為簡單，在 ILSVRC 2014 的弱監督物件定位任務上達到 37.1% top-5 錯誤率，非常接近全監督方法的 34.2% top-5 錯誤率。實驗展示了網路能夠在不同任務中定位用於分類的區辨性區域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——揭示全域平均池化的隱藏能力（定位），並以弱監督定位結果預告方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「重新發現」的敘事策略開場——全域平均池化並非新技術，但本文揭示了其未被注意的定位能力，創造了「舊瓶新酒」的新穎感。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    37.1% vs 34.2% 的比較極具說服力——僅用影像標籤就接近全監督效能。但「弱監督」一詞可能誤導讀者：ImageNet 的影像標籤本身就暗含了強烈的位置偏差（物件通常位於影像中心）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A remarkable property of <span class="hl-concept">convolutional neural networks</span> is that, despite being trained on <span class="hl-rebuttal">image-level classification labels without any bounding box annotations</span>, the <span class="hl-concept">convolutional layers</span> still retain substantial <span class="hl-thesis">spatial information about objects</span>. This information is typically <span class="hl-rebuttal">lost when fully-connected layers are used for classification</span>. Recent works such as <span class="hl-concept">Network in Network (NIN)</span> and <span class="hl-concept">GoogLeNet</span> have replaced fully-connected layers with <span class="hl-concept">global average pooling (GAP)</span>, originally motivated as a <span class="hl-rebuttal">structural regularizer to prevent overfitting</span>. We show that <span class="hl-thesis">with a little tweaking, the network can retain its remarkable localization ability until the final layer</span>, enabling single forward-pass localization across diverse tasks without explicit localization training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                摺積神經網路的一個顯著特性是：儘管僅以影像層級分類標籤訓練而無任何邊界框標注，摺積層仍保留了大量關於物件的空間資訊。此資訊通常在使用全連接層進行分類時喪失。近期的 Network in Network（NIN）和 GoogLeNet 以全域平均池化（GAP）取代全連接層，原本的動機是作為防止過擬合的結構正則化器。本文展示只需少量調整，網路即可將其卓越的定位能力保留至最終層，在無需顯式定位訓練的情況下，透過單次前向傳播在多樣化任務中實現定位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立核心洞見——CNN 天生具備定位能力，只是被全連接層破壞了。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：建立「空間資訊存在但被忽略」的觀察，為 CAM 方法的合理性奠定基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「只需少量調整」的措辭暗示方法的簡潔性是優勢而非限制。但此調整（移除全連接層、加入 GAP）實際上會影響分類精度——作者需在後文處理此權衡。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Weakly-supervised object localization</span> has been approached through various methods, including <span class="hl-concept">multiple instance learning (MIL)</span> and <span class="hl-concept">attention-based mechanisms</span>. Oquab et al. proposed using <span class="hl-concept">global max pooling (GMP)</span> for localization, but this only captures <span class="hl-rebuttal">the single most discriminative point</span> rather than the full extent of the object. In contrast, <span class="hl-thesis">"average pooling encourages the network to identify the complete extent of the object"</span> because it aggregates information from all spatial locations, incentivizing the network to activate broadly over the object region. For <span class="hl-concept">CNN visualization</span>, prior methods such as <span class="hl-concept">backpropagation-based saliency maps</span> and <span class="hl-concept">deconvolution</span> provide insights into network behavior, but they are <span class="hl-rebuttal">computationally expensive and do not directly relate to the classification decision</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                弱監督物件定位已透過多種方法被探討，包括多實例學習（MIL）和基於注意力的機制。Oquab 等人提出使用全域最大池化（GMP）進行定位，但此方法僅捕捉到單一最具區辨力的點，而非物件的完整範圍。相比之下，「平均池化鼓勵網路辨識物件的完整範圍」，因為它從所有空間位置彙聚資訊，激勵網路在物件區域上廣泛激活。在 CNN 視覺化方面，先前的反向傳播顯著圖與反摺積等方法提供了網路行為的洞見，但計算成本高且與分類決策無直接關聯。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻對比——區分 GAP 與 GMP，定位 CAM 相對於視覺化方法的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    GAP vs GMP 的對比是關鍵論證：平均池化促使網路關注物件「全貌」，這為 CAM 的定位品質提供了理論解釋。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    GAP「鼓勵辨識完整範圍」的論點直觀但非嚴格證明。實際上 GAP 也可能導致網路關注背景的共現紋理而非物件本身。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-cam">3. Class Activation Mapping — 類別激活圖</h2>
+    <h3 class="subsection-heading" id="sec-gap">3.1 Global Average Pooling Revisited — 全域平均池化再探</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Class Activation Map (CAM)</span> is derived as follows. For a given image, let <span class="hl-method">f_k(x, y)</span> represent the <span class="hl-method">activation of unit k in the last convolutional layer at spatial location (x, y)</span>. For a given class c, the <span class="hl-method">class score before softmax is S_c = sum_k w^c_k * F_k</span>, where <span class="hl-method">F_k is the global average pool of f_k</span> and <span class="hl-method">w^c_k is the weight connecting the k-th feature map to class c</span>. The class activation map is then simply: <span class="hl-method">M_c(x, y) = sum_k w^c_k * f_k(x, y)</span>. This map <span class="hl-thesis">"directly indicates the importance of the activation at spatial grid (x, y) leading to the classification of an image to class c"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                類別激活圖（CAM）的推導如下。對於給定影像，令 f_k(x, y) 表示最後一個摺積層中第 k 個單元在空間位置 (x, y) 的激活值。對於給定類別 c，softmax 前的類別分數為 S_c = sum_k w^c_k * F_k，其中 F_k 為 f_k 的全域平均池化結果，w^c_k 為連接第 k 個特徵圖到類別 c 的權重。類別激活圖即為：M_c(x, y) = sum_k w^c_k * f_k(x, y)。此圖直接指示了空間網格 (x, y) 處的激活對於將影像分類為類別 c 的重要性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心演算法——以數學公式定義 CAM 的計算方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    全文的技術核心：一個簡潔的加權求和公式即構成整個方法。公式的簡單性是 CAM 廣泛被採用的關鍵因素。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    公式的優雅簡潔（僅一行加權求和）使方法極易理解和實作。但 CAM 要求網路結構必須以 GAP 層直接連接到分類層，限制了其對任意架構的適用性——此限制後來被 Grad-CAM 解決。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-localize">3.2 Localization Capability — 定位能力</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The class activation map can be <span class="hl-method">upsampled to the input image resolution</span> to produce a heatmap highlighting the regions most relevant to the predicted class. By <span class="hl-method">thresholding the heatmap and computing the bounding box of the largest connected component</span>, we obtain an <span class="hl-thesis">object localization without any bounding box supervision</span>. This localization emerges as a natural byproduct of classification training with GAP. Crucially, the same network can generate <span class="hl-thesis">different activation maps for different classes</span>, revealing what regions the network focuses on for each category. This provides an <span class="hl-thesis">interpretable visualization of the CNN decision-making process</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                類別激活圖可被上取樣至輸入影像解析度，產出一張熱力圖以突顯與預測類別最相關的區域。透過對熱力圖設定閾值並計算最大連通區域的邊界框，即可在無任何邊界框監督的情況下獲得物件定位。此定位是 GAP 分類訓練的自然副產物。關鍵在於，同一網路可為不同類別生成不同的激活圖，揭示網路對每個類別所關注的區域。這提供了 CNN 決策過程的可解釋性視覺化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用延伸——從分類到定位再到可解釋性的三層應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    擴展 CAM 的價值主張：不僅是定位工具，更是 CNN 可解釋性的基礎方法——這使論文影響力從「弱監督定位」擴展到「模型解釋」整個子領域。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「不同類別產生不同激活圖」的展示極具說服力。但熱力圖的解析度受限於最後一個摺積層的空間大小，對小物件的定位精度可能不足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">ILSVRC 2014 weakly-supervised localization</span>, GoogLeNet-GAP achieves <span class="hl-evidence">43% top-5 localization error</span>, significantly outperforming <span class="hl-evidence">global max pooling variants and backpropagation-based approaches</span>. For <span class="hl-evidence">fine-grained recognition on CUB-200 birds</span>, using CAM to automatically crop bounding boxes achieves <span class="hl-evidence">67.8% accuracy</span>, approaching fully-supervised crop methods. The method also demonstrates strong <span class="hl-evidence">pattern discovery capabilities</span>: when applied to scene recognition, CAM highlights relevant objects (e.g., beds in bedrooms, bookshelves in libraries) that contribute to scene classification. Furthermore, the technique enables <span class="hl-evidence">informative error diagnosis</span>: when the classifier makes mistakes, CAM reveals what the network was "looking at," providing actionable insights for model improvement.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ILSVRC 2014 弱監督定位上，GoogLeNet-GAP 達到 43% top-5 定位錯誤率，顯著優於全域最大池化變體和基於反向傳播的方法。在 CUB-200 鳥類的細粒度辨識上，使用 CAM 自動裁切邊界框達到 67.8% 準確率，接近全監督裁切方法。方法同時展示了強大的模式發現能力：應用於場景辨識時，CAM 突顯了對場景分類有貢獻的相關物件（如臥室中的床鋪、圖書館中的書架）。此外，此技術使得具有資訊量的錯誤診斷成為可能：當分類器犯錯時，CAM 揭示網路「在看什麼」，為模型改進提供可操作的洞見。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    多面向驗證——從定位精度、細粒度辨識到模式發現與錯誤診斷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱以「層層遞進」的方式展開：定量定位結果 -> 細粒度應用 -> 定性模式發現 -> 錯誤診斷，逐步擴展 CAM 的應用範圍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    場景辨識中的「模式發現」為 CAM 開啟了可解釋性的新方向。但部分「發現」可能反映的是資料集偏差而非真正的語義理解——例如網路可能僅學到「與床相關的紋理」而非「床的概念」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have shown that <span class="hl-concept">Class Activation Mapping</span> provides a <span class="hl-thesis">simple yet powerful way to leverage global average pooling for discriminative localization</span>. Despite the <span class="hl-thesis">simplicity of this technique, it is remarkably effective</span> and can be applied to a variety of computer vision tasks for <span class="hl-thesis">fast and accurate localization</span>. The ability to generate class-specific heatmaps opens avenues for <span class="hl-thesis">understanding and interpreting CNN decisions</span>, bridging the gap between high classification performance and model transparency.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文展示了類別激活圖提供了一種利用全域平均池化進行區辨性定位的簡單而強大的方法。儘管技術極為簡潔，卻非常有效，可應用於多種電腦視覺任務以實現快速且準確的定位。生成類別特定熱力圖的能力為理解和詮釋 CNN 決策開闢了途徑，彌合了高分類效能與模型透明性之間的鴻溝。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以「簡單即強大」的主調收尾，展望可解釋性方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將 CAM 從「定位方法」提升至「可解釋 AI」的層級，大幅擴展了論文的學術影響力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「簡單」被反覆強調為優勢，但 CAM 對架構的限制（必須使用 GAP）和解析度的限制未在結論中被坦承。後續的 Grad-CAM 正是為解決這些限制而提出。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                CNN 分類時喪失<br>空間定位資訊
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                GAP 保留定位能力<br>加權求和即為 CAM
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                弱監督定位接近<br>全監督水準
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                GAP 優於 GMP<br>捕獲物件全貌
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                簡單方法開啟<br>CNN 可解釋性
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過全域平均池化與類別權重的簡單加權求和，摺積神經網路能在僅以分類標籤訓練的情況下，自然獲得接近全監督水準的物件定位與可解釋性視覺化能力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>方法的極致簡潔性：</strong>CAM 的核心僅是一行加權求和公式 M_c(x,y) = sum_k w^c_k * f_k(x,y)，無需額外訓練、無需修改損失函數，僅透過網路結構的微調即可解鎖定位能力。37.1% vs 34.2% 的弱監督 vs 全監督對比更是令人印象深刻。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>架構限制與解析度瓶頸：</strong>CAM 要求網路必須使用「GAP + 單層線性分類器」結構，無法直接應用於任意 CNN。此外，激活圖的解析度受限於最終摺積層的空間大小（通常為 14x14），對小物件或多物件場景的定位精度不足。這些限制雖不影響論文的開創性地位，但確實為後續改進留下了明確空間。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

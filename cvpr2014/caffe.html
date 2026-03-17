@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caffe: Convolutional Architecture for Fast Feature Embedding — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Caffe: Convolutional Architecture for Fast Feature Embedding
+                <span class="course-tag">CVPR 2014</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1408.5093" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-highlights">2. 設計亮點</a>
+        <a href="#sec-architecture">3. 架構</a>
+        <a href="#sec-layers">3.2 層級設計</a>
+        <a href="#sec-training">3.3 訓練機制</a>
+        <a href="#sec-applications">4. 應用</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Caffe</span> provides multimedia scientists and practitioners with <span class="hl-thesis">a clean and modifiable framework for state-of-the-art deep learning algorithms and a collection of reference models</span>. The framework is <span class="hl-method">a BSD-licensed C++ library with Python and MATLAB bindings</span> for training and deploying general-purpose <span class="hl-concept">convolutional neural networks</span> and other deep models. Caffe processes <span class="hl-evidence">over 40 million images a day on a single K40 or Titan GPU (approximately 2.5 ms per image)</span>. By <span class="hl-method">separating model representation from actual implementation</span>, Caffe enables seamless switching among platforms for ease of development and deployment from prototyping machines to cloud environments.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Caffe 為多媒體科學家與實務工作者提供了一個乾淨且可修改的框架，涵蓋最先進的深度學習演算法與一系列參考模型。此框架是一個 BSD 授權的 C++ 函式庫，附帶 Python 與 MATLAB 綁定，用於訓練和部署通用的摺積神經網路及其他深度模型。Caffe 在單一 K40 或 Titan GPU 上每天可處理超過四千萬張影像（約每張影像 2.5 毫秒）。透過將模型表示與實際實作分離，Caffe 實現了跨平台的無縫切換，便於從原型機到雲端環境的開發與部署。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以速度、開放性與模組化三個維度定位 Caffe。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「工具論文」的典型結構呈現：先宣告目標用戶、再列舉技術特性、最後以量化數據佐證效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「四千萬張影像/天」的數字具有極強的修辭衝擊力，但此數據僅為前向推論的吞吐量，不包含訓練時間。BSD 授權的強調彰顯開源社群策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key problem in multimedia data analysis is <span class="hl-thesis">discovery of effective representations for sensory inputs</span>. While hand-designed features dominated for years, <span class="hl-concept">deep models</span> have outperformed them in many domains. <span class="hl-concept">Convolutional Neural Networks (CNNs)</span>, discriminatively trained via <span class="hl-method">back-propagation</span>, have recently <span class="hl-evidence">surpassed all known methods for large-scale visual recognition</span>. However, <span class="hl-rebuttal">replication of published results can involve months of work by a researcher or engineer</span>. Caffe addresses this challenge by providing <span class="hl-thesis">clear access to deep architectures</span> written in <span class="hl-method">clean, efficient C++ with CUDA used for GPU computation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多媒體資料分析中的關鍵問題是為感官輸入發現有效的表示方式。儘管手工設計的特徵主導了多年，深度模型已在許多領域超越了它們。摺積神經網路透過反向傳播進行鑑別式訓練，近期已超越所有已知的大規模視覺識別方法。然而，複製已發表的結果可能需要研究人員或工程師數月的工作。Caffe 透過提供以乾淨、高效的 C++ 撰寫並使用 CUDA 進行 GPU 運算的深度架構之清晰存取，來解決此挑戰。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從表示學習的大背景切入，指出可複製性危機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：先確立 CNN 的優越性（需求端），再揭示「複製困難」的痛點（供給端缺口），最終以 Caffe 作為橋樑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「數月的工作」這一量化描述將可複製性問題具象化，但可能誇大了困難度——對熟悉 CUDA 的研究者而言，核心 CNN 的實作並非如此耗時。此描述更適用於初學者。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-highlights">2. Highlights of Caffe — 設計亮點</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Modularity</span>: the software is designed to be <span class="hl-method">as modular as possible, allowing easy extension to new data formats, network layers, and loss functions</span>. <span class="hl-concept">Separation of representation and implementation</span>: model definitions are written as <span class="hl-method">config files using the Protocol Buffer language</span>, supporting network architectures in the form of <span class="hl-method">arbitrary directed acyclic graphs</span>. <span class="hl-concept">Test coverage</span>: <span class="hl-evidence">every single module has a test, and no new code is accepted without corresponding tests</span>. <span class="hl-concept">Python and MATLAB bindings</span> enable rapid prototyping. <span class="hl-concept">Pre-trained reference models</span> including the landmark <span class="hl-evidence">AlexNet ImageNet model</span> and the <span class="hl-evidence">R-CNN detection model</span> are provided off-the-shelf.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模組化：軟體從一開始就被設計得盡可能模組化，允許輕鬆擴展至新的資料格式、網路層級與損失函數。表示與實作的分離：模型定義以 Protocol Buffer 語言撰寫為組態檔，支援任意有向無環圖形式的網路架構。測試覆蓋率：每一個模組都有測試，且新程式碼未附帶對應測試則不被接受。Python 與 MATLAB 綁定使得快速原型開發成為可能。預訓練的參考模型——包括標誌性的 AlexNet ImageNet 模型與 R-CNN 偵測模型——均可直接使用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心設計哲學——以五大亮點展示 Caffe 的軟體工程價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從軟體工程角度論證 Caffe 的價值：模組化降低使用門檻、Protocol Buffer 實現可攜性、測試覆蓋確保品質、預訓練模型提供即時價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「每一個模組都有測試」的宣言在學術軟體中極為罕見，強化了工程可信度。但 DAG 支援的「任意」一詞可能過度承諾——實際上 Caffe 在處理複雜的多分支架構時存在局限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-architecture">3. Architecture — 架構</h2>
+    <h3 class="subsection-heading">3.1 Data Storage — Blob 資料儲存</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Caffe stores and communicates data in <span class="hl-concept">4-dimensional arrays called blobs</span>. Blobs provide a <span class="hl-method">unified memory interface</span> holding batches of images, parameters, or parameter updates. Models are saved as <span class="hl-method">Google Protocol Buffers</span> which offer <span class="hl-evidence">minimal-size binary strings when serialized</span>. Large-scale data is stored in <span class="hl-method">LevelDB databases</span> providing a throughput of <span class="hl-evidence">150 MB/s on commodity machines</span>. This design ensures that <span class="hl-thesis">data movement between CPU and GPU is transparent to the user</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Caffe 以稱為 blob 的四維陣列來儲存與傳遞資料。Blob 提供統一的記憶體介面，用於容納影像批次、參數或參數更新。模型以 Google Protocol Buffer 格式儲存，序列化時提供最小的二進位字串。大規模資料儲存於 LevelDB 資料庫中，在普通機器上可達 150 MB/s 的吞吐量。此設計確保 CPU 與 GPU 之間的資料搬移對使用者而言是透明的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構基石——定義 Caffe 的核心資料抽象。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    Blob 抽象是 Caffe 整個架構的基礎：統一了資料與參數的表示，使得後續的層級與網路設計能在此之上構建。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「四維陣列」的統一抽象在 2014 年是簡潔有力的設計，但也限制了對非張量結構資料（如圖結構、稀疏資料）的支援。此設計決策的取捨未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-layers">3.2 Layers — 層級設計</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-concept">Caffe layer</span> is the essence of a neural network layer: it takes <span class="hl-method">one or more blobs as input and yields one or more blobs as output</span>. Layers have a <span class="hl-method">forward pass</span> that takes the inputs and produces the outputs, and a <span class="hl-method">backward pass</span> that takes the gradient with respect to the output and computes gradients with respect to parameters and inputs. Caffe provides a <span class="hl-evidence">complete set of layer types including convolution, pooling, inner products, nonlinearities like rectified linear and logistic, and loss functions</span>. <span class="hl-method">Layers come with corresponding CPU and GPU routines that produce identical results</span>, with tests to prove it.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Caffe 的層級是神經網路層的本質：它接收一個或多個 blob 作為輸入，並輸出一個或多個 blob。層級具有前向傳遞（接收輸入並產生輸出）與反向傳遞（接收關於輸出的梯度，計算關於參數與輸入的梯度）。Caffe 提供完整的層級類型集合，包含摺積、池化、內積、非線性函數（如修正線性單元與邏輯函數）以及損失函數。層級附帶對應的 CPU 與 GPU 常式，產生一致的結果，並有測試加以證明。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心抽象——定義層級的介面契約與可用類型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    層級抽象是 Caffe 模組化哲學的具體實現：前向/反向介面的標準化使得任何新層級只需實作這兩個函數即可整合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「CPU 與 GPU 產生一致結果並有測試證明」是強有力的品質保證聲明。但手動撰寫每個層級的前向/反向傳遞意味著不支援自動微分——這在後來成為 Caffe 被 PyTorch/TensorFlow 取代的關鍵原因之一。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-training">3.3 Training — 訓練機制</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Caffe trains models by <span class="hl-method">fast and standard stochastic gradient descent (SGD)</span>. Data are processed in <span class="hl-method">mini-batches</span> that pass through the network sequentially. The framework implements <span class="hl-method">learning rate decay schedules, momentum, and snapshots</span> for stopping and resuming training. <span class="hl-concept">Fine-tuning</span> — the adaptation of an existing model to new architectures or data — is a <span class="hl-thesis">standard method in Caffe</span> and has proven to be a <span class="hl-evidence">highly effective transfer learning technique</span>. The network is run on <span class="hl-method">CPU or GPU by setting a single switch</span>, enabling seamless transitions between development and deployment environments.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Caffe 使用快速且標準的隨機梯度下降（SGD）來訓練模型。資料以小批量方式依序通過網路。此框架實作了學習率衰減排程、動量與快照機制，用於中斷和恢復訓練。微調——將現有模型適配至新架構或資料——是 Caffe 中的標準方法，且已被證明是一種高度有效的遷移學習技術。網路可透過設定單一開關在 CPU 或 GPU 上執行，實現開發與部署環境之間的無縫轉換。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練流程——描述最佳化方法與實用功能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將框架從「定義模型」延伸到「訓練模型」，完成了使用者工作流程的完整描述。微調的強調預示了遷移學習的重要趨勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將微調列為「標準方法」是有遠見的——此概念在後來成為深度學習應用的基石。但 Caffe 僅支援 SGD 系列最佳化器，缺少 Adam 等現代最佳化器，這在後來成為局限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-applications">4. Applications — 應用</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Object Classification</span>: Caffe has an online demo showing state-of-the-art classification into <span class="hl-evidence">1,000 ImageNet categories</span>, and has successfully trained a model with <span class="hl-evidence">all 10,000 categories of the full ImageNet</span>. <span class="hl-concept">Semantic Features</span>: features extracted from pre-trained networks can identify <span class="hl-evidence">image styles such as "Vintage" and "Romantic"</span>. <span class="hl-concept">Object Detection</span>: Caffe has enabled <span class="hl-evidence">by far the best performance on the PASCAL VOC 2007-2012 and ImageNet 2013 Detection challenge</span> through the <span class="hl-concept">R-CNN</span> pipeline combining <span class="hl-method">Selective Search with CNN features</span>. These diverse applications demonstrate Caffe's role as a <span class="hl-thesis">general-purpose deep learning platform</span> rather than a single-task tool.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                物件分類：Caffe 設有線上示範，展示對 ImageNet 1,000 個類別的最先進分類，且已成功訓練涵蓋完整 ImageNet 全部 10,000 個類別的模型。語意特徵：從預訓練網路提取的特徵能辨識影像風格，如「復古」與「浪漫」。物件偵測：Caffe 透過 R-CNN 管線（結合選擇性搜尋與 CNN 特徵），在 PASCAL VOC 2007-2012 與 ImageNet 2013 偵測挑戰賽中達到了迄今最佳的表現。這些多元應用展示了 Caffe 作為通用深度學習平台（而非單一任務工具）的角色。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——以三個領域的成功案例證明框架的通用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以應用多樣性間接論證 Caffe 的設計品質：能支援分類、特徵提取與偵測等不同任務，說明架構足夠靈活。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    R-CNN 的成功是 Caffe 最有力的應用案例，但 R-CNN 本身的成就更多歸功於 Girshick 的方法創新而非框架本身。將應用的成功歸因於框架存在歸因模糊。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Caffe</span> provides the community with <span class="hl-thesis">a fast, well-tested, and modular framework for deep learning research and deployment</span>. Its <span class="hl-method">open-source nature under the BSD license</span>, combined with <span class="hl-evidence">pre-trained reference models</span> and <span class="hl-method">comprehensive documentation</span>, lowers the barrier to entry for both researchers and practitioners. The framework's <span class="hl-thesis">speed, modularity, and openness</span> have already made it one of the most widely adopted deep learning frameworks, and its continued development through community contributions ensures that it evolves alongside advances in the field.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Caffe 為社群提供了一個快速、經過充分測試且模組化的深度學習研究與部署框架。其 BSD 授權下的開源本質，搭配預訓練的參考模型與完善的文件，降低了研究人員與實務工作者的入門門檻。此框架的速度、模組化與開放性已使其成為最廣泛採用的深度學習框架之一，而透過社群貢獻的持續開發確保它能與該領域的進展同步演化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——強調社群影響力與持續發展。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論從技術特性提升至社群價值：速度、測試、模組化是技術面；開源、文件、社群是生態面。兩者共同構成 Caffe 的完整價值主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「最廣泛採用」作為結語帶有自信，且有引用數據支持（截至 2014 年）。但未預見到動態計算圖框架（PyTorch）的崛起，以及靜態圖設計在研究靈活性上的根本限制。歷史證明 Caffe 的設計哲學最終被更靈活的框架所取代。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                深度學習研究的<br>可複製性與入門門檻
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                模組化開源框架<br>降低門檻加速創新
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                4000 萬張影像/天<br>R-CNN SOTA 偵測
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                完整測試覆蓋<br>CPU/GPU 結果一致
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                Caffe 成為最廣泛<br>採用的深度學習框架
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    一個高效、模組化且開源的深度學習框架，透過乾淨的 C++ 實作、Protocol Buffer 模型描述、預訓練模型以及 Python/MATLAB 綁定，大幅降低了深度學習研究與應用的入門門檻。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>實際採用率的說服力：</strong>Caffe 的成功不僅停留在技術宣稱上——截至論文發表時，它已被廣泛用於 ImageNet 挑戰賽的得獎方案、R-CNN 物件偵測等標誌性工作中。這種「以事實勝於論證」的策略極具說服力。微調與預訓練模型的強調更預示了遷移學習的重大趨勢。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>架構限制的迴避：</strong>論文未討論靜態計算圖設計的根本限制——模型必須在執行前完全定義，不支援條件分支或動態長度序列的原生處理。此外，手動反向傳遞的實作模式增加了新層級的開發成本。這些限制在後來的 TensorFlow 與 PyTorch 中被視為 Caffe 的根本缺陷。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

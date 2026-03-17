@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partial Optimality by Pruning for MAP-inference with General Graphical Models — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Partial Optimality by Pruning for MAP-inference with General Graphical Models
+                <span class="course-tag">CVPR 2014</span>
+                <span class="best-paper-badge">Best Student Paper</span>
+            </div>
+            <div>
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://openaccess.thecvf.com/content_cvpr_2014/html/Swoboda_Partial_Optimality_by_2014_CVPR_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-background">2. 背景</a>
+        <a href="#sec-method">3. 修剪法部分最佳性</a>
+        <a href="#sec-theory">4. 理論保證</a>
+        <a href="#sec-algorithm">5. 演算法</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">energy minimization problem for undirected graphical models</span>, also known as <span class="hl-concept">MAP-inference for Markov random fields (MRFs)</span>, is in general <span class="hl-rebuttal">NP-hard</span>. We propose a <span class="hl-thesis">polynomial time algorithm to obtain a part of its optimal nonrelaxed integral solution</span>. Our method works by <span class="hl-method">starting with variables from a convex relaxation solution and iteratively removing (pruning) variables that do not meet our partial optimality criteria</span>. The approach <span class="hl-method">leverages existing solvers for the relaxed problem</span> and is applicable to models with <span class="hl-thesis">arbitrary factors of an arbitrary order</span> — a level of generality not achieved by prior partial optimality methods. Empirically, our pruning strategy <span class="hl-evidence">outperforms previous approaches regarding the number of persistently labeled variables</span>, and its runtime is <span class="hl-evidence">determined by the underlying convex relaxation solver</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                無向圖模型的能量最小化問題，亦稱為馬可夫隨機場（MRF）的 MAP 推論，一般而言屬於 NP 困難問題。我們提出一種多項式時間演算法，以獲取其最佳非鬆弛整數解的一部分。我們的方法從凸鬆弛解的變數出發，迭代地移除（修剪）不符合部分最佳性準則的變數。此方法利用現有的鬆弛問題求解器，並適用於具有任意階數之任意因子的模型——這是先前部分最佳性方法未達到的通用性層級。在實證上，我們的修剪策略在持久標記變數的數量方面優於先前的方法，且其執行時間由底層的凸鬆弛求解器決定。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以 NP 困難的問題框架開篇，預告部分最佳性的解法與通用性優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立了「完全解不可行 -> 部分解可行」的核心論證邏輯。「任意因子、任意階數」的通用性宣稱是關鍵賣點，將本文與受限於成對因子的先前方法區隔。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 NP 困難性作為開篇立即建立了理論緊張感——讀者期待某種形式的妥協（近似、部分解）。「部分最佳性」是精妙的中間路線：不保證找到全域最佳解，但保證所找到的部分是全域最佳解的一部分。此承諾的強度取決於「多少」變數被成功標記。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">MAP-inference in graphical models</span> is a fundamental computational problem in computer vision with applications ranging from <span class="hl-evidence">stereo matching, optical flow, image segmentation, to object recognition</span>. Given the <span class="hl-rebuttal">NP-hardness of the general problem</span>, two main approaches have emerged: <span class="hl-concept">approximate inference methods</span> (e.g., message passing, graph cuts) that find <span class="hl-rebuttal">good but potentially suboptimal solutions</span>, and <span class="hl-concept">convex relaxation methods</span> (e.g., LP relaxation) that provide <span class="hl-rebuttal">lower bounds but may yield fractional (non-integer) solutions</span>. A third avenue, which we pursue, is <span class="hl-concept">partial optimality</span>: the goal is to <span class="hl-thesis">identify a subset of variables whose optimal labels can be determined with certainty, even when the complete solution cannot be efficiently computed</span>. Prior methods for partial optimality, such as <span class="hl-concept">QPBO (roof duality)</span>, are <span class="hl-rebuttal">limited to binary variables and pairwise factors</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                圖模型中的 MAP 推論是電腦視覺中的基本計算問題，應用範圍涵蓋立體匹配、光流估計、影像分割到物件辨識。鑑於一般問題的 NP 困難性，兩種主要方法已被提出：近似推論方法（如訊息傳遞、圖切割），找到好但可能非最佳的解；以及凸鬆弛方法（如線性規劃鬆弛），提供下界但可能產出分數（非整數）解。我們追求的第三條路線是部分最佳性：目標是辨識出一個變數子集，其最佳標記能被確定無疑地決定，即使完整解無法被高效計算。先前的部分最佳性方法，如 QPBO（屋頂對偶），限於二元變數與成對因子。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題分類——將三種求解途徑並列比較，定位「部分最佳性」為第三路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以三分法建立方法論地圖：近似（不保證最佳） vs. 鬆弛（不保證整數） vs. 部分最佳性（保證部分整數最佳）。QPBO 的二元/成對限制構成直接的改進目標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三分法的呈現清晰且公正——每種方法的優缺點都被明確指出。但部分最佳性的實際價值取決於能標記多少比例的變數——若僅能標記極少數變數，其實用價值有限。此問題需在實驗中回答。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 背景 ====== -->
+    <h2 class="section-heading" id="sec-background">2. Background — 背景</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-concept">graphical model</span> (or factor graph) consists of <span class="hl-concept">variables</span> X = {x_1, ..., x_n}, each taking values in a <span class="hl-concept">discrete label set</span>, and <span class="hl-concept">factors</span> (or potentials) that encode local dependencies. The <span class="hl-concept">MAP-inference problem</span> seeks the <span class="hl-method">labeling that minimizes the sum of all factor costs</span>: argmin_x sum_f theta_f(x_f). The <span class="hl-concept">LP relaxation</span> replaces integer constraints with their convex hull, yielding a <span class="hl-method">lower bound on the optimal energy</span>. When the LP solution is <span class="hl-concept">integral</span> (all variables take integer values), it is provably optimal. When it is <span class="hl-rebuttal">fractional</span>, only a subset of variables may be at integral values, and the question becomes: <span class="hl-thesis">which of these integral variables can be guaranteed to retain their values in the true optimal solution?</span> This is the <span class="hl-concept">partial optimality</span> question.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個圖模型（或因子圖）由變數 X = {x_1, ..., x_n}（各取離散標記集中的值）與編碼局部依賴關係的因子（或位勢）組成。MAP 推論問題尋求使所有因子成本之總和最小化的標記：argmin_x sum_f theta_f(x_f)。線性規劃鬆弛以凸包取代整數約束，產出最佳能量的下界。當線性規劃解為整數（所有變數取整數值）時，它是可證明最佳的。當它為分數解時，僅一個變數子集可能處於整數值，由此產生的問題是：這些整數變數中，哪些能被保證在真正的最佳解中保留其值？這就是部分最佳性問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    形式化定義——建立圖模型、MAP 推論與 LP 鬆弛的數學框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續理論推導奠定形式化基礎。從 MAP 推論 -> LP 鬆弛 -> 整數 vs. 分數解 -> 部分最佳性的問題鏈，層層遞進地引出核心研究問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「LP 鬆弛的分數解」為切入點定義部分最佳性是自然且嚴謹的。然而，此處隱含了一個假設：LP 鬆弛的品質足夠好以產出有意義的整數變數子集。若鬆弛過於寬鬆，整數變數可能極少，修剪後所剩無幾。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 修剪法部分最佳性 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Partial Optimality by Pruning — 修剪法部分最佳性</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our approach is based on a simple but powerful principle: <span class="hl-thesis">we can certify that a variable takes a specific label in the optimal solution by showing that assigning any other label would increase the energy beyond the LP lower bound</span>. Formally, for each variable x_i and each candidate label l, we <span class="hl-method">fix x_i = l and re-solve the LP relaxation for the remaining variables</span>. If the resulting <span class="hl-method">lower bound exceeds the best known upper bound (from any feasible integer solution)</span>, then label l can be <span class="hl-method">pruned — it is guaranteed not to appear in any optimal solution</span>. When all labels but one are pruned for a variable, that variable is <span class="hl-concept">persistently labeled</span> — its optimal assignment is determined. The <span class="hl-method">iterative pruning process continues until no more labels can be eliminated</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的方法基於一個簡單但強大的原則：我們可以透過證明為某變數指派任何其他標記都會使能量超過 LP 下界，來認證該變數在最佳解中取某特定標記。具體而言，對每個變數 x_i 和每個候選標記 l，我們固定 x_i = l 並對其餘變數重新求解 LP 鬆弛。若所得下界超過已知的最佳上界（來自任何可行整數解），則標記 l 可被修剪——它保證不會出現在任何最佳解中。當一個變數的所有標記除了一個都被修剪後，該變數即被持久標記——其最佳指派已確定。迭代修剪過程持續進行直到無法再消除更多標記為止。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心演算法——描述基於修剪的部分最佳性認證機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    全文的方法論核心：「固定-求解-比較」的三步修剪邏輯既直覺又嚴謹。下界（LP）與上界（可行解）的對比構成了修剪的理論基礎——若下界已超過上界，該標記不可能出現在最佳解中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    修剪原則的正確性是不言自明的（下界 > 上界 => 不可行），這賦予方法堅實的理論保證。但對每個變數的每個標記都重新求解 LP 鬆弛的計算成本可能極高——若有 n 個變數各有 k 個標記，最壞情況下需 O(nk) 次 LP 求解。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 理論保證 ====== -->
+    <h2 class="section-heading" id="sec-theory">4. Theoretical Guarantees — 理論保證</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We establish several theoretical properties of our pruning approach. First, <span class="hl-thesis">the method is correct: any variable persistently labeled by our algorithm is guaranteed to take that label in all optimal solutions</span> — not just one optimal solution, but every optimal solution (in case of ties). Second, the method is <span class="hl-thesis">applicable to graphical models with factors of arbitrary order</span>, including <span class="hl-evidence">higher-order potentials (triplets, quadruplets, etc.)</span> that arise in many vision applications. Third, our pruning <span class="hl-evidence">subsumes the classical QPBO (roof duality) method as a special case</span> when restricted to binary pairwise models. Fourth, the <span class="hl-method">computational complexity is polynomial in the problem size</span>, as each pruning step involves solving an LP relaxation (polynomial) and the total number of pruning iterations is bounded.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們為修剪方法建立了若干理論性質。首先，方法是正確的：被我們的演算法持久標記的任何變數，保證在所有最佳解中都取該標記——不僅是某一個最佳解，而是每一個最佳解（在平手的情況下）。其次，方法適用於具有任意階數因子的圖模型，包括在許多視覺應用中出現的高階位勢（三元組、四元組等）。第三，我們的修剪在限制為二元成對模型時，涵蓋了經典的 QPBO（屋頂對偶）方法作為特例。第四，計算複雜度為問題規模的多項式，因為每個修剪步驟涉及求解一個 LP 鬆弛（多項式），且修剪迭代的總次數有界。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論基礎——以四項性質系統化地建立方法的理論保證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    四項性質形成層次化的理論支撐：正確性（基本要求） -> 通用性（超越先前方法） -> 包容性（涵蓋 QPBO） -> 效率性（多項式時間）。每一項都從不同角度強化方法的可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「涵蓋 QPBO 為特例」建立與經典方法的繼承關係，是展示通用性的有力論證。但「多項式時間」的保證需要謹慎解讀——LP 求解本身雖為多項式，但實際執行時間可能因問題規模而變得不切實際。理論上的多項式不等於實務上的高效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 演算法 ====== -->
+    <h2 class="section-heading" id="sec-algorithm">5. Algorithm — 演算法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The practical algorithm proceeds in several phases. First, an initial <span class="hl-method">LP relaxation is solved using an off-the-shelf solver</span> (e.g., TRW-S, MPLP, or CPLEX). Second, a <span class="hl-method">feasible integer solution is obtained</span> (e.g., by rounding the LP solution or running a local search heuristic) to establish an <span class="hl-concept">upper bound</span>. Third, the <span class="hl-method">pruning loop iterates over all variables and labels</span>: for each, the LP is re-solved with the variable fixed, and labels whose lower bound exceeds the upper bound are removed. The algorithm exploits several <span class="hl-method">efficiency optimizations</span>: variables that are already integral in the relaxation are checked first (they are most likely to be prunable), and the LP re-optimization <span class="hl-method">warm-starts from the previous solution</span>, making each iteration much cheaper than a cold start.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實際演算法分為數個階段進行。首先，使用現成的求解器（如 TRW-S、MPLP 或 CPLEX）求解初始 LP 鬆弛。其次，取得一個可行整數解（如透過捨入 LP 解或執行局部搜尋啟發式方法）以建立上界。第三，修剪迴圈遍歷所有變數與標記：對每一個，在固定該變數的情況下重新求解 LP，移除下界超過上界的標記。演算法利用若干效率最佳化：在鬆弛中已為整數的變數優先檢查（它們最可能被修剪），且 LP 重新最佳化從先前的解熱啟動，使每次迭代的成本遠低於冷啟動。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實作細節——從理論到工程的具體化，包含效率最佳化策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段橋接理論與實作：「使用現成求解器」降低了實作門檻，「熱啟動」和「優先檢查整數變數」展示了工程思維，使多項式時間的理論保證在實務中也具備效率。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「利用現成求解器」是務實的設計——方法的效能部分取決於底層求解器的品質。但這也意味著方法繼承了求解器的所有侷限性（如 TRW-S 的近似性質）。熱啟動策略是關鍵的實務優化，但其加速效果因問題結構而異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on standard <span class="hl-evidence">MRF benchmarks including stereo matching (Tsukuba, Venus, Teddy) and image segmentation problems from the OpenGM benchmark</span>. The key metric is the <span class="hl-concept">percentage of persistently labeled variables</span> — higher is better, as it means more of the solution is guaranteed optimal. Our method persistently labels <span class="hl-evidence">significantly more variables than QPBO and its extensions</span>, particularly on <span class="hl-evidence">multi-label and higher-order models where QPBO is inapplicable</span>. On stereo matching instances, we achieve <span class="hl-evidence">persistent labeling rates exceeding 90%</span> in many cases, meaning the vast majority of pixel disparities are provably optimal. The runtime overhead of pruning is <span class="hl-evidence">modest relative to the LP relaxation itself</span>, typically adding only 20-50% to the total computation time.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在標準 MRF 基準上進行評估，包括立體匹配（Tsukuba、Venus、Teddy）和來自 OpenGM 基準的影像分割問題。關鍵指標是持久標記變數的百分比——越高越好，因為它意味著解的更多部分被保證為最佳。我們的方法持久標記的變數顯著多於 QPBO 及其擴展，尤其是在 QPBO 不適用的多標記和高階模型上。在立體匹配實例上，我們在許多情況下達到超過 90% 的持久標記率，意味著絕大多數像素視差是可證明最佳的。修剪的執行時間開銷相對於 LP 鬆弛本身是適度的，通常僅增加 20-50% 的總計算時間。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗驗證——在視覺任務基準上量化修剪效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回答了緒論中的關鍵懸疑：「能標記多少變數？」答案是「超過 90%」，大幅超越預期。與 QPBO 的比較直接回應了「通用性」的理論承諾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    90% 的持久標記率是非常有說服力的數據——它意味著僅 10% 的變數需要啟發式方法處理。20-50% 的額外計算開銷也是可接受的代價。但基準問題多為相對結構化的模型（如網格 MRF），在更不規則的圖結構上，持久標記率可能顯著下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-method">pruning-based approach to partial optimality</span> for <span class="hl-concept">MAP-inference in general graphical models</span>. Our method <span class="hl-thesis">provably identifies variables whose optimal labels can be determined in polynomial time</span>, extending partial optimality guarantees from binary pairwise models to <span class="hl-thesis">models with arbitrary factors and label spaces</span>. The practical impact is substantial: on standard vision benchmarks, the majority of variables can be persistently labeled, <span class="hl-thesis">effectively reducing the hard combinatorial problem to a much smaller residual</span>. By bridging the gap between convex relaxation solutions and integral optimal solutions, our approach provides a <span class="hl-thesis">principled way to extract reliable partial information from intractable optimization problems</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一種基於修剪的部分最佳性方法，用於一般圖模型中的 MAP 推論。我們的方法可證明地辨識出最佳標記能在多項式時間內確定的變數，將部分最佳性保證從二元成對模型擴展至具有任意因子與標記空間的模型。實際影響相當可觀：在標準視覺基準上，大多數變數可被持久標記，有效地將困難的組合問題縮減為規模小得多的殘餘問題。透過橋接凸鬆弛解與整數最佳解之間的鴻溝，我們的方法提供了從難以處理的最佳化問題中提取可靠部分資訊的原則性途徑。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以「橋接鬆弛與整數解」為核心訊息收束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以兩個層面總結：理論層面（通用性擴展）與實務層面（問題規模縮減）。「橋接」的隱喻將方法定位為連接兩個世界（連續鬆弛 vs. 離散最佳化）的工具。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「將困難問題縮減為小規模殘餘」是極具吸引力的框架——它將部分最佳性重新包裝為「問題簡化」工具，而非「不完整求解器」。但結論未討論殘餘問題的難度——剩餘的 10% 變數可能恰恰是最難的部分，需要更精密的方法來處理。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                MAP 推論 NP 困難<br>完全最佳解不可行
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                修剪法可辨識<br>部分最佳變數
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                持久標記率 >90%<br>超越 QPBO
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                適用任意階數因子<br>涵蓋 QPBO 為特例
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                橋接鬆弛與整數解<br>縮減問題規模
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過迭代修剪凸鬆弛解中不可能出現在最佳解的標記，能在多項式時間內為一般圖模型的 MAP 推論辨識出大部分變數的可證明最佳標記，有效將 NP 困難的組合問題縮減為小規模殘餘。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>通用性與涵蓋性的雙重理論保證：</strong>方法不限於二元成對模型（QPBO 的侷限），而是適用於任意因子、任意標記空間的一般圖模型。更進一步，它涵蓋 QPBO 為特例，這意味著在 QPBO 適用的情境下，本方法至少能做到同等好。理論與實證的雙向驗證（超過 90% 持久標記率）使論證極為有力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>殘餘問題的難度與求解器依賴：</strong>方法的效能高度依賴底層 LP 鬆弛的品質——若鬆弛間隙（gap）較大，可修剪的標記比例會顯著下降。此外，90% 持久標記率的結果多來自結構化的視覺問題（如網格 MRF），在更一般的圖結構（如社交網路、生物網路）上的表現未被探討。剩餘的非持久變數可能恰恰是問題的「難點核心」。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

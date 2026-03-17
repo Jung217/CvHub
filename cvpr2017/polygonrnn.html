@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotating Object Instances with a Polygon-RNN — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Annotating Object Instances with a Polygon-RNN
+                <span class="course-tag">CVPR 2017</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div>
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1704.05548" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. Polygon-RNN</a>
+        <a href="#sec-training">3.2 訓練</a>
+        <a href="#sec-annotator">3.3 標註者互動</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose an approach for <span class="hl-thesis">semi-automatic annotation of object instances</span>. We frame the <span class="hl-concept">object segmentation task as a polygon prediction problem</span>, where the model takes as input an image crop and <span class="hl-method">sequentially produces vertices of the polygon outlining the object</span>. This allows the <span class="hl-thesis">annotator to interfere at any time and correct a vertex</span>, upon which the model updates the prediction. We show that our approach achieves <span class="hl-evidence">"a factor of 4.7" speed improvement</span> across Cityscapes classes with <span class="hl-evidence">"78.4% agreement in IoU with original ground-truth,"</span> matching typical <span class="hl-evidence">inter-annotator agreement</span> levels. For vehicles specifically, the <span class="hl-evidence">speed-up reaches 7.3x with 82.2% agreement</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種物件實例的半自動標註方法。我們將物件分割任務框架為多邊形預測問題，模型接收影像裁切區域並依序產生勾勒物件輪廓的多邊形頂點。這允許標註者隨時介入並修正頂點，模型隨之更新預測。我們展示此方法在 Cityscapes 各類別上達到 4.7 倍的速度提升，與原始真值的 IoU 一致度為 78.4%，匹配典型的標註者間一致度水準。在車輛類別上，加速倍率達 7.3 倍且一致度為 82.2%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——將物件分割重新框架為多邊形預測，強調人機互動的半自動流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的核心創新是「問題轉化」：從像素級分割轉為多邊形頂點序列預測。這個轉化同時啟用了兩個優勢：(1) RNN 的序列生成能力；(2) 人類可在頂點級別介入修正。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「匹配標註者間一致度」作為品質基準是聰明的策略——它暗示模型已達到人類水準。但 78.4% 的 IoU 與最先進的全自動分割方法相比仍有差距，需要在「速度 vs 精度」的權衡中定位價值。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Semantic segmentation</span> demands <span class="hl-rebuttal">large-scale annotated datasets</span>. While deep learning approaches achieve impressive results, they remain <span class="hl-rebuttal">"data hungry"</span> with performance correlated to training data volume. Most large-scale segmentation datasets such as <span class="hl-concept">Cityscapes</span> employed <span class="hl-concept">polygon-based annotation</span> by human annotators — drawing polygon vertices around objects. This process is <span class="hl-rebuttal">extremely time-consuming and expensive</span>. The authors propose <span class="hl-concept">Polygon-RNN</span>, which <span class="hl-thesis">generates polygon vertices sequentially from image crops within bounding boxes</span>, allowing <span class="hl-thesis">human corrective intervention while maintaining structural coherence</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                語意分割需要大規模的標註資料集。儘管深度學習方法取得了出色的成果，但它們仍然「資料飢渴」，效能與訓練資料量相關。Cityscapes 等大多數大規模分割資料集採用人工標註者的多邊形標註——在物件周圍繪製多邊形頂點。此過程極其耗時且昂貴。作者提出 Polygon-RNN，從邊界框內的影像裁切區域依序生成多邊形頂點，允許人類在維持結構連貫性的同時進行修正性介入。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立動機——從標註資料的稀缺性與高成本出發，引出自動化標註的需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    因果鏈清晰：深度學習需要大量資料 -> 標註耗時昂貴 -> 需要半自動化工具。Polygon-RNN 的提出直接回應此需求鏈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將標註成本作為動機具有強烈的實務共鳴。但此論點假設多邊形是最佳標註格式——對於有孔洞或複雜拓撲的物件，多邊形可能不如像素級遮罩精確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing semi-automatic annotation approaches include <span class="hl-concept">scribble-based methods</span>, <span class="hl-concept">GrabCut</span> variants, and <span class="hl-concept">superpixel labeling</span>. These pixel-level graphical models <span class="hl-rebuttal">struggle incorporating shape priors</span> and often <span class="hl-rebuttal">produce holes or require extensive manual correction</span>. The authors position their polygon approach as <span class="hl-thesis">more naturally matching existing annotation practices</span> — most datasets are annotated with polygons, not pixel masks. The structured output (polygon) is also <span class="hl-thesis">easier for human correction</span>: adjusting a vertex is more intuitive than fixing scattered pixel labels.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有的半自動標註方法包含基於塗鴉的方法、GrabCut 變體和超像素標記。這些像素級的圖形模型難以融入形狀先驗，且經常產生孔洞或需要大量手動修正。作者將其多邊形方法定位為更自然地匹配現有標註實務——大多數資料集是以多邊形而非像素遮罩標註的。結構化輸出（多邊形）也更易於人類修正：調整頂點比修正分散的像素標籤更直覺。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——對比像素級方法的缺陷，強調多邊形方法與現有工作流程的契合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從兩個角度建立多邊形方法的優越性：(1) 技術面——避免孔洞等像素級問題；(2) 實務面——與現有標註工作流程一致。雙重論證強化了方法的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「匹配現有標註實務」的論點具有實務說服力。但 GrabCut 的比較可能不完全公平——GrabCut 是完全不同的問題設定（從使用者提示開始），而非序列預測。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Polygon-RNN — 模型架構</h2>
+    <h3 class="subsection-heading">3.1 Model Architecture — 模型架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The model architecture comprises two components. The <span class="hl-concept">CNN image encoder</span> adapts <span class="hl-concept">VGG-16</span>, removing fully connected layers and using <span class="hl-method">skip-connections to concatenate multi-scale features</span>, achieving <span class="hl-method">8x downsampling</span> relative to the input. The <span class="hl-concept">RNN vertex predictor</span> employs a <span class="hl-method">two-layer Convolutional LSTM with 3x3 kernels and 16 channels</span>. At each timestep, the ConvLSTM receives concatenated input including <span class="hl-method">CNN features, one-hot encodings of the previous two vertices, and the first vertex encoding</span>. The output represents a <span class="hl-method">DxD grid (D=28) plus an end-of-sequence token</span> through one-hot encoding, predicting the next vertex position on a quantized grid.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模型架構包含兩個組件。CNN 影像編碼器改編自 VGG-16，移除全連接層並使用跳躍連接串接多尺度特徵，達到相對於輸入的 8 倍下取樣。RNN 頂點預測器採用兩層摺積 LSTM，具有 3x3 核和 16 個通道。在每個時間步，ConvLSTM 接收串接的輸入，包括 CNN 特徵、前兩個頂點的獨熱編碼以及第一個頂點的編碼。輸出透過獨熱編碼表示一個 DxD 的網格（D=28）加上一個序列結束符號，在量化網格上預測下一個頂點位置。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——描述 CNN 編碼器與 RNN 解碼器的架構細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了「感知-決策」的雙模組架構：CNN 理解影像，RNN 順序生成頂點。三個歷史頂點的編碼（前兩個 + 第一個）確保了多邊形的閉合約束和平滑性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    ConvLSTM 的選擇保留了空間結構資訊，相比普通 LSTM 更適合此任務。但 D=28 的量化解析度意味著頂點位置的最小精度為輸入的 1/28，可能在複雜輪廓上不夠精確。此外，VGG-16 在當時已非最強的特徵提取器。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-training">3.2 Training — 訓練</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training uses <span class="hl-method">cross-entropy loss at each RNN timestep</span> with <span class="hl-method">smoothed target distributions</span> — non-zero probability mass is assigned to locations within <span class="hl-method">distance 2 in the output grid</span>, softening the hard one-hot targets. The <span class="hl-method">Adam optimizer</span> trains with batch size 8 and <span class="hl-method">learning rate 1e-4, decayed by 10x after 10 epochs</span>. First vertex prediction uses a <span class="hl-method">multi-task loss combining logistic losses for boundaries and vertices</span>. Data augmentation includes <span class="hl-method">random flipping, context expansion (10-20% beyond bounding box), and random polygon starting point selection</span>. Training completes in approximately <span class="hl-evidence">one day on an Nvidia Titan-X GPU</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練在每個 RNN 時間步使用交叉熵損失搭配平滑化的目標分布——在輸出網格距離 2 以內的位置分配非零機率質量，軟化硬性的獨熱目標。Adam 最佳化器以批次大小 8 訓練，學習率 1e-4，10 個 epoch 後衰減 10 倍。第一個頂點的預測使用結合邊界與頂點的邏輯損失的多任務損失。資料擴增包含隨機翻轉、上下文擴展（超出邊界框 10-20%）和隨機多邊形起始點選擇。訓練在一張 Nvidia Titan-X GPU 上約一天完成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練細節——描述損失函數、最佳化策略和資料擴增方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    平滑化目標分布是一項重要的技術選擇——量化網格上相鄰位置幾乎等價，硬性獨熱編碼會懲罰合理的近似解。此設計體現了對任務特性的深刻理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    隨機起始點是關鍵的資料擴增——多邊形的起始頂點不應影響結果，此擴增確保了模型的旋轉不變性。但 teacher forcing 的訓練策略可能導致推論時的誤差累積（exposure bias），此問題未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-annotator">3.3 Annotator-in-the-Loop — 標註者互動</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                During inference, the model selects <span class="hl-method">highest log-probability vertices at each timestep</span>. The key innovation is the <span class="hl-thesis">annotator-in-the-loop mechanism</span>: annotators can <span class="hl-method">correct predicted vertices by inputting corrections at any step</span>, which then feeds into subsequent predictions. This means <span class="hl-thesis">each human correction propagates forward, improving all subsequent vertices</span>. Typical inference requires only <span class="hl-evidence">250 milliseconds per object</span>, enabling real-time interactive annotation. Simulated annotator experiments with threshold T (correcting predictions deviating beyond distance T) show that at <span class="hl-evidence">T=3, only 9.39 clicks per instance achieves 78.40% IoU agreement</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                推論時，模型在每個時間步選擇最高對數機率的頂點。關鍵創新是標註者互動機制：標註者可在任何步驟輸入修正，修正後的頂點會饋入後續預測。這意味著每次人類修正都會向前傳播，改善所有後續頂點。典型推論僅需每物件 250 毫秒，實現即時互動標註。模擬標註者實驗以閾值 T（修正偏差超過距離 T 的預測）顯示，在 T=3 時，每實例僅需 9.39 次點擊即可達到 78.40% 的 IoU 一致度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——描述人機互動的標註流程與其效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是本文最具差異化的論述：不同於全自動方法追求零人工介入，Polygon-RNN 刻意設計為人機協作，使每次修正的效益最大化。250ms 的推論速度確保了互動的流暢性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「修正向前傳播」的機制是方法的核心優勢——一次修正帶來連鎖改善。但模擬標註者（以閾值自動修正）可能高估了實際效率——真實標註者需要時間來判斷哪些頂點需要修正，這個認知成本未被計入。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Results — 實驗結果</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">Cityscapes</span> without annotator interaction, Polygon-RNN <span class="hl-evidence">outperforms DeepMask, SharpMask, and Dilation10 on six of eight categories</span>. For cars, it achieves <span class="hl-evidence">71.17% IoU, exceeding SharpMask by 6%</span>. In human evaluation on <span class="hl-evidence">101 car instances</span>, the model reaches <span class="hl-evidence">82% IoU agreement with only 4.6 average clicks (7.3x speed-up)</span> and <span class="hl-evidence">87.7% with 9.3 clicks (3.6x speed-up)</span>. Compared to <span class="hl-concept">GrabCut</span>, which requires <span class="hl-evidence">17.5 clicks per instance</span>, Polygon-RNN needs only <span class="hl-evidence">5.0 to 9.6 clicks</span>. On <span class="hl-evidence">KITTI</span> (741 instances, cross-dataset generalization), the model achieves comparable IoU to human agreement with <span class="hl-evidence">5.84 clicks per instance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Cityscapes 上無標註者互動時，Polygon-RNN 在八個類別中的六個上超越 DeepMask、SharpMask 和 Dilation10。在車輛上達到 71.17% IoU，超越 SharpMask 達 6%。在 101 個車輛實例的人類評估中，模型以平均 4.6 次點擊達到 82% IoU 一致度（7.3 倍加速），以 9.3 次點擊達到 87.7%（3.6 倍加速）。相比需要每實例 17.5 次點擊的 GrabCut，Polygon-RNN 僅需 5.0 至 9.6 次。在 KITTI（741 實例，跨資料集泛化）上，模型以每實例 5.84 次點擊達到與人類一致度相當的 IoU。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實證——在自動模式、人機互動模式和跨資料集泛化三個面向驗證方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段的實證覆蓋了三個關鍵問題：(1) 純自動模式是否有競爭力？（是，6/8 類別最佳）(2) 互動模式效率如何？（7.3 倍加速）(3) 是否跨資料集泛化？（KITTI 驗證）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    與 GrabCut 的比較（5-10 clicks vs 17.5 clicks）極具說服力。但 101 個車輛實例的樣本量偏小，且僅限車輛類別——對於複雜形狀的物件（如行人、腳踏車），效率是否同樣優異需要更多驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Polygon-RNN</span> provides a new paradigm for <span class="hl-thesis">object instance annotation by framing segmentation as sequential polygon vertex prediction</span>. The method produces <span class="hl-thesis">structurally plausible polygon representations</span>, enables <span class="hl-thesis">user correction for desired accuracy levels through minimal clicks</span>, and <span class="hl-evidence">generalizes across datasets</span>. Achieving a <span class="hl-evidence">"speed-up of factor 4.74"</span> while matching inter-annotator agreement demonstrates the <span class="hl-thesis">practical utility for building large-scale annotation benchmarks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Polygon-RNN 透過將分割框架為序列多邊形頂點預測，為物件實例標註提供了新的範式。此方法產出結構合理的多邊形表示，允許使用者以最少點擊達到所需精度，並具備跨資料集的泛化能力。在匹配標註者間一致度的同時達到 4.74 倍加速，展示了建構大規模標註基準的實務效用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申半自動標註的實務價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論從三個維度收束：品質（結構合理性）、效率（4.74 倍加速）、泛化性（跨資料集）。以「實務效用」而非「技術突破」作為最終定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 Polygon-RNN 定位為「標註工具」而非「分割方法」是務實的選擇。但結論未探討更深遠的影響——如訓練資料中的偏差是否會透過自動標註被放大和傳播。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>分割標註耗時昂貴<br>深度學習資料飢渴</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>多邊形序列預測<br>人機互動修正</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>4.7 倍加速<br>匹配標註者間一致度</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>跨資料集泛化<br>優於 GrabCut</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>大規模標註的<br>實用半自動工具</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過將物件分割轉化為基於 RNN 的多邊形頂點序列預測問題，配合標註者即時修正機制，能以 4.7 倍的速度提升達到匹配人類標註者間一致度的標註品質。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>人機互動的精妙設計：</strong>每次人類修正一個頂點，後續所有頂點都會相應更新，使人工介入的效益最大化。此機制使方法在全自動模式和人機互動模式中均有競爭力，且與現有的多邊形標註工作流程無縫銜接。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>輸出解析度與拓撲限制：</strong>28x28 的量化網格限制了頂點的空間精度，對細長或高度不規則的物件可能不足。多邊形表示無法處理有孔洞的物件（如框架結構），且序列生成在頂點數目極多時可能產生累積誤差。後續的 Polygon-RNN++ 正是針對這些限制進行改進。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

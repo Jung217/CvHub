@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D ShapeNets: A Deep Representation for Volumetric Shapes — 雙欄批注</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Lora', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'IBM Plex Sans', sans-serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                3D ShapeNets: A Deep Representation for Volumetric Shapes
+                <span class="course-tag">CVPR 2015</span>
+            </div>
+            <div>
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1406.5670" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 3D ShapeNets</a>
+        <a href="#sec-recognition">4. 辨識與重建</a>
+        <a href="#sec-modelnet">5. ModelNet</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                3D shape is a crucial but heavily underutilized cue in today's computer vision systems, mostly due to the <span class="hl-rebuttal">lack of a good generic shape representation</span>. With the recent availability of inexpensive 2.5D depth sensors (e.g. Microsoft Kinect), it is becoming increasingly important to have a powerful <span class="hl-concept">3D shape representation</span> in the loop. Apart from category recognition, it is also desirable to <span class="hl-thesis">complete full 3D shapes from 2.5D depth maps</span>. We propose to represent a geometric 3D shape as <span class="hl-method">a probability distribution of binary variables on a 3D voxel grid</span>, using a <span class="hl-concept">Convolutional Deep Belief Network</span>. Our model, <span class="hl-concept">3D ShapeNets</span>, learns the distribution of complex 3D shapes across object categories and arbitrary poses from raw CAD data, and <span class="hl-thesis">discovers hierarchical compositional part representations automatically</span>. It naturally supports joint object recognition and shape completion from <span class="hl-evidence">2.5D depth maps</span>, and it enables active object recognition through <span class="hl-method">next-best-view prediction</span>. We also contribute <span class="hl-evidence">ModelNet — a large-scale 3D CAD model dataset with 151,128 models across 660 categories</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三維形狀是當今電腦視覺系統中一項關鍵但嚴重未被充分利用的線索，主要原因在於缺乏良好的通用形狀表示。隨著廉價 2.5D 深度感測器（如 Microsoft Kinect）的普及，在系統中納入強大的三維形狀表示變得日益重要。除了類別辨識外，從 2.5D 深度圖完成完整的三維形狀也是所期望的。我們提議將幾何三維形狀表示為三維體素網格上二元變數的機率分布，使用摺積深度信念網路。我們的模型——3D ShapeNets——從原始 CAD 資料中學習跨物件類別與任意姿態的複雜三維形狀分布，並自動發現階層式組合部件表示。它天然支援從 2.5D 深度圖進行聯合物件辨識與形狀補全，並透過最佳下一視角預測實現主動物件辨識。我們同時貢獻了 ModelNet——一個包含 660 個類別、151,128 個模型的大規模三維 CAD 模型資料集。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從三維形狀的重要性出發，經由表示方法的缺口，引出 3D ShapeNets 的多重貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時承載問題定義（缺乏通用 3D 表示）、方法提案（體素機率分布 + CDBN）、應用範圍（辨識、補全、主動辨識）與資料集貢獻（ModelNet）四重功能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 Kinect 等消費級深度感測器的普及作為時代背景，增強了研究的現實需求感。但 151,128 個模型的規模數字極具衝擊力，可能掩蓋了資料品質參差的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While <span class="hl-concept">3D geometric shape</span> has historically been considered crucial for object recognition in computer vision, its practical application has been limited primarily to <span class="hl-rebuttal">instance-level recognition</span> due to the <span class="hl-rebuttal">lack of effective generic 3D shape representations</span>. The emergence of <span class="hl-evidence">affordable 2.5D depth sensors such as Microsoft Kinect, Intel RealSense, and Google Project Tango</span> has renewed interest in leveraging 3D shape information. We address two complementary challenges: <span class="hl-thesis">category-level object recognition from depth maps</span> and <span class="hl-thesis">shape completion — inferring complete 3D structures from partial 2.5D observations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管三維幾何形狀在電腦視覺中歷來被認為對物件辨識至關重要，但由於缺乏有效的通用三維形狀表示，其實際應用主要局限於實例層級辨識。Microsoft Kinect、Intel RealSense 和 Google Project Tango 等廉價 2.5D 深度感測器的出現，重新點燃了利用三維形狀資訊的興趣。我們處理兩個互補的挑戰：從深度圖進行類別層級物件辨識，以及形狀補全——從部分 2.5D 觀測推斷完整的三維結構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——以三維形狀的歷史重要性與實用困境開篇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：建立「3D 形狀重要但未被善用」的張力，再以深度感測器的普及作為轉折點，引出「現在是時候了」的研究時機論證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉三家大廠的產品名稱增強了時代感與說服力。但「實例層級辨識」的限制並非完全源於表示方法——訓練資料不足同樣是關鍵因素，作者在此簡化了因果關係。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our proposed approach treats <span class="hl-method">3D shape as a probabilistic distribution over a voxel grid</span>, enabling the system to simultaneously <span class="hl-thesis">recognize objects, hallucinate missing structures, and compute information gain for active recognition</span> through view planning. Unlike <span class="hl-rebuttal">assembly-based approaches requiring expensive part annotations</span>, our method learns shape distributions <span class="hl-method">directly from raw 3D CAD data in a data-driven manner</span>. This is achieved using a <span class="hl-concept">Convolutional Deep Belief Network (CDBN)</span> that captures the joint distribution of 3D shapes and their category labels.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出的方法將三維形狀視為體素網格上的機率分布，使系統能夠同時辨識物件、幻想缺失結構，並透過視角規劃計算主動辨識的資訊增益。不同於需要昂貴部件標注的組裝式方法，我們的方法以資料驅動的方式直接從原始三維 CAD 資料學習形狀分布。這是透過摺積深度信念網路（CDBN）實現的，它能捕捉三維形狀及其類別標籤的聯合分布。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心方案——概述 3D ShapeNets 的技術路線與優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接問題陳述，展示解決方案。「同時」一詞強調了生成式模型的多功能性——辨識、補全、主動辨識皆源自同一機率模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「幻想缺失結構」的措辭巧妙地傳達了生成式模型的想像能力。但 CDBN 在 2015 年已非深度學習的主流架構（CNN/GAN 正在崛起），這一技術選擇的時效性可能受到質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Previous <span class="hl-concept">assembly-based approaches</span> used <span class="hl-concept">deformable part-based models</span> but were <span class="hl-rebuttal">limited to specific shape classes with small variations and required problematic surface correspondence</span>. Traditional <span class="hl-concept">surface reconstruction</span> approaches relied on smooth interpolation or extrapolation, <span class="hl-rebuttal">handling only small missing regions</span>. <span class="hl-concept">Deep generative models</span> had successfully generated 2D shapes like handwritten digits, but extending such capabilities to complex 3D object shapes remained unexplored. Prior <span class="hl-concept">2.5D deep learning</span> work treated depth as an additional 2D channel rather than modeling full 3D structure. This work is <span class="hl-thesis">"the first work to build 3D deep learning models"</span> that operate directly on volumetric representations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的組裝式方法使用可變形部件模型，但局限於變異較小的特定形狀類別，且需要問題頗多的表面對應。傳統的表面重建方法依賴平滑內插或外插，僅能處理小範圍的缺失區域。深度生成模型已成功生成如手寫數字等二維形狀，但將此能力擴展至複雜三維物件形狀仍未被探索。先前的 2.5D 深度學習研究將深度視為額外的二維通道，而非建模完整的三維結構。本研究是「首個建立三維深度學習模型」、直接在體積表示上運作的工作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性梳理四條研究脈絡的局限性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過逐一指出組裝式方法、表面重建、2D 生成模型、2.5D 深度學習的不足，收窄至「直接在 3D 體積上學習」這一未開拓的空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首個三維深度學習模型」的宣稱極為大膽，需小心界定「三維深度學習」的範疇。若將點雲處理或多視角 CNN 也視為 3D 深度學習，此宣稱可能過度強烈。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. 3D ShapeNets — 方法</h2>
+    <h3 class="subsection-heading">3.1 Volumetric Representation and CDBN Architecture</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Each 3D mesh is represented as a <span class="hl-method">binary tensor on a 30 x 30 x 30 voxel grid</span>, where 1 indicates voxels inside the mesh surface and 0 indicates empty space. The core challenge is that <span class="hl-rebuttal">fully connected Deep Belief Networks become intractable for high-resolution 3D data</span> — a 30 x 30 x 30 volume has comparable dimensions to a 165 x 165 image, creating prohibitive parameter counts. The solution employs <span class="hl-method">convolution with weight sharing</span> while deliberately <span class="hl-method">avoiding pooling operations</span> (which would increase reconstruction uncertainty). The architecture uses five layers: <span class="hl-method">48 filters of size 6 (stride 2), 160 filters of size 5 (stride 2), 512 filters of size 4, a fully connected RBM with 1200 hidden units, and a top layer with 4000 hidden units</span> incorporating multinomial label variables.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                每個三維網格被表示為 30 x 30 x 30 體素網格上的二元張量，其中 1 表示網格表面內部的體素、0 表示外部空白空間。核心挑戰在於全連接深度信念網路對高解析度三維資料而言不可行——一個 30 x 30 x 30 的體積相當於 165 x 165 影像的維度，會產生無法承受的參數量。解決方案採用具有權重共享的摺積，同時刻意避免池化操作（池化會增加重建的不確定性）。架構使用五層：48 個大小為 6 的濾波器（步幅 2）、160 個大小為 5 的濾波器（步幅 2）、512 個大小為 4 的濾波器、一個具有 1200 個隱藏單元的全連接 RBM，以及一個具有 4000 個隱藏單元的頂層（包含多項式標籤變數）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法核心——定義體積表示與網路架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了從資料表示（體素網格）到模型架構（CDBN）的完整技術基礎。避免池化的設計決策直接服務於生成式目標——需要精確重建。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 165 x 165 影像的類比使維度問題直覺化。但 30 x 30 x 30 的解析度對複雜物件而言相當粗糙——許多精細幾何細節必然被忽略。作者未討論解析度提升的可行性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.2 Training Procedure</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training follows a <span class="hl-method">layer-wise pre-training scheme</span> using <span class="hl-method">Contrastive Divergence (CD)</span> for the first four layers and <span class="hl-method">Fast Persistent Contrastive Divergence (FPCD)</span> for the top layer. Fine-tuning employs a <span class="hl-method">wake-sleep algorithm</span> variant where weights remain tied. During <span class="hl-method">wake phases</span>, data propagates bottom-up to collect positive learning signals; during <span class="hl-method">sleep phases</span>, a persistent chain on the top layer propagates data top-down to collect negative signals. Special training considerations include: <span class="hl-method">collecting learning signals only in non-empty receptive fields</span> during first-layer pre-training to avoid distraction from empty space, applying <span class="hl-method">sparsity regularization</span> to restrict mean hidden unit activation, and <span class="hl-method">duplicating label units by 10x</span> in the topmost RBM to increase their significance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練遵循逐層預訓練方案，前四層使用對比散度（CD），頂層使用快速持久對比散度（FPCD）。微調採用一種權重保持綁定的覺醒-睡眠演算法變體。在覺醒階段，資料由下往上傳播以收集正向學習訊號；在睡眠階段，頂層的持久鏈由上往下傳播資料以收集負向訊號。特殊訓練考量包括：在第一層預訓練時僅在非空接受域中收集學習訊號（以避免被空白空間干擾）、施加稀疏性正則化以限制隱藏單元的平均啟動率，以及在最頂層 RBM 中將標籤單元複製 10 倍以增加其重要性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練細節——描述 CDBN 的訓練策略與技巧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示作者對生成式模型訓練的深刻理解。三個特殊考量（非空接受域、稀疏性、標籤複製）體現了將通用框架適應於三維體積資料的專業判斷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「標籤單元複製 10 倍」是一個啟發式技巧，缺乏理論基礎。覺醒-睡眠演算法在 2015 年已顯得較為過時，相較於反向傳播的端對端訓練效率較低。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-recognition">4. 2.5D Recognition and Reconstruction — 辨識與重建</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                After training, the model learns the <span class="hl-method">joint distribution p(x, y) of voxel data and object category labels</span>. For inference from a single-view <span class="hl-concept">2.5D depth map</span>, voxels are categorized as <span class="hl-method">free space, surface, or occluded</span> based on depth values. Object recognition approximates the posterior p(y|x_o) through <span class="hl-method">Gibbs sampling</span>: initializing unknown voxels randomly, propagating data bottom-up to sample labels, then propagating top-down to sample voxels while clamping observed voxels. <span class="hl-evidence">50 iterations of up-down sampling are sufficient for convergence</span>. For <span class="hl-concept">next-best-view prediction</span>, the system selects the viewpoint with highest potential to reduce recognition uncertainty by <span class="hl-method">maximizing mutual information between the label and newly observable voxels</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練完成後，模型學習到體素資料與物件類別標籤的聯合分布 p(x, y)。從單一視角的 2.5D 深度圖進行推斷時，體素根據深度值被分類為自由空間、表面或遮擋區域。物件辨識透過吉布斯取樣近似後驗分布 p(y|x_o)：隨機初始化未知體素，由下往上傳播資料以取樣標籤，再由上往下傳播以取樣體素，同時固定已觀測體素。50 次上下取樣迭代即足以收斂。對於最佳下一視角預測，系統透過最大化標籤與新可觀測體素之間的互資訊，選擇具有最高潛力降低辨識不確定性的視角。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——從訓練好的模型如何衍生出辨識、補全、主動辨識三項應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是生成式模型「一石三鳥」論點的關鍵支撐——同一個 p(x, y) 自然衍生出三項能力，相較於判別式模型需要各自獨立訓練。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    50 次迭代的具體數字增添了實用性。但吉布斯取樣的速度在實際應用中可能是瓶頸——每次推斷都需要多次前向/後向傳播，遠慢於判別式模型的單次前向傳播。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-modelnet">5. ModelNet Dataset — ModelNet 資料集</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior CAD datasets were <span class="hl-rebuttal">limited in category variety and examples per category</span>. We construct <span class="hl-concept">ModelNet</span> by downloading CAD models from <span class="hl-evidence">3D Warehouse and Yobi3D search engine</span>, querying common object categories from the SUN database. Quality control involved <span class="hl-method">Amazon Mechanical Turk workers assessing category-label matches</span>, followed by manual inspection to remove miscategorized items, irrelevant elements, and duplicates. The resulting dataset contains <span class="hl-evidence">151,128 3D CAD models across 660 categories</span>, approximately <span class="hl-evidence">22x larger than the previous Princeton Shape Benchmark (6,670 models in 161 categories)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的 CAD 資料集在類別多樣性和每類別樣本數上均有不足。我們從 3D Warehouse 和 Yobi3D 搜尋引擎下載 CAD 模型，查詢 SUN 資料庫中的常見物件類別，藉此建構 ModelNet。品質控制涉及 Amazon Mechanical Turk 工作者評估類別標籤是否匹配，隨後進行人工檢查以移除錯誤分類的項目、無關元素和重複模型。最終資料集包含 660 個類別的 151,128 個三維 CAD 模型，約為先前 Princeton Shape Benchmark（161 個類別、6,670 個模型）的 22 倍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料集貢獻——描述 ModelNet 的建構過程與規模。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段獨立於方法論，代表本文的第二大貢獻。22 倍的規模提升為三維深度學習領域提供了 ImageNet 式的資料基礎設施。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「22 倍」的倍數比較直觀且震撼。但 CAD 模型與真實世界物件之間存在域差異（domain gap），從合成資料學習的表示能否遷移至真實場景需要實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">3D shape classification</span>, we selected <span class="hl-evidence">40 common ModelNet categories with 100 unique CAD models each</span>, augmented to 48,000 samples through rotation. On <span class="hl-evidence">10-category classification, 3D ShapeNets achieves 83.54% accuracy</span>, outperforming both <span class="hl-evidence">Light Field Descriptor (LFD) at 79.87%</span> and <span class="hl-evidence">Spherical Harmonic descriptor (SPH) at 79.79%</span>. On <span class="hl-evidence">40-category classification, the model achieves 77.32%</span> compared to LFD's 75.47% and SPH's 68.23%. For <span class="hl-concept">view-based 2.5D recognition</span> on real Kinect depth maps from the NYU RGB-D dataset, the <span class="hl-evidence">fine-tuned model achieves 57.9% accuracy, outperforming all other approaches by over 10 percentage points</span>. For <span class="hl-concept">next-best-view prediction</span>, the entropy-based mutual information strategy <span class="hl-evidence">achieves 80% two-view recognition accuracy, outperforming random selection (72%), furthest-away (69%), and maximum visibility (78%) strategies</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在三維形狀分類上，我們選取 ModelNet 中 40 個常見類別、每類 100 個獨特 CAD 模型，透過旋轉增強至 48,000 個樣本。在 10 類別分類上，3D ShapeNets 達到 83.54% 的準確率，優於光場描述子（LFD）的 79.87% 和球諧描述子（SPH）的 79.79%。在 40 類別分類上，模型達到 77.32%，相比 LFD 的 75.47% 和 SPH 的 68.23%。在使用 NYU RGB-D 資料集真實 Kinect 深度圖的基於視角 2.5D 辨識上，微調後的模型達到 57.9% 準確率，超越所有其他方法逾 10 個百分點。在最佳下一視角預測上，基於熵的互資訊策略達到 80% 的雙視角辨識準確率，優於隨機選擇（72%）、最遠距離（69%）和最大可見度（78%）策略。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面實驗驗證——在分類、辨識、主動辨識三項任務上展示結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三項任務的實驗結果回應了摘要中宣稱的三項能力，形成完整的承諾-兌現閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多任務的一致優勢極具說服力。但 3D 分類上的增幅（83.54% vs 79.87%）相對溫和，不如 2.5D 辨識的 10 個百分點增幅那般戲劇性。作者在不同任務間選擇性地強調最大增幅。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have introduced a <span class="hl-concept">Convolutional Deep Belief Network</span> approach for representing <span class="hl-thesis">3D shapes as probability distributions over voxel grids</span>. The model jointly enables <span class="hl-thesis">object recognition and shape reconstruction from single-view 2.5D depth maps</span> from popular RGB-D sensors, with natural support for <span class="hl-thesis">next-best-view planning in active recognition scenarios</span>. The <span class="hl-concept">ModelNet</span> dataset construction significantly advances 3D deep learning by providing <span class="hl-evidence">151,128 annotated CAD models</span>. Experimental results demonstrate <span class="hl-evidence">substantial improvements</span> over traditional 3D shape descriptors across multiple task domains. All source code and dataset are made publicly available for reproducibility.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們引入了一種摺積深度信念網路方法，將三維形狀表示為體素網格上的機率分布。該模型能從常見 RGB-D 感測器的單一視角 2.5D 深度圖聯合進行物件辨識與形狀重建，並天然支持主動辨識場景中的最佳下一視角規劃。ModelNet 資料集的建構透過提供 151,128 個標注 CAD 模型，顯著推進了三維深度學習。實驗結果展示了在多項任務上相較於傳統三維形狀描述子的顯著改進。所有原始碼與資料集均公開可用以支持可重現性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申雙重貢獻（模型 + 資料集）並強調開放性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應摘要結構，以公開原始碼與資料集作為收尾——這在 2015 年是推動領域發展的重要舉措。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調可重現性是一個有力的結尾。但結論未討論體素表示的解析度瓶頸，也未展望點雲或隱式表示等替代方案——事後看來，這些替代方案（如 PointNet）很快取代了體素方法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>缺乏通用的<br>三維形狀表示</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>體素機率分布 + CDBN<br>實現三維深度學習</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>分類/辨識/主動辨識<br>三項任務超越基線</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>摺積+稀疏性<br>解決體積計算瓶頸</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>ModelNet + 3D ShapeNets<br>開創三維深度學習</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>以摺積深度信念網路在體素網格上學習三維形狀的機率分布，能同時實現物件辨識、形狀補全與主動視角規劃，並以 ModelNet 資料集奠定三維深度學習的資料基礎。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>生成式模型的多功能統一：</strong>單一機率模型 p(x, y) 自然衍生出辨識、補全、主動辨識三項能力，避免了為每項任務獨立設計模型的冗餘。ModelNet 的 22 倍規模提升為後續三維視覺研究提供了不可或缺的基準。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>體素解析度的根本限制：</strong>30 x 30 x 30 的解析度極為粗糙，無法保留精細幾何細節，且立方級記憶體增長使解析度提升不可行。CDBN 的訓練效率與表示能力在同期已被 GAN 和端對端 CNN 超越，技術路線的前瞻性不足。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>
