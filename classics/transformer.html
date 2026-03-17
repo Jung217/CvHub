@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attention Is All You Need — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Attention Is All You Need
+                <span class="course-tag">Classic &middot; NeurIPS 2017</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1706.03762" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-background">2. 背景</a>
+        <a href="#sec-architecture">3. 模型架構</a>
+        <a href="#sec-attention">3.2 注意力機制</a>
+        <a href="#sec-ffn">3.3-3.5 前饋/嵌入/位置</a>
+        <a href="#sec-why">4. 自注意力的優勢</a>
+        <a href="#sec-training">5. 訓練</a>
+        <a href="#sec-results">6. 結果</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The dominant <span class="hl-concept">sequence transduction models</span> are based on complex <span class="hl-concept">recurrent or convolutional neural networks</span> that include an encoder and a decoder. The best performing models also connect the encoder and decoder through an <span class="hl-concept">attention mechanism</span>. We propose a new simple network architecture, the <span class="hl-concept">Transformer</span>, <span class="hl-thesis">based solely on attention mechanisms, dispensing with recurrence and convolutions entirely</span>. Experiments on two machine translation tasks show these models to be <span class="hl-evidence">superior in quality while being more parallelizable and requiring significantly less time to train</span>. Our model achieves <span class="hl-evidence">28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles, by over 2 BLEU</span>. On the WMT 2014 English-to-French translation task, our model establishes <span class="hl-evidence">a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs</span>, a small fraction of the training costs of the best models from the literature.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                當前主流的<span class="hl-concept">序列轉導模型</span>建立在複雜的<span class="hl-concept">循環或摺積神經網路</span>之上，包含編碼器與解碼器。表現最佳的模型還透過<span class="hl-concept">注意力機制</span>連接編碼器與解碼器。我們提出一種全新且簡潔的網路架構——<span class="hl-concept">Transformer</span>，<span class="hl-thesis">完全基於注意力機制，徹底捨棄循環與摺積運算</span>。在兩項機器翻譯任務上的實驗顯示，這些模型在<span class="hl-evidence">品質上更為優越，同時具有更高的可平行化程度，且訓練所需時間大幅減少</span>。我們的模型在 <span class="hl-evidence">WMT 2014 英德翻譯任務上達到 28.4 BLEU，超越此前包含集成模型在內的最佳結果逾 2 個 BLEU</span>。在 WMT 2014 英法翻譯任務上，我們的模型以<span class="hl-evidence">僅在八張 GPU 上訓練 3.5 天的成本，建立了 41.8 BLEU 的全新單模型最先進紀錄</span>，遠低於文獻中最佳模型的訓練成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以簡明的對比結構點出研究突破：純注意力架構即可取代循環與摺積。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「現狀描述 + 核心主張 + 實證預告」的三重功能：先界定序列模型對循環/摺積的依賴，再以一句話宣告 Transformer 的「完全替代」策略，最後用具體 BLEU 分數作為信心錨點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「dispensing with recurrence and convolutions entirely」是全文最具衝擊力的宣言——以「完全」修飾詞強化了突破感。同時巧妙地將品質（BLEU）與效率（訓練時間）雙線並行呈現，讓讀者同時感受到品質優勢與工程可行性。但摘要未提及模型在資料量較小場景下的表現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：RNN 的限制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Recurrent neural networks</span>, <span class="hl-concept">long short-term memory</span> and <span class="hl-concept">gated recurrent neural networks</span> in particular, have been firmly established as state of the art approaches in <span class="hl-concept">sequence modeling and transduction</span> problems such as language modeling and machine translation. Numerous efforts have since continued to push the boundaries of recurrent language models and <span class="hl-concept">encoder-decoder architectures</span>. <span class="hl-rebuttal">Recurrent models typically factor computation along the symbol positions of the input and output sequences. Aligning the positions to steps in computation time, they generate a sequence of hidden states h_t, as a function of the previous hidden state h_{t-1} and the input for position t. This inherently sequential nature precludes parallelization within training examples, which becomes critical at longer sequence lengths</span>, as memory constraints limit batching across examples.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">循環神經網路</span>，特別是<span class="hl-concept">長短期記憶網路</span>與<span class="hl-concept">門控循環神經網路</span>，已穩固地確立為<span class="hl-concept">序列建模與轉導</span>問題（如語言建模與機器翻譯）的最先進方法。此後眾多研究持續推動循環語言模型與<span class="hl-concept">編碼器-解碼器架構</span>的發展邊界。<span class="hl-rebuttal">循環模型通常沿著輸入與輸出序列的符號位置進行因式分解計算。將位置對齊到計算時間步上，它們生成一系列隱藏狀態 h_t，作為前一隱藏狀態 h_{t-1} 與位置 t 的輸入之函數。這種本質上的序列性阻礙了訓練樣本內部的平行化，隨著序列長度增加此問題愈加嚴峻</span>，因為記憶體限制會約束跨樣本的批次處理。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立動機——先肯定 RNN 的地位，再揭示其根本性瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以「先揚後抑」的策略為後續替代方案鋪路。序列依賴的計算結構被精準地定位為核心限制——它不是效能問題，而是架構層級的結構性缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「inherently sequential nature precludes parallelization」是關鍵論點。作者以數學化的描述（h_t 依賴 h_{t-1}）精準定義了問題，避免了主觀性。但「precludes」一詞略嫌絕對——實際上已有部分工作（如 Quasi-RNN）在不完全捨棄循環的前提下提升了平行度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：注意力機制與 Transformer 的提出 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Attention mechanisms</span> have become an integral part of compelling sequence modeling and transduction models in various tasks, <span class="hl-thesis">allowing modeling of dependencies without regard to their distance in the input or output sequences</span>. In all but a few cases, however, such attention mechanisms are used in conjunction with a recurrent network. In this work we propose the <span class="hl-concept">Transformer</span>, a model architecture <span class="hl-thesis">eschewing recurrence and instead relying entirely on an attention mechanism to draw global dependencies between input and output</span>. The Transformer <span class="hl-evidence">allows for significantly more parallelization and can reach a new state of the art in translation quality after being trained for as little as twelve hours on eight P100 GPUs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">注意力機制</span>已成為各種任務中序列建模與轉導模型不可或缺的一部分，<span class="hl-thesis">能夠不受輸入或輸出序列中距離限制地建模依賴關係</span>。然而在絕大多數情況下，這類注意力機制是與循環網路搭配使用。在本研究中，我們提出 <span class="hl-concept">Transformer</span>——一種<span class="hl-thesis">摒棄循環、完全依靠注意力機制來捕捉輸入與輸出之間全域依賴關係</span>的模型架構。Transformer <span class="hl-evidence">具有顯著更高的可平行化能力，且僅在八張 P100 GPU 上訓練短短十二小時，即可在翻譯品質上達到新的最先進水平</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——從注意力機制的優勢過渡到 Transformer 的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段對 RNN 序列瓶頸的批判，此段完成論證的「轉折」：注意力機制既然已能無視距離地建模依賴，為何還需搭配循環結構？由此自然推導出「完全基於注意力」的設計決策。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「eschewing recurrence」與摘要的「dispensing with」形成首尾呼應，持續強化「完全替代」的核心訊息。「as little as twelve hours」將訓練效率具體化為可感知的時間尺度，極具說服力。但這個數字對應的是基礎模型，大模型需要 3.5 天——此處選擇性地引用了更有衝擊力的數字。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 背景 ====== -->
+    <h2 class="section-heading" id="sec-background">2. Background — 背景</h2>
+
+    <!-- 背景段落 1：減少序列計算的嘗試 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The goal of <span class="hl-thesis">reducing sequential computation</span> also forms the foundation of the <span class="hl-concept">Extended Neural GPU</span>, <span class="hl-concept">ByteNet</span> and <span class="hl-concept">ConvS2S</span>, all of which use <span class="hl-method">convolutional neural networks as basic building block, computing hidden representations in parallel for all input and output positions</span>. In these models, <span class="hl-rebuttal">the number of operations required to relate signals from two arbitrary input or output positions grows in the distance between positions, linearly for ConvS2S and logarithmically for ByteNet</span>. This makes it <span class="hl-rebuttal">more difficult to learn dependencies between distant positions</span>. In the Transformer this is reduced to <span class="hl-evidence">a constant number of operations</span>, albeit at the cost of <span class="hl-rebuttal">reduced effective resolution due to averaging attention-weighted positions</span>, an effect we counteract with <span class="hl-method">Multi-Head Attention</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">減少序列計算量</span>的目標同樣構成了 <span class="hl-concept">Extended Neural GPU</span>、<span class="hl-concept">ByteNet</span> 與 <span class="hl-concept">ConvS2S</span> 的基礎，它們皆以<span class="hl-method">摺積神經網路作為基本構建模組，對所有輸入與輸出位置平行計算隱藏表示</span>。然而在這些模型中，<span class="hl-rebuttal">關聯兩個任意輸入或輸出位置所需的運算量隨位置距離增長——ConvS2S 呈線性增長，ByteNet 呈對數增長</span>。這使得<span class="hl-rebuttal">學習遠距離位置間的依賴關係更加困難</span>。在 Transformer 中，此運算量被降至<span class="hl-evidence">常數次操作</span>，儘管代價是<span class="hl-rebuttal">因對注意力加權位置取平均而降低了有效解析度</span>——此效應可透過<span class="hl-method">多頭注意力</span>加以抵消。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 Transformer 置於「減少序列計算」的研究脈絡中，區分其與摺積方案的差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立複雜度對比的框架：摺積方案雖可平行計算，但遠距離依賴的成本仍隨距離增長。Transformer 以常數操作勝出。此段為後續第 4 節的正式複雜度分析埋下伏筆。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者坦承注意力機制存在「有效解析度降低」的代價，展現學術誠實度。但隨即以「多頭注意力可抵消」一筆帶過，未在此處提供充分論證。這種「承認缺陷+立即化解」的修辭節奏極為常見，讀者需留意化解方案是否真正充分。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 背景段落 2：自注意力的定義 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Self-attention</span>, sometimes called <span class="hl-concept">intra-attention</span>, is an attention mechanism <span class="hl-thesis">relating different positions of a single sequence in order to compute a representation of the sequence</span>. Self-attention has been used successfully in a variety of tasks including <span class="hl-evidence">reading comprehension, abstractive summarization, textual entailment and learning task-independent sentence representations</span>. To the best of our knowledge, however, <span class="hl-thesis">the Transformer is the first transduction model relying entirely on self-attention to compute representations of its input and output without using sequence-aligned RNNs or convolution</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">自注意力</span>（有時稱為<span class="hl-concept">內注意力</span>）是一種<span class="hl-thesis">將單一序列中不同位置相互關聯以計算該序列表示</span>的注意力機制。自注意力已在多種任務中成功應用，包括<span class="hl-evidence">閱讀理解、抽象式摘要、文本蘊含以及與任務無關的句子表示學習</span>。然而據我們所知，<span class="hl-thesis">Transformer 是首個完全依賴自注意力來計算輸入與輸出表示、而不使用序列對齊的 RNN 或摺積的轉導模型</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義核心概念——為全文的技術基礎（自注意力）提供精確定義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成兩個功能：(1) 為不熟悉自注意力的讀者提供入門定義；(2) 以「first transduction model」宣告新穎性。將 Transformer 定位為自注意力技術的「完全體」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「to the best of our knowledge」是學術寫作中為新穎性主張留下安全邊際的標準用語。列舉自注意力在多項任務中的成功案例，建立讀者對此機制的信心。但這些成功案例中自注意力皆搭配其他結構使用——作者的突破在於「完全依賴」而非「首次使用」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 模型架構 ====== -->
+    <h2 class="section-heading" id="sec-architecture">3. Model Architecture — 模型架構</h2>
+    <h3 class="subsection-heading">3.1 Encoder and Decoder Stacks — 編碼器與解碼器堆疊</h3>
+
+    <!-- 架構段落 1：編碼器結構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">encoder</span> is composed of a stack of <span class="hl-method">N = 6 identical layers</span>. Each layer has two sub-layers. The first is a <span class="hl-concept">multi-head self-attention mechanism</span>, and the second is a simple, <span class="hl-concept">position-wise fully connected feed-forward network</span>. We employ a <span class="hl-method">residual connection</span> around each of the two sub-layers, followed by <span class="hl-method">layer normalization</span>. That is, the output of each sub-layer is <span class="hl-method">LayerNorm(x + Sublayer(x))</span>, where Sublayer(x) is the function implemented by the sub-layer itself. To facilitate these residual connections, <span class="hl-evidence">all sub-layers in the model, as well as the embedding layers, produce outputs of dimension d_model = 512</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">編碼器</span>由<span class="hl-method">N = 6 個相同層</span>堆疊而成。每層包含兩個子層：第一個是<span class="hl-concept">多頭自注意力機制</span>，第二個是簡單的<span class="hl-concept">逐位置全連接前饋網路</span>。我們在每個子層周圍使用<span class="hl-method">殘差連接</span>，隨後施加<span class="hl-method">層正規化</span>。亦即，每個子層的輸出為 <span class="hl-method">LayerNorm(x + Sublayer(x))</span>，其中 Sublayer(x) 是該子層自身實現的函數。為便於這些殘差連接，<span class="hl-evidence">模型中所有子層及嵌入層的輸出維度均為 d_model = 512</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構定義第一步——明確編碼器的層級結構與關鍵設計選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為整個模型提供結構性藍圖。兩個核心設計決策——殘差連接與層正規化——直接承襲自 ResNet 與先前的序列建模工作，確保深層堆疊的可訓練性。d_model = 512 的統一維度是工程上的關鍵約束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 N = 6 與 d_model = 512 作為超參數直接給出，未在此處提供選擇依據（後續第 6.2 節的消融實驗部分回應了此問題）。「identical layers」的設計體現了 Transformer 追求簡潔與一致性的哲學——這也是其廣泛可擴展性的基礎。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 架構段落 2：解碼器結構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">decoder</span> is also composed of a stack of <span class="hl-method">N = 6 identical layers</span>. In addition to the two sub-layers in each encoder layer, the decoder inserts a <span class="hl-concept">third sub-layer, which performs multi-head attention over the output of the encoder stack</span>. Similar to the encoder, we employ residual connections around each of the sub-layers, followed by layer normalization. We also <span class="hl-method">modify the self-attention sub-layer in the decoder stack to prevent positions from attending to subsequent positions</span>. This masking, combined with the fact that the output embeddings are offset by one position, ensures that <span class="hl-thesis">the predictions for position i can depend only on the known outputs at positions less than i</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">解碼器</span>同樣由<span class="hl-method">N = 6 個相同層</span>堆疊而成。除了編碼器各層中的兩個子層之外，解碼器新增了<span class="hl-concept">第三個子層，對編碼器堆疊的輸出執行多頭注意力</span>。與編碼器相同，我們在每個子層周圍使用殘差連接，隨後施加層正規化。我們亦<span class="hl-method">修改了解碼器堆疊中的自注意力子層，以防止各位置關注後續位置</span>。此遮罩機制結合輸出嵌入偏移一個位置的事實，確保<span class="hl-thesis">位置 i 的預測僅能依賴於位置小於 i 的已知輸出</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構定義第二步——描述解碼器與編碼器的差異及其設計動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    解碼器在編碼器基礎上新增兩項關鍵修改：(1) 交叉注意力子層——連接編碼器與解碼器；(2) 遮罩自注意力——維護自迴歸的因果性。這兩者共同確保模型在生成時不會「偷看」未來資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    遮罩機制是 Transformer 能夠進行自迴歸生成的關鍵保障。作者以簡潔的數學語言（「depend only on...less than i」）精準表達了因果約束。此設計後來成為 GPT 系列的核心——僅使用遮罩解碼器即可進行語言生成。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 注意力機制 ====== -->
+    <h3 class="subsection-heading" id="sec-attention">3.2 Attention — 注意力機制</h3>
+
+    <!-- 注意力段落 1：縮放點積注意力 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                An attention function can be described as <span class="hl-thesis">mapping a query and a set of key-value pairs to an output</span>, where the query, keys, values, and output are all vectors. The output is computed as a <span class="hl-method">weighted sum of the values, where the weight assigned to each value is computed by a compatibility function of the query with the corresponding key</span>. We call our particular attention <span class="hl-concept">"Scaled Dot-Product Attention"</span>. The input consists of queries and keys of dimension d_k, and values of dimension d_v. We compute the <span class="hl-method">dot products of the query with all keys, divide each by the square root of d_k, and apply a softmax function</span> to obtain the weights on the values: <span class="hl-method">Attention(Q, K, V) = softmax(QK^T / sqrt(d_k))V</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                注意力函數可描述為<span class="hl-thesis">將一個查詢與一組鍵值對映射至輸出</span>，其中查詢、鍵、值與輸出皆為向量。輸出由<span class="hl-method">值的加權和計算而得，分配給每個值的權重則由查詢與對應鍵的相容性函數計算</span>。我們稱此特定注意力為<span class="hl-concept">「縮放點積注意力」</span>。輸入由維度為 d_k 的查詢與鍵，以及維度為 d_v 的值組成。我們<span class="hl-method">計算查詢與所有鍵的點積，將各點積除以 d_k 的平方根，再施加 softmax 函數</span>以獲得值的權重：<span class="hl-method">Attention(Q, K, V) = softmax(QK^T / sqrt(d_k))V</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心機制定義——給出注意力的一般化描述與 Transformer 的具體實現公式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文技術核心。先以抽象的查詢-鍵-值框架定義注意力的語義（「什麼資訊值得關注」），再具體化為可計算的點積公式。這個公式後來成為深度學習領域最廣泛使用的基本運算之一。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    先給出直覺定義（查詢-鍵-值的映射），再推導出精確公式——從抽象到具體的雙層呈現策略使不同背景的讀者皆能理解。值得注意的是，點積注意力並非 Transformer 的原創——其貢獻在於「縮放」（除以 sqrt(d_k)）與後續的多頭並行化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注意力段落 2：為何需要縮放 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The two most commonly used attention functions are <span class="hl-concept">additive attention</span> and <span class="hl-concept">dot-product (multiplicative) attention</span>. Dot-product attention is identical to our algorithm except for the scaling factor. Additive attention computes the compatibility function using a feed-forward network with a single hidden layer. While the two are similar in theoretical complexity, <span class="hl-evidence">dot-product attention is much faster and more space-efficient in practice</span>, since it can be implemented using highly optimized matrix multiplication code. We <span class="hl-rebuttal">suspect that for large values of d_k, the dot products grow large in magnitude, pushing the softmax function into regions where it has extremely small gradients</span>. To counteract this effect, we <span class="hl-method">scale the dot products by 1/sqrt(d_k)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                兩種最常用的注意力函數是<span class="hl-concept">加性注意力</span>與<span class="hl-concept">點積（乘性）注意力</span>。點積注意力與我們的演算法相同，僅差一個縮放因子。加性注意力使用單隱藏層的前饋網路來計算相容性函數。雖然兩者的理論複雜度相近，但<span class="hl-evidence">點積注意力在實務上更快且更節省空間</span>，因為它可借助高度最佳化的矩陣乘法程式碼來實現。我們<span class="hl-rebuttal">懷疑當 d_k 值較大時，點積的絕對值會增大，將 softmax 函數推入梯度極小的區域</span>。為抵消此效應，我們<span class="hl-method">以 1/sqrt(d_k) 對點積進行縮放</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計決策論證——解釋選擇點積注意力並施加縮放的原因。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回答「為何選擇點積而非加性注意力」以及「為何需要縮放」兩個問題。以工程效率（矩陣乘法的最佳化）與數值穩定性（梯度消失）雙重論點支撐設計選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「we suspect」的措辭值得注意——作者坦承這是假設而非嚴格證明。實際上，後續研究確認了當 d_k 增大時，點積的方差線性增長（假設輸入為標準常態），除以 sqrt(d_k) 正好使方差回歸為 1。此處的直覺推斷與數學事實一致。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注意力段落 3：多頭注意力 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Instead of performing a single attention function with d_model-dimensional keys, values and queries, we found it beneficial to <span class="hl-method">linearly project the queries, keys and values h times with different, learned linear projections to d_k, d_k and d_v dimensions, respectively</span>. On each of these projected versions, we then perform the attention function in parallel, yielding d_v-dimensional output values. These are concatenated and once again projected, resulting in the final values. <span class="hl-concept">Multi-head attention</span> <span class="hl-thesis">allows the model to jointly attend to information from different representation subspaces at different positions</span>. We employ <span class="hl-evidence">h = 8 parallel attention layers, or heads. For each of these we use d_k = d_v = d_model/h = 64</span>. Due to the reduced dimension of each head, the <span class="hl-evidence">total computational cost is similar to that of single-head attention with full dimensionality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                與其使用 d_model 維度的鍵、值和查詢執行單一注意力函數，我們發現更有效的做法是<span class="hl-method">以 h 組不同的學習線性投影，將查詢、鍵和值分別投射到 d_k、d_k 和 d_v 維度</span>。對這些投射後的版本平行執行注意力函數，得到 d_v 維的輸出值。再將這些輸出串接並再次投射，產生最終結果。<span class="hl-concept">多頭注意力</span><span class="hl-thesis">允許模型在不同位置同時關注來自不同表示子空間的資訊</span>。我們使用<span class="hl-evidence">h = 8 個平行注意力層（即注意力頭）。每個頭使用 d_k = d_v = d_model/h = 64</span>。由於每個頭的維度降低，<span class="hl-evidence">總計算成本與使用完整維度的單頭注意力相近</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——描述多頭注意力的機制與其所帶來的表示能力提升。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    多頭注意力是 Transformer 最重要的架構創新之一。它回應了前述「有效解析度降低」的缺陷：多個獨立的注意力頭可在不同子空間捕捉不同類型的依賴模式，彌補了單一注意力的資訊壓縮損失。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「different representation subspaces」的表述非常精準——這正是多頭機制的核心價值。更巧妙的是計算成本的論證：8 個 64 維的頭與 1 個 512 維的頭計算量相當，但表示能力大幅提升。這種「免費午餐」式的效率論述極具說服力。後續研究（如 Michel et al., 2019）發現並非所有頭都同等重要，部分頭可被剪枝。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3-3.5 前饋網路、嵌入與位置編碼 ====== -->
+    <h3 class="subsection-heading" id="sec-ffn">3.3 Position-wise Feed-Forward Networks — 逐位置前饋網路</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In addition to attention sub-layers, each of the layers in our encoder and decoder contains a <span class="hl-concept">fully connected feed-forward network</span>, which is applied to each position separately and identically. This consists of <span class="hl-method">two linear transformations with a ReLU activation in between: FFN(x) = max(0, xW_1 + b_1)W_2 + b_2</span>. While the linear transformations are the same across different positions, they use different parameters from layer to layer. The <span class="hl-evidence">dimensionality of input and output is d_model = 512, and the inner-layer has dimensionality d_ff = 2048</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                除了注意力子層之外，我們編碼器與解碼器的每一層還包含一個<span class="hl-concept">全連接前饋網路</span>，對每個位置獨立且相同地施加。它由<span class="hl-method">兩個線性變換組成，中間夾一個 ReLU 啟動函數：FFN(x) = max(0, xW_1 + b_1)W_2 + b_2</span>。雖然線性變換在不同位置上是相同的，但各層之間使用不同的參數。<span class="hl-evidence">輸入與輸出的維度為 d_model = 512，內部層的維度為 d_ff = 2048</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件定義——描述前饋子層的結構與參數配置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    前饋網路在每個注意力子層之後提供逐位置的非線性變換。若注意力層負責「位置間的資訊交換」，則前饋層負責「每個位置內部的特徵轉換」——兩者互補，構成完整的表示學習單元。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    d_ff = 2048 = 4 * d_model 的擴展比例成為後續 Transformer 變體的標準設定。此設計相當於在每個位置施加一個兩層 MLP，可被視為混合專家（Mixture of Experts）概念的退化形式。後續的 GLU、SwiGLU 等變體在此基礎上進一步優化了啟動函數的選擇。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.4 Embeddings and Softmax — 嵌入與 Softmax</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Similarly to other sequence transduction models, we use <span class="hl-method">learned embeddings to convert the input tokens and output tokens to vectors of dimension d_model</span>. We also use the usual learned linear transformation and softmax function to convert the decoder output to predicted next-token probabilities. In our model, we <span class="hl-method">share the same weight matrix between the two embedding layers and the pre-softmax linear transformation</span>. In the embedding layers, we multiply those weights by <span class="hl-method">sqrt(d_model)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                與其他序列轉導模型類似，我們使用<span class="hl-method">學習的嵌入層將輸入符元與輸出符元轉換為 d_model 維向量</span>。我們亦使用常見的學習線性變換與 softmax 函數，將解碼器輸出轉換為預測的下一符元機率。在我們的模型中，<span class="hl-method">兩個嵌入層與 softmax 前的線性變換共享同一權重矩陣</span>。在嵌入層中，我們將這些權重乘以 <span class="hl-method">sqrt(d_model)</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件定義——說明嵌入層的參數共享策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    權重共享是一個看似微小但影響深遠的設計。三處共享同一矩陣不僅減少了參數量，更在語義上建立了輸入空間、輸出空間與預測空間的統一表示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    乘以 sqrt(d_model) 的原因未在此處解釋——這是為了讓嵌入向量的量級與位置編碼相當，避免位置資訊在相加時被嵌入的較大量級所淹沒。此技巧細微卻關鍵，缺少它可能導致位置編碼失效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.5 Positional Encoding — 位置編碼</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since our model contains <span class="hl-rebuttal">no recurrence and no convolution</span>, in order for the model to make use of the order of the sequence, we must inject some information about the relative or absolute position of the tokens in the sequence. To this end, we add <span class="hl-concept">"positional encodings"</span> to the input embeddings at the bottoms of the encoder and decoder stacks. We use <span class="hl-method">sine and cosine functions of different frequencies: PE(pos, 2i) = sin(pos/10000^(2i/d_model)) and PE(pos, 2i+1) = cos(pos/10000^(2i/d_model))</span>. We chose this function because we hypothesized it would <span class="hl-thesis">allow the model to easily learn to attend by relative positions</span>, since for any fixed offset k, PE(pos+k) can be represented as a linear function of PE(pos). We also experimented with using <span class="hl-evidence">learned positional embeddings, and found that the two versions produced nearly identical results</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由於我們的模型<span class="hl-rebuttal">不含循環亦不含摺積</span>，為使模型能利用序列的順序資訊，我們必須注入關於符元在序列中相對或絕對位置的資訊。為此，我們在編碼器與解碼器堆疊底部將<span class="hl-concept">「位置編碼」</span>加至輸入嵌入上。我們使用<span class="hl-method">不同頻率的正弦與餘弦函數：PE(pos, 2i) = sin(pos/10000^(2i/d_model))，PE(pos, 2i+1) = cos(pos/10000^(2i/d_model))</span>。我們選擇此函數是因為假設它能<span class="hl-thesis">讓模型容易學會依據相對位置進行關注</span>，因為對任何固定偏移量 k，PE(pos+k) 可表示為 PE(pos) 的線性函數。我們亦嘗試了<span class="hl-evidence">學習式位置嵌入，發現兩種版本產生幾乎相同的結果</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解決位置資訊缺失問題——提出正弦位置編碼方案及其數學直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應了捨棄循環後的本質性缺陷：注意力機制是置換等變的（permutation equivariant），天生無法區分位置。位置編碼是使 Transformer 具有位置感知能力的必要補丁。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    正弦位置編碼的優雅之處在於：它使模型可能外推到訓練中未見過的更長序列。「nearly identical results」的對照實驗報告增強了設計選擇的說服力。然而，後續研究（RoPE、ALiBi 等）表明正弦編碼在長序列外推上效果有限，旋轉位置編碼等替代方案已成為大型語言模型的新標準。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 自注意力的優勢 ====== -->
+    <h2 class="section-heading" id="sec-why">4. Why Self-Attention — 為何選擇自注意力</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this section we compare various aspects of <span class="hl-concept">self-attention layers</span> to the <span class="hl-concept">recurrent and convolutional layers</span> commonly used for mapping one variable-length sequence of symbol representations to another. We consider three desiderata: <span class="hl-thesis">the total computational complexity per layer, the amount of computation that can be parallelized (measured by the minimum number of sequential operations required), and the path length between long-range dependencies in the network</span>. Learning long-range dependencies is a key challenge in many sequence transduction tasks. One key factor affecting the ability to learn such dependencies is the length of the paths forward and backward signals have to traverse in the network. <span class="hl-thesis">The shorter these paths between any combination of positions in the input and output sequences, the easier it is to learn long-range dependencies.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本節將<span class="hl-concept">自注意力層</span>與常用於將一個可變長度符號表示序列映射至另一序列的<span class="hl-concept">循環層與摺積層</span>進行多面向比較。我們考量三項準則：<span class="hl-thesis">每層的總計算複雜度、可平行化的計算量（以所需最少序列操作次數衡量），以及網路中遠距離依賴的路徑長度</span>。學習遠距離依賴是眾多序列轉導任務的關鍵挑戰。影響學習此類依賴能力的關鍵因素是前向與反向信號在網路中必須遍歷的路徑長度。<span class="hl-thesis">輸入與輸出序列中任意位置組合之間的路徑越短，就越容易學習遠距離依賴。</span>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立比較框架——定義三項評估準則，為形式化比較奠定基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從經驗性的架構描述轉入理論性的比較分析。三項準則（計算複雜度、可平行度、路徑長度）構成一個完整的評估框架，使後續的比較結果具有系統性與說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    評估框架的選擇本身就是一種論證策略——這三項準則恰好是自注意力的優勢所在。若加入「歸納偏置的品質」或「小資料集上的效率」等準則，結論可能不同。作者對評估框架的精心選擇使 Transformer 在所有維度上都佔據優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-concept">self-attention layer</span> connects all positions with <span class="hl-evidence">a constant number of sequentially executed operations (O(1))</span>, whereas a <span class="hl-concept">recurrent layer</span> requires <span class="hl-evidence">O(n) sequential operations</span>. In terms of computational complexity, self-attention layers are faster than recurrent layers when the <span class="hl-evidence">sequence length n is smaller than the representation dimensionality d</span>, which is most often the case with sentence representations used by state-of-the-art models. For very long sequences, <span class="hl-method">self-attention could be restricted to considering only a neighborhood of size r in the input sequence</span>, which would increase the maximum path length to O(n/r). As a side benefit, <span class="hl-thesis">self-attention could yield more interpretable models</span>: we inspect attention distributions from our models and present and discuss examples in the appendix. Individual attention heads clearly learn to perform different tasks, many of which appear to relate to the syntactic and semantic structure of the sentences.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">自注意力層</span>以<span class="hl-evidence">常數次序列操作（O(1)）</span>連接所有位置，而<span class="hl-concept">循環層</span>則需要 <span class="hl-evidence">O(n) 次序列操作</span>。就計算複雜度而言，當<span class="hl-evidence">序列長度 n 小於表示維度 d 時</span>，自注意力層比循環層更快——這正是當前最先進模型所使用之句子表示的典型情況。對於極長序列，<span class="hl-method">自注意力可被限制為僅考慮輸入序列中大小為 r 的鄰域</span>，這會將最大路徑長度增至 O(n/r)。作為額外收益，<span class="hl-thesis">自注意力可產生更具可解釋性的模型</span>：我們檢視了模型的注意力分布，並在附錄中呈現與討論範例。各個注意力頭明顯學會了執行不同的任務，其中許多似乎與句子的句法和語義結構相關。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心證據——以複雜度分析具體量化自注意力的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將前述的直覺性比較轉化為精確的漸近分析。O(1) vs O(n) 的序列操作對比是全文最有力的理論論據之一。同時以可解釋性作為「額外獎勵」增添論點的多元性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「when n is smaller than d, which is most often the case」此限定條件值得留意——自注意力的 O(n^2 * d) 複雜度在長序列場景中反而劣於循環層的 O(n * d^2)。作者以「most often the case」輕描淡寫地限縮了此問題的影響範圍。後續研究（Efficient Transformers、Flash Attention 等）正是為了解決長序列場景中的二次複雜度瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 訓練 ====== -->
+    <h2 class="section-heading" id="sec-training">5. Training — 訓練</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We trained on the <span class="hl-evidence">standard WMT 2014 English-German dataset consisting of about 4.5 million sentence pairs</span>. For English-French, we used the <span class="hl-evidence">significantly larger WMT 2014 English-French dataset consisting of 36M sentences</span>. Sentences were encoded using <span class="hl-method">byte-pair encoding</span>, which has a shared source-target vocabulary of about <span class="hl-evidence">37000 tokens for English-German and 32000 tokens for English-French</span>. We trained on <span class="hl-evidence">one machine with 8 NVIDIA P100 GPUs</span>. For our base models, <span class="hl-evidence">each training step took about 0.4 seconds. We trained the base models for a total of 100,000 steps or 12 hours</span>. For our big models, <span class="hl-evidence">step time was 1.0 seconds. The big models were trained for 300,000 steps (3.5 days)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在<span class="hl-evidence">標準的 WMT 2014 英德資料集上訓練，該資料集包含約 450 萬句子對</span>。英法翻譯則使用<span class="hl-evidence">規模大得多的 WMT 2014 英法資料集，包含 3600 萬句子</span>。句子以<span class="hl-method">位元組對編碼（BPE）</span>進行編碼，英德任務的共享來源-目標詞彙表約含 <span class="hl-evidence">37000 個符元，英法約含 32000 個符元</span>。我們在<span class="hl-evidence">一台配備 8 張 NVIDIA P100 GPU 的機器上</span>進行訓練。基礎模型方面，<span class="hl-evidence">每個訓練步約耗時 0.4 秒，共訓練 100,000 步即 12 小時</span>。大型模型方面，<span class="hl-evidence">每步耗時 1.0 秒，共訓練 300,000 步（3.5 天）</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定——詳述資料集規模、硬體配置與訓練時間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供可重現性（reproducibility）所需的全部細節。訓練時間的精確報告（12 小時 / 3.5 天）是稍後「效率優勢」論點的關鍵基礎——讀者可直接將其與先前模型的訓練成本進行比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「8 NVIDIA P100 GPUs」在 2017 年是可負擔的硬體配置，這使 Transformer 的突破性結果更具衝擊力——它不是靠堆砌算力取勝，而是架構本身的效率帶來的進步。BPE 作為分詞方法的選擇在當時已是最佳實踐，且確保了結果的公平可比性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We used the <span class="hl-method">Adam optimizer</span> with <span class="hl-method">beta_1 = 0.9, beta_2 = 0.98 and epsilon = 10^{-9}</span>. We varied the learning rate over the course of training according to a formula that increases the learning rate linearly for the first <span class="hl-method">warmup_steps = 4000</span> training steps, and decreases it thereafter proportionally to the inverse square root of the step number. We employed three types of regularization: <span class="hl-method">Residual Dropout with a rate of P_drop = 0.1</span> applied to the output of each sub-layer and to the sums of the embeddings and positional encodings; <span class="hl-method">attention dropout</span>; and <span class="hl-method">Label Smoothing of value epsilon_ls = 0.1</span>. Label smoothing hurt perplexity but <span class="hl-evidence">improved accuracy and BLEU score</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們使用 <span class="hl-method">Adam 最佳化器</span>，參數為 <span class="hl-method">beta_1 = 0.9、beta_2 = 0.98、epsilon = 10^{-9}</span>。訓練過程中依據一個公式調整學習率：在最初的 <span class="hl-method">warmup_steps = 4000</span> 個訓練步中線性遞增學習率，此後按步數的反平方根比例遞減。我們採用三種正規化策略：<span class="hl-method">殘差丟棄（Dropout），比率為 P_drop = 0.1</span>，施加於每個子層的輸出以及嵌入與位置編碼的加和上；<span class="hl-method">注意力丟棄</span>；以及<span class="hl-method">標籤平滑，值為 epsilon_ls = 0.1</span>。標籤平滑雖損害了困惑度，但<span class="hl-evidence">提升了準確率與 BLEU 分數</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    最佳化細節——完整記錄訓練超參數與正規化策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供了後來被廣泛模仿的訓練配方。學習率暖啟動（warmup）策略成為 Transformer 訓練的標準實踐——它在早期穩定梯度，避免大模型初期的不穩定訓練。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    標籤平滑「hurt perplexity but improved accuracy and BLEU」的觀察頗具深意——它揭示了困惑度與任務指標之間的非單調關係。作者誠實地報告了這一矛盾，但選擇以任務指標為最終判準。warmup 策略的必要性暗示 Transformer 的訓練動態並非trivial，需要精心調整才能收斂。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結果 ====== -->
+    <h2 class="section-heading" id="sec-results">6. Results — 結果</h2>
+
+    <!-- 結果段落 1：機器翻譯 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On the <span class="hl-evidence">WMT 2014 English-to-German translation task, the big transformer model outperforms the best previously reported models including ensembles by more than 2.0 BLEU, establishing a new state-of-the-art BLEU score of 28.4</span>. The configuration of this model is listed in the bottom line of Table 3. Training took 3.5 days on 8 P100 GPUs. Even our base model surpasses all previously published models and ensembles, <span class="hl-evidence">at a fraction of the training cost of any of the competitive models</span>. On the <span class="hl-evidence">WMT 2014 English-to-French translation task, our big model achieves a BLEU score of 41.8, outperforming all of the previously published single models, at less than 1/4 the training cost of the previous state-of-the-art model</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 <span class="hl-evidence">WMT 2014 英德翻譯任務上，大型 Transformer 模型超越此前報告的最佳模型（含集成模型）逾 2.0 個 BLEU，建立了 28.4 BLEU 的新最先進紀錄</span>。此模型的配置列於表 3 的最末行。訓練在 8 張 P100 GPU 上耗時 3.5 天。即便是我們的基礎模型也超越了此前所有已發表的模型與集成，且<span class="hl-evidence">訓練成本僅為競爭模型的一小部分</span>。在 <span class="hl-evidence">WMT 2014 英法翻譯任務上，我們的大型模型達到 41.8 BLEU，超越此前所有已發表的單模型，訓練成本不到前最先進模型的四分之一</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    呈現核心實驗結果——以 BLEU 分數證實 Transformer 的品質優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的「高潮」——實驗結果直接兌現摘要中的承諾。「over 2.0 BLEU」的領先幅度在機器翻譯領域極為顯著（通常 0.5 BLEU 即被視為有意義的差異），構成壓倒性的證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    雙線並行的論述策略——同時強調品質（BLEU 創新高）與效率（訓練成本僅 1/4）——形成強大的說服力。「even our base model surpasses all」進一步加碼，暗示即便資源受限的研究者也能受益於 Transformer 架構。但 BLEU 本身作為翻譯品質指標的侷限性（如對意義等價的不同表述不夠敏感）未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果段落 2：模型變體分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In Table 3, we vary various components of the Transformer to evaluate their importance. Row (A) shows that <span class="hl-evidence">single-head attention is 0.9 BLEU worse than the best setting, while quality also drops off with too many heads</span>. This confirms the value of multi-head attention. Row (B) indicates that <span class="hl-evidence">reducing the attention key size d_k hurts model quality</span>, suggesting that determining compatibility is not easy and that a more sophisticated compatibility function than dot product may be beneficial. Rows (C) and (D) demonstrate that <span class="hl-evidence">bigger models are better, and dropout is very helpful in avoiding over-fitting</span>. In row (E), we replace our sinusoidal positional encoding with <span class="hl-evidence">learned positional embeddings, and observe nearly identical results to the base model</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在表 3 中，我們變動 Transformer 的各個組件以評估其重要性。第 (A) 行顯示<span class="hl-evidence">單頭注意力比最佳設定低 0.9 BLEU，而頭數過多時品質亦下降</span>。這證實了多頭注意力的價值。第 (B) 行表明<span class="hl-evidence">降低注意力鍵維度 d_k 會損害模型品質</span>，顯示判定相容性並非易事，更精密的相容性函數或許有所助益。第 (C) 和 (D) 行證明<span class="hl-evidence">更大的模型表現更佳，且丟棄（Dropout）對防止過擬合極有幫助</span>。第 (E) 行中，我們將正弦位置編碼替換為<span class="hl-evidence">學習式位置嵌入，觀察到與基礎模型幾乎相同的結果</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融分析——系統性地驗證各設計選擇的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段承擔「設計選擇合理性驗證」的功能。五組消融實驗分別回應了：(A) 多頭機制的必要性；(B) 鍵維度的重要性；(C-D) 規模與正規化的效應；(E) 位置編碼形式的靈活性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究是論文說服力的重要支柱。「quality also drops off with too many heads」的發現暗示存在最優頭數，而非越多越好——這增添了分析的客觀性。但消融實驗僅在英德翻譯上進行，其結論的可推廣性（跨語言、跨任務）未被驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果段落 3：英語成分句法分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To evaluate if the Transformer can <span class="hl-thesis">generalize to other tasks</span>, we performed experiments on <span class="hl-concept">English constituency parsing</span>. This task presents specific challenges: the output is subject to strong structural constraints and is significantly longer than the input. Despite the <span class="hl-rebuttal">lack of task-specific tuning</span>, the results show that the <span class="hl-evidence">Transformer with 4 layers achieves a semi-supervised F1 score of 92.7</span>, outperforming the BerkeleyParser even when <span class="hl-evidence">training only on the WSJ training set of approximately 40K sentences</span>. This demonstrates that the Transformer can <span class="hl-thesis">generalize well to English constituency parsing, a task with output noticeably different from machine translation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為評估 Transformer 能否<span class="hl-thesis">泛化至其他任務</span>，我們在<span class="hl-concept">英語成分句法分析</span>上進行了實驗。此任務具有特定挑戰：輸出受到強結構約束，且長度顯著超過輸入。儘管<span class="hl-rebuttal">缺乏任務特定的調整</span>，結果顯示<span class="hl-evidence">4 層 Transformer 在半監督設定下達到 92.7 的 F1 分數</span>，即便<span class="hl-evidence">僅在包含約 40K 句子的 WSJ 訓練集上訓練</span>，亦超越了 BerkeleyParser。這證明 Transformer 能夠<span class="hl-thesis">良好地泛化至英語成分句法分析——一項輸出形式顯著不同於機器翻譯的任務</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    擴展驗證——以非翻譯任務測試 Transformer 的泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應潛在質疑：「Transformer 是否僅適用於機器翻譯？」以截然不同的任務類型（結構化輸出而非自由文本）進行驗證，預示了 Transformer 作為通用架構的潛力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「lack of task-specific tuning」的強調策略性地突顯了 Transformer 的通用性——未經特化便能勝過專門設計的解析器。但僅選取一個額外任務作為泛化證據，覆蓋面有限。後續的 BERT、GPT 系列以數十個任務證明了 Transformer 的真正通用性，但這在 2017 年尚屬未來。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we presented the <span class="hl-concept">Transformer</span>, <span class="hl-thesis">the first sequence transduction model based entirely on attention, replacing the recurrent layers most commonly used in encoder-decoder architectures with multi-headed self-attention</span>. For translation tasks, the Transformer can be <span class="hl-evidence">trained significantly faster than architectures based on recurrent or convolutional layers</span>. On both <span class="hl-evidence">WMT 2014 English-to-German and WMT 2014 English-to-French translation tasks, we achieve a new state of the art</span>. In the former task our best model outperforms even all previously reported ensembles.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在本研究中，我們提出了 <span class="hl-concept">Transformer</span>——<span class="hl-thesis">首個完全基於注意力的序列轉導模型，以多頭自注意力取代編碼器-解碼器架構中最常用的循環層</span>。在翻譯任務上，Transformer 的<span class="hl-evidence">訓練速度顯著快於基於循環或摺積層的架構</span>。在 <span class="hl-evidence">WMT 2014 英德翻譯與英法翻譯任務上，我們均達到了新的最先進水平</span>。在前一項任務中，我們的最佳模型甚至超越了此前報告的所有集成模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——以精煉語言重申核心貢獻與實驗成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段回呼摘要的結構，形成完整的論證閉環：(1) 架構的開創性（首個純注意力模型）；(2) 效率的優越性（訓練更快）；(3) 品質的卓越性（雙任務 SOTA）。三者共同構成不可反駁的貢獻論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「the first sequence transduction model based entirely on attention」的措辭經過精心校準——限定於「sequence transduction」而非泛泛的「neural model」，確保新穎性主張的準確性。但結論中未提及任何限制或失敗案例，這在學術寫作中稍顯偏頗，儘管這在頂會論文中並非罕見。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We are excited about the future of attention-based models and <span class="hl-thesis">plan to extend the Transformer to problems involving input and output modalities other than text</span> and to investigate <span class="hl-method">local, restricted attention mechanisms to efficiently handle large inputs and outputs such as images, audio and video</span>. <span class="hl-thesis">Making generation less sequential</span> is another research goal of ours. The code we used to train and evaluate our models is available at <span class="hl-evidence">github.com/tensorflow/tensor2tensor</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們對基於注意力的模型之未來充滿期待，<span class="hl-thesis">計畫將 Transformer 擴展至文本以外的輸入與輸出模態</span>，並研究<span class="hl-method">局部受限的注意力機制，以高效處理影像、音訊與影片等大型輸入與輸出</span>。<span class="hl-thesis">使生成過程更少序列性</span>是我們的另一研究目標。用於訓練與評估模型的程式碼可在 <span class="hl-evidence">github.com/tensorflow/tensor2tensor</span> 取得。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    未來展望——點出三大研究方向與開源承諾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以前瞻性的視角結束全文，點出三個方向：(1) 多模態擴展；(2) 高效注意力機制；(3) 非自迴歸生成。這些方向精準預見了後續研究的主要脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「images, audio and video」的展望在回顧視角下堪稱先知性的洞見——ViT（影像）、Whisper（音訊）、Sora（影片）皆以 Transformer 為核心。「Making generation less sequential」的目標催生了非自迴歸翻譯、擴散模型等後續研究。開源程式碼的公布是 Transformer 迅速被採用的關鍵因素之一。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                RNN 的序列性瓶頸<br>阻礙平行化與長距離建模
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                純注意力架構可完全<br>取代循環與摺積
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                英德 28.4 / 英法 41.8 BLEU<br>訓練成本不到 1/4
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                注意力解析度降低<br>以多頭機制抵消
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                Transformer 開啟<br>注意力即一切的新紀元
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    完全基於多頭自注意力機制的 Transformer 架構，無需任何循環或摺積結構，即可在序列轉導任務上以更低的訓練成本達到最先進的品質——注意力機制本身已足以勝任序列建模。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>品質與效率的雙重碾壓：</strong>Transformer 在英德翻譯上領先此前最佳結果超過 2 個 BLEU（28.4 vs ~26），而訓練成本僅為競爭模型的四分之一甚至更少。基礎模型僅需 12 小時即可超越所有先前模型（含集成），大型模型 3.5 天即達 41.8 BLEU。搭配理論層面的複雜度分析（O(1) 路徑長度 vs O(n)）以及消融實驗的系統性驗證，構成了從理論到實證的完整證據鏈。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>自注意力的二次複雜度未被充分討論：</strong>自注意力的 O(n^2) 計算複雜度在序列長度 n 較大時將成為瓶頸，作者以「n 通常小於 d」一語帶過。此外，論文僅在機器翻譯與句法分析兩項任務上驗證，對 Transformer 的通用性主張支撐有限。位置編碼以加法注入的方式是否真能替代循環結構固有的序列歸納偏置，亦缺乏深入的理論分析。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>
