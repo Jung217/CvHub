@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You Only Look Once: Unified, Real-Time Object Detection — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                You Only Look Once: Unified, Real-Time Object Detection
+                <span class="course-tag">Classic &middot; CVPR 2016</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1506.02640" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-unified">2. 統一偵測</a>
+        <a href="#sec-network">2.1 網路設計</a>
+        <a href="#sec-training">2.2 訓練</a>
+        <a href="#sec-inference">2.3 推論</a>
+        <a href="#sec-limitations">2.4 局限性</a>
+        <a href="#sec-comparison">3. 與其他系統比較</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">YOLO</span>, a new approach to object detection. Prior work on object detection repurposes classifiers to perform detection. Instead, <span class="hl-thesis">we frame object detection as a regression problem to spatially separated bounding boxes and associated class probabilities</span>. A <span class="hl-method">single neural network predicts bounding boxes and class probabilities directly from full images in one evaluation</span>. Since the whole detection pipeline is a single network, it can be <span class="hl-thesis">optimized end-to-end directly on detection performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 <span class="hl-concept">YOLO</span>，一種全新的物件偵測方法。過往的物件偵測工作將分類器重新應用於偵測任務。相較之下，<span class="hl-thesis">我們將物件偵測框定為一個對空間分離的邊界框與相關類別機率的迴歸問題</span>。<span class="hl-method">單一神經網路在一次評估中直接從完整影像預測邊界框與類別機率</span>。由於整個偵測流程是一個單一網路，它可以<span class="hl-thesis">針對偵測效能進行端到端的最佳化</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「重新框定問題」的方式開場，將物件偵測從分類問題轉為迴歸問題，預告 YOLO 的核心創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要第一段承擔「問題重新定義」的功能：先否定分類器路線，再以一句話建立 YOLO 作為迴歸式偵測器的全新典範。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「重新框定問題」取代「改良現有方法」的修辭策略極為有力，暗示這不是漸進改進而是典範轉移。但「端到端最佳化」的說法忽略了預訓練階段仍使用 ImageNet 分類任務。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our unified architecture is extremely fast. Our base YOLO model processes images in real-time at <span class="hl-evidence">45 frames per second</span>. A smaller version of the network, <span class="hl-concept">Fast YOLO</span>, processes an astounding <span class="hl-evidence">155 frames per second</span> while still achieving <span class="hl-evidence">double the mAP of other real-time detectors</span>. Compared to state-of-the-art detection systems, <span class="hl-rebuttal">YOLO makes more localization errors but is less likely to predict false positives on background</span>. Finally, <span class="hl-thesis">YOLO learns very general representations of objects</span>. It <span class="hl-evidence">outperforms other detection methods, including DPM and R-CNN, when generalizing from natural images to other domains like artwork</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的統一架構極其快速。基礎 YOLO 模型以<span class="hl-evidence">每秒 45 幀</span>的速度即時處理影像。更小型的網路版本 <span class="hl-concept">Fast YOLO</span> 以驚人的<span class="hl-evidence">每秒 155 幀</span>處理影像，同時仍達到<span class="hl-evidence">其他即時偵測器兩倍的 mAP</span>。與最先進的偵測系統相比，<span class="hl-rebuttal">YOLO 產生更多定位錯誤，但較少在背景上產生偽陽性</span>。最終，<span class="hl-thesis">YOLO 學習到非常通用的物件表示</span>。當從自然影像推廣至藝術作品等其他領域時，YOLO <span class="hl-evidence">優於包括 DPM 和 R-CNN 在內的其他偵測方法</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    量化優勢——以具體數據展示 YOLO 的速度與泛化能力，同時誠實揭露定位精度的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要第二段透過「速度-精度」的權衡框架定位 YOLO：不追求最高精度，而是在速度與泛化能力上取得突破。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「astounding 155 fps」帶有明顯的修辭渲染。主動揭露定位錯誤的缺點是誠實的學術寫作，但將「背景偽陽性較少」作為對等優勢來呈現，巧妙地將弱點轉化為特定應用場景的優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：人類視覺與現有系統的差距 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Humans glance at an image and instantly know what objects are in the image, where they are, and how they interact. The human visual system is fast and accurate, allowing us to perform complex tasks like driving with little conscious thought. Fast, accurate algorithms for object detection would allow computers to <span class="hl-thesis">drive cars without specialized sensors</span>, enable assistive devices to convey real-time scene information to human users, and unlock the potential for general purpose, responsive robotic systems.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人類只需瞥一眼影像，便能立即知道影像中有什麼物件、它們在哪裡、以及它們如何互動。人類視覺系統既快速又精確，使我們能在幾乎無需刻意思考的情況下執行開車等複雜任務。快速而精確的物件偵測演算法將能使電腦<span class="hl-thesis">在不需要專用感測器的情況下駕駛汽車</span>、讓輔助裝置向使用者傳達即時場景資訊，並釋放通用型、即時回應的機器人系統的潛力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    引出動機——以人類視覺的直覺性對比機器偵測的複雜性，建立研究的應用場景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：從人類直覺出發，暗示理想的偵測系統應同樣快速直接，為 YOLO 的「一次觀看」理念鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以自動駕駛、輔助設備等高影響力的應用場景開場，強化了研究的重要性。但將人類視覺與神經網路類比存在根本性差異——人類視覺系統並非真的「一次觀看」，而是透過注意力機制進行多焦點掃描。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有方法的複雜性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Current detection systems repurpose classifiers to perform detection. To detect an object, these systems take a classifier for that object and evaluate it at various locations and scales in a test image. Systems like <span class="hl-concept">deformable parts models (DPM)</span> use a <span class="hl-method">sliding window approach</span> where the classifier is run at evenly spaced locations over the entire image. More recent approaches like <span class="hl-concept">R-CNN</span> use <span class="hl-method">region proposal methods</span> to first generate potential bounding boxes in an image and then run a classifier on these proposed boxes. After classification, <span class="hl-method">post-processing is used to refine the bounding boxes, eliminate duplicate detections, and rescore the boxes</span> based on other objects in the scene. These <span class="hl-rebuttal">complex pipelines are slow and hard to optimize because each individual component must be trained separately</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                當前的偵測系統將分類器重新應用於偵測任務。為了偵測一個物件，這些系統取用該物件的分類器，並在測試影像的各種位置和尺度上進行評估。如<span class="hl-concept">可變形部件模型（DPM）</span>等系統採用<span class="hl-method">滑動視窗方法</span>，在整張影像上均勻分布的位置執行分類器。較新的方法如 <span class="hl-concept">R-CNN</span> 則使用<span class="hl-method">區域建議方法</span>，先在影像中生成潛在邊界框，再對這些建議框執行分類器。分類後，還需<span class="hl-method">後處理來精修邊界框、消除重複偵測，並根據場景中其他物件重新評分</span>。這些<span class="hl-rebuttal">複雜的流程既緩慢又難以最佳化，因為每個獨立元件都必須分開訓練</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——系統性描述 DPM 與 R-CNN 的複雜流程，突出其痛點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「反面教材」：將現有方法框定為「分類器的拼湊」，為 YOLO 的統一架構形成鮮明對比。「每個元件必須分開訓練」直接回扣摘要中「端到端最佳化」的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 R-CNN 描繪為「複雜流程」雖事實正確，但省略了 R-CNN 在準確度上的明顯優勢。此處的框架選擇性地強調了「速度與簡潔性」這一 YOLO 擅長的維度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：YOLO 三大優勢 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We reframe object detection as <span class="hl-thesis">a single regression problem, straight from image pixels to bounding box coordinates and class probabilities</span>. Using our system, you only look once (YOLO) at an image to predict what objects are present and where they are. YOLO is refreshingly simple: a single convolutional network simultaneously predicts <span class="hl-method">multiple bounding boxes and class probabilities for those boxes</span>. Our unified model has several benefits over traditional methods. First, <span class="hl-thesis">YOLO is extremely fast</span>. Since we frame detection as a regression problem we don't need a complex pipeline. Second, <span class="hl-thesis">YOLO reasons globally about the image when making predictions</span>. Unlike sliding window and region proposal-based techniques, <span class="hl-method">YOLO sees the entire image during training and test time so it implicitly encodes contextual information about classes as well as their appearance</span>. Third, <span class="hl-thesis">YOLO learns generalizable representations of objects</span>. When trained on natural images and tested on artwork, YOLO outperforms top detection methods like DPM and R-CNN by a wide margin.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將物件偵測重新框定為<span class="hl-thesis">一個從影像像素直接到邊界框座標和類別機率的單一迴歸問題</span>。使用我們的系統，你只需看一次（YOLO）影像就能預測存在哪些物件及其位置。YOLO 簡潔而新穎：一個摺積網路同時預測<span class="hl-method">多個邊界框及其類別機率</span>。我們的統一模型相較傳統方法具有數項優勢。第一，<span class="hl-thesis">YOLO 極其快速</span>。由於我們將偵測框定為迴歸問題，不需要複雜的流程。第二，<span class="hl-thesis">YOLO 在進行預測時對影像進行全域推理</span>。不同於滑動視窗和區域建議方法，<span class="hl-method">YOLO 在訓練和測試時都能看到整張影像，因此隱式地編碼了關於類別及其外觀的上下文資訊</span>。第三，<span class="hl-thesis">YOLO 學習到可泛化的物件表示</span>。當以自然影像訓練並在藝術作品上測試時，YOLO 以大幅差距超越 DPM 和 R-CNN 等頂尖偵測方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心主張——以三點並列結構清晰陳述 YOLO 的三大優勢：速度、全域推理、泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的論點宣言。「You Only Look Once」不僅是縮寫名稱，更是設計哲學的濃縮。三大優勢分別對應三個不同的評估維度，形成多面向的論證支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三點並列結構清晰有力，「refreshingly simple」帶有行銷色彩。第二點關於全域推理的論證最為深刻——這不僅是工程上的簡化，更暗示了架構設計帶來的認知優勢。但泛化到藝術作品的測試場景較為特殊，能否推廣到其他領域差異尚待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 統一偵測 ====== -->
+    <h2 class="section-heading" id="sec-unified">2. Unified Detection — 統一偵測</h2>
+
+    <!-- 統一偵測段落 1：網格與預測機制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We unify the separate components of object detection into a single neural network. Our network uses <span class="hl-method">features from the entire image to predict each bounding box</span>. It also predicts all bounding boxes across all classes for an image simultaneously. This means our network <span class="hl-thesis">reasons globally about the full image and all the objects in the image</span>. The YOLO design enables end-to-end training and real-time speeds while maintaining high average precision.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將物件偵測的各個獨立元件統一為單一神經網路。我們的網路使用<span class="hl-method">整張影像的特徵來預測每個邊界框</span>。它同時預測一張影像中所有類別的所有邊界框。這意味著我們的網路<span class="hl-thesis">對整張影像及其中所有物件進行全域推理</span>。YOLO 的設計實現了端到端訓練和即時速度，同時維持高平均精度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計哲學——重申「統一」的核心理念，為後續技術細節奠定基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從緒論的概念宣言過渡到方法論的技術描述。「全域推理」不再只是抽象優勢，而是具體的架構設計原則。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    反覆強調「統一」與「全域」形成修辭上的錨點效應。但「維持高平均精度」的說法在此階段缺乏數據支撐，屬於預告式宣稱，需在實驗章節驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 統一偵測段落 2：S*S 網格機制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our system divides the input image into an <span class="hl-method">S &times; S grid</span>. If the center of an object falls into a grid cell, <span class="hl-method">that grid cell is responsible for detecting that object</span>. Each grid cell predicts <span class="hl-method">B bounding boxes and confidence scores</span> for those boxes. These confidence scores reflect how confident the model is that the box contains an object and also how accurate it thinks the box is that it predicts. Formally we define confidence as <span class="hl-method">Pr(Object) &times; IOU<sub>pred</sub><sup>truth</sup></span>. Each bounding box consists of <span class="hl-method">5 predictions: x, y, w, h, and confidence</span>. The (x, y) coordinates represent the center of the box relative to the bounds of the grid cell. The width and height are predicted relative to the whole image. Each grid cell also predicts <span class="hl-method">C conditional class probabilities, Pr(Class<sub>i</sub> | Object)</span>. For evaluating YOLO on Pascal VOC, we use <span class="hl-evidence">S = 7, B = 2, C = 20</span>, yielding a final prediction tensor of <span class="hl-evidence">7 &times; 7 &times; 30</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的系統將輸入影像劃分為 <span class="hl-method">S &times; S 網格</span>。若一個物件的中心落在某個網格單元內，<span class="hl-method">該網格單元就負責偵測該物件</span>。每個網格單元預測 <span class="hl-method">B 個邊界框及其信心分數</span>。這些信心分數反映了模型對邊界框內是否包含物件的確信程度，以及預測框的準確度。正式定義信心為 <span class="hl-method">Pr(Object) &times; IOU<sub>pred</sub><sup>truth</sup></span>。每個邊界框包含 <span class="hl-method">5 個預測值：x、y、w、h 以及信心</span>。(x, y) 座標表示框的中心相對於網格單元邊界的位置。寬度和高度則相對於整張影像來預測。每個網格單元還預測 <span class="hl-method">C 個條件類別機率 Pr(Class<sub>i</sub> | Object)</span>。在 Pascal VOC 上評估 YOLO 時，我們使用 <span class="hl-evidence">S = 7、B = 2、C = 20</span>，產生最終預測張量為 <span class="hl-evidence">7 &times; 7 &times; 30</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術定義——精確描述 YOLO 的網格劃分、邊界框預測與類別機率的數學形式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整個方法的數學基礎，將「統一偵測」的抽象概念具體化為可計算的張量結構。7 &times; 7 &times; 30 的輸出規格完整定義了模型的輸出空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將偵測問題壓縮為固定維度張量的設計極為優雅，但也暗藏限制：每個網格單元只能偵測一個類別，當密集物件（如鳥群）的中心落在同一格時，系統將無法處理。這一限制在 2.4 節被正式承認。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.1 網路設計 ====== -->
+    <h3 class="subsection-heading" id="sec-network">2.1 Network Design — 網路設計</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our network architecture is inspired by the <span class="hl-concept">GoogLeNet model</span> for image classification. Our network has <span class="hl-method">24 convolutional layers followed by 2 fully connected layers</span>. Instead of the <span class="hl-concept">inception modules</span> used by GoogLeNet, we simply use <span class="hl-method">1 &times; 1 reduction layers followed by 3 &times; 3 convolutional layers</span>, similar to Lin et al. The full network is shown in Figure 3. We also train a fast version of YOLO designed to push the boundaries of fast object detection. <span class="hl-concept">Fast YOLO</span> uses a neural network with <span class="hl-evidence">fewer convolutional layers (9 instead of 24) and fewer filters</span> in those layers. Other than the size of the network, all training and testing parameters are the same between YOLO and Fast YOLO. The final output of our network is the <span class="hl-evidence">7 &times; 7 &times; 30 tensor</span> of predictions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的網路架構受到 <span class="hl-concept">GoogLeNet 模型</span>的啟發。網路包含<span class="hl-method">24 個摺積層，後接 2 個全連接層</span>。我們不使用 GoogLeNet 的 <span class="hl-concept">Inception 模組</span>，而是採用<span class="hl-method">1 &times; 1 縮減層加 3 &times; 3 摺積層</span>的組合，類似於 Lin 等人的做法。完整網路如圖 3 所示。我們同時訓練了一個專門追求極致速度的 <span class="hl-concept">Fast YOLO</span>，使用<span class="hl-evidence">較少的摺積層（9 層而非 24 層）及更少的濾波器</span>。除了網路大小之外，YOLO 與 Fast YOLO 之間的所有訓練和測試參數均相同。網路最終輸出為 <span class="hl-evidence">7 &times; 7 &times; 30 的預測張量</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構描述——說明網路的具體結構及 Fast YOLO 變體的設計取捨。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將方法論從抽象的「單一網路」落實為具體的層數與模組選擇。Fast YOLO 的存在為「速度-精度」權衡提供了額外的資料點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇 1x1 + 3x3 取代 Inception 模組是務實的工程決策，降低了實作複雜度。但未解釋為何不採用更深的架構（如 VGGNet），以及 24 層這個數字的選擇依據。Fast YOLO 的 9 層設計同樣缺乏消融研究支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.2 訓練 ====== -->
+    <h3 class="subsection-heading" id="sec-training">2.2 Training — 訓練</h3>
+
+    <!-- 訓練段落 1：預訓練與微調 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We pretrain our convolutional layers on the <span class="hl-evidence">ImageNet 1000-class competition dataset</span>. For pretraining we use the first 20 convolutional layers from our network followed by an average-pooling layer and a fully connected layer, achieving <span class="hl-evidence">88% accuracy on the ImageNet 2012 validation set, comparable to the GoogLeNet models</span>. We then convert the model to perform detection. Following prior work, we add <span class="hl-method">four convolutional layers and two fully connected layers with randomly initialized weights</span>. Detection often requires fine-grained visual information so <span class="hl-method">we increase the input resolution of the network from 224 &times; 224 to 448 &times; 448</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">ImageNet 1000 類別競賽資料集</span>上預訓練摺積層。預訓練時使用網路前 20 個摺積層加上一個平均池化層和一個全連接層，在 <span class="hl-evidence">ImageNet 2012 驗證集上達到 88% 的準確率，與 GoogLeNet 模型相當</span>。隨後我們將模型轉換為偵測用途。依循先前研究，我們新增<span class="hl-method">四個摺積層和兩個全連接層，使用隨機初始化權重</span>。由於偵測通常需要更細緻的視覺資訊，<span class="hl-method">我們將網路的輸入解析度從 224 &times; 224 提升至 448 &times; 448</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略第一步——描述預訓練與模型轉換的具體流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示了從分類到偵測的遷移學習策略。88% 的 ImageNet 準確率證明特徵提取器的品質，為偵測性能提供了隱含的基礎保證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將輸入解析度翻倍（224 到 448）是重要的工程決策，但增加了四倍的計算量。作者未分析此解析度提升對速度的影響。此外，摘要中宣稱的「端到端最佳化」在此處被削弱——模型實際上經歷了兩階段訓練。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 訓練段落 2：損失函數設計 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We optimize for <span class="hl-method">sum-squared error in the output of our model</span>. We use sum-squared error because it is easy to optimize, however <span class="hl-rebuttal">it does not perfectly align with our goal of maximizing average precision</span>. It weights localization error equally with classification error which may not be ideal. Also, in every image many grid cells do not contain any object. This pushes the "confidence" scores of those cells towards zero, <span class="hl-rebuttal">often overpowering the gradient from cells that do contain objects</span>. This can lead to model instability, causing training to diverge early on. To remedy this, we <span class="hl-method">increase the loss from bounding box coordinate predictions and decrease the loss from confidence predictions for boxes that don't contain objects</span>. We use two parameters, <span class="hl-method">&lambda;<sub>coord</sub> = 5</span> and <span class="hl-method">&lambda;<sub>noobj</sub> = 0.5</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們最佳化<span class="hl-method">模型輸出的平方和誤差</span>。選擇平方和誤差是因為它容易最佳化，但<span class="hl-rebuttal">它並不完全符合我們最大化平均精度的目標</span>。它將定位誤差與分類誤差賦予相同權重，這可能並不理想。此外，每張影像中許多網格單元不包含任何物件，這會將這些單元的「信心」分數推向零，<span class="hl-rebuttal">往往壓過包含物件之單元的梯度</span>，導致模型不穩定，使訓練在早期發散。為此，我們<span class="hl-method">增加邊界框座標預測的損失權重，並降低不包含物件之邊界框的信心預測損失</span>。我們使用兩個參數：<span class="hl-method">&lambda;<sub>coord</sub> = 5</span> 與 <span class="hl-method">&lambda;<sub>noobj</sub> = 0.5</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    損失函數設計——誠實地揭示平方和誤差的缺陷，並提出針對性的修正。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題-解決」的微觀結構：先承認損失函數的不完美，再以加權參數修正。這種自我批判式的寫作增強了學術可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動承認損失函數的缺陷是出色的學術寫作策略——與其讓審稿者提出質疑，不如先行揭示並展示解決方案。但 &lambda; 參數的具體值（5 和 0.5）缺乏理論依據，僅為經驗調整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 訓練段落 3：大小框處理與訓練細節 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Sum-squared error also equally weights errors in large boxes and small boxes. Our error metric should reflect that <span class="hl-rebuttal">small deviations in large boxes matter less than in small boxes</span>. To partially address this we <span class="hl-method">predict the square root of the bounding box width and height instead of the width and height directly</span>. We train the network for approximately <span class="hl-evidence">135 epochs on the training and validation data from PASCAL VOC 2007 and 2012</span>. Throughout training we use a <span class="hl-method">batch size of 64, a momentum of 0.9, and a decay of 0.0005</span>. Our learning rate schedule is as follows: for the first epochs, we slowly raise the learning rate from <span class="hl-method">10<sup>-3</sup> to 10<sup>-2</sup></span>. We continue training with <span class="hl-method">10<sup>-2</sup> for 75 epochs, then 10<sup>-3</sup> for 30 epochs, and finally 10<sup>-4</sup> for 30 epochs</span>. To avoid overfitting we use <span class="hl-method">dropout with rate .5 after the first connected layer</span> and extensive <span class="hl-method">data augmentation with random scaling and translations of up to 20% of the original image size</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                平方和誤差同樣對大框和小框的誤差給予相同權重。我們的誤差度量應反映<span class="hl-rebuttal">大框中的小偏差影響較小，而小框中的小偏差影響較大</span>。為部分解決此問題，我們<span class="hl-method">預測邊界框寬度和高度的平方根，而非直接預測寬度和高度</span>。我們在 <span class="hl-evidence">PASCAL VOC 2007 和 2012 的訓練及驗證資料上訓練網路約 135 個時期</span>。訓練全程使用<span class="hl-method">批次大小 64、動量 0.9、衰減 0.0005</span>。學習率排程如下：在前幾個時期，學習率從 <span class="hl-method">10<sup>-3</sup> 緩慢提升至 10<sup>-2</sup></span>，之後以 <span class="hl-method">10<sup>-2</sup> 繼續訓練 75 個時期，接著 10<sup>-3</sup> 訓練 30 個時期，最後 10<sup>-4</sup> 訓練 30 個時期</span>。為防止過擬合，我們在<span class="hl-method">第一個全連接層後使用 0.5 的丟棄率</span>，並進行大量<span class="hl-method">資料增強，包括最多 20% 原始影像大小的隨機縮放和平移</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練工程細節——從尺度不變性的損失設計到完整的超參數配置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成了損失函數的最後一塊拼圖（平方根技巧），並提供了完整的可複現資訊。學習率的分階段排程是深度學習訓練的重要細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    預測寬高的平方根是巧妙的工程直覺——平方根函數在較大值時變化率較小，自然地降低了大框的誤差敏感度。但作者自己也承認這只是「部分解決」，暗示小物件偵測仍是未解決的根本問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.3 推論 ====== -->
+    <h3 class="subsection-heading" id="sec-inference">2.3 Inference — 推論</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Just like in training, predicting detections for a test image only requires <span class="hl-thesis">one network evaluation</span>. On Pascal VOC the network predicts <span class="hl-evidence">98 bounding boxes per image</span> and class probabilities for each box. YOLO is extremely fast at test time since it only requires a single network evaluation, unlike classifier-based methods. The <span class="hl-method">grid design enforces spatial diversity in the bounding box predictions</span>. Often it is clear which grid cell an object falls in and the network only predicts one box for each object. However, some large objects or objects near the border of multiple cells can be well localized by multiple cells. <span class="hl-method">Non-maximal suppression</span> can be used to fix these multiple detections, adding <span class="hl-evidence">2-3% in mAP</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                如同訓練階段，對測試影像進行偵測預測只需<span class="hl-thesis">一次網路評估</span>。在 Pascal VOC 上，網路對每張影像預測 <span class="hl-evidence">98 個邊界框</span>及每個框的類別機率。YOLO 在測試時極為快速，因為它只需一次網路評估，不同於基於分類器的方法。<span class="hl-method">網格設計確保了邊界框預測的空間多樣性</span>。通常物件落在哪個網格單元中是明確的，網路對每個物件僅預測一個框。然而，某些大型物件或靠近多個單元邊界的物件可能被多個單元定位。<span class="hl-method">非極大值抑制</span>可用於修正這些重複偵測，帶來 <span class="hl-evidence">2-3% 的 mAP 提升</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推論流程——說明測試時的簡潔性與後處理策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段強化了 YOLO 的核心賣點：推論時的極致簡潔。98 個邊界框對比 R-CNN 的 2000 個區域建議，形成鮮明的效率對比。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將非極大值抑制的貢獻量化為 2-3% mAP 是有用的消融資訊。但有趣的是，YOLO 聲稱不需要複雜的後處理，卻仍然依賴非極大值抑制——這是所有偵測器的共同需求，削弱了「端到端」的純粹性論述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.4 局限性 ====== -->
+    <h3 class="subsection-heading" id="sec-limitations">2.4 Limitations of YOLO — YOLO 的局限性</h3>
+
+    <!-- 局限性段落 1：空間限制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-rebuttal">YOLO imposes strong spatial constraints on bounding box predictions since each grid cell only predicts two boxes and can only have one class.</span> This spatial constraint limits the number of nearby objects that our model can predict. <span class="hl-rebuttal">Our model struggles with small objects that appear in groups, such as flocks of birds.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-rebuttal">YOLO 對邊界框預測施加了強烈的空間限制，因為每個網格單元僅預測兩個框且只能有一個類別。</span>這一空間限制限制了模型能預測的鄰近物件數量。<span class="hl-rebuttal">我們的模型在偵測成群出現的小物件（如鳥群）時表現不佳。</span>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自我批判第一點——揭露網格設計的根本限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是全文最重要的自我批判段落。網格約束既是 YOLO 速度的來源（固定維度的輸出），也是其精度的天花板。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「鳥群」為例具體化抽象的限制，讓讀者立即理解問題的本質。此限制在後續的 YOLOv2、v3 中透過增加網格解析度和多尺度預測逐步解決，證明了此處的診斷是精準的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 局限性段落 2：泛化與定位 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since our model learns to predict bounding boxes from data, <span class="hl-rebuttal">it struggles to generalize to objects in new or unusual aspect ratios or configurations</span>. Our model also uses <span class="hl-rebuttal">relatively coarse features for predicting bounding boxes since our architecture has multiple downsampling layers</span> from the input image. Finally, while we train on a loss function that approximates detection performance, our loss function <span class="hl-rebuttal">treats errors the same in small bounding boxes versus large bounding boxes</span>. A small error in a large box is generally benign but <span class="hl-rebuttal">a small error in a small box has a much greater effect on IOU</span>. Our main source of error is incorrect localizations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由於我們的模型從資料中學習預測邊界框，<span class="hl-rebuttal">它在面對新穎或不尋常的長寬比或配置的物件時，難以泛化</span>。我們的模型也因<span class="hl-rebuttal">架構中多個降取樣層而使用相對粗略的特徵來預測邊界框</span>。最後，儘管我們的損失函數近似偵測效能，它<span class="hl-rebuttal">對小邊界框和大邊界框的誤差一視同仁</span>。大框中的小誤差通常無關緊要，但<span class="hl-rebuttal">小框中的小誤差對 IOU 的影響要大得多</span>。我們的主要誤差來源是不正確的定位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自我批判的延續——從泛化困難、粗略特徵到損失函數的尺度不一致，全面列舉局限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將多個技術缺陷串聯為一條因果鏈：粗略特徵 + 損失函數的尺度偏差 -> 定位錯誤。這為錯誤分析章節（4.2）的結論提供了理論預測。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「我們的主要誤差來源是不正確的定位」是極為坦誠的結論。整段的自我批判構成了完整的研究誠信展示，但同時也為作者後續的改進版本（YOLOv2 等）埋下了明確的改進方向。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 與其他偵測系統比較 ====== -->
+    <h2 class="section-heading" id="sec-comparison">3. Comparison to Other Detection Systems — 與其他偵測系統比較</h2>
+
+    <!-- 比較段落 1：DPM 與 R-CNN -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Object detection is a core problem in computer vision. Detection pipelines generally start by extracting a set of robust features from input images. Then, classifiers or localizers are used to identify objects in the feature space. <span class="hl-concept">Deformable parts models (DPM)</span> use a <span class="hl-method">sliding window approach</span> to object detection. DPM uses a <span class="hl-method">disjoint pipeline</span> to extract static features, classify regions, predict bounding boxes for high scoring regions, etc. Our system <span class="hl-thesis">replaces all of these disparate parts with a single convolutional neural network</span>. The network performs feature extraction, bounding box prediction, non-maximal suppression, and contextual reasoning <span class="hl-thesis">all concurrently</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                物件偵測是電腦視覺的核心問題。偵測流程通常先從輸入影像中提取一組穩健的特徵，接著使用分類器或定位器在特徵空間中識別物件。<span class="hl-concept">可變形部件模型（DPM）</span>採用<span class="hl-method">滑動視窗方法</span>進行物件偵測，使用<span class="hl-method">分離式流程</span>來提取靜態特徵、分類區域、為高分區域預測邊界框等。我們的系統<span class="hl-thesis">以單一摺積神經網路取代所有這些分散的元件</span>。網路<span class="hl-thesis">同時</span>執行特徵提取、邊界框預測、非極大值抑制和上下文推理。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    對比分析——將 YOLO 與 DPM 做結構性對比，強調「統一」vs「分離」的設計哲學差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立分類學：將現有方法標記為「分離式流程」，將 YOLO 定位為「統一式流程」，形成清晰的二元對立。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「統一」與「分離」的對比推到極致，但 DPM 的分離式設計允許每個元件獨立最佳化，在某些場景下可能反而更具靈活性。作者將此視為純粹的缺點，忽略了模組化設計的潛在優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 比較段落 2：R-CNN 系列 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">R-CNN</span> and its variants use <span class="hl-method">region proposals</span> instead of sliding windows to find objects in images. The <span class="hl-concept">Selective Search</span> algorithm generates potential bounding boxes, a convolutional network extracts features, an SVM scores the boxes, a linear model adjusts the bounding boxes, and non-max suppression eliminates duplicate detections. <span class="hl-rebuttal">Each stage of this complex pipeline must be precisely tuned independently</span>, making these systems <span class="hl-rebuttal">very slow, taking more than 40 seconds per image at test time</span>. YOLO shares some similarities with R-CNN. Each grid cell proposes potential bounding boxes and scores those boxes using convolutional features. However, our system places <span class="hl-method">spatial constraints on the grid cell proposals</span> which helps mitigate multiple detections of the same object. Our system also proposes <span class="hl-evidence">far fewer bounding boxes, only 98 per image compared to about 2000 from Selective Search</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">R-CNN</span> 及其變體使用<span class="hl-method">區域建議</span>取代滑動視窗來尋找影像中的物件。<span class="hl-concept">Selective Search</span> 演算法生成潛在邊界框，摺積網路提取特徵，SVM 對框進行評分，線性模型調整邊界框，非極大值抑制消除重複偵測。<span class="hl-rebuttal">這個複雜流程的每個階段都必須獨立精確調校</span>，使得這些系統<span class="hl-rebuttal">非常緩慢，測試時每張影像需要超過 40 秒</span>。YOLO 與 R-CNN 有一些相似之處：每個網格單元提出潛在邊界框，並使用摺積特徵對這些框評分。然而，我們的系統對網格單元建議施加<span class="hl-method">空間限制</span>，有助於減少對同一物件的重複偵測。我們的系統也僅提出<span class="hl-evidence">遠少於 R-CNN 的邊界框——每張影像 98 個，相比 Selective Search 的約 2000 個</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統性比較——詳述 R-CNN 的五階段流程，以時間數據突出效率劣勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「40 秒 vs 即時」的數據對比與「2000 vs 98」的建議框數量對比，從兩個維度展示 YOLO 的效率優勢。同時承認相似性，顯示學術誠信。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 R-CNN 的原始版本（40 秒）而非 Fast R-CNN 或 Faster R-CNN 作為主要比較對象，在時間對比上有選擇性偏差。98 vs 2000 的比較令人印象深刻，但較少的建議框也意味著較低的召回率上限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 比較段落 3：其他快速偵測器 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Fast and Faster R-CNN</span> focus on speeding up the R-CNN framework by sharing computation and using neural networks to propose regions instead of Selective Search. While they offer speed improvements over R-CNN, <span class="hl-rebuttal">both still fall short of real-time performance</span>. <span class="hl-concept">OverFeat</span> by Sermanet et al. trains a CNN to perform localization and adapts that localizer to perform detection. OverFeat efficiently performs sliding window detection but it is still a <span class="hl-rebuttal">disjoint system</span>. OverFeat optimizes for <span class="hl-rebuttal">localization, not detection performance</span>. Like DPM, the localizer only sees local information when making a prediction and <span class="hl-rebuttal">cannot reason about global context</span>. YOLO is <span class="hl-thesis">a complete detection pipeline that is fast by design</span> rather than optimizing individual components of a larger pipeline.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">Fast R-CNN 和 Faster R-CNN</span> 致力於加速 R-CNN 框架，透過共享計算並使用神經網路取代 Selective Search 進行區域建議。雖然它們相較 R-CNN 提升了速度，<span class="hl-rebuttal">但兩者仍未達到即時效能</span>。Sermanet 等人的 <span class="hl-concept">OverFeat</span> 訓練 CNN 進行定位，並將該定位器調整為偵測用途。OverFeat 有效率地執行滑動視窗偵測，但它仍是<span class="hl-rebuttal">分離式系統</span>。OverFeat 最佳化的是<span class="hl-rebuttal">定位而非偵測效能</span>。如同 DPM，定位器在預測時只能看到局部資訊，<span class="hl-rebuttal">無法對全域上下文進行推理</span>。YOLO 是一個<span class="hl-thesis">在設計上就追求速度的完整偵測流程</span>，而非對大型流程中的個別元件進行最佳化。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    橫向比較——涵蓋 Fast/Faster R-CNN 與 OverFeat，建立 YOLO 在速度導向偵測器中的獨特定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過批評所有競爭者的共同弱點（分離式設計、局部推理、非即時），將 YOLO 的「統一且即時」定位為唯一同時解決這些問題的方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「fast by design」是精妙的修辭——暗示其他方法的速度改進是事後補救，而 YOLO 的速度是內建的。但 Faster R-CNN 的 RPN 同樣是設計層面的速度改進，此處的區分略顯刻意。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：即時系統比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We compare YOLO with other real-time detection systems on Pascal VOC 2007. <span class="hl-concept">Fast YOLO</span> is the fastest object detection method on Pascal VOC, achieving <span class="hl-evidence">52.7% mAP at 155 fps</span>—more than twice as accurate as prior work on real-time detection. YOLO pushes mAP to <span class="hl-evidence">63.4% while still maintaining real-time performance at 45 fps</span>, 10 mAP more accurate than the fast version while still well above real-time. The <span class="hl-evidence">Fastest DPM effectively speeds up DPM without sacrificing much mAP but it still misses real-time performance by a factor of 2, at only 15 fps</span>. R-CNN Minus R replaces Selective Search with static bounding box proposals but still only manages <span class="hl-evidence">6 fps at 51.3% mAP</span>. The recent Faster R-CNN replaces selective search with a neural network, with its most accurate model achieving <span class="hl-evidence">73.2% mAP at 7 fps</span> while a smaller version runs at <span class="hl-evidence">18 fps with reduced mAP</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 Pascal VOC 2007 上將 YOLO 與其他即時偵測系統進行比較。<span class="hl-concept">Fast YOLO</span> 是 Pascal VOC 上最快的物件偵測方法，以 <span class="hl-evidence">155 fps 達到 52.7% mAP</span>——準確度是先前即時偵測工作的兩倍以上。YOLO 將 mAP 推升至 <span class="hl-evidence">63.4%，同時仍以 45 fps 維持即時效能</span>，比快速版本高出 10 個 mAP 且仍遠超即時閾值。<span class="hl-evidence">Fastest DPM 有效加速了 DPM 而未犧牲太多 mAP，但仍以 15 fps 落後即時效能兩倍</span>。R-CNN Minus R 以靜態邊界框建議取代 Selective Search，但仍僅以 <span class="hl-evidence">6 fps 達到 51.3% mAP</span>。近期的 Faster R-CNN 以神經網路取代 Selective Search，其最精確的模型以 <span class="hl-evidence">7 fps 達到 73.2% mAP</span>，較小版本則以 <span class="hl-evidence">18 fps 運行但 mAP 降低</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗——以速度-精度表格式的密集數據，定量比較所有即時偵測系統。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文實證論述的核心。透過將所有方法放在「fps vs mAP」的二維平面上比較，YOLO 占據了獨特的「高速適中精度」位置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數據呈現策略精妙：以 155 fps 開場製造震撼，再以 Faster R-CNN 的 7 fps 收尾突顯速度差距。但 Faster R-CNN 的 73.2% mAP 遠超 YOLO 的 63.4%——近 10% 的精度差距被速度優勢所掩蓋。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：錯誤分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To further examine the differences between YOLO and state-of-the-art detectors, we look at a detailed breakdown of results on VOC 2007 using the methodology from Hoiem et al. For each category, we look at the <span class="hl-evidence">top N predictions based on confidence</span>. Each prediction is classified as: correct (correct class, IOU &gt; .5), localization error (correct class, .1 &lt; IOU &lt; .5), similar class confusion (similar class, IOU &gt; .1), other class error (wrong class, IOU &gt; .1), or background error (IOU &lt; .1 for any object). <span class="hl-evidence">YOLO struggles to localize objects correctly. Localization errors account for more of YOLO's errors than all other sources combined.</span> Fast R-CNN makes far fewer localization errors but makes many more background mistakes. <span class="hl-evidence">13.6% of its top detections are false positives that don't contain any objects</span>. Fast R-CNN is <span class="hl-evidence">almost 3x more likely to predict background detections than YOLO</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為進一步檢視 YOLO 與最先進偵測器之間的差異，我們使用 Hoiem 等人的方法論，對 VOC 2007 上的結果進行詳細拆解。對於每個類別，我們檢視<span class="hl-evidence">基於信心的前 N 個預測</span>。每個預測被分類為：正確（正確類別，IOU &gt; .5）、定位錯誤（正確類別，.1 &lt; IOU &lt; .5）、相似類別混淆（相似類別，IOU &gt; .1）、其他類別錯誤（錯誤類別，IOU &gt; .1），或背景錯誤（對任何物件 IOU &lt; .1）。<span class="hl-evidence">YOLO 在正確定位物件上表現不佳。定位錯誤占 YOLO 所有錯誤來源的比例超過其他所有來源的總和。</span>Fast R-CNN 產生遠少的定位錯誤，但犯更多背景錯誤。<span class="hl-evidence">其頂部偵測中 13.6% 為不包含任何物件的偽陽性</span>。Fast R-CNN <span class="hl-evidence">預測背景偵測的機率幾乎是 YOLO 的 3 倍</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    診斷性分析——以錯誤類型學框架，揭示 YOLO 與 Fast R-CNN 的互補性錯誤模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將弱點轉化為差異化優勢：YOLO 的主要問題是定位，而非識別——這意味著 YOLO 對場景有更好的語義理解，只是空間精度不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「Fast R-CNN 的背景偽陽性是 YOLO 的 3 倍」巧妙地將劣勢（定位不準）轉化為優勢（背景理解更好），為下一段的模型融合實驗提供了動機。這是論文中最具策略性的分析段落。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：模型融合與泛化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since YOLO makes far fewer background errors than Fast R-CNN, we investigate <span class="hl-method">using YOLO to eliminate background detections from Fast R-CNN</span>. For every bounding box that Fast R-CNN predicts we check if YOLO predicts a similar box. If so, we give that prediction a boost based on the probability predicted by YOLO and the overlap between the two boxes. The best Fast R-CNN model achieves <span class="hl-evidence">71.8% mAP on VOC 2007</span>. When combined with YOLO, <span class="hl-evidence">its mAP increases by 3.2% to 75.0%</span>. We also tested combining with other versions of Fast R-CNN. Those combinations produced only <span class="hl-evidence">small increases of 0.3 to 0.6%</span>. This indicates that <span class="hl-thesis">YOLO provides a unique, complementary signal because it makes different kinds of mistakes at test time</span>. The model also generalizes well: when trained on natural images and tested on the <span class="hl-evidence">Picasso Dataset and People-Art Dataset</span>, YOLO's AP degrades less than DPM and R-CNN, demonstrating strong <span class="hl-thesis">domain transfer capability</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由於 YOLO 產生的背景錯誤遠少於 Fast R-CNN，我們研究<span class="hl-method">使用 YOLO 來消除 Fast R-CNN 的背景偵測</span>。對於 Fast R-CNN 預測的每個邊界框，我們檢查 YOLO 是否預測了相似的框。若是，則根據 YOLO 預測的機率和兩個框的重疊度給予該預測信心加成。最佳的 Fast R-CNN 模型在 VOC 2007 上達到 <span class="hl-evidence">71.8% mAP</span>。與 YOLO 結合後，<span class="hl-evidence">其 mAP 提升 3.2% 至 75.0%</span>。我們也測試了與其他版本 Fast R-CNN 的結合，這些組合僅帶來 <span class="hl-evidence">0.3% 到 0.6% 的微小提升</span>。這表明 <span class="hl-thesis">YOLO 提供了獨特的互補訊號，因為它在測試時犯下不同類型的錯誤</span>。該模型也具有良好的泛化能力：當以自然影像訓練並在 <span class="hl-evidence">Picasso 資料集和 People-Art 資料集</span>上測試時，YOLO 的 AP 衰減小於 DPM 和 R-CNN，展現了強大的<span class="hl-thesis">跨領域遷移能力</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    雙重驗證——(1) 模型融合證明互補性；(2) 跨領域測試證明泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    3.2% 的提升是全文最具說服力的數據之一：它不僅證明 YOLO 有用，更證明 YOLO 提供了其他偵測器無法替代的獨特資訊。藝術作品的泛化測試則回扣緒論的第三項優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 Fast R-CNN + YOLO 的 3.2% 提升對比 Fast R-CNN + Fast R-CNN 的 0.3-0.6% 提升，堪稱全文最精妙的實驗設計——用對照組證明互補性並非來自簡單的模型集成。藝術作品測試雖然新穎，但樣本量和多樣性可能不足以支撐強泛化結論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-concept">YOLO</span>, <span class="hl-thesis">a unified model for object detection</span>. Our model is <span class="hl-thesis">simple to construct and can be trained directly on full images</span>. Unlike classifier-based approaches, <span class="hl-thesis">YOLO is trained on a loss function that directly corresponds to detection performance and the entire model is trained jointly</span>. <span class="hl-concept">Fast YOLO</span> is <span class="hl-evidence">the fastest general-purpose object detector in the literature</span> and YOLO <span class="hl-evidence">pushes the state-of-the-art in real-time object detection</span>. YOLO also <span class="hl-thesis">generalizes well to new domains</span> making it ideal for applications that rely on fast, robust object detection.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們介紹了 <span class="hl-concept">YOLO</span>，一個<span class="hl-thesis">統一的物件偵測模型</span>。我們的模型<span class="hl-thesis">結構簡潔，可直接在完整影像上訓練</span>。不同於基於分類器的方法，<span class="hl-thesis">YOLO 所訓練的損失函數直接對應偵測效能，且整個模型以聯合方式訓練</span>。<span class="hl-concept">Fast YOLO</span> 是<span class="hl-evidence">文獻中最快的通用物件偵測器</span>，而 YOLO <span class="hl-evidence">推進了即時物件偵測的最先進水準</span>。YOLO 同時<span class="hl-thesis">對新領域具有良好的泛化能力</span>，使其非常適合需要快速且穩健的物件偵測的應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——精煉重申核心貢獻，以應用場景收尾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段完美呼應摘要的三項主張（速度、聯合訓練、泛化），形成論證閉環。「simple to construct」回扣 YOLO 作為典範轉移而非漸進改進的定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論極為簡潔，未討論任何局限性或未來方向——這在學術論文中較為少見。作者選擇以自信的基調收尾，將所有自我批判集中於 2.4 節。這種策略使讀者留下「YOLO 是一個完整且有力的方案」的印象，但缺乏對未來改進方向的展望（儘管 YOLO 系列後續的爆發式發展證明了改進空間巨大）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                現有物件偵測系統<br>複雜、緩慢、分離式
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                將偵測重新框定為<br>單一迴歸問題
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                45-155 fps 即時速度<br>63.4% mAP 與互補性融合
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                定位精度不足但<br>背景偽陽性極低
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                統一式偵測開啟<br>即時應用新典範
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    物件偵測可以被重新框定為單一神經網路的迴歸問題，從而實現端到端訓練、即時速度與良好的跨領域泛化能力，徹底取代傳統多階段偵測流程。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>模型融合實驗的互補性論證：</strong>YOLO 與 Fast R-CNN 結合帶來 3.2% 的 mAP 提升，而不同版本 Fast R-CNN 的結合僅帶來 0.3-0.6% 的提升。這一對照實驗精妙地證明了 YOLO 的全域推理提供了其他偵測器所缺乏的獨特互補訊號，將 YOLO 的定位弱點轉化為系統層級的差異化價值。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>精度差距的輕描淡寫：</strong>YOLO 的 63.4% mAP 與 Faster R-CNN 的 73.2% mAP 之間存在近 10% 的顯著差距，但論文將討論重心放在速度對比上，對精度差距的分析不夠深入。此外，「泛化到藝術作品」的實驗雖然新穎，但測試場景過於特殊，難以作為通用泛化能力的充分證據。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>
