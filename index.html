@@ -985,24 +985,35 @@
     function drawPapersChart(ctx, W, H, ml, mr, mt, mb) {
       var n = cvprData.length;
       var step = (W - ml - mr) / (n - 1);
+      var yMin = 0, yMax = 14000;
       // 格線與 Y 軸標籤
       ctx.font = '11px IBM Plex Sans'; ctx.textAlign = 'right'; ctx.fillStyle = '#8a7e6b';
-      var sMin = 4000, sMax = 14000;
-      for (var v = 4000; v <= 14000; v += 2000) {
-        var y = mapY(v, sMin, sMax, mt, H - mb);
-        ctx.fillText((v/1000) + 'k', ml - 8, y + 4);
+      for (var v = 0; v <= 14000; v += 2000) {
+        var y = mapY(v, yMin, yMax, mt, H - mb);
+        ctx.fillText(v === 0 ? '0' : (v/1000) + 'k', ml - 8, y + 4);
         ctx.beginPath(); ctx.strokeStyle = '#eae6df'; ctx.lineWidth = 1;
         ctx.moveTo(ml, y); ctx.lineTo(W - mr, y); ctx.stroke();
       }
-      // X 軸標籤
+      // X 軸標籤與資料點
       ctx.textAlign = 'center'; ctx.fillStyle = '#8a7e6b';
       var submitPts = [], acceptPts = [];
       cvprData.forEach(function(d, i) {
         var x = ml + i * step;
         ctx.fillText(d.year, x, H - 8);
-        submitPts.push([x, mapY(d.submit, sMin, sMax, mt, H - mb)]);
-        acceptPts.push([x, mapY(d.accept, 800, 3200, mt, H - mb)]);
+        submitPts.push([x, mapY(d.submit, yMin, yMax, mt, H - mb)]);
+        acceptPts.push([x, mapY(d.accept, yMin, yMax, mt, H - mb)]);
       });
+      // 投稿數填充區域
+      ctx.beginPath(); ctx.fillStyle = 'rgba(26,35,50,0.06)';
+      ctx.moveTo(submitPts[0][0], H - mb);
+      submitPts.forEach(function(p) { ctx.lineTo(p[0], p[1]); });
+      ctx.lineTo(submitPts[n-1][0], H - mb); ctx.closePath(); ctx.fill();
+      // 收錄數填充區域
+      ctx.beginPath(); ctx.fillStyle = 'rgba(201,168,76,0.1)';
+      ctx.moveTo(acceptPts[0][0], H - mb);
+      acceptPts.forEach(function(p) { ctx.lineTo(p[0], p[1]); });
+      ctx.lineTo(acceptPts[n-1][0], H - mb); ctx.closePath(); ctx.fill();
+      // 折線與圓點
       drawLine(ctx, submitPts, '#1a2332', 2.5);
       drawDots(ctx, submitPts, '#1a2332', 3.5);
       drawLine(ctx, acceptPts, '#c9a84c', 2.5);
@@ -1015,7 +1026,7 @@
       });
       acceptPts.forEach(function(p, i) {
         ctx.fillStyle = '#9a8230';
-        ctx.fillText(cvprData[i].accept.toLocaleString(), p[0], p[1] + 16);
+        ctx.fillText(cvprData[i].accept.toLocaleString(), p[0], p[1] - 8);
       });
     }
 
