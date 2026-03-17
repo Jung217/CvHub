@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArcFace: Additive Angular Margin Loss for Deep Face Recognition — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                ArcFace: Additive Angular Margin Loss for Deep Face Recognition
+                <span class="course-tag">CVPR 2019</span>
+            </div>
+            <a href="index.html" class="navbar-home-link">← 返回主頁</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 數據</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-arcface">3.1 ArcFace</a>
+        <a href="#sec-subcenter">3.2 Sub-center ArcFace</a>
+        <a href="#sec-inversion">3.3 模型反轉</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper introduces <span class="hl-concept">ArcFace</span>, a loss function that
+                <span class="hl-thesis">"not only has a clear geometric interpretation but also significantly enhances the discriminative power."</span>
+                Beyond this core contribution, the authors propose <span class="hl-concept">sub-center ArcFace</span> to address
+                <span class="hl-rebuttal">noisy training data</span> by allowing samples to match multiple sub-centers within each identity class.
+                The work also explores <span class="hl-method">model inversion</span>, demonstrating that pre-trained ArcFace networks can
+                <span class="hl-method">generate identity-preserving face images using network gradients and batch normalization statistics</span>,
+                without requiring additional generators or discriminators.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 ArcFace 損失函數，該函數不僅具備清晰的幾何詮釋性，同時能顯著提升特徵的辨別力。在此核心貢獻之外，作者進一步提出 sub-center ArcFace，透過允許樣本與每個身份類別中的多個子中心進行匹配，以應對含雜訊的訓練資料。研究也探討了模型反轉問題，證實預訓練的 ArcFace 網路僅需利用網路梯度與批次正規化統計量，即可生成保持身份特徵的人臉影像，無需額外的生成器或判別器。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精煉語言勾勒三項核心貢獻：ArcFace 損失、sub-center 擴展、模型反轉。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為摘要，此段承擔「設定期望」的功能：先點出主方法（ArcFace），再層層遞進至雜訊處理與生成式應用，暗示論文涵蓋面從基礎理論到實際部署。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者以「幾何詮釋性」作為差異化賣點，這在深度學習社群中是有力的修辭策略——可解釋性往往是同類方法欠缺之處。然而摘要並未量化「顯著提升」的幅度，讀者需至實驗章節方能驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：問題背景 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Face recognition via <span class="hl-concept">deep convolutional neural networks</span> involves mapping normalized face images into
+                <span class="hl-concept">discriminative feature embeddings</span> where
+                <span class="hl-thesis">"small intra-class and large inter-class distance"</span> characterizes quality representations.
+                The field traditionally follows two main approaches:
+                <span class="hl-concept">softmax-based multi-class classifiers</span> and
+                <span class="hl-concept">embedding-based methods like triplet loss</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於深度卷積神經網路的人臉辨識，其核心任務在於將正規化的人臉影像映射至具有辨別力的特徵嵌入空間，在該空間中，高品質的表徵應具備「小的類內距離與大的類間距離」。此領域傳統上遵循兩大主流方法：基於 softmax 的多類別分類器，以及基於嵌入的方法（如 triplet loss）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義人臉辨識的核心目標，並劃分現有方法的兩大陣營。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先確立「什麼是好的特徵表徵」的評判標準（類內/類間距離），為後續批判既有方法與引入 ArcFace 奠定基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的二分法（softmax vs. triplet）組織文獻，便於讀者快速理解格局，但可能過度簡化——例如 center loss 等混合方法在此歸類下不易定位。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有方法的缺陷 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">softmax loss</span> suffers from two key drawbacks: learned features may be
+                <span class="hl-rebuttal">"separable for the closed-set classification problem but not discriminative enough for the open-set face recognition problem,"</span>
+                and the weight matrix size
+                <span class="hl-rebuttal">"increases linearly with the identities number."</span>
+                <span class="hl-concept">Triplet loss</span> presents challenges through
+                <span class="hl-rebuttal">"combinatorial explosion in the number of face triplets"</span>
+                and difficult <span class="hl-concept">semi-hard sample mining</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                softmax 損失存在兩項關鍵缺陷：其學習到的特徵雖能在封閉集分類問題中達到可分離性，但對於開放集人臉辨識問題而言，辨別力仍不足夠；此外，權重矩陣的規模隨身份數量線性增長。而 triplet loss 則面臨三元組數量的組合爆炸問題，以及半難樣本挖掘的困難。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——系統性地列舉 softmax 與 triplet loss 的不足，構建「研究缺口」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是經典的「問題-解決方案」論證模式中的問題陳述。透過指出封閉集 vs. 開放集的泛化鴻溝，以及計算複雜度的瓶頸，為引入新方法製造必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者巧妙地為兩大陣營各指出不同維度的缺陷（辨別力 vs. 計算複雜度），暗示理想解需同時克服兩者。但此處未提及 softmax 改良版（如 L-Softmax、SphereFace）的已有進展，略顯不公平。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：ArcFace 的定位 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than sample-to-sample comparisons, ArcFace conducts
+                <span class="hl-thesis">"global sample-to-class and sample-to-subclass comparisons with angular margins."</span>
+                The method <span class="hl-method">normalizes features and centers</span>, then applies an
+                <span class="hl-method">"additive angular margin to the target angle,"</span>
+                leveraging the <span class="hl-thesis">"exact correspondence between the angle and arc in the normalized hypersphere."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ArcFace 摒棄了樣本與樣本之間的比較策略，改為以角度邊際執行「全域性的樣本對類別及樣本對子類別比較」。該方法對特徵與中心進行正規化，隨後在目標角度上施加加性角度邊際，充分利用正規化超球面上角度與弧長之間的精確對應關係。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以一句話概括 ArcFace 的核心機制與幾何直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「既有方法不足」過渡到「本文方案」。「全域比較」直接回應 triplet loss 的「局部比較」缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以幾何語言（超球面、弧長）取代純代數描述，使抽象損失函數獲得直觀可視化，這是全文最核心的修辭與理論貢獻。惟「全域比較」仍需儲存所有類別中心，並未完全解決 softmax 的記憶體問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：Triplet Loss 系列 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Pioneering work using <span class="hl-concept">triplet loss</span>
+                <span class="hl-method">"exploits triplet data such that faces from the same class are closer than faces from different classes by a clear Euclidean distance margin."</span>
+                However, sample comparisons remain
+                <span class="hl-rebuttal">"local within mini-batch"</span> and
+                <span class="hl-rebuttal">"combinatorial explosion"</span> requires careful
+                <span class="hl-concept">triplet mining strategies</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                以 triplet loss 為代表的先驅工作，利用三元組資料使同類人臉在歐氏距離上比異類人臉更近，並以明確的距離邊際加以約束。然而，樣本間的比較僅在小批次內進行，具有局部性限制，而三元組數量的組合爆炸則需要精心設計的挖掘策略。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——概述 triplet loss 的原理與固有限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    延續緒論的批判脈絡，以更技術性的語言重申 triplet loss 的「局部性」弱點，為 ArcFace 的「全域性」優勢做鋪墊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「局部 vs. 全域」的對比框架非常有效，但需注意：現代 triplet loss 的變體（如全域感知的 N-pair loss）已部分緩解此問題，作者並未充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：Margin-based Softmax 與資料品質 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent <span class="hl-concept">margin-based softmax methods</span> incorporating margin penalties conduct
+                <span class="hl-method">"global comparisons at the cost of memory consumption on holding the center of each class."</span>
+                Most face datasets are
+                <span class="hl-evidence">"downloaded from the Internet by searching a pre-defined celebrity list"</span>
+                with <span class="hl-rebuttal">"ambiguous and inaccurate"</span> original labels.
+                While <span class="hl-concept">GAN-based approaches</span> can
+                <span class="hl-rebuttal">"yield high-fidelity images,"</span> they require original training data access.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近年來基於邊際的 softmax 方法透過引入邊際懲罰實現全域比較，但代價是需要為每個類別維護中心向量而消耗大量記憶體。多數人臉資料集是透過搜尋預定義的名人列表從網路下載取得，其原始標註往往含混且不準確。儘管基於 GAN 的方法能生成高保真影像，但它們需要存取原始訓練資料。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位研究缺口——指出 margin softmax 的記憶體瓶頸、資料品質問題，以及 GAN 方法的資料依賴。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段同時為論文的三項貢獻預埋伏筆：margin softmax 的不足引出 ArcFace 改良、資料雜訊引出 sub-center 設計、GAN 限制引出模型反轉。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將三個看似獨立的研究問題串聯於同一段落，展現論文涵蓋面的同時也有「強行關聯」之嫌。資料品質與模型反轉在邏輯上並無直接因果鏈。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 ArcFace ====== -->
+    <h2 class="section-heading" id="sec-arcface">3. Proposed Approach — 提出方法</h2>
+    <h3 class="subsection-heading">3.1 ArcFace</h3>
+
+    <!-- ArcFace 段落 1：從 softmax 到角度空間 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Starting from <span class="hl-concept">standard softmax loss</span>, the authors normalize both weights and features,
+                transforming the logit relationship into
+                <span class="hl-method">"cos θⱼ where θⱼ is the angle between the weight and the feature."</span>
+                This normalization ensures
+                <span class="hl-thesis">"predictions only depend on the angle between the feature and the weight,"</span>
+                distributing learned embeddings
+                <span class="hl-method">"on a hypersphere with a radius of s."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從標準 softmax 損失出發，作者同時對權重與特徵進行正規化，將 logit 的運算關係轉化為 cos θⱼ 形式，其中 θⱼ 為權重向量與特徵向量之間的夾角。此正規化操作確保預測結果僅取決於特徵與權重之間的角度，使學習到的嵌入分布在半徑為 s 的超球面上。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——展示如何從 softmax 過渡到角度空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是整個方法論的數學基礎。透過雙重正規化，將歐氏空間的分類問題轉化為角度空間的度量問題，為後續加入角度邊際創造條件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「僅取決於角度」是一個強有力的簡化論述，使讀者直覺理解為何角度邊際是自然的選擇。但正規化操作會損失特徵的範數資訊，作者以可調節的縮放因子 s 彌補，其選擇依賴經驗而非理論推導。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ArcFace 段落 2：角度邊際的引入與優勢 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method introduces a <span class="hl-method">margin penalty m</span> to
+                <span class="hl-thesis">"simultaneously enhance the intra-class compactness and inter-class discrepancy."</span>
+                Unlike <span class="hl-concept">multiplicative margins</span> that produce
+                <span class="hl-rebuttal">"nonlinear angular margins,"</span> ArcFace maintains
+                <span class="hl-thesis">"a constant linear angular margin throughout the whole interval,"</span>
+                providing clearer geometric interpretation through precise
+                <span class="hl-method">geodesic distance correspondence on normalized hyperspheres</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                該方法引入邊際懲罰 m，以同時增強類內緊湊性與類間差異性。不同於乘性邊際所產生的非線性角度邊際，ArcFace 在整個區間內維持恆定的線性角度邊際，透過在正規化超球面上與測地距離的精確對應，提供更清晰的幾何詮釋。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心差異化——將 ArcFace 的加性邊際與競爭方法的乘性邊際進行對比。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的頂點：明確回答「為何 ArcFace 優於 SphereFace / CosFace」。線性 vs. 非線性邊際的對比直接決定了方法的理論優雅性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「線性邊際」的論述極具說服力——它意味著對所有角度區間的樣本施加均等的辨別壓力。但實際應用中，不同角度區間的樣本分布並不均勻，「均等壓力」未必是最優策略。作者未討論自適應邊際的可能性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 Sub-center ArcFace ====== -->
+    <h3 class="subsection-heading" id="sec-subcenter">3.2 Sub-center ArcFace</h3>
+
+    <!-- Sub-center 段落 1：動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Standard ArcFace assumes clean training data but
+                <span class="hl-rebuttal">"training data are not clean especially when the dataset is in large scale."</span>
+                Instead of enforcing all samples close to a single center, the method assigns
+                <span class="hl-method">K sub-centers per identity</span>. Samples need only
+                <span class="hl-thesis">"be close to any of the K positive sub-centers instead of the only one positive center."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                標準 ArcFace 假設訓練資料是乾淨的，然而在大規模資料集中，訓練資料往往包含雜訊。Sub-center ArcFace 不再強制所有樣本靠近單一中心，而是為每個身份分配 K 個子中心。樣本只需靠近 K 個正類子中心中的任意一個，而非唯一的正類中心。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出擴展方法——針對資料雜訊問題設計 sub-center 機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從理論層面（3.1）過渡到實務層面：承認基礎方法的「乾淨資料」假設在實際中不成立，展現對方法局限性的自覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以讓步修辭（承認基礎假設不成立）引出擴展方法，增強可信度。K 的選擇（超參數）對效果影響顯著，但此處僅以設計直覺引入，未提供理論指導。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub-center 段落 2：雜訊分離機制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This relaxation allows hard samples and noisy instances to
+                <span class="hl-method">"form a non-dominant sub-class"</span> separately from clean majority samples.
+                The <span class="hl-evidence">noise rate in dominant sub-classes "decreases from 38.47% to 12.40%,"</span>
+                reducing apparent noise to approximately one-third.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                這種鬆弛機制使得困難樣本與雜訊樣本能夠自行形成非主導子類別，與乾淨的多數樣本自然分離。主導子類別中的雜訊率從 38.47% 降至 12.40%，表觀雜訊降低至原先的約三分之一。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供量化證據——以具體數字驗證 sub-center 的雜訊分離效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將直覺設計轉化為可驗證的命題：「多子中心 → 雜訊自動分離」這一因果鏈透過雜訊率的顯著下降獲得實證支持。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    38.47% → 12.40% 的降幅令人印象深刻，但此數據基於特定資料集（MS1MV0），在其他雜訊分布下的泛化性未被討論。此外，「非主導子類別」的形成是否穩定、是否依賴初始化，也值得追問。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 Inversion of ArcFace ====== -->
+    <h3 class="subsection-heading" id="sec-inversion">3.3 Inversion of ArcFace — 模型反轉</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors explore the inverse problem:
+                <span class="hl-method">"mapping from a low-dimensional latent space to a highly nonlinear face space."</span>
+                Given a pre-trained model, <span class="hl-method">random input tensors undergo gradient-based optimization toward pre-defined identity targets</span>.
+                Face generation employs
+                <span class="hl-method">"statistic priors stored in the BN layers"</span> as constraints.
+                Unlike <span class="hl-concept">DeepDream</span>'s total-variation regularization producing
+                <span class="hl-rebuttal">"not realistic"</span> results or
+                <span class="hl-concept">GAN-based synthesis</span> requiring original data access,
+                this <span class="hl-thesis">gradient-based approach leverages learned statistical distributions within the model itself</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者探討了反向問題：從低維潛在空間映射至高度非線性的人臉空間。給定一個預訓練模型，隨機輸入張量透過基於梯度的最佳化，朝向預定義的身份目標進行迭代。人臉生成過程利用批次正規化層中儲存的統計先驗作為約束條件。相較於 DeepDream 的全變差正則化（結果不夠逼真）以及需要存取原始資料的 GAN 合成方法，此基於梯度的方式直接運用模型自身已學習的統計分布。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示附加貢獻——將辨識模型「反轉」為生成模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在論證鏈中具有雙重功能：一方面展示 ArcFace 學到的特徵空間品質之高（能反轉生成逼真影像），另一方面拓寬論文的適用範疇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    利用 BN 層統計量作為生成先驗是巧妙的觀察，但此方法在隱私安全層面引發疑慮——若辨識模型可生成身份影像，則模型本身即成為隱私風險。作者未深入討論此倫理面向。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments employ multiple datasets including
+                <span class="hl-evidence">CASIA (0.5M images, 10K identities)</span>,
+                <span class="hl-evidence">VGG2 (3.3M images)</span>,
+                <span class="hl-evidence">MS1MV0 (10M raw images with ~50% noise)</span>, and
+                <span class="hl-evidence">MS1MV3 (5.1M cleaned images)</span>.
+                Testing on <span class="hl-evidence">LFW achieves 99.83%</span>, on
+                <span class="hl-evidence">YTF 98.01%</span>. On
+                <span class="hl-evidence">IJB-C at TPR@FPR=1e-4, the method reaches 97.27% verification accuracy</span>.
+                <span class="hl-evidence">Sub-center ArcFace with K=3 sub-centers achieves 93.72% on IJB-C</span>, while
+                <span class="hl-rebuttal">standard ArcFace drops to 90.27% with noisy data</span>.
+                After <span class="hl-method">automatic cleaning</span>,
+                <span class="hl-evidence">performance improves to 95.92%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗採用多個資料集，包括 CASIA（50 萬張影像、1 萬個身份）、VGG2（330 萬張影像）、MS1MV0（1000 萬張原始影像，含約 50% 雜訊）以及 MS1MV3（510 萬張清洗後影像）。在 LFW 測試集上達到 99.83% 的準確率，在 YTF 上達到 98.01%。在 IJB-C 基準的 TPR@FPR=1e-4 指標下，方法達到 97.27% 的驗證準確率。使用 K=3 子中心的 Sub-center ArcFace 在 IJB-C 上達到 93.72%，而標準 ArcFace 在含雜訊資料上降至 90.27%。經過自動清洗後，性能提升至 95.92%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在多個基準上驗證方法的有效性與魯棒性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整篇論文的實證支柱。數據覆蓋三個維度：(1) 在乾淨資料上的絕對性能（LFW 99.83%）；(2) 對比標準 ArcFace 與 Sub-center 在雜訊環境下的差異（90.27% vs. 93.72%）；(3) 自動清洗後的進一步提升（95.92%）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數據密集的呈現方式增強說服力，但存在選擇性報告的可能：LFW 已趨飽和（多數方法均超過 99.5%），以此展示優勢的邊際效益有限。IJB-C 的結果更具鑑別力，但未提供與同期競爭方法（如 GroupFace）的直接對比。Sub-center 的 K=3 選擇未見消融實驗支持。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">ArcFace</span> provides an intuitive, efficient margin-based softmax loss with
+                <span class="hl-thesis">"clear geometric interpretation"</span> through
+                <span class="hl-method">angular margin formulation on normalized hyperspheres</span>.
+                <span class="hl-concept">Sub-center ArcFace</span> extends the approach to handle
+                <span class="hl-rebuttal">massive real-world noise</span>.
+                Pre-trained ArcFace models can function as <span class="hl-thesis">generative models</span>,
+                <span class="hl-method">reconstructing identity-preserved faces through gradient-based optimization constrained by batch normalization statistics</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ArcFace 提供了一種直觀且高效的基於邊際的 softmax 損失函數，透過在正規化超球面上的角度邊際公式化，具備清晰的幾何詮釋性。Sub-center ArcFace 將此方法擴展至能夠處理大規模真實世界雜訊的場景。預訓練的 ArcFace 模型還可作為生成式模型，透過受批次正規化統計量約束的基於梯度最佳化，重建保持身份特徵的人臉影像。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以三句話回應三項貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段完美對稱於摘要的三層結構，形成首尾呼應。每項貢獻各以一句話概括，體現學術寫作的結構自律性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論精煉但缺乏前瞻性——未討論方法的局限性或未來研究方向（如自適應邊際、跨域泛化、隱私安全議題）。在當代學術規範中，「局限性討論」的缺席可能被視為不夠坦誠。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                開放集人臉辨識<br>需要高辨別力特徵
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                加性角度邊際<br>提供最優幾何約束
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                LFW 99.83%<br>IJB-C 97.27%
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                Sub-center 處理<br>真實世界雜訊
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                ArcFace 兼具理論<br>優雅與實務效能
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    在正規化超球面上施加加性角度邊際，是實現高辨別力人臉特徵嵌入的最優幾何策略，且此框架可自然擴展至雜訊魯棒學習與模型反轉生成。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>幾何詮釋的統一性：</strong>將加性邊際與超球面上的測地距離建立精確對應，使損失函數不再是純粹的工程調參，而獲得了數學上的優雅性。這一理論貢獻讓 ArcFace 從同類方法中脫穎而出，並在 IJB-C 等高難度基準上展現出穩健的實證優勢。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>均勻邊際的假設侷限：</strong>「恆定線性角度邊際」雖帶來理論優雅性，但未考慮不同身份類別在角度空間中的分布不均勻性。對於長尾分布的身份（少樣本類別），均勻邊際可能施加過強或不足的約束。此外，模型反轉的隱私風險未被充分討論，在 GDPR 等法規下可能構成部署障礙。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>
