@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale
+                <span class="course-tag">Classic &middot; ICLR 2021</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2010.11929" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-finetune">3.2 微調與高解析度</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-scaling">4.4 規模研究</a>
+        <a href="#sec-inspect">4.5 內部分析</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While the <span class="hl-concept">Transformer architecture</span> has become the de-facto standard for natural language processing tasks, its applications to computer vision remain limited. In vision, attention is either applied in conjunction with convolutional networks, or used to replace certain components of convolutional networks while keeping their overall structure in place. We show that <span class="hl-thesis">this reliance on CNNs is not necessary and a pure transformer applied directly to sequences of image patches can perform very well on image classification tasks</span>. When <span class="hl-method">pre-trained on large amounts of data</span> and transferred to multiple mid-sized or small image recognition benchmarks (<span class="hl-evidence">ImageNet, CIFAR-100, VTAB, etc.</span>), <span class="hl-concept">Vision Transformer (ViT)</span> <span class="hl-evidence">attains excellent results compared to state-of-the-art convolutional networks while requiring substantially fewer computational resources to train</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">Transformer 架構</span>已成為自然語言處理任務的事實標準，但其在電腦視覺中的應用仍然有限。在視覺領域，注意力機制要麼與摺積網路結合使用，要麼僅用於替換摺積網路的某些組件，同時保留其整體結構。本文證明<span class="hl-thesis">對 CNN 的依賴並非必要——將純粹的 Transformer 直接應用於影像區塊序列，即可在影像分類任務上表現出色</span>。當<span class="hl-method">在大量資料上進行預訓練</span>並遷移至多個中型或小型影像辨識基準（<span class="hl-evidence">ImageNet、CIFAR-100、VTAB 等</span>）時，<span class="hl-concept">Vision Transformer（ViT）</span><span class="hl-evidence">相較於最先進的摺積網路取得了優異的成績，同時所需的訓練計算資源大幅減少</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以簡明的對比結構點出研究突破：Transformer 無需依賴 CNN 即可處理視覺任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「背景定位 + 核心主張預告」的雙重功能：先界定 Transformer 在視覺領域的從屬地位（附屬於 CNN），再以一句話翻轉此假設，預告 ViT 的成功。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「this reliance on CNNs is not necessary」是全文最具衝擊力的宣言，策略性地以否定句型強調突破感。但「pre-trained on large amounts of data」這一前提條件被輕描淡寫——ViT 的成功高度依賴大規模預訓練資料集（如 JFT-300M），此條件在實務中並非所有研究者都能滿足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：NLP 中的 Transformer 成功 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Self-attention-based architectures</span>, in particular <span class="hl-concept">Transformers</span> (Vaswani et al., 2017), have become the model of choice in natural language processing (NLP). The dominant approach is to <span class="hl-method">pre-train on a large text corpus and then fine-tune on a smaller task-specific dataset</span> (Devlin et al., 2019). Thanks to Transformers' computational efficiency and scalability, it has become possible to <span class="hl-evidence">train models of unprecedented size, with over 100B parameters</span> (Brown et al., 2020; Lepikhin et al., 2020). With the models and datasets growing, there is still <span class="hl-thesis">no sign of saturating performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">以自注意力為基礎的架構</span>，特別是 <span class="hl-concept">Transformer</span>（Vaswani et al., 2017），已成為自然語言處理（NLP）的首選模型。主流做法是<span class="hl-method">先在大型文本語料庫上預訓練，再在較小的任務特定資料集上微調</span>（Devlin et al., 2019）。得益於 Transformer 的計算效率與可擴展性，如今已可<span class="hl-evidence">訓練前所未有規模的模型，參數量超過 1000 億</span>（Brown et al., 2020；Lepikhin et al., 2020）。隨著模型與資料集的持續增長，<span class="hl-thesis">效能仍無飽和跡象</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立類比基礎——以 NLP 中 Transformer 的壓倒性成功為論證起點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先確立 Transformer 在 NLP 的霸主地位，為後續「將其遷移至視覺」的動機鋪路。「no sign of saturating performance」暗示 Transformer 的潛力尚未見頂。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 NLP 的成功經驗建立讀者的期待與信心，是典型的「遷移類比」修辭。但 NLP 中序列的離散符號性質與視覺中連續像素的二維空間結構存在本質差異，此類比的有效性需待實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：視覺中的現狀 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In computer vision, however, <span class="hl-concept">convolutional architectures</span> remain dominant (LeCun et al., 1989; Krizhevsky et al., 2012; He et al., 2016). Inspired by NLP success, multiple works try to <span class="hl-rebuttal">combine CNN-like architectures with self-attention</span> (Wang et al., 2018; Carion et al., 2020), some even <span class="hl-rebuttal">replacing convolutions entirely</span> (Ramachandran et al., 2019; Wang et al., 2020a). The latter models, while theoretically efficient, <span class="hl-rebuttal">have not yet been scaled effectively on modern hardware accelerators due to the use of specialized attention patterns</span>. Therefore, in large-scale image recognition, classic <span class="hl-concept">ResNet-like architectures</span> are still state of the art (Mahajan et al., 2018; Xie et al., 2020; Kolesnikov et al., 2020).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                然而在電腦視覺中，<span class="hl-concept">摺積架構</span>仍佔主導地位（LeCun et al., 1989；Krizhevsky et al., 2012；He et al., 2016）。受 NLP 成功的啟發，多項研究嘗試<span class="hl-rebuttal">將類 CNN 架構與自注意力結合</span>（Wang et al., 2018；Carion et al., 2020），有些甚至<span class="hl-rebuttal">完全取代摺積</span>（Ramachandran et al., 2019；Wang et al., 2020a）。後者雖然在理論上高效，但<span class="hl-rebuttal">因使用特殊的注意力模式，在現代硬體加速器上尚未能有效擴展</span>。因此在大規模影像辨識中，經典的 <span class="hl-concept">ResNet 類架構</span>仍是最先進的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    指出缺口——視覺領域的注意力方法尚未成功取代 CNN。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    問題陳述的深化：儘管有諸多嘗試，但在大規模實踐中，CNN 依然穩坐王座。這為「標準 Transformer 的直接應用」創造了研究空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將先前工作的失敗歸因於「specialized attention patterns」（特殊注意力模式），巧妙地暗示解法在於使用「標準」Transformer 而非設計更精巧的注意力。此框架引導讀者認同簡潔的方案優於複雜的工程。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：ViT 核心方案與發現 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Inspired by the Transformer scaling success in NLP, we experiment with <span class="hl-thesis">applying a standard Transformer directly to images, with the fewest possible modifications</span>. To do so, we <span class="hl-method">split an image into patches and provide the sequence of linear embeddings of these patches as an input to a Transformer</span>. <span class="hl-method">Image patches are treated the same way as tokens (words) in an NLP application</span>. We train the model on image classification in supervised fashion. When trained on mid-sized datasets such as ImageNet without strong regularization, these models yield modest accuracies a few percentage points below comparably sized ResNets. This seemingly discouraging outcome is expected: <span class="hl-rebuttal">Transformers lack some of the inductive biases inherent to CNNs, such as translation equivariance and locality</span>, and therefore <span class="hl-rebuttal">do not generalize well when trained on insufficient amounts of data</span>. However, the picture changes if the models are trained on larger datasets (14M–300M images). We find that <span class="hl-thesis">large scale training trumps inductive bias</span>. Our Vision Transformer (ViT) attains excellent results when pre-trained at sufficient scale and transferred to benchmarks with fewer datapoints: <span class="hl-evidence">88.55% top-1 on ImageNet, 90.72% on ImageNet-ReaL, 94.55% on CIFAR-100, and 77.63% on the VTAB suite of 19 tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                受 NLP 中 Transformer 擴展成功的啟發，我們嘗試<span class="hl-thesis">以盡可能少的修改，將標準 Transformer 直接應用於影像</span>。具體做法是<span class="hl-method">將影像分割為區塊（patch），並將這些區塊的線性嵌入序列作為 Transformer 的輸入</span>。<span class="hl-method">影像區塊的處理方式與 NLP 中的詞符（token）完全相同</span>。模型以監督式方式在影像分類任務上訓練。當在 ImageNet 等中型資料集上訓練且未使用強正則化時，模型的準確率僅比同規模 ResNet 低幾個百分點。這看似令人氣餒的結果在預料之中：<span class="hl-rebuttal">Transformer 缺少 CNN 固有的歸納偏置（inductive bias），如平移等變性與局部性</span>，因此<span class="hl-rebuttal">在訓練資料不足時泛化能力有限</span>。然而，當模型在更大的資料集（1400 萬至 3 億張影像）上訓練時，情況截然不同。我們發現<span class="hl-thesis">大規模訓練勝過歸納偏置</span>。Vision Transformer（ViT）在充分規模的預訓練後遷移至較小基準時，取得了優異成績：<span class="hl-evidence">ImageNet 88.55%、ImageNet-ReaL 90.72%、CIFAR-100 94.55%、VTAB 19 項任務 77.63%</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心主張揭示——從失敗到成功的敘事弧線，引出「大規模訓練勝過歸納偏置」的關鍵發現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的樞紐。先以負面結果（中型資料集表現不佳）營造懸念，再以正面結果（大規模預訓練的卓越表現）形成戲劇性轉折。「large scale training trumps inductive bias」是全文核心命題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「trumps」一詞帶有強烈的對抗意味，將歸納偏置與大規模訓練塑造為二元對立。但實際上，後續的 DeiT 等工作證明了適度的歸納偏置與大規模訓練可以互補而非互斥。此外，JFT-300M 是 Google 內部的私有資料集，此結論的可複製性對學術社群而言是一項挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：Transformer 在視覺中的應用嘗試 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Naive application of self-attention to images</span> would require that each pixel attends to every other pixel. With <span class="hl-rebuttal">quadratic cost in the number of pixels, this does not scale to realistic input sizes</span>. Thus, to apply Transformers in the context of image processing, several approximations have been tried in the past. Parmar et al. (2018) applied <span class="hl-method">self-attention only in local neighborhoods</span> for each query pixel instead of globally. Such <span class="hl-method">local multi-head dot-product self-attention blocks</span> can completely replace convolutions (Hu et al., 2019; Ramachandran et al., 2019). In a different line of work, <span class="hl-concept">Sparse Transformers</span> (Child et al., 2019) employ <span class="hl-method">scalable approximations to global self-attention</span>. An alternative way to scale attention is to <span class="hl-method">apply it in blocks of varying sizes</span> (Weissenborn et al., 2019), in the extreme case only along individual axes (Ho et al., 2019; Wang et al., 2020a). Many of these specialized attention architectures demonstrate promising results on computer vision tasks, but <span class="hl-rebuttal">require complex engineering to be implemented efficiently on hardware accelerators</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">將自注意力樸素地應用於影像</span>需要每個像素關注所有其他像素，<span class="hl-rebuttal">其計算成本與像素數呈二次方關係，無法擴展至實際輸入尺寸</span>。為在影像處理中應用 Transformer，過去已嘗試多種近似方法。Parmar et al.（2018）僅在每個查詢像素的<span class="hl-method">局部鄰域內施加自注意力</span>而非全域。此類<span class="hl-method">局部多頭點積自注意力模塊</span>可完全取代摺積（Hu et al., 2019；Ramachandran et al., 2019）。另一路線是 <span class="hl-concept">Sparse Transformer</span>（Child et al., 2019），採用<span class="hl-method">全域自注意力的可擴展近似</span>。還有一種方式是在<span class="hl-method">不同大小的區塊中施加注意力</span>（Weissenborn et al., 2019），極端情況下僅沿單一軸向運作（Ho et al., 2019；Wang et al., 2020a）。這些特殊的注意力架構在視覺任務上展現了不錯的成果，但<span class="hl-rebuttal">需要複雜的工程才能在硬體加速器上高效實作</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性地列舉過往視覺 Transformer 的近似方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為 ViT 的「區塊化」策略提供對比背景：先前的方法試圖以各種近似手段降低注意力計算成本，而 ViT 的做法更為根本——直接降低序列長度（用 16x16 的區塊取代像素）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    反覆強調「complex engineering」與硬體效率問題，將先前工作的弱點鎖定在「工程複雜性」上。這讓 ViT 的「standard Transformer + minimal modification」策略顯得格外吸引人。但部分工作（如 Sparse Transformer）在特定場景下仍有優勢，此處的概括可能過於片面。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：最相關的前驅工作與 iGPT -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Most related to ours is the model of Cordonnier et al. (2020), which <span class="hl-method">extracts patches of size 2x2 from the input image and applies full self-attention on top</span>. This model is very similar to ViT, but our work goes further to demonstrate that <span class="hl-thesis">large scale pre-training makes vanilla transformers competitive with (or even better than) state-of-the-art CNNs</span>. Moreover, Cordonnier et al. (2020) use <span class="hl-rebuttal">a small patch size of 2x2 pixels, which makes the model applicable only to small-resolution images</span>, while we handle medium-resolution images as well. Another recent related model is <span class="hl-concept">image GPT (iGPT)</span> (Chen et al., 2020a), which applies Transformers to image pixels after <span class="hl-method">reducing image resolution and color space</span>. The model is trained in an unsupervised fashion as a generative model, and the resulting representation can then be fine-tuned or probed linearly for classification performance, <span class="hl-evidence">achieving a maximal accuracy of 72% on ImageNet</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                與本工作最相關的是 Cordonnier et al.（2020）的模型，其<span class="hl-method">從輸入影像中提取 2x2 大小的區塊並在其上施加完整自注意力</span>。該模型與 ViT 非常相似，但我們的工作更進一步證明了<span class="hl-thesis">大規模預訓練使標準 Transformer 能與最先進的 CNN 相媲美（甚至超越）</span>。此外，Cordonnier et al.（2020）使用的<span class="hl-rebuttal">區塊大小僅為 2x2 像素，使模型僅適用於小解析度影像</span>，而我們能處理中等解析度的影像。另一個近期相關模型是 <span class="hl-concept">image GPT（iGPT）</span>（Chen et al., 2020a），其在<span class="hl-method">降低影像解析度與色彩空間</span>後將 Transformer 應用於影像像素。該模型以非監督方式作為生成模型訓練，所得表示可微調或線性探測以進行分類，<span class="hl-evidence">在 ImageNet 上達到最高 72% 的準確率</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位差異化——明確區隔 ViT 與最相似的前驅工作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了精確的學術定位：Cordonnier et al. 提出了類似概念但規模受限，iGPT 使用了不同的策略（非監督、像素級別）但表現有限（72%）。ViT 的貢獻在於「規模化驗證」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 iGPT 的 72% 與 ViT 的 88.55% 並列，形成鮮明的數據對比。但兩者的訓練範式不同（非監督 vs. 監督），直接比較數字的公平性值得商榷。作者在此利用了數字的視覺衝擊力而非嚴格的同條件比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Vision Transformer (ViT)</h3>
+
+    <!-- 方法段落 1：區塊嵌入與序列化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To handle 2D images, we reshape the image <span class="hl-method">x &isin; R<sup>H&times;W&times;C</sup></span> into a <span class="hl-method">sequence of flattened 2D patches x<sub>p</sub> &isin; R<sup>N&times;(P<sup>2</sup>&middot;C)</sup></span>, where (H, W) is the resolution of the original image, C is the number of channels, (P, P) is the resolution of each image patch, and <span class="hl-method">N = HW/P<sup>2</sup></span> is the resulting number of patches, which also serves as the effective input sequence length for the Transformer. The Transformer uses <span class="hl-method">constant latent vector size D through all of its layers</span>, so we flatten the patches and map to D dimensions with <span class="hl-concept">a trainable linear projection</span>. We refer to the output of this projection as the <span class="hl-concept">patch embeddings</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為處理二維影像，我們將影像 <span class="hl-method">x &isin; R<sup>H&times;W&times;C</sup></span> 重塑為一個<span class="hl-method">展平的二維區塊序列 x<sub>p</sub> &isin; R<sup>N&times;(P<sup>2</sup>&middot;C)</sup></span>，其中 (H, W) 為原始影像的解析度，C 為通道數，(P, P) 為每個影像區塊的解析度，而 <span class="hl-method">N = HW/P<sup>2</sup></span> 為區塊總數，同時也是 Transformer 的有效輸入序列長度。Transformer 在所有層中使用<span class="hl-method">恆定的潛在向量維度 D</span>，因此我們將區塊展平並透過一個<span class="hl-concept">可訓練的線性投影</span>映射至 D 維。此投影的輸出稱為<span class="hl-concept">區塊嵌入（patch embeddings）</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義影像到序列的轉換過程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是 ViT 架構的數學基礎。以 16x16 區塊化解了像素級自注意力的二次方成本問題：一張 224x224 的影像僅需 196 個 token，而非 50176 個像素，使標準 Transformer 的直接應用成為可能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    區塊大小 P 的選擇是一個重要的設計決策——較大的 P 降低序列長度但犧牲區塊內部的空間資訊。論文名稱「16x16 Words」暗示 P=16 是最佳選擇，但實驗中也使用了 P=32 和 P=14，效果各異。此選擇更像是效率與精度的折衷，而非理論最優。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 2：分類 token 與位置嵌入 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Similar to BERT's [class] token, we prepend <span class="hl-method">a learnable embedding to the sequence of embedded patches</span>, whose state at the output of the Transformer encoder serves as the image representation. Both during pre-training and fine-tuning, <span class="hl-method">a classification head is attached to this token</span>. The classification head is implemented by an MLP with one hidden layer at pre-training time and by a single linear layer at fine-tuning time. <span class="hl-method">Position embeddings are added to the patch embeddings to retain positional information</span>. We use <span class="hl-method">standard learnable 1D position embeddings</span>, since we have not observed significant performance gains from more advanced 2D-aware position embeddings. The Transformer encoder consists of alternating layers of <span class="hl-concept">multiheaded self-attention (MSA)</span> and <span class="hl-concept">MLP blocks</span>. <span class="hl-method">Layernorm (LN) is applied before every block, and residual connections after every block</span>. The MLP contains two layers with a <span class="hl-method">GELU non-linearity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                類似於 BERT 的 [class] token，我們在嵌入區塊序列前<span class="hl-method">附加一個可學習嵌入</span>，其在 Transformer 編碼器輸出端的狀態作為影像表示。在預訓練與微調期間，<span class="hl-method">分類頭均附接在此 token 上</span>。分類頭在預訓練時以含一個隱藏層的 MLP 實作，微調時則以單一線性層實作。<span class="hl-method">位置嵌入被加至區塊嵌入以保留位置資訊</span>。我們使用<span class="hl-method">標準的可學習一維位置嵌入</span>，因為更進階的二維感知位置嵌入並未帶來顯著的效能提升。Transformer 編碼器由交替的<span class="hl-concept">多頭自注意力（MSA）</span>與 <span class="hl-concept">MLP 模塊</span>組成。<span class="hl-method">層正規化（LN）在每個模塊之前施加，殘差連接在每個模塊之後</span>。MLP 包含兩層，使用 <span class="hl-method">GELU 非線性激活</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構細節——完整描述 ViT 的各組件與設計選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段貫徹「最少修改」的設計哲學：[class] token 來自 BERT、位置嵌入沿用標準 1D 方案、編碼器結構完全一致。每個設計選擇都在強化核心論點——標準 Transformer 無需特殊修改即可處理影像。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「we have not observed significant performance gains from more advanced 2D-aware position embeddings」是一個重要的消極結果——暗示空間結構可以被模型自行學習。但這也引發疑問：是 1D 嵌入真的足夠，還是在大規模預訓練下差異被掩蓋了？在小資料集上兩者的差異可能更為顯著。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 3：歸納偏置分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We note that <span class="hl-thesis">Vision Transformer has much less image-specific inductive bias than CNNs</span>. In CNNs, <span class="hl-concept">locality, two-dimensional neighborhood structure, and translation equivariance</span> are baked into each layer throughout the whole model. In ViT, <span class="hl-thesis">only MLP layers are local and translationally equivariant, while the self-attention layers are global</span>. The <span class="hl-rebuttal">two-dimensional neighborhood structure is used only very sparingly</span>: in the beginning of the model by cutting the image into patches and at fine-tuning time for adjusting the position embeddings for images of different resolution. Other than that, the <span class="hl-thesis">position embeddings at initialization time carry no information about the 2D positions of the patches and all spatial relations between the patches have to be learned from scratch</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                值得注意的是，<span class="hl-thesis">Vision Transformer 相較於 CNN 具有極少的影像特定歸納偏置</span>。在 CNN 中，<span class="hl-concept">局部性、二維鄰域結構與平移等變性</span>被內建於整個模型的每一層。在 ViT 中，<span class="hl-thesis">僅 MLP 層具有局部性與平移等變性，而自注意力層是全域的</span>。<span class="hl-rebuttal">二維鄰域結構的使用極為有限</span>：僅在模型起始處將影像切分為區塊，以及在微調時為不同解析度的影像調整位置嵌入。除此之外，<span class="hl-thesis">位置嵌入在初始化時不攜帶任何關於區塊二維位置的資訊，所有區塊間的空間關係必須從零學習</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論分析——明確闡述 ViT 與 CNN 在歸納偏置上的根本差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的理論支柱。它解釋了為何 ViT 在小資料集上表現不佳（缺乏歸納偏置）以及為何在大資料集上表現優異（較少的偏置意味著更高的模型彈性）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「缺乏歸納偏置」從弱點重新框架為優勢，是論文的關鍵修辭轉向。此邏輯暗示：CNN 的歸納偏置是一種「捷徑」，在資料充足時反而成為瓶頸。然而，偏置-方差權衡在統計學習中是根本原理，完全捨棄偏置是否最優，取決於具體的資料規模與任務複雜度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 微調與高解析度 ====== -->
+    <h3 class="subsection-heading" id="sec-finetune">3.2 Fine-Tuning and Higher Resolution — 微調與高解析度</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Typically, we <span class="hl-method">pre-train ViT on large datasets, and fine-tune to (smaller) downstream tasks</span>. For this, we remove the pre-trained prediction head and attach <span class="hl-method">a zero-initialized D&times;K feedforward layer</span>, where K is the number of downstream classes. It is often beneficial to <span class="hl-evidence">fine-tune at higher resolution than pre-training</span>. When feeding images of higher resolution, we keep the patch size the same, which results in a larger effective sequence length. The Vision Transformer can handle arbitrary sequence lengths (up to memory constraints), however, the <span class="hl-rebuttal">pre-trained position embeddings may no longer be meaningful</span>. We therefore perform <span class="hl-method">2D interpolation of the pre-trained position embeddings</span>, according to their location in the original image. Note that this resolution adjustment and patch extraction are <span class="hl-thesis">the only points at which an inductive bias about the 2D structure of the images is manually injected into the Vision Transformer</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                通常我們<span class="hl-method">在大型資料集上預訓練 ViT，再微調至（較小的）下游任務</span>。為此，移除預訓練的預測頭，並附接一個<span class="hl-method">零初始化的 D&times;K 前饋層</span>，其中 K 為下游類別數。通常以<span class="hl-evidence">高於預訓練時的解析度進行微調會帶來更好的效果</span>。當輸入更高解析度的影像時，區塊大小保持不變，從而產生更長的有效序列長度。Vision Transformer 可處理任意序列長度（受限於記憶體），但<span class="hl-rebuttal">預訓練的位置嵌入可能不再具有意義</span>。因此我們根據區塊在原始影像中的位置，對預訓練的位置嵌入進行<span class="hl-method">二維插值</span>。值得注意的是，此解析度調整與區塊提取是<span class="hl-thesis">唯二手動將影像二維結構的歸納偏置注入 Vision Transformer 的環節</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實作細節——描述預訓練到微調的遷移策略，特別是高解析度處理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段補全了方法描述的最後一塊拼圖：如何將預訓練的模型高效遷移至下游任務。二維插值是一個實用的工程技巧，且再次呼應「最少修改」的設計哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    最後一句刻意強調「the only points at which an inductive bias...is manually injected」，將少量的二維偏置使用框架為例外而非常態，維護了「pure transformer」的敘事。但位置嵌入的二維插值本身就隱含了對空間連續性的假設，此「手動注入」的程度可能比作者暗示的更為顯著。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：實驗設定與模型變體 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on three pre-training datasets of increasing size: <span class="hl-evidence">ILSVRC-2012 ImageNet with 1k classes and 1.3M images; ImageNet-21k with 21k classes and 14M images; and JFT with 18k classes and 303M high-resolution images</span>. We design our Vision Transformer configurations based on those used for BERT: <span class="hl-evidence">ViT-Base (12 layers, hidden size 768, 12 heads, 86M params), ViT-Large (24 layers, hidden size 1024, 16 heads, 307M params), and ViT-Huge (32 layers, hidden size 1280, 16 heads, 632M params)</span>. The brief notation "ViT-L/16" means the "Large" variant with 16&times;16 input patch size. For our baseline CNNs, we use <span class="hl-concept">ResNets (BiT)</span>, using <span class="hl-method">Group Normalization instead of Batch Normalization, and standardized convolutions</span> for improved transfer. All models are pre-trained using <span class="hl-method">Adam with &beta;<sub>1</sub>=0.9, &beta;<sub>2</sub>=0.999, batch size of 4096 and weight decay of 0.1</span>. Fine-tuning uses <span class="hl-method">SGD with momentum, batch size 512</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在三個規模遞增的預訓練資料集上進行評估：<span class="hl-evidence">ILSVRC-2012 ImageNet（1k 類別、130 萬張影像）、ImageNet-21k（21k 類別、1400 萬張影像）、以及 JFT（18k 類別、3.03 億張高解析度影像）</span>。Vision Transformer 的配置參照 BERT 的設計：<span class="hl-evidence">ViT-Base（12 層、隱藏維度 768、12 頭、8600 萬參數）、ViT-Large（24 層、隱藏維度 1024、16 頭、3.07 億參數）、ViT-Huge（32 層、隱藏維度 1280、16 頭、6.32 億參數）</span>。簡寫「ViT-L/16」表示使用 16x16 區塊的「Large」版本。作為 CNN 基準，我們使用 <span class="hl-concept">ResNet（BiT）</span>，以<span class="hl-method">群組正規化取代批次正規化，並使用標準化摺積</span>以改善遷移效果。所有模型使用 <span class="hl-method">Adam 最佳化器（&beta;<sub>1</sub>=0.9、&beta;<sub>2</sub>=0.999）、批次大小 4096、權重衰減 0.1</span> 進行預訓練。微調使用 <span class="hl-method">SGD with momentum、批次大小 512</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定——詳盡交代資料集、模型規格與訓練配置，確保可複製性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續的比較實驗建立公平的基線。值得注意的是 BiT 使用了改良版 ResNet（GroupNorm + 標準化摺積），確保 CNN 基線已被充分最佳化，而非使用弱基線來抬高 ViT 的表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    模型配置直接沿用 BERT 的命名與規格，延續了「NLP 到視覺」的遷移敘事。使用強化版 ResNet（BiT）作為基線是負責任的做法，但 JFT-300M 這個 Google 私有資料集使得外部研究者難以完全複製實驗。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：與最先進方法的比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">ViT-H/14</span> pre-trained on JFT-300M outperforms all prior methods on every benchmark: <span class="hl-evidence">88.55% on ImageNet, 90.72% on ImageNet-ReaL, 99.50% on CIFAR-10, 94.55% on CIFAR-100, 97.56% on Oxford-IIIT Pets, 99.68% on Oxford Flowers-102, and 77.63% on the VTAB suite of 19 tasks</span>. The smaller <span class="hl-concept">ViT-L/16</span> pre-trained on JFT-300M outperforms <span class="hl-concept">BiT-L (ResNet152x4)</span> on all tasks, while <span class="hl-evidence">requiring substantially less computational resources to train</span>. The even smaller ViT-L/16 pre-trained on ImageNet-21k performs well on most benchmarks too, <span class="hl-evidence">while being trainable using a standard cloud TPUv3 with 8 cores in approximately 30 days</span>. In comparison, <span class="hl-evidence">BiT-L requires 9.9k TPUv3-core-days, and Noisy Student (EfficientNet-L2) requires 12.3k TPUv3-core-days, while ViT-H/14 needs only 2.5k TPUv3-core-days and ViT-L/16 (JFT) only 0.68k</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">ViT-H/14</span> 在 JFT-300M 上預訓練後，在所有基準上超越了所有先前方法：<span class="hl-evidence">ImageNet 88.55%、ImageNet-ReaL 90.72%、CIFAR-10 99.50%、CIFAR-100 94.55%、Oxford-IIIT Pets 97.56%、Oxford Flowers-102 99.68%、VTAB 19 項任務 77.63%</span>。較小的 <span class="hl-concept">ViT-L/16</span> 在 JFT-300M 上預訓練後，在所有任務上超越了 <span class="hl-concept">BiT-L（ResNet152x4）</span>，且<span class="hl-evidence">所需的訓練計算資源大幅減少</span>。更小的 ViT-L/16 在 ImageNet-21k 上預訓練亦在多數基準上表現良好，且<span class="hl-evidence">僅需標準的 8 核心 TPUv3 雲端即可在約 30 天內完成訓練</span>。相比之下，<span class="hl-evidence">BiT-L 需要 9.9k TPUv3-core-days，Noisy Student（EfficientNet-L2）需要 12.3k TPUv3-core-days，而 ViT-H/14 僅需 2.5k TPUv3-core-days，ViT-L/16（JFT）更僅需 0.68k</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗結果——以全面的數據展示 ViT 的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的實證高潮，覆蓋兩個維度：(1) 準確率全面超越先前最佳；(2) 計算效率遠優於競爭對手。雙重優勢使論點不可辯駁。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    計算效率的比較極具說服力——ViT-H/14 僅需 BiT-L 四分之一的計算量即達到更高準確率。然而，這些比較未計入預訓練資料集的準備成本（JFT-300M 的標注成本遠高於 ImageNet）。此外，不同架構的硬體友好度不同（Transformer 對 TPU 尤其友好），在其他硬體上的效率差距可能不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：預訓練資料量需求 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We explore how the size of the pre-training dataset affects performance. When pre-trained on the smallest dataset, ImageNet, <span class="hl-rebuttal">ViT-Large models underperform compared to ViT-Base models, despite (moderate) regularization</span>. With ImageNet-21k pre-training, their performances are similar. <span class="hl-evidence">Only with JFT-300M do we see the full benefit of larger models</span>. In a second experiment on random subsets of JFT (9M, 30M, 90M, 303M images), <span class="hl-evidence">Vision Transformers overfit more than ResNets with comparable computational cost on smaller datasets</span>. For example, ViT-B/32 performs much worse than ResNet50 on the 9M subset, <span class="hl-evidence">but better on 90M+ subsets</span>. This reinforces the intuition that <span class="hl-thesis">the convolutional inductive bias is useful for smaller datasets, but for larger ones, learning the relevant patterns directly from data is sufficient, even beneficial</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們探討了預訓練資料集規模如何影響效能。在最小資料集 ImageNet 上預訓練時，<span class="hl-rebuttal">ViT-Large 即使有（適度的）正則化仍不如 ViT-Base</span>。在 ImageNet-21k 上預訓練，兩者表現相近。<span class="hl-evidence">唯有在 JFT-300M 上，我們才看到更大模型的完整優勢</span>。第二組實驗在 JFT 的隨機子集（900 萬、3000 萬、9000 萬、3.03 億張影像）上進行，結果顯示<span class="hl-evidence">在較小資料集上，Vision Transformer 比計算成本相當的 ResNet 更容易過擬合</span>。例如 ViT-B/32 在 900 萬子集上遠不如 ResNet50，<span class="hl-evidence">但在 9000 萬以上的子集上表現更佳</span>。這印證了一個直覺：<span class="hl-thesis">摺積的歸納偏置在較小資料集上是有益的，但在較大資料集上，直接從資料中學習相關模式就已足夠，甚至更為有利</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料規模分析——系統性探討預訓練資料量對 ViT 效能的影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為核心論點提供了不可或缺的限定條件：ViT 的優勢並非無條件的，而是在資料量超過某個閾值後才顯現。這種「誠實」的呈現反而增強了論證的可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    JFT 子集實驗是極有價值的消融研究——以連續的資料量梯度展示效能交叉點。然而，9000 萬張影像的「交叉點」對大多數研究者而言仍是遙不可及的門檻，這使得 ViT 在非超大規模場景中的實用性受到質疑。後續 DeiT 等工作正是針對此問題提出了解決方案。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.4 規模研究 ====== -->
+    <h3 class="subsection-heading" id="sec-scaling">4.4 Scaling Study — 規模研究</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We perform a controlled scaling study to evaluate transfer performance from JFT-300M across multiple model families. The study includes <span class="hl-evidence">7 ResNets, 6 Vision Transformers, and 5 Hybrids</span>, spanning a wide range of computational budgets. Results show that <span class="hl-thesis">Vision Transformers dominate ResNets on the performance/compute trade-off</span>. <span class="hl-evidence">ViT uses approximately 2-4x less compute to attain the same performance</span> (averaged over 5 datasets). <span class="hl-evidence">Hybrids slightly outperform ViT at small computational budgets, but the difference vanishes for larger models</span>. Importantly, <span class="hl-thesis">Vision Transformers appear not to saturate within the range tried, motivating future scaling efforts</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進行了受控的規模研究，以評估從 JFT-300M 遷移時不同模型家族的表現。研究涵蓋 <span class="hl-evidence">7 種 ResNet、6 種 Vision Transformer 與 5 種混合模型</span>，橫跨廣泛的計算預算範圍。結果顯示 <span class="hl-thesis">Vision Transformer 在效能/計算成本的權衡上主導了 ResNet</span>。<span class="hl-evidence">ViT 大約僅需 2 至 4 倍少的計算量即可達到相同效能</span>（以 5 個資料集的平均值計算）。<span class="hl-evidence">混合模型在小計算預算下略優於 ViT，但在較大模型上差距消失</span>。重要的是，<span class="hl-thesis">在所嘗試的範圍內，Vision Transformer 似乎尚未飽和，這為未來的規模化研究提供了動力</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    規模效率分析——以受控實驗量化 ViT 的計算優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將效率論證從特定模型對比（ViT-H vs BiT-L）提升至通用的規模法則：在所有計算預算下，ViT 都優於 ResNet。「尚未飽和」的結論更是為後續更大規模模型（如 ViT-G）的開發提供了方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    混合模型（Hybrid）在小預算下的優勢暗示 CNN 的局部歸納偏置在計算受限時仍有價值。作者以「差距消失」輕描淡寫此現象，但它實際上為「CNN+Transformer」的混合路線提供了支持——並非所有場景都需要純 Transformer。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.5 內部分析 ====== -->
+    <h3 class="subsection-heading" id="sec-inspect">4.5 Inspecting Vision Transformer — 視覺化分析</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To understand how ViT processes image data, we analyze its internal representations. The <span class="hl-method">learned embedding filters of the initial linear projection</span> resemble plausible basis functions for a low-dimensional representation of the fine structure within each patch. The <span class="hl-evidence">position embeddings encode distance within the image — closer patches tend to have more similar position embeddings</span>. Moreover, <span class="hl-evidence">the row-column structure appears; patches in the same row/column have similar embeddings</span>. This explains why hand-crafted 2D-aware embedding variants do not yield improvements. For attention distance analysis, <span class="hl-evidence">some heads attend to most of the image already in the lowest layers</span>, showing that the ability to integrate information globally is indeed used by the model. Other attention heads have consistently small attention distances in the low layers. This mixed behavior is <span class="hl-thesis">analogous to early convolutional layers in CNNs</span>. The <span class="hl-evidence">attention distance increases with network depth</span>, and the model learns to <span class="hl-evidence">attend to image regions that are semantically relevant for classification</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為理解 ViT 如何處理影像資料，我們分析其內部表示。<span class="hl-method">初始線性投影的已學習嵌入濾波器</span>呈現出合理的基底函數形態，可捕捉每個區塊內部的精細結構。<span class="hl-evidence">位置嵌入編碼了影像中的距離——較近的區塊傾向擁有更相似的位置嵌入</span>。此外，<span class="hl-evidence">出現了行列結構；同一行或列的區塊具有相似的嵌入</span>。這解釋了為何手工設計的二維感知嵌入變體未能帶來改善。在注意力距離分析中，<span class="hl-evidence">某些注意力頭在最低層即已關注影像的大部分區域</span>，顯示模型確實利用了全域資訊整合能力。其他注意力頭在低層持續維持較小的注意力距離。此混合行為<span class="hl-thesis">類似於 CNN 中的早期摺積層</span>。<span class="hl-evidence">注意力距離隨網路深度增加</span>，且模型學會了<span class="hl-evidence">關注對分類具語意相關性的影像區域</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    可解釋性分析——深入探查 ViT 學到的內部表示與注意力模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段彌補了「黑箱」疑慮：ViT 不僅表現好，且其學到的表示是可理解的。位置嵌入自發學會二維結構、注意力頭自發展現局部-全域混合模式——這些發現為「大規模訓練勝過歸納偏置」提供了機制層面的解釋。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 ViT 低層注意力與 CNN 摺積層做類比是巧妙的解釋策略——暗示 ViT 「自行發現」了局部處理的必要性。但此觀察也可反過來解讀：ViT 耗費大量訓練資料才學到了 CNN 架構中已內建的知識，這究竟是「優勢」還是「浪費」，取決於觀點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自監督實驗段落 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We also explore <span class="hl-method">masked patch prediction for self-supervision, mimicking the masked language modeling task used in BERT</span>. With self-supervised pre-training, the smaller ViT-B/16 model achieves <span class="hl-evidence">79.9% accuracy on ImageNet</span>, which is <span class="hl-evidence">a significant improvement of 2% over training from scratch, but still 4% behind supervised pre-training</span>. The self-supervised approach corrupts 50% of patch embeddings and predicts the mean color of the corrupted patches. While preliminary, these results suggest that <span class="hl-thesis">contrastive pre-training methods such as those explored in the concurrent work of Chen et al. (2020b) may offer further improvements</span>, and exploring self-supervised methods for ViT remains an exciting direction for future work.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們也探索了<span class="hl-method">遮罩區塊預測的自監督方法，模擬 BERT 中的遮罩語言模型任務</span>。透過自監督預訓練，較小的 ViT-B/16 模型在 ImageNet 上達到 <span class="hl-evidence">79.9% 的準確率</span>，<span class="hl-evidence">相較於從頭訓練有 2% 的顯著提升，但仍落後監督式預訓練 4%</span>。自監督方法破壞 50% 的區塊嵌入，並預測被破壞區塊的平均顏色。雖然是初步結果，但這些發現表明<span class="hl-thesis">對比式預訓練方法（如 Chen et al., 2020b 的同期工作中探索的方法）或許能帶來進一步的提升</span>，為 ViT 探索自監督方法仍是未來工作的一個令人期待的方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    延伸探索——初步驗證 ViT 在自監督範式下的潛力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段作為展望性實驗，暗示 ViT 的架構不僅適用於監督式學習，也具備自監督的潛力。4% 的差距既承認了當前的不足，也為後續研究（如 MAE、DINO）指明了方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「遮罩區塊預測」類比「遮罩語言建模」延續了 NLP-to-Vision 的敘事主線。79.9% 的結果雖不驚艷，但作者巧妙地將其定位為「promising direction」而非最終結論。事實上，後續的 MAE（He et al., 2022）確實以類似策略達到了遠超監督預訓練的效果，證明了此方向的前瞻性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have explored the <span class="hl-thesis">direct application of Transformers to image recognition</span>. Unlike prior works using self-attention in computer vision, we <span class="hl-thesis">do not introduce image-specific inductive biases into the architecture apart from the initial patch extraction step</span>. Instead, we <span class="hl-method">interpret an image as a sequence of patches and process it by a standard Transformer encoder as used in NLP</span>. This simple, yet scalable, strategy <span class="hl-evidence">works surprisingly well when coupled with pre-training on large datasets</span>. Thus, <span class="hl-concept">Vision Transformer</span> <span class="hl-evidence">matches or exceeds the state of the art on many image classification benchmarks, whilst being relatively cheap to pre-train</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們探索了<span class="hl-thesis">將 Transformer 直接應用於影像辨識</span>。不同於先前在電腦視覺中使用自注意力的工作，我們<span class="hl-thesis">除了初始的區塊提取步驟外，未在架構中引入影像特定的歸納偏置</span>。取而代之的是，我們<span class="hl-method">將影像詮釋為區塊序列，並以 NLP 中使用的標準 Transformer 編碼器進行處理</span>。這個簡單卻可擴展的策略在<span class="hl-evidence">與大型資料集的預訓練結合時，效果出奇地好</span>。因此，<span class="hl-concept">Vision Transformer</span> <span class="hl-evidence">在眾多影像分類基準上達到或超越了最先進水平，同時預訓練的成本相對低廉</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——重申核心貢獻，以簡潔的語言回顧關鍵發現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段回呼摘要的結構，形成完整的論證閉環：(1) 方法的簡潔性（直接應用、最少修改）；(2) 效果的卓越性（匹配或超越 SOTA）；(3) 效率的優越性（成本低廉）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「works surprisingly well」的措辭巧妙地設定了期望值——暗示作者自己也對結果感到意外，增添了發現的「驚喜感」。然而，結論未充分討論限制條件：ViT 的成功高度依賴大規模預訓練，在資料受限場景中的表現尚待改善。此外，論文僅涵蓋影像分類，對物件偵測、語意分割等密集預測任務的適用性尚未驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While <span class="hl-thesis">initial results are encouraging, many challenges remain</span>. One is to apply ViT to other computer vision tasks, such as <span class="hl-concept">detection and segmentation</span>. Another challenge is to continue exploring <span class="hl-concept">self-supervised pre-training methods</span>. Our initial experiment with <span class="hl-method">masked patch prediction</span> shows improvement over training from scratch but still lags behind supervised pre-training. Finally, <span class="hl-thesis">further scaling of ViT would likely lead to improved performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                雖然<span class="hl-thesis">初步結果令人振奮，但仍存在許多挑戰</span>。其一是將 ViT 應用於其他電腦視覺任務，例如<span class="hl-concept">物件偵測與語意分割</span>。另一項挑戰是持續探索<span class="hl-concept">自監督預訓練方法</span>。我們以<span class="hl-method">遮罩區塊預測</span>進行的初步實驗雖優於從頭訓練，但仍落後於監督式預訓練。最後，<span class="hl-thesis">進一步擴展 ViT 的規模很可能帶來效能的提升</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    未來展望——點出尚未解決的問題與研究方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以謙遜的姿態結束全文，點出三個明確的未來方向：(1) 任務泛化（偵測、分割）；(2) 訓練範式（自監督）；(3) 規模擴展。這些方向精準預見了後續研究的發展。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三個方向的預判展現了作者的學術遠見。事實上，(1) Swin Transformer、ViTDet 成功將 ViT 擴展至偵測與分割；(2) MAE、DINO 實現了超越監督式的自監督預訓練；(3) ViT-G、ViT-22B 等巨型模型持續推動規模上限。此結論段幾乎可視為後 ViT 時代的研究藍圖。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                Transformer 在視覺中<br>受限於 CNN 的附屬角色
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                純 Transformer 直接應用<br>於影像區塊即可勝任
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                多基準 SOTA 成績<br>計算效率優勢 2-4 倍
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                小資料集表現不佳<br>但大規模訓練勝過偏置
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                Vision Transformer 開啟<br>視覺 Transformer 時代
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將標準 Transformer 以最少修改直接應用於影像區塊序列，在大規模預訓練下即可匹配甚至超越最先進的摺積神經網路，同時所需計算資源更少——大規模訓練勝過歸納偏置。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>規模效率的雙重優勢：</strong>ViT 不僅在多個基準上全面超越 BiT 與 Noisy Student，更以 2 至 4 倍少的計算量達成此成果。規模研究中 18 個模型的系統性比較、JFT 子集實驗的連續資料量梯度分析，以及內部表示的可解釋性視覺化，構成了多層次、互相支撐的證據體系，令核心論點幾乎不可反駁。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>大規模資料依賴的門檻問題：</strong>ViT 的成功高度依賴 JFT-300M 這個 Google 私有資料集——在可公開取得的 ImageNet 上，ViT-Large 甚至不如 ViT-Base。這使得核心發現（大規模訓練勝過歸納偏置）的可複製性與普適性受到質疑。此外，論文僅涵蓋影像分類任務，對物件偵測、語意分割等密集預測任務的適用性完全未觸及，限縮了主張的適用範圍。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>
