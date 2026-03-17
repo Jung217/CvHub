@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data
+                <span class="course-tag">CVPR 2024</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2401.10891" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-unlabeled">3.2 無標註影像</a>
+        <a href="#sec-semantic">3.3 語意輔助</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.5 消融研究</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work presents <span class="hl-concept">Depth Anything</span>, a <span class="hl-thesis">highly practical solution for robust monocular depth estimation</span>. Without pursuing novel technical modules, we aim to build <span class="hl-thesis">a simple yet powerful foundation model dealing with any images under any circumstances</span>. To this end, we scale up the dataset by designing <span class="hl-method">a data engine to collect and automatically annotate large-scale unlabeled images (approximately 62M)</span>. Our <span class="hl-method">data scaling-up strategy</span> is based on two core designs. First, we create a more <span class="hl-method">challenging optimization target</span> by leveraging data augmentation tools to compel the model to actively seek extra visual knowledge from the unlabeled data. Second, we develop an <span class="hl-method">auxiliary supervision from pre-trained encoders</span> to enforce the inheritance of rich semantic priors. Combined with <span class="hl-evidence">1.5M labeled images and 62M unlabeled images</span>, our model shows impressive <span class="hl-evidence">zero-shot capability on six public datasets and randomly captured photos</span>. When fine-tuned with metric depth information from NYUv2 and KITTI, it sets <span class="hl-evidence">new state-of-the-art results</span>. Our approach also yields better <span class="hl-evidence">depth-conditioned ControlNet</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究提出 Depth Anything，一個高度實用的穩健單目深度估測方案。我們不追求新穎的技術模組，而是致力於建立一個簡潔而強大的基礎模型，能處理任何情境下的任何影像。為此，我們設計了一套資料引擎來收集並自動標注大規模無標註影像（約 6,200 萬張），藉此擴展資料集規模。資料擴展策略包含兩項核心設計：第一，透過資料擴增工具創建更具挑戰性的最佳化目標，迫使模型主動從無標註資料中汲取額外的視覺知識；第二，開發來自預訓練編碼器的輔助監督信號，以確保模型繼承豐富的語意先驗。結合 150 萬張有標註影像與 6,200 萬張無標註影像，模型在六個公開資料集和隨機擷取的照片上展現出出色的零樣本能力。在使用 NYUv2 和 KITTI 的度量深度資訊微調後，更達到新的最先進水準。此方法亦能產生更優質的深度條件 ControlNet 模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從「問題定位」到「資料策略」再到「實驗成果」，預告整篇論文的核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時扮演「問題定義」與「解決方案預告」的雙重功能：先宣告建構基礎模型的目標，再以兩項策略設計和大規模資料為支撐，最後以零樣本能力與最先進結果收束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「不追求新穎技術模組」的開場既是謙遜之舉，也是策略性定位——暗示本文的價值不在架構創新而在資料規模與訓練策略。但這也意味著方法的可複製門檻高度依賴資料取得能力，對資源有限的研究者而言可能難以重現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Monocular Depth Estimation (MDE)</span> is <span class="hl-thesis">a fundamental problem with broad applications in robotics, autonomous driving, virtual reality</span>, and many more fields. Similar to what has happened in NLP and other computer vision tasks, MDE also requires <span class="hl-thesis">a foundation model to estimate depth information from a single image</span>. However, building such a foundation model for MDE has remained challenging because <span class="hl-rebuttal">obtaining tens of millions of precise depth labels is prohibitively expensive</span>. While large-scale labeled datasets have driven progress in image classification and object detection, <span class="hl-rebuttal">depth annotation demands specialized sensors (e.g., LiDAR, structured light) and careful calibration</span>, severely limiting data scale.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                單目深度估測是一個具有廣泛應用的基礎問題，涵蓋機器人、自動駕駛、虛擬實境等眾多領域。如同自然語言處理與其他電腦視覺任務的發展趨勢，單目深度估測同樣需要一個基礎模型來從單張影像中估計深度資訊。然而，建構此類基礎模型一直面臨嚴峻挑戰，因為取得數千萬筆精確深度標註的成本極其高昂。儘管大規模有標註資料集已推動了影像分類與物件偵測的進步，但深度標注需要專用感測器（如光達、結構光）與精密校準，嚴重限制了資料規模。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出單目深度估測的重要性與基礎模型的缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先將 MDE 定位為「基礎問題」，再以「基礎模型」趨勢切入，最後點出資料稀缺這個核心瓶頸，為本文的資料擴展策略鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 MDE 類比至 NLP 的基礎模型趨勢是有效的修辭策略，但深度估測的任務特性（連續值迴歸、尺度歧義）與語言/分類任務有本質差異。此類比可能過度簡化了建構深度基礎模型的獨特挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：MiDaS 的侷限與無標註資料的優勢 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">MiDaS</span> represented pioneering work in <span class="hl-method">multi-dataset joint training</span> for zero-shot relative depth estimation, but it <span class="hl-rebuttal">suffered from limited data coverage</span> and could not scale beyond the available labeled datasets. This work proposes to <span class="hl-thesis">leverage large-scale monocular unlabeled images</span>, which offer three key advantages: <span class="hl-evidence">(1) simplicity and low cost of acquisition, (2) diversity covering broader scene ranges, and (3) ease of annotation using pre-trained models</span>. We design a <span class="hl-method">data engine</span> to automatically generate depth annotations for unlabeled images, enabling <span class="hl-thesis">data scaling-up to arbitrary scale</span>. We collect <span class="hl-evidence">62M diverse images from eight large-scale public datasets</span> including SA-1B, Open Images, and BDD100K, while using <span class="hl-evidence">1.5M labeled images from six public datasets</span> to train an initial teacher model as the annotation tool.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MiDaS 是零樣本相對深度估測中多資料集聯合訓練的先驅研究，但其受限於有限的資料涵蓋範圍，無法超越現有的有標註資料集進行擴展。本研究提出運用大規模單目無標註影像，這類資料具備三項關鍵優勢：(1) 取得簡便且成本低廉；(2) 多樣性高，涵蓋更廣泛的場景範圍；(3) 可利用預訓練模型輕易標注。我們設計了一套資料引擎來自動生成無標註影像的深度標註，使資料擴展得以達到任意規模。我們從 SA-1B、Open Images、BDD100K 等八個大規模公開資料集中收集了 6,200 萬張多樣化影像，同時使用來自六個公開資料集的 150 萬張有標註影像訓練初始的教師模型作為標注工具。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以無標註資料突破有標註資料的規模瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「MiDaS 資料不足」過渡到「本文的資料引擎」。三項優勢的列舉為無標註資料的採用提供了充分的合理性論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「任意規模」描述資料擴展能力具有吸引力，但偽標籤的品質上限受制於教師模型的能力。若教師模型在特定場景類型上表現不佳，大量低品質偽標籤可能反而引入系統性偏差。此風險在後文的策略中有所緩解但未徹底消除。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：兩項核心策略 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our initial attempt of <span class="hl-rebuttal">directly combining labeled and pseudo-labeled images for training failed to bring noticeable improvements</span>, since the labeled images were already sufficient and the student model could not learn extra knowledge from pseudo labels alone. To address this, we introduce two key strategies. First, we <span class="hl-method">challenge the student model with stronger perturbations</span> — including <span class="hl-method">color distortions (color jittering, Gaussian blurring) and spatial distortion via CutMix</span> — when learning from unlabeled images, <span class="hl-thesis">forcing the model to acquire more robust representations under various distortions</span>. Second, rather than assigning semantic segmentation labels using models like RAM, GroundingDINO, and HQ-SAM (which <span class="hl-rebuttal">failed due to information loss in discrete class space</span>), we preserve rich semantic information through <span class="hl-method">a feature alignment loss from a frozen DINOv2 encoder</span>, maintaining <span class="hl-thesis">semantic priors while enhancing depth estimation performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們最初嘗試直接結合有標註與偽標籤影像進行訓練，但未能帶來明顯的改善，因為有標註影像本身已足夠充分，而學生模型無法僅從偽標籤中學到額外知識。為解決此問題，我們引入兩項關鍵策略。第一，在學生模型學習無標註影像時施加更強的擾動——包括色彩扭曲（色彩抖動、高斯模糊）與透過 CutMix 實現的空間扭曲——迫使模型在各種扭曲條件下習得更穩健的表徵。第二，與其使用 RAM、GroundingDINO、HQ-SAM 等模型指派語意分割標籤（此法因離散類別空間的資訊損失而失敗），我們透過凍結的 DINOv2 編碼器的特徵對齊損失來保留豐富的語意資訊，在維持語意先驗的同時提升深度估測效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    揭示失敗嘗試並提出改進——透過坦承「天真方案失敗」增強說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在論證鏈中扮演「問題深化」角色：先展示直覺方案的不足，再以兩項策略作為解方。負面結果（語意分割失敗）的揭露進一步強化了最終方案的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦誠呈現失敗嘗試是優秀的學術寫作技巧，既展示了研究過程的嚴謹性，又為最終方案的選擇提供了消去法依據。但「更強擾動」的效果高度依賴擾動類型與強度的選擇，這些超參數的敏感度分析值得更深入的探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：單目深度估測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Monocular Depth Estimation</span> has evolved significantly from early approaches relying on <span class="hl-concept">handcrafted features</span> and traditional computer vision methods. <span class="hl-concept">Deep learning methods</span> revolutionized the field through carefully annotated datasets, with successive improvements coming through <span class="hl-method">classification-based regression, additional geometric priors, and better objective functions</span>. However, <span class="hl-rebuttal">generalization to unseen domains remained a persistent challenge</span>, as models trained on specific datasets often failed when applied to images from different environments, lighting conditions, or camera intrinsics.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                單目深度估測已從早期依賴手工特徵與傳統電腦視覺方法的階段發展至今，經歷了重大演進。深度學習方法透過精心標注的資料集革新了此領域，後續改進來自基於分類的迴歸、額外幾何先驗與更優良的目標函數。然而，對未見領域的泛化能力始終是持續性的挑戰——在特定資料集上訓練的模型，面對不同環境、光照條件或相機內參的影像時常常失效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——概述單目深度估測從傳統到深度學習的發展歷程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在論證鏈中建立歷史脈絡，指出即便深度學習帶來巨大進步，「跨域泛化」仍是未解的核心難題，直接呼應本文以大規模多樣資料提升泛化力的動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以時間線式的簡潔敘述快速帶過文獻，聚焦於「泛化挑戰」這個與本文最相關的問題點。但對近年的穩定擴散（Stable Diffusion）等生成模型輔助深度估測的路線未做討論，可能遺漏了部分相關工作。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：零樣本深度估測與無標註資料 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Zero-shot depth estimation</span> aims to train MDE models on <span class="hl-method">diverse datasets enabling prediction on any image</span>. <span class="hl-concept">MiDaS</span> pioneered <span class="hl-method">multi-dataset joint training using affine-invariant loss</span> to ignore depth scale and shift variations across different datasets, providing <span class="hl-concept">relative depth</span> information. Recent work explored <span class="hl-concept">metric depth estimation</span> with zero-shot transfer, though with <span class="hl-rebuttal">observed generalization trade-offs</span>. On the side of <span class="hl-concept">leveraging unlabeled data</span>, semi-supervised learning typically assumes limited labeled images. This work addresses a more challenging scenario: <span class="hl-thesis">sufficient labeled images already exist, but even larger-scale unlabeled data can further push the performance boundary</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                零樣本深度估測旨在以多樣資料集訓練模型，使其能對任意影像進行預測。MiDaS 率先採用仿射不變損失進行多資料集聯合訓練，忽略不同資料集間的深度尺度與偏移差異，提供相對深度資訊。近期研究探索了具備零樣本遷移能力的度量深度估測，但存在泛化性的取捨。在運用無標註資料方面，半監督式學習通常假設有標註影像有限。本研究則針對一個更具挑戰性的情境：有標註影像已足夠充分，但更大規模的無標註資料仍能進一步推升效能邊界。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將本研究放置在零樣本深度估測與半監督式學習的交會處。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立關鍵的學術定位：MiDaS（多資料集訓練）+ 半監督式學習（利用無標註資料）= Depth Anything 的獨特切入角度。此段精確區分了本文與傳統半監督式學習的差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題重新定義為「充分標註 + 更大規模無標註」的情境，巧妙避開了與傳統半監督式學習的直接比較。然而，此定義也暗示了方法的適用前提：需要有一定品質的標註基礎，並非完全從零開始。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Depth Anything — 方法</h2>
+    <h3 class="subsection-heading">3.1 Learning Labeled Images — 學習有標註影像</h3>
+
+    <!-- 方法段落 1：標註資料訓練 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The approach uses a <span class="hl-method">labeled set D<sup>l</sup> = {(x<sub>i</sub>, d<sub>i</sub>)}<sub>i=1</sub><sup>M</sup> and an unlabeled set D<sup>u</sup> = {u<sub>i</sub>}<sub>i=1</sub><sup>N</sup></span>. A <span class="hl-concept">teacher model T</span> is first learned from D<sup>l</sup>, then assigns <span class="hl-concept">pseudo labels</span> to D<sup>u</sup>, and finally a <span class="hl-concept">student model S</span> trains on the combined labeled and pseudo-labeled sets. The depth value is first <span class="hl-method">transformed into disparity space by d = 1/t and then normalized to 0~1 on each depth map</span>. The method adopts <span class="hl-method">affine-invariant loss</span> enabling multi-dataset joint training: <em>L<sub>l</sub> = (1/HW) &Sigma; &rho;(d&#770;<sub>i</sub>, d<sub>i</sub>)</em>, where &rho; represents the affine-invariant mean absolute error with <span class="hl-method">scale-and-shift alignment: d&#770;<sub>i</sub> = (d<sub>i</sub> &minus; t(d)) / s(d)</span>, with t(d) = median(d) and s(d) = mean absolute deviation. Training employed <span class="hl-evidence">1.5M labeled images from six datasets (BlendedMVS, DIML, HRWSI, IRS, MegaDepth, TartanAir)</span> while <span class="hl-rebuttal">excluding NYUv2 and KITTI for zero-shot evaluation integrity</span>. <span class="hl-concept">DINOv2</span> pre-trained weights initialized the encoders.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此方法使用有標註集 D<sup>l</sup> = {(x<sub>i</sub>, d<sub>i</sub>)} 與無標註集 D<sup>u</sup> = {u<sub>i</sub>}。首先從 D<sup>l</sup> 學習教師模型 T，接著為 D<sup>u</sup> 指派偽標籤，最後由學生模型 S 在合併的有標註與偽標籤集上進行訓練。深度值先轉換至視差空間（d = 1/t），再於每張深度圖上正規化至 0~1。方法採用仿射不變損失以實現多資料集聯合訓練，透過尺度-偏移對齊（以中位數與平均絕對偏差進行正規化）計算損失。訓練使用來自六個資料集（BlendedMVS、DIML、HRWSI、IRS、MegaDepth、TartanAir）的 150 萬張有標註影像，同時刻意排除 NYUv2 和 KITTI 以確保零樣本評估的公正性。編碼器以 DINOv2 的預訓練權重初始化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義教師-學生框架與損失函數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立整個方法的數學基礎。仿射不變損失是支撐多資料集聯合訓練的關鍵技術，使不同來源、不同尺度的深度資料得以統一處理。DINOv2 初始化則為後續的語意先驗繼承埋下伏筆。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    刻意排除 NYUv2 和 KITTI 的做法展現了實驗設計的嚴謹性。但仿射不變損失意味著模型僅學習相對深度，度量深度的恢復需要額外的微調步驟——這在實際應用中是一個非忽略的成本。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 無標註影像 ====== -->
+    <h3 class="subsection-heading" id="sec-unlabeled">3.2 Unleashing the Power of Unlabeled Images — 釋放無標註影像的潛力</h3>
+
+    <!-- 方法段落 2：偽標籤與強擾動 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The pseudo-labeled set is created as <span class="hl-method">D&#770;<sup>u</sup> = {(u<sub>i</sub>, T(u<sub>i</sub>)) | u<sub>i</sub> &isin; D<sup>u</sup>}</span>. <span class="hl-rebuttal">Initial naive self-training that simply combined labeled and pseudo-labeled images failed to bring improvements</span>, hypothesized to stem from the limited additional knowledge when teacher and student share the same architecture and pre-training. The solution introduces <span class="hl-method">strong perturbations</span>: <span class="hl-method">color distortions</span> (color jittering, Gaussian blurring) and <span class="hl-method">spatial distortion via CutMix</span>. CutMix interpolates random image pairs: <em>u<sub>ab</sub> = u<sub>a</sub> &odot; M + u<sub>b</sub> &odot; (1 &minus; M)</em>, where M is a binary mask with a rectangle region set to 1. The unlabeled loss combines masked and unmasked regions: <em>L<sub>u</sub> = (&Sigma;M / HW) L<sub>u</sub><sup>M</sup> + (&Sigma;(1&minus;M) / HW) L<sub>u</sub><sup>1&minus;M</sup></em>. CutMix is <span class="hl-evidence">applied with 50% probability</span>. Crucially, <span class="hl-thesis">unlabeled images fed to the teacher T for pseudo-labeling remain clean without any distortions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                偽標籤集的建立方式為 D&#770;<sup>u</sup> = {(u<sub>i</sub>, T(u<sub>i</sub>))}。最初天真地結合有標註與偽標籤影像的自訓練方案未能帶來改善，推測原因是當教師與學生共享相同架構與預訓練時，能提供的額外知識有限。解決方案是引入強擾動：色彩扭曲（色彩抖動、高斯模糊）與透過 CutMix 實現的空間扭曲。CutMix 將隨機影像對進行內插混合，其中 M 為矩形區域設定為 1 的二值遮罩。無標註損失結合了遮罩與非遮罩區域的貢獻。CutMix 以 50% 的機率被套用。關鍵之處在於：送入教師模型 T 進行偽標籤生成的無標註影像保持乾淨，不施加任何扭曲。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之一——描述如何透過強擾動使偽標籤訓練產生效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的第一根支柱：「教師乾淨輸入 vs 學生擾動輸入」的不對稱設計，迫使學生模型不能僅複製教師的輸出，而必須從擾動資料中主動學習更穩健的表徵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    教師-學生間的不對稱擾動策略靈感來自對比學習與知識蒸餾，設計簡潔有效。但 CutMix 將兩張不同場景的影像拼接在一起，在深度估測的語境下可能產生不自然的深度不連續性，此對學習的影響未被深入探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 語意輔助 ====== -->
+    <h3 class="subsection-heading" id="sec-semantic">3.3 Semantic-Assisted Perception — 語意輔助感知</h3>
+
+    <!-- 方法段落 3：特徵對齊損失 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Initial attempts to <span class="hl-rebuttal">assign semantic segmentation labels to unlabeled images using RAM, GroundingDINO, and HQ-SAM models producing a 4K-class space failed to boost performance</span>, attributed to <span class="hl-rebuttal">information loss in the discrete class space</span>. Instead, the method leverages <span class="hl-concept">DINOv2</span>'s strong semantic capabilities via a <span class="hl-method">feature alignment loss: L<sub>feat</sub> = 1 &minus; (1/HW) &Sigma; cos(f<sub>i</sub>, f'<sub>i</sub>)</span>, where cos(&middot;, &middot;) measures <span class="hl-method">cosine similarity between the depth model features f and the frozen DINOv2 encoder features f'</span>. A critical observation is that <span class="hl-rebuttal">semantic encoders like DINOv2 tend to produce similar features for different parts of an object (e.g., car front and rear)</span>, which conflicts with depth variation within the same object. To address this, a <span class="hl-method">tolerance margin &alpha;</span> is implemented: when cosine similarity already exceeds &alpha;, those pixels are <span class="hl-method">excluded from L<sub>feat</sub></span>, allowing both <span class="hl-thesis">semantic-aware and part-level discriminative representations</span>. The final loss combines three components: L<sub>l</sub>, L<sub>u</sub>, and L<sub>feat</sub> via simple averaging.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最初嘗試使用 RAM、GroundingDINO 和 HQ-SAM 模型為無標註影像指派語意分割標籤（產生 4K 類別空間），但未能提升效能，歸因於離散類別空間的資訊損失。取而代之的是，方法利用 DINOv2 強大的語意能力，透過特徵對齊損失來保留語意資訊：L<sub>feat</sub> = 1 - (1/HW) &Sigma; cos(f<sub>i</sub>, f'<sub>i</sub>)，其中 cos 衡量深度模型特徵 f 與凍結 DINOv2 編碼器特徵 f' 之間的餘弦相似度。一項關鍵觀察是，DINOv2 等語意編碼器傾向為同一物件的不同部位（如車頭與車尾）產生相似的特徵，這與同一物件內部的深度變化相矛盾。為此，設計了容忍度邊界 &alpha;：當餘弦相似度已超過 &alpha; 時，這些像素將被排除在 L<sub>feat</sub> 之外，使模型同時具備語意感知與部件級辨識能力。最終損失簡單平均三個分量：L<sub>l</sub>、L<sub>u</sub> 和 L<sub>feat</sub>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之二——描述如何從預訓練編碼器繼承語意先驗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的第二根支柱。特徵對齊損失解決了一個微妙的問題：離散語意標籤過於粗糙，而連續特徵空間的對齊則保留了更豐富的資訊。容忍度邊界 &alpha; 的設計展現了對語意與深度之間張力的深刻理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    先展示「語意分割標籤失敗」的負面結果再提出替代方案，是極具說服力的敘事策略。容忍度邊界 &alpha; = 0.15 的選擇雖在消融研究中被驗證，但該值對不同資料集與場景的穩健性仍有待檢驗。此外，L<sub>feat</sub> 僅施加於無標註資料的設計雖合理（有標註資料已有精確標籤），但增加了訓練流程的複雜度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：零樣本相對深度估測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Comprehensive validation is performed across <span class="hl-evidence">six unseen datasets: KITTI, NYUv2, Sintel, DDAD, ETH3D, and DIODE</span>, comparing against <span class="hl-concept">MiDaS v3.1</span>'s strongest model (DPT-BEiT-L). Using a <span class="hl-concept">DINOv2 encoder with DPT decoder</span> performing depth regression, the teacher model is trained for 20 epochs on labeled images and the student model sweeps unlabeled images once. Results with the <span class="hl-evidence">ViT-L encoder</span> show dramatic improvements: <span class="hl-evidence">KITTI AbsRel drops from 0.127 (MiDaS) to 0.076; NYUv2 from 0.048 to 0.043; Sintel from 0.587 to 0.458; DDAD from 0.251 to 0.230; ETH3D from 0.139 to 0.127; DIODE from 0.075 to 0.066</span>. Remarkably, <span class="hl-thesis">the ViT-B model (97.5M parameters) is already clearly superior to MiDaS based on the much larger ViT-L</span>, and even the <span class="hl-evidence">ViT-S model (24.8M parameters) outperforms MiDaS on several datasets despite using approximately 1/10 the parameters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在六個未見資料集（KITTI、NYUv2、Sintel、DDAD、ETH3D、DIODE）上進行全面驗證，並與 MiDaS v3.1 最強模型（DPT-BEiT-L）比較。使用 DINOv2 編碼器搭配 DPT 解碼器進行深度迴歸，教師模型在有標註影像上訓練 20 個周期，學生模型遍歷無標註影像一次。ViT-L 編碼器的結果顯示大幅改善：KITTI AbsRel 從 0.127（MiDaS）降至 0.076；NYUv2 從 0.048 降至 0.043；Sintel 從 0.587 降至 0.458；DDAD 從 0.251 降至 0.230；ETH3D 從 0.139 降至 0.127；DIODE 從 0.075 降至 0.066。值得注意的是，ViT-B 模型（9,750 萬參數）已明顯優於基於更大 ViT-L 的 MiDaS，甚至 ViT-S 模型（2,480 萬參數）在多個資料集上也超越 MiDaS，儘管參數量僅為其約十分之一。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗證據——以六個資料集的量化數據全面驗證零樣本能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文實證基礎的核心：跨越多個領域的一致性改善，有力地支撐了「大規模無標註資料提升泛化力」的核心主張。小模型勝大模型的結果更凸顯了資料策略而非架構大小的決定性作用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    逐資料集列舉數字是直觀有效的呈現方式。但 MiDaS 使用不同的訓練資料組合與預訓練權重（BEiT vs DINOv2），因此改善幅度不能完全歸因於本文提出的策略——DINOv2 初始化本身可能貢獻了相當比例的效能提升。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：度量深度與下游任務 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                When <span class="hl-method">fine-tuned to metric depth estimation</span>, the model achieves new state-of-the-art on both indoor and outdoor benchmarks. On <span class="hl-evidence">NYUv2: &delta;<sub>1</sub> reaches 0.984 (vs VPD's 0.964), AbsRel drops to 0.056, and RMSE to 0.206</span>. On <span class="hl-evidence">KITTI: &delta;<sub>1</sub> reaches 0.982 (vs NDDepth's 0.978), AbsRel at 0.046, RMSE at 1.896</span>. Replacing MiDaS encoder with Depth Anything in the <span class="hl-concept">ZoeDepth</span> framework for <span class="hl-concept">zero-shot metric depth</span> also shows consistent improvements across unseen datasets. Furthermore, the pre-trained encoder demonstrates strong <span class="hl-evidence">transferability to semantic segmentation: Cityscapes achieves 86.2 mIoU</span> (surpassing Swin-L's 84.6 and Mask2Former's 84.3), and <span class="hl-evidence">ADE20K reaches 59.4 mIoU</span> (improving from previous best of 58.3). This supports the claim that <span class="hl-thesis">Depth Anything has great potential to serve as a generic multi-task encoder</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                微調至度量深度估測後，模型在室內和室外基準上均達到新的最先進水準。NYUv2 上：&delta;<sub>1</sub> 達 0.984（對比 VPD 的 0.964），AbsRel 降至 0.056，RMSE 降至 0.206。KITTI 上：&delta;<sub>1</sub> 達 0.982（對比 NDDepth 的 0.978），AbsRel 為 0.046，RMSE 為 1.896。在 ZoeDepth 框架中以 Depth Anything 替換 MiDaS 編碼器進行零樣本度量深度估測，同樣在未見資料集上展現一致性的改善。此外，預訓練編碼器在語意分割上也展現出強大的遷移能力：Cityscapes 達 86.2 mIoU（超越 Swin-L 的 84.6 和 Mask2Former 的 84.3），ADE20K 達 59.4 mIoU（從前最佳 58.3 提升）。這支持了 Depth Anything 具有作為通用多任務編碼器之巨大潛力的主張。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    擴展驗證——將證據從零樣本相對深度延伸到度量深度與語意分割。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將論證範圍從「深度估測專用模型」擴展到「通用視覺編碼器」，大幅提升了工作的影響力與應用價值。語意分割的優異表現佐證了 L<sub>feat</sub> 確實保留了豐富的語意先驗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以多任務表現支撐「通用編碼器」的宣稱是強而有力的，但語意分割的改善也可能大部分來自 DINOv2 原有的能力。消融研究需要更精細地區分 DINOv2 初始化 vs 本文訓練策略各自的貢獻比例。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.5 消融研究 ====== -->
+    <h3 class="subsection-heading" id="sec-ablation">4.5 Ablation Studies — 消融研究</h3>
+
+    <!-- 消融段落 1：策略有效性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Ablation studies systematically verify the contribution of each proposed component. <span class="hl-evidence">Using only labeled data yields a mean AbsRel of 0.085</span>. <span class="hl-rebuttal">Simply adding unlabeled images with pseudo labels does not necessarily bring gains</span> (mean AbsRel remains 0.085), confirming that naive self-training is insufficient when labeled data is already adequate. <span class="hl-evidence">Adding strong perturbations reduces mean AbsRel to 0.081</span>, and <span class="hl-evidence">further incorporating the feature alignment loss L<sub>feat</sub> achieves the best result of 0.076</span>. Individual dataset contribution analysis reveals that <span class="hl-evidence">HRWSI (only 20K images) provides the strongest generalization</span> despite being the smallest labeled dataset, <span class="hl-thesis">emphasizing the importance of data diversity over sheer volume</span>. Comparison with original DINOv2 shows consistent improvements: <span class="hl-evidence">NYUv2 AbsRel improves from 0.066 to 0.056; KITTI from 0.058 to 0.046; ADE20K mIoU from 58.8 to 59.4</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究系統性地驗證每個提出組件的貢獻。僅使用有標註資料的平均 AbsRel 為 0.085。單純添加帶有偽標籤的無標註影像未必帶來收益（平均 AbsRel 仍為 0.085），確認了當有標註資料已足夠時，天真的自訓練是不充分的。加入強擾動後平均 AbsRel 降至 0.081，進一步納入特徵對齊損失 L<sub>feat</sub> 則達到最佳結果 0.076。個別資料集貢獻分析揭示，HRWSI（僅 2 萬張影像）儘管是最小的有標註資料集，卻提供了最強的泛化能力，凸顯了資料多樣性比單純數量更為重要。與原始 DINOv2 的比較顯示一致性改善：NYUv2 AbsRel 從 0.066 改善至 0.056；KITTI 從 0.058 至 0.046；ADE20K mIoU 從 58.8 至 59.4。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融驗證——逐步拆解各組件的貢獻以驗證設計選擇的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法正當性的最終防線：透過逐步添加組件（基線 -> +無標註 -> +擾動 -> +L<sub>feat</sub>）的遞增式驗證，每一步的改善都有清晰的數據支撐，形成完整的因果論證鏈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    遞增式消融是最具說服力的驗證方式。HRWSI 資料集的發現（量少但泛化佳）是一個深具洞察力的觀察，但作者未進一步分析其「多樣性」的具體特質為何。與原始 DINOv2 的比較有效確認了訓練策略的獨立貢獻，排除了「僅因 DINOv2 初始化而改善」的質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 2：容忍度邊界與特徵對齊的應用範圍 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Further ablations examine the <span class="hl-method">tolerance margin &alpha;</span> in the feature alignment loss. Testing values of <span class="hl-evidence">&alpha; = 0.00, 0.15, and 0.30</span> reveals that <span class="hl-evidence">&alpha; = 0.15 is optimal (mean AbsRel 0.175), while &alpha; = 0 yields 0.188 and &alpha; = 0.30 yields 0.178</span>. Without the margin, excessive alignment forces the depth features to mirror DINOv2's tendency to produce uniform features within objects, <span class="hl-rebuttal">conflicting with the need for part-level depth discrimination</span>. Additionally, applying L<sub>feat</sub> to <span class="hl-evidence">unlabeled data is beneficial (mean AbsRel 0.175)</span>, but applying it to <span class="hl-rebuttal">labeled data proves harmful (0.179 vs 0.180 baseline)</span>. This is attributed to pseudo-labeled data's noisiness benefiting from semantic constraints, while <span class="hl-rebuttal">manually labeled data's quality suffers from the interference of the alignment signal</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                進一步的消融研究檢驗了特徵對齊損失中的容忍度邊界 &alpha;。測試 &alpha; = 0.00、0.15 和 0.30 三個值後發現，&alpha; = 0.15 為最佳（平均 AbsRel 0.175），而 &alpha; = 0 為 0.188、&alpha; = 0.30 為 0.178。若不設定邊界，過度對齊會迫使深度特徵模仿 DINOv2 在物件內部產生均一特徵的傾向，與部件級深度辨識的需求相互矛盾。此外，將 L<sub>feat</sub> 施加於無標註資料是有益的（平均 AbsRel 0.175），但施加於有標註資料反而有害（0.179 對比基線 0.180）。這歸因於偽標籤資料的雜訊特性使其受益於語意約束，而手動標註資料的品質反受對齊信號的干擾。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    精細消融——深入剖析特徵對齊損失的設計細節與適用條件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供了對 L<sub>feat</sub> 的深層理解：語意特徵的「物件級均一性」vs 深度估測的「部件級差異性」之間存在張力，&alpha; 是調和兩者的關鍵旋鈕。「僅對無標註資料有益」的發現進一步揭示了偽標籤與真實標籤在學習動態上的本質差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 &alpha; 的消融研究雖然證實了 0.15 的有效性，但僅測試了三個離散值，未提供對此超參數的連續敏感度分析。L<sub>feat</sub> 在有標註資料上有害的發現具有重要的實踐意涵——使用者需注意此損失函數的適用條件，否則可能適得其反。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work highlights the <span class="hl-thesis">value of cheap, diverse unlabeled images for monocular depth estimation</span>. Two simple yet highly effective strategies fully exploit their potential: <span class="hl-method">(1) posing challenging optimization targets when learning from unlabeled images</span> through strong perturbations, and <span class="hl-method">(2) preserving semantic priors from pre-trained models</span> via feature alignment. The resulting model demonstrates <span class="hl-evidence">excellent zero-shot depth estimation ability</span> and also <span class="hl-thesis">serves as a promising initialization for downstream metric depth estimation and semantic segmentation tasks</span>. Currently, the largest model size is constrained to <span class="hl-rebuttal">ViT-Large</span>. In the future, the authors plan to <span class="hl-rebuttal">further scale up the model size from ViT-Large to ViT-Giant</span> and increase training resolution from 512 to 700+ or 1000+ pixels for real-world applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究凸顯了廉價且多樣的無標註影像對於單目深度估測的價值。兩項簡潔而高度有效的策略充分發揮了其潛力：(1) 透過強擾動在學習無標註影像時設定具挑戰性的最佳化目標；(2) 透過特徵對齊保留預訓練模型的語意先驗。所得模型展現出卓越的零樣本深度估測能力，亦可作為下游度量深度估測與語意分割任務的優良初始化。目前最大的模型規模僅限於 ViT-Large。未來，作者計劃將模型規模從 ViT-Large 進一步擴展至 ViT-Giant，並將訓練解析度從 512 提升至 700 以上甚至 1000 以上像素，以滿足實際應用的需求。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的結構，完成論證閉環：從「資料的價值」出發，經由「兩項策略」的實現，到「多任務通用編碼器」的願景。未來方向（模型擴展與解析度提升）暗示了工作的延續性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論的簡潔有力是優點，但對局限性的討論過於簡略。未提及偽標籤品質的上限問題、教師模型失效場景的處理策略，以及與同期其他深度基礎模型（如 Marigold 等基於擴散模型的方法）的系統性比較。對於一篇旗艦級研究，更深入的局限性反思將增強說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                MDE 基礎模型缺乏<br>大規模深度標註資料
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                大規模無標註影像可<br>突破資料規模瓶頸
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                六個資料集零樣本<br>全面超越 MiDaS
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                天真偽標籤無效<br>需強擾動+語意對齊
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                通用深度基礎模型<br>兼具多任務遷移力
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過資料引擎收集 6,200 萬張無標註影像並搭配強擾動訓練策略與語意特徵對齊，無需新穎架構即可建構出在任意場景下皆穩健的單目深度估測基礎模型。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>消融研究的完整性與說服力：</strong>遞增式消融清楚展示了每個組件的獨立貢獻——天真偽標籤無效、強擾動帶來改善、語意對齊再次提升。小模型（ViT-S）勝過大模型（MiDaS ViT-L）的結果，有力證明了資料策略的決定性作用，而非單純仰賴模型規模。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>DINOv2 貢獻的解耦不足：</strong>模型以 DINOv2 預訓練權重初始化，而 DINOv2 本身已是極強的視覺編碼器。儘管與原始 DINOv2 的對比顯示了改善，但改善幅度相對有限，難以排除大部分效能來自 DINOv2 初始化而非本文策略的疑慮。此外，62M 無標註影像的資料引擎需要可觀的計算資源，降低了方法的可複製性。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

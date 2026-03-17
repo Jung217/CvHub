@@ -90,3 +90,20 @@ https://jung217.github.io/CvHub/
 | Scaling Up GANs for Text-to-Image Synthesis (GigaGAN) | GAN / 影像生成 |
 | Mask DINO: Towards A Unified Transformer-based Framework for Object Detection and Segmentation | 偵測與分割 |
 | Score Jacobian Chaining: Lifting Pretrained 2D Diffusion Models for 3D Generation | 3D 生成 |
+
+## CVPR 2024
+
+| 論文 | 領域 |
+|------|------|
+| Generative Image Dynamics | 影像動態生成 (Best Paper) |
+| Rich Human Feedback for Text-to-Image Generation | 文字到影像 (Best Paper) |
+| Mip-Splatting: Alias-free 3D Gaussian Splatting | 3D 高斯潑灑 (Best Student Paper) |
+| BioCLIP: A Vision Foundation Model for the Tree of Life | 生物視覺基礎模型 (Best Student Paper) |
+| pixelSplat: 3D Gaussian Splats from Image Pairs | 3D 重建 (Honorable Mention) |
+| Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data | 深度估計 |
+| YOLO-World: Real-Time Open-Vocabulary Object Detection | 開放詞彙偵測 |
+| Florence-2: Advancing a Unified Representation for a Variety of Vision Tasks | 多模態基礎模型 |
+| InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks | 視覺語言模型 |
+| 4D Gaussian Splatting for Real-Time Dynamic Scene Rendering | 動態 3D 渲染 |
+| EfficientSAM: Leveraged Masked Image Pretraining for Efficient Segment Anything | 高效分割 |
+| Objects as Volumes: A Stochastic Geometry View of Opaque Solids | 渲染理論 (Honorable Mention) |

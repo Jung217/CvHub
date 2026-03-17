@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rich Human Feedback for Text-to-Image Generation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Rich Human Feedback for Text-to-Image Generation
+                <span class="course-tag">CVPR 2024</span>
+                <span class="best-paper-badge">Best Paper Award</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2312.10240" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-collecting">3. 蒐集豐富人類回饋</a>
+        <a href="#sec-consolidation">3.2 回饋整合</a>
+        <a href="#sec-dataset">3.3 資料集</a>
+        <a href="#sec-predicting">4. 預測豐富人類回饋</a>
+        <a href="#sec-architecture">4.1 模型架構</a>
+        <a href="#sec-experiments">4.2 實驗</a>
+        <a href="#sec-learning">5. 從回饋中學習</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent <span class="hl-concept">Text-to-Image (T2I) generation models</span> such as <span class="hl-concept">Stable Diffusion</span> and <span class="hl-concept">Imagen</span> have made significant progress in generating high-resolution images based on text descriptions. However, <span class="hl-thesis">many generated images still suffer from issues such as artifacts/implausibility, misalignment with text descriptions, and low aesthetic quality</span>. In this paper, the authors propose <span class="hl-thesis">enriching the feedback signal by collecting rich human feedback</span> including <span class="hl-method">marking implausible image regions, annotating misrepresented text terms, and providing fine-grained scores</span>. They collected rich human feedback on <span class="hl-evidence">18,000 generated images</span> and trained a <span class="hl-concept">multimodal transformer model (RAHF)</span> to predict this feedback automatically. The predicted rich feedback is shown to <span class="hl-thesis">improve image generation quality</span> through <span class="hl-method">data selection for finetuning and targeted inpainting</span>, with improvements generalizing across different model families.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期的文字到影像（T2I）生成模型，如 Stable Diffusion 與 Imagen，已在基於文字描述的高解析度影像生成方面取得顯著進展。然而，許多生成影像仍面臨偽影／不合理性、與文字描述不一致、以及美學品質低落等問題。本文提出透過蒐集豐富的人類回饋來強化回饋訊號，包括標記不合理的影像區域、註記未正確呈現的文字詞彙，以及提供細粒度評分。作者在 18,000 張生成影像上蒐集了豐富的人類回饋，並訓練了一個多模態 Transformer 模型（RAHF）來自動預測這些回饋。預測的豐富回饋被證實能透過資料篩選微調與目標式修補來提升影像生成品質，且改善效果可泛化至不同的模型家族。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從 T2I 模型的成就到既有缺陷，再引出豐富人類回饋的方案與驗證成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題界定、方案預告與成果摘述」三重功能：先指出生成品質的三類缺陷，再以一句話概述 RichHF-18K 資料集與 RAHF 模型如何同時回應這些問題，最後預告改善效果的泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將現有回饋簡化為「單一標量分數」與本文的「豐富回饋」形成鮮明對比，修辭效果強烈。但「18K 影像」的規模在當代大型資料集的語境下是否足夠，需在後文以實驗佐證。泛化能力的宣稱（跨模型家族）是重要賣點，但摘要僅點到為止。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：T2I 模型的背景與應用 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Text-to-image (T2I) generation models</span> are rapidly becoming a key to content creation in various domains, including <span class="hl-evidence">entertainment, art, design, and advertising</span>, and are also being generalized to <span class="hl-evidence">image editing, video generation</span>, among many other applications. Despite significant recent advances, the outputs still usually suffer from issues such as <span class="hl-thesis">artifacts/implausibility, misalignment with text descriptions, and low aesthetic quality</span>. For example, in the <span class="hl-concept">Pick-a-Pic</span> dataset, which mainly consists of images generated by Stable Diffusion model variants, many images contain <span class="hl-evidence">distorted human/animal bodies (e.g., human hands with more than five fingers), distorted objects and implausibility issues such as a floating lamp</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                文字到影像生成模型正迅速成為各領域內容創作的關鍵工具，涵蓋娛樂、藝術、設計與廣告等領域，也被延伸應用於影像編輯、影片生成等多種任務。儘管近期有顯著進展，其輸出通常仍面臨偽影／不合理性、與文字描述不一致，以及美學品質低落等問題。例如，在主要由 Stable Diffusion 模型變體生成影像所組成的 Pick-a-Pic 資料集中，許多影像包含扭曲的人體／動物軀體（如超過五指的人手）、變形的物件，以及浮空燈具等不合理現象。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出 T2I 模型的廣泛應用與尚未解決的品質缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定 T2I 模型的實用價值，再以具體例證（五指問題、浮空物件）揭示品質缺口，為「豐富回饋」的必要性鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以直觀且令人印象深刻的視覺缺陷（多指、浮空物件）作為動機支撐，修辭效果極佳。但這些例子偏向 Stable Diffusion 的弱點，未必代表所有 T2I 模型的普遍問題。選擇 Pick-a-Pic 作為唯一來源可能導致偏差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有評估指標的不足 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing automatic evaluation metrics for generated images, including the well-known <span class="hl-concept">IS</span> and <span class="hl-concept">FID</span>, are <span class="hl-rebuttal">computed over distributions of images and may not reflect nuances in individual images</span>. Recent work has collected <span class="hl-concept">human preferences</span> to train evaluation models, including <span class="hl-concept">ImageReward</span> and <span class="hl-concept">Pick-a-Pic</span>. However, <span class="hl-thesis">these metrics still summarize the quality of one image into a single numeric score</span>. Metrics such as <span class="hl-concept">CLIPScore</span> exist for alignment evaluation, but <span class="hl-rebuttal">these are expensive and complex models that still do not localize the regions of misalignment in the image</span>. The authors argue that <span class="hl-thesis">a much richer form of feedback is needed — one that is interpretable and attributable to specific image regions and text terms</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有的自動化影像生成評估指標，包括眾所周知的 IS 與 FID，是在影像分布層面計算的，未必能反映個別影像的細微差異。近期研究蒐集了人類偏好來訓練評估模型，如 ImageReward 與 Pick-a-Pic。然而，這些指標仍將單張影像的品質濃縮為一個數值分數。雖然存在如 CLIPScore 等對齊評估指標，但這些是昂貴且複雜的模型，仍無法定位影像中的不一致區域。作者主張，需要一種更豐富的回饋形式——可解釋且可歸因至特定影像區域與文字詞彙的回饋。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——系統性列舉現有評估指標的三層局限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題-解決方案」論證中的問題深化：從分布級指標的粗粒度，到人類偏好模型的標量限制，再到對齊指標的不可定位性，逐步收窄至本文要填補的精確缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三層遞進的批判結構非常有效——每一層回應一個可能的反駁（「FID 不夠用」「有 ImageReward 啊」「CLIPScore 呢」）。但將所有指標歸結為「單一數值」有簡化之嫌，因為 T2I-CompBench 等已提供多維度評估，只是未做到區域級定位。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：本文貢獻 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, the authors propose <span class="hl-thesis">a dataset and a model of fine-grained multi-faceted evaluations that are interpretable and attributable</span> (e.g., to regions with artifacts/implausibility or image-text misalignments), which provide a much richer understanding of image quality than single scalar scores. Their contributions include: (1) <span class="hl-concept">RichHF-18K</span>, the first rich human feedback dataset on generated images, consisting of <span class="hl-method">fine-grained scores, implausibility/misalignment image regions, and misalignment keywords</span> on <span class="hl-evidence">18K Pick-a-Pic images</span>; (2) a <span class="hl-concept">multimodal Transformer model (RAHF)</span> to predict rich feedback, <span class="hl-evidence">highly correlated with human annotations on the test set</span>; (3) demonstrating usefulness through <span class="hl-method">inpainting and finetuning</span>; and (4) showing that <span class="hl-thesis">improvements generalize to the Muse model</span>, which differs from the models that generated the training images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一套細粒度、多面向的評估資料集與模型，具備可解釋性與可歸因性（例如歸因至含有偽影／不合理性或影像-文字不一致的區域），提供比單一標量分數更豐富的影像品質理解。主要貢獻包括：(1) RichHF-18K，首個針對生成影像的豐富人類回饋資料集，包含細粒度評分、不合理性／不一致影像區域與不一致關鍵詞，涵蓋 18K 張 Pick-a-Pic 影像；(2) 多模態 Transformer 模型（RAHF），用於預測豐富回饋，與測試集上的人類標注高度相關；(3) 透過修補與微調證明其實用性；(4) 展示改善效果可泛化至架構不同的 Muse 模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——完整列舉四項核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的批判，此段扮演「轉折」角色：從「現有方法不足」轉向「本文方案」。四項貢獻恰好對應資料、模型、應用、泛化四個維度，形成完整的貢獻框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以編號列表清晰呈現貢獻是學術論文的標準做法，有效提升可讀性。第四點「泛化至 Muse」是最具說服力的貢獻——表明 RAHF 並非僅適用於其訓練資料的來源模型。但僅以一個額外模型驗證泛化性，論據稍顯薄弱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：T2I 生成模型的演進 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Text-to-image (T2I) generation models</span> have evolved through several popular model architectures in the deep learning era. An early work is the <span class="hl-concept">Generative Adversarial Network (GAN)</span>, which trains a generator for image generation and a discriminator to distinguish between real and generated images. Another category develops from <span class="hl-concept">variational auto-encoders (VAEs)</span>, which optimize <span class="hl-method">evidence lower bound (ELBO)</span> for the likelihood of the image data. Most recently, <span class="hl-concept">Diffusion Models (DMs)</span> have emerged as the state-of-the-art for image generation, trained to generate images progressively from random noise. <span class="hl-concept">Latent Diffusion Models</span> are a further refinement that performs the diffusion process in a <span class="hl-method">compact latent space</span> for more efficiency.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                文字到影像生成模型在深度學習時代歷經了數種主流模型架構的演進。早期的代表性工作是生成對抗網路（GAN），透過訓練生成器產生影像、判別器區分真實與生成影像。另一類從變分自編碼器（VAE）發展而來，最佳化影像資料概似度的證據下界（ELBO）。近期，擴散模型（DM）已成為影像生成的最先進方法，透過從隨機雜訊逐步生成影像來學習。潛在擴散模型則是進一步的改良，在緊湊的潛在空間中執行擴散過程，以提升效率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——勾勒 T2I 生成模型的架構演進脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立技術背景：GAN -> VAE -> DM -> LDM 的線性演進，為後續討論生成品質問題提供架構層面的理解基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的技術譜系建立上下文，高效且清晰。但將演進呈現為線性遞進可能過度簡化——GAN 與擴散模型在不同面向各有優勢，且 Muse 等基於 Transformer 的方法被省略，而 Muse 正是後文實驗的目標模型。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：評估與獎勵模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                There has been much recent work on <span class="hl-concept">evaluation of text-to-image models</span> along many dimensions. Xu et al. collected <span class="hl-concept">human preference datasets</span> and trained the <span class="hl-concept">ImageReward</span> model. Kirstain et al. built the <span class="hl-concept">Pick-a-Pic</span> dataset with <span class="hl-evidence">over 500K examples</span> of human preferences. Wu et al. collected large-scale human choices to train the <span class="hl-concept">Human Preference Score (HPS)</span> classifier. Despite these valuable contributions, <span class="hl-thesis">most existing works only use binary human ratings or preference ranking for construction of feedback/rewards, and lack the ability to provide detailed actionable feedback</span> such as <span class="hl-rebuttal">implausible regions of the image, misaligned regions, or misaligned keywords</span> on the generated images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期有大量針對文字到影像模型評估的研究。Xu 等人蒐集了人類偏好資料集並訓練了 ImageReward 模型。Kirstain 等人建立了包含超過 50 萬筆人類偏好範例的 Pick-a-Pic 資料集。Wu 等人蒐集大規模人類選擇來訓練人類偏好分數（HPS）分類器。儘管這些貢獻極具價值，大多數現有研究僅使用二元人類評分或偏好排序來建構回饋／獎勵，缺乏提供詳細且可操作回饋的能力，例如影像中的不合理區域、不一致區域，或生成影像上的不一致關鍵詞。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將本文放置於人類回饋評估模型的脈絡中，並指出差異化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立關鍵區隔：先肯定 ImageReward、Pick-a-Pic、HPS 的貢獻，再以「但僅用二元評分」精準切入差異化定位，為 RichHF-18K 的獨特價值建立基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「先肯定再批判」是學術論文相關工作的經典策略，既展現學術禮儀又突顯本文優勢。但「缺乏可操作回饋」的批評可能不完全公平——這些模型的設計目標本就不同（排序 vs 診斷），比較維度不一致。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 蒐集豐富人類回饋 ====== -->
+    <h2 class="section-heading" id="sec-collecting">3. Collecting Rich Human Feedback — 蒐集豐富人類回饋</h2>
+
+    <!-- 3.1 資料蒐集流程 -->
+    <h3 class="subsection-heading">3.1 Data Collection Process — 資料蒐集流程</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For each generated image, the <span class="hl-method">annotators are first asked to examine the image and read the text prompt</span> used to generate it. Then, they <span class="hl-method">mark points on the image to indicate the location of any implausibility/artifact or misalignment</span> with respect to the text prompt. The annotators are told that each marked point has an <span class="hl-method">"effective radius" (1/20 of the image height)</span>, which forms an imaginary disk centering at the marked point. In this way, a relatively small amount of points can cover the image regions with flaws. Lastly, annotators <span class="hl-method">label the misaligned keywords and the four types of scores</span> for <span class="hl-concept">plausibility, text-image alignment, aesthetic, and overall quality</span>, respectively, on a <span class="hl-method">5-point Likert scale</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於每張生成影像，標注人員首先被要求檢視影像並閱讀用於生成該影像的文字提示。接著，他們在影像上標記點位，以指出任何不合理性／偽影或與文字提示不一致的區域位置。標注人員被告知每個標記點具有一個「有效半徑」（影像高度的 1/20），形成以標記點為中心的虛擬圓盤。如此一來，相對少量的點位即可覆蓋有瑕疵的影像區域。最後，標注人員標記不一致的關鍵詞，並分別對合理性、文字-影像一致性、美學性及整體品質四類分數進行五點李克特量表評分。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法描述——詳述標注流程的三個步驟。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整個資料蒐集方法的核心：以「觀察 -> 標記區域 -> 標記關鍵詞 -> 評分」的四步流程，確保每個標注包含空間定位與語義級回饋，直接對應論文宣稱的「豐富回饋」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「有效半徑」的設計巧妙地簡化了區域標注——用點而非精確分割降低了標注成本。但 1/20 影像高度作為固定半徑，對於不同大小的缺陷區域可能過大或過小。此外，四類分數之間可能存在相關性（如合理性低通常整體品質也低），是否有冗餘資訊值得探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors designed a <span class="hl-method">web UI to facilitate data collection</span> with the following principles: (1) <span class="hl-method">convenience for annotators</span> to perform annotations ideally within a short time for an image-text pair, and (2) <span class="hl-method">allowing annotators to perform all annotations on the same UI</span>, so that the fine-grained scores are based on the annotated regions and keywords. The interface displays the image on the left and a panel on the right showing the text prompt. Annotators click the image to mark regions, then select misaligned keywords and scores on the right panel. <span class="hl-evidence">All 27 annotators were trained with detailed annotation guidelines and calibrated</span> before performing annotations, and the entire annotation process took approximately <span class="hl-evidence">3,000 rater-hours in total</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者設計了一套網頁使用者介面以促進資料蒐集，遵循以下原則：(1) 方便標注人員在短時間內完成一個影像-文字配對的標注；(2) 讓標注人員在同一介面上完成所有標注，使細粒度評分基於已標注的區域和關鍵詞。介面左側展示影像，右側面板顯示文字提示。標注人員點擊影像標記區域，再於右側面板選擇不一致關鍵詞並評分。全部 27 名標注人員在執行標注前，均接受了詳細的標注指南培訓與校準，整個標注過程總計耗費約 3,000 個評分人時。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    品質保證——描述標注工具設計與人員訓練流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    強化資料集的可信度：統一介面確保標注一致性，培訓與校準減少標注人員間的差異，3,000 人時的投入量化了資料蒐集的嚴謹程度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提供具體的標注人數（27人）和工時（3,000小時）增強了說服力。但未提及標注人員的背景（是否為電腦視覺專家或一般群眾），以及標注人員間的一致性量化指標（如 Cohen's kappa），這會影響資料品質的評估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 回饋整合 -->
+    <h3 class="subsection-heading" id="sec-consolidation">3.2 Human Feedback Consolidation — 人類回饋整合</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To improve the reliability of the collected human feedback, <span class="hl-method">each image-text pair is annotated by three annotators</span>, and the multiple annotations need to be consolidated. For the <span class="hl-method">scores, the authors simply average the scores</span> from the multiple annotators. For the <span class="hl-method">misaligned keyword annotations, majority voting</span> is performed to get the final sequence of aligned/misaligned indicators. For the <span class="hl-method">point annotations, they are first converted to heatmaps</span>, where each point is converted to a disk region on the heatmap, and then the <span class="hl-method">average heatmap across annotators</span> is computed. Regions with clear implausibility are likely to be annotated by all annotators and thus have a high value on the final average heatmap.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為提升蒐集到的人類回饋之可靠性，每個影像-文字配對由三位標注人員標注，因此需要整合多份標注。對於評分，作者直接取多位標注人員分數的平均值。對於不一致關鍵詞標注，採用多數投票來取得最終的一致／不一致指標序列。對於點位標注，先將其轉換為熱力圖——每個點位轉換為熱力圖上的圓盤區域——再計算跨標注人員的平均熱力圖。具有明顯不合理性的區域可能被所有標注人員標記，因此在最終的平均熱力圖上具有較高的數值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導——描述三種不同回饋類型的整合策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應「多標注人員一致性」的潛在質疑：分數取平均、關鍵詞多數投票、點位轉熱力圖再平均——三種整合策略分別針對連續值、離散值、空間資訊的特性量身定制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三種整合方式各適其所的設計展現了方法論的周全性。但平均與多數投票是相當基礎的整合策略——對於評分，中位數可能比平均值更穩健（不受離群值影響）；對於熱力圖，加權平均（根據標注人員的可靠度）可能更精確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 RichHF-18K 資料集 -->
+    <h3 class="subsection-heading" id="sec-dataset">3.3 RichHF-18K Dataset — 資料集描述</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors select a subset of image-text pairs from the <span class="hl-concept">Pick-a-Pic dataset</span> for data annotation. Although their method is general and applicable to any generated images, they choose the <span class="hl-method">majority of the dataset to be photo-realistic images</span> due to its importance and wider applications. To ensure <span class="hl-method">balanced categories across the images</span>, they utilized the <span class="hl-concept">PaLI visual question answering model</span> to extract basic features and sample a diverse subset. The resulting <span class="hl-concept">RichHF-18K</span> dataset consists of <span class="hl-evidence">16K training, 1K validation, and 1K test samples</span>. Score distributions are approximately Gaussian, with <span class="hl-evidence">about 25% of samples having perfect annotator agreement and approximately 85% having good agreement</span> (maximum annotator score difference of at most 1 point on the 5-point Likert scale).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者從 Pick-a-Pic 資料集中選取了一個影像-文字配對子集進行標注。雖然其方法具有通用性且適用於任何生成影像，但選擇以寫實風格影像為主體，考量其重要性與更廣泛的應用場景。為確保影像類別的均衡分布，利用 PaLI 視覺問答模型抽取基本特徵並取樣出多樣化的子集。最終的 RichHF-18K 資料集包含 16K 訓練、1K 驗證與 1K 測試樣本。評分分布近似高斯分布，約 25% 的樣本具有完美的標注人員一致性，約 85% 具有良好一致性（標注人員間最大分數差距在五點量表中不超過 1 分）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料集描述——量化 RichHF-18K 的規模、分割與品質指標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續模型訓練與實驗提供資料基礎的背書：85% 良好一致性的數據強化了資料集的可信度，16K/1K/1K 的分割確保了足夠的訓練資料與可靠的評估。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 PaLI 進行類別平衡取樣是周到的設計，避免了資料偏斜。但 85% 一致性的報告方式（最大差距 &le; 1）相當寬鬆——在五點量表中差 1 分已代表顯著不同的評價。此外，僅使用 Pick-a-Pic（Stable Diffusion）來源可能限制模型的泛化能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 預測豐富人類回饋 ====== -->
+    <h2 class="section-heading" id="sec-predicting">4. Predicting Rich Human Feedback — 預測豐富人類回饋</h2>
+
+    <!-- 4.1 模型架構 -->
+    <h3 class="subsection-heading" id="sec-architecture">4.1 Model Architecture — 模型架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The architecture adopts a <span class="hl-concept">vision-language model</span> based on <span class="hl-concept">ViT</span> and <span class="hl-concept">T5X</span> models, inspired by the <span class="hl-concept">Spotlight</span> architecture but modifying both the model and pretraining datasets. The <span class="hl-method">ViT takes the generated image as input and outputs image tokens</span> as high-level representations. The text prompt tokens are embedded into dense vectors. The <span class="hl-method">image tokens and embedded text tokens are concatenated and encoded by the Transformer self-attention encoder in T5X</span>. This uses a <span class="hl-method">self-attention module among the concatenated image tokens and text tokens</span>, similar to PaLI, as the tasks require <span class="hl-thesis">bidirectional information propagation</span> — text information propagates to image tokens for misalignment heatmap prediction, while vision information propagates to text tokens for vision-aware text encoding.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模型架構採用基於 ViT 與 T5X 的視覺-語言模型，受 Spotlight 架構啟發但修改了模型與預訓練資料集。ViT 將生成影像作為輸入並輸出影像 token 作為高階表示。文字提示 token 被嵌入為密集向量。影像 token 與嵌入的文字 token 被串接後由 T5X 中的 Transformer 自注意力編碼器編碼。此處使用串接影像與文字 token 的自注意力模組，類似 PaLI，因任務需要雙向資訊傳播——文字資訊傳播至影像 token 以預測不一致熱力圖，視覺資訊傳播至文字 token 以產生具視覺感知的文字編碼。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導——描述 RAHF 的核心多模態 Transformer 架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是技術方案的基礎：ViT+T5X 的選擇建立在成熟的預訓練模型之上，「雙向資訊傳播」的設計直接服務於兩類預測任務（影像區域定位需文字資訊、關鍵詞預測需視覺資訊），展現了架構與任務的良好匹配。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 PaLI 架構為類比降低了讀者的認知負擔。但「受 Spotlight 啟發」的表述模糊——具體修改了什麼、為什麼修改，未在此段充分說明。此外，全自注意力的計算成本隨序列長度平方增長，對高解析度影像的可擴展性存疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On top of the encoded fused text and image tokens, <span class="hl-method">three kinds of predictors</span> are used. For <span class="hl-concept">heatmap prediction</span>, the image tokens are reshaped into a feature map and sent through <span class="hl-method">convolution layers, deconvolution layers, and sigmoid activation</span>, outputting implausibility and misalignment heatmaps. For <span class="hl-concept">score prediction</span>, the feature map is sent through <span class="hl-method">convolution layers, linear layers, and sigmoid activation</span>, resulting in scalars as fine-grained scores. For <span class="hl-concept">keyword misalignment sequence prediction</span>, the original prompt is used as text input and a <span class="hl-method">modified prompt with a special suffix ("_0") for each misaligned token</span> is used as the prediction target for the T5X decoder. The authors explore two model variants: a <span class="hl-method">multi-head version</span> with seven separate prediction heads, and an <span class="hl-method">augmented prompt version</span> that uses a single head per prediction type with task-specific prompt augmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在編碼融合後的文字與影像 token 之上，使用三種預測器。對於熱力圖預測，影像 token 被重塑為特徵圖並經過摺積層、反摺積層與 sigmoid 激活函數，輸出不合理性與不一致熱力圖。對於評分預測，特徵圖經過摺積層、線性層與 sigmoid 激活函數，產生作為細粒度評分的純量值。對於關鍵詞不一致序列預測，原始提示作為文字輸入，而對每個不一致 token 加上特殊後綴（"_0"）的修改提示作為 T5X 解碼器的預測目標。作者探索了兩種模型變體：一種是具有七個獨立預測頭的多頭版本，另一種是使用每種預測類型單一頭搭配任務特定提示增強的增強提示版本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——描述三種預測頭的設計與兩種模型變體。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將高層架構具體化為三個可操作的預測模組，並透過兩種變體的對比暗示後續將以實驗比較哪種更優。「_0」後綴的巧妙設計將序列標注問題轉化為序列到序列生成問題，善用了 T5X 的生成能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    增強提示版本的設計特別有趣——透過在輸入中加入任務描述，讓單一頭適應多種任務，這與近期 prompt engineering 的趨勢相呼應。但「_0」後綴的序列預測方式要求模型精確複製輸入提示並僅在不一致處加後綴，這對解碼器的精確度要求極高，可能導致累積誤差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The model is trained with a <span class="hl-method">pixel-wise mean squared error (MSE) loss for heatmap prediction</span>, and <span class="hl-method">MSE loss for score prediction</span>. For misalignment sequence prediction, the model is trained with <span class="hl-method">teacher-forcing cross-entropy loss</span>. The <span class="hl-method">final loss function is the weighted combination</span> of the heatmap MSE loss, score MSE loss, and the sequence teacher-forcing cross-entropy loss. To pretrain the model on more diverse images, the authors add the <span class="hl-method">natural image captioning task on the WebLI dataset</span> to the pretraining task mixture. The model uses <span class="hl-evidence">ViT B16 (16x16 patch size) as the vision encoder and T5 base (12 layers) as the text encoder</span>, trained with <span class="hl-evidence">batch size 256 for 20K iterations using AdamW optimizer with learning rate 0.015</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模型以逐像素均方誤差（MSE）損失訓練熱力圖預測，以 MSE 損失訓練評分預測。對於不一致序列預測，模型以教師強制交叉熵損失進行訓練。最終損失函數是熱力圖 MSE 損失、評分 MSE 損失與序列教師強制交叉熵損失的加權組合。為在更多樣的影像上預訓練模型，作者將 WebLI 資料集上的自然影像描述任務加入預訓練任務混合中。模型使用 ViT B16（16x16 分塊大小）作為視覺編碼器、T5 base（12 層）作為文字編碼器，以批次大小 256 訓練 20K 次迭代，使用 AdamW 最佳化器，學習率 0.015。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練細節——詳述損失函數設計與超參數設定。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    提供可復現性資訊：三種損失的加權組合反映了多任務學習的權衡，WebLI 預訓練增加了模型對一般影像的理解能力，具體的超參數確保研究可復現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    WebLI 預訓練是提升泛化能力的關鍵設計——讓模型不僅理解生成影像，也理解自然影像。但損失函數的加權比例未在此段明確，而此比例對多任務學習至關重要——不同權重可能導致某些任務的預測品質優於其他任務。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4.2 實驗 -->
+    <h3 class="subsection-heading" id="sec-experiments">4.2 Experiments — 實驗</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The model is trained on the <span class="hl-evidence">16K RichHF-18K training samples</span>, with hyperparameters tuned on the <span class="hl-evidence">1K validation set</span>. For score prediction tasks, the authors report <span class="hl-method">Pearson linear correlation coefficient (PLCC) and Spearman rank correlation coefficient (SRCC)</span>. For heatmap prediction, standard saliency metrics like <span class="hl-method">NSS/KLD/AUC-Judd/SIM/CC</span> are used for non-empty ground truth samples, while <span class="hl-method">MSE is reported on all samples</span>. For misaligned keyword sequence prediction, <span class="hl-method">token-level precision, recall, and F1-score</span> are adopted. Baselines include <span class="hl-concept">finetuned ResNet-50</span> models for scores and heatmaps, <span class="hl-concept">CLIP score</span> for text-image alignment, and <span class="hl-concept">CLIP gradient map</span> for misalignment heatmap prediction.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模型在 16K 的 RichHF-18K 訓練樣本上訓練，超參數在 1K 驗證集上調整。對於評分預測任務，作者報告皮爾森線性相關係數（PLCC）與斯皮爾曼等級相關係數（SRCC）。對於熱力圖預測，在非空真值樣本上使用標準顯著性指標如 NSS/KLD/AUC-Judd/SIM/CC，同時在所有樣本上報告 MSE。對於不一致關鍵詞序列預測，採用 token 級別的精確率、召回率與 F1 分數。基線方法包括微調的 ResNet-50 模型（用於評分與熱力圖）、CLIP 分數（用於文字-影像一致性），以及 CLIP 梯度圖（用於不一致熱力圖預測）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定——詳述評估指標與基線方法的選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續的定量比較建立公正的評估框架：多種指標覆蓋不同面向（相關性、空間精度、序列準確度），基線選擇涵蓋傳統 CNN 與 CLIP 等主流方法，確保比較的全面性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對空真值與非空真值分開報告是細緻的做法——承認並處理了「無缺陷影像」的特殊情況。但基線選擇相對薄弱——ResNet-50 並非當前最先進的視覺模型，若加入 ViT 基線或其他多模態模型的比較，結論會更有說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For score prediction, <span class="hl-evidence">the two variants of the proposed model both significantly outperform ResNet-50</span> (or CLIP for text-image alignment score), with the augmented prompt version achieving <span class="hl-evidence">PLCC of 0.693 for plausibility, 0.600 for aesthetics, 0.474 for text-image alignment, and 0.580 for overall score</span>. For implausibility heatmaps, the <span class="hl-evidence">multi-head version performs worse than ResNet-50, but the augmented prompt version outperforms ResNet-50</span> with <span class="hl-evidence">MSE of 0.00920 and CC of 0.556</span>. The main reason is that in the multi-head version, <span class="hl-rebuttal">without augmenting the prediction task in the prompt, the same prompt is used for all seven prediction tasks, and hence the feature maps will be the same for all tasks</span>, making it difficult to find a good tradeoff. After augmenting the prompt, the feature map can be adapted to each particular task with better results.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在評分預測方面，所提模型的兩種變體均顯著優於 ResNet-50（或文字-影像一致性評分的 CLIP 基線），其中增強提示版本在合理性方面達到 PLCC 0.693、美學性 0.600、文字-影像一致性 0.474、整體評分 0.580。在不合理性熱力圖方面，多頭版本表現不如 ResNet-50，但增強提示版本超越了 ResNet-50，MSE 為 0.00920、CC 為 0.556。主要原因在於多頭版本中，未在提示中增強預測任務時，所有七項預測任務使用相同的提示，因此特徵圖對所有任務相同，難以找到良好的權衡。在增強提示後，特徵圖可針對每項特定任務調適，取得更好的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供定量證據——報告核心實驗結果並分析模型變體的差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是實證支柱：以具體數值證明 RAHF 優於基線，同時透過多頭 vs 增強提示的比較揭示了「任務特定特徵適應」的重要性。多頭版本的失敗反而成為增強提示設計合理性的間接證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦誠報告多頭版本在某些任務上不如 ResNet-50 的結果，反而增強了整體可信度——展現了科學誠實。但 PLCC 0.474 的文字-影像一致性預測相對較低，暗示此任務的主觀性與困難度更高。作者以此為動機深入分析原因，而非迴避。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Additionally, <span class="hl-evidence">misalignment heatmap prediction generally has worse results than artifact/implausibility heatmap prediction</span>, possibly because <span class="hl-rebuttal">misalignment regions are less well-defined, and the annotations may therefore be noisier</span>. It is somewhat ambiguous how to label some misalignment cases such as absent objects on the image. The authors note this as a known limitation and <span class="hl-rebuttal">improving the misalignment label quality is one of the future directions</span>. Overall, the experiments demonstrate that the RAHF model, particularly the augmented prompt variant, can <span class="hl-thesis">effectively predict rich human feedback annotations that are highly correlated with actual human judgments</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此外，不一致熱力圖預測的結果普遍不如偽影／不合理性熱力圖預測，可能因為不一致區域的定義不夠明確，標注因此可能更具雜訊。對於某些不一致情況（如影像中缺少的物件），如何標記存在一定模糊性。作者將此視為已知限制，並將改善不一致標記品質列為未來研究方向之一。整體而言，實驗證明 RAHF 模型——特別是增強提示變體——能有效預測與實際人類判斷高度相關的豐富人類回饋標注。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    限制承認與展望——坦陳不一致預測的困難並指出改進方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在論證鏈中扮演「讓步」角色：承認不一致熱力圖的預測品質較低，但將其歸因於標注本身的模糊性（而非模型能力不足），同時以未來方向的方式化解此弱點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將較差的結果歸因於「標注雜訊」而非「模型不足」是一種常見的歸因策略。雖然可能屬實（「缺少的物件」確實難以定位），但也可能是模型架構對此類任務的適配性不佳。客觀而言，兩種因素可能同時存在。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 從回饋中學習 ====== -->
+    <h2 class="section-heading" id="sec-learning">5. Learning from Rich Human Feedback — 從豐富人類回饋中學習</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To ensure that gains from the RAHF model <span class="hl-thesis">generalize across generative model families</span>, the authors use <span class="hl-concept">Muse</span> as their target model to improve, which is based on a <span class="hl-concept">masked transformer architecture</span> and thus different from the Stable Diffusion model variants in the RichHF-18K dataset. First, they <span class="hl-method">generate eight images for each of 12,564 prompts</span> using the pre-trained Muse model. They <span class="hl-method">predict RAHF scores for each image, and if the highest score exceeds a fixed threshold, it is selected as part of the finetuning dataset</span>. The Muse model is then finetuned with this selected dataset. This approach could be viewed as a <span class="hl-concept">simplified version of Direct Preference Optimization</span>. Human evaluation shows that <span class="hl-evidence">the finetuned Muse with RAHF plausibility scores produces significantly fewer artifacts than the original Muse, with 51.83% of examples rated as significantly or slightly better</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為確保 RAHF 模型的增益能跨生成模型家族泛化，作者選擇 Muse 作為改進的目標模型——Muse 基於遮罩 Transformer 架構，因此與 RichHF-18K 資料集中的 Stable Diffusion 模型變體截然不同。首先，使用預訓練 Muse 模型為 12,564 個提示各生成八張影像。接著預測每張影像的 RAHF 評分，若某提示下最高分超過固定閾值，則該影像被選入微調資料集。隨後以此篩選資料集微調 Muse 模型。此方法可視為直接偏好最佳化的簡化版本。人類評估顯示，以 RAHF 合理性評分微調的 Muse 所產生的偽影顯著減少，有 51.83% 的範例被評為顯著或略微優於原始模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用驗證——展示 RAHF 預測分數如何透過資料篩選改善生成品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的高潮：以 Muse（與訓練資料來源模型截然不同的架構）作為驗證平台，直接回應「泛化能力」的核心承諾。51.83% 的改善率為整個豐富回饋框架提供了最有力的實用價值證明。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇架構差異最大的 Muse（遮罩 Transformer vs 擴散模型）進行驗證是極佳的實驗設計策略。但 51.83% 的數字需謹慎解讀——若將「略微較好」從中剔除，「顯著較好」的比例可能大幅下降。此外，資料篩選本質上是選擇性偏差，僅展示最佳結果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors further demonstrate that predicted heatmaps and scores can be used to perform <span class="hl-concept">region inpainting</span> to improve image quality. For each image, they <span class="hl-method">first predict implausibility heatmaps, then create a mask by processing the heatmap using thresholding and dilating</span>. <span class="hl-concept">Muse inpainting</span> is applied within the masked region to generate new content matching the text prompt. <span class="hl-method">Multiple images are generated, and the final image is chosen by the highest predicted plausibility score</span>. The results show that <span class="hl-evidence">more plausible images with fewer artifacts are generated after inpainting</span>, demonstrating that RAHF generalizes well to images from a generative model very different from the ones whose images are used to train RAHF. The authors also demonstrate using the <span class="hl-method">RAHF aesthetic score as Classifier Guidance</span> to the Latent Diffusion model, showing that each fine-grained score can improve different aspects of generation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者進一步展示預測的熱力圖與評分可用於執行區域修補以提升影像品質。對於每張影像，先預測不合理性熱力圖，再透過閾值處理與膨脹操作建立遮罩。在遮罩區域內套用 Muse 修補以生成符合文字提示的新內容。生成多張影像後，以最高預測合理性評分選擇最終影像。結果顯示修補後能生成更合理、偽影更少的影像，證明 RAHF 能良好泛化至與訓練影像來源截然不同的生成模型所產生的影像。作者還展示了以 RAHF 美學評分作為潛在擴散模型的分類器引導，證明每種細粒度評分都能改善生成的不同面向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用延伸——展示熱力圖驅動修補與分類器引導的兩種應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段擴展了豐富回饋的實用範圍：不僅評分可用於資料篩選（上段），熱力圖可用於精準修補，美學評分可用於生成引導。三種應用分別展示了不同回饋維度的價值，完整回應了「豐富回饋比標量分數更有用」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    修補流程中「生成多張、選最佳」的策略有效但計算昂貴——需要多次推理。此外，修補本身可能引入與原圖風格不一致的區域。分類器引導的展示僅為概念驗證，缺乏與其他引導方法的定量比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, the authors contributed <span class="hl-concept">RichHF-18K</span>, <span class="hl-thesis">the first rich human feedback dataset for image generation</span>. They designed and trained a <span class="hl-concept">multimodal Transformer (RAHF)</span> to predict rich human feedback, and demonstrated several ways to <span class="hl-thesis">improve image generation with rich human feedback</span>. While some results are quite exciting and promising, there are several limitations. First, <span class="hl-rebuttal">the model performance on the misalignment heatmap is worse than on the implausibility heatmaps</span>, possibly due to annotation noise. Second, <span class="hl-rebuttal">it would be helpful to collect more data on generative models beyond Pick-a-Pic</span> (Stable Diffusion). Moreover, while three promising leveraging approaches are presented, there is <span class="hl-rebuttal">a myriad of other ways to utilize rich human feedback</span> that can be explored, such as using predicted heatmaps as reward signals for reinforcement learning or as weighting maps during training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究貢獻了 RichHF-18K——首個針對影像生成的豐富人類回饋資料集。作者設計並訓練了多模態 Transformer（RAHF）來預測豐富的人類回饋，並展示了多種利用豐富人類回饋來改善影像生成的方式。儘管部分結果令人振奮且前景可期，仍存在若干限制。首先，模型在不一致熱力圖上的表現不如不合理性熱力圖，可能歸因於標注雜訊。其次，蒐集 Pick-a-Pic（Stable Diffusion）以外的更多生成模型資料將有助益。此外，雖然呈現了三種有前景的應用方式，但豐富人類回饋的利用方式仍有大量待探索的可能性，例如將預測的熱力圖作為強化學習的獎勵訊號，或在訓練時作為加權圖。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻、坦陳限制並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應緒論的結構，從貢獻回到未來展望，形成完整的論證閉環。三項限制的坦誠陳述增強了論文的可信度，而「大量待探索的可能性」暗示此研究方向的廣闊前景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論的平衡性良好——既不過度宣稱也不過度貶抑。將限制重新框架為「未來方向」是標準的學術修辭，但第一項限制（不一致熱力圖品質）是較根本的問題，可能影響整個框架對文字-影像對齊問題的實用性。強化學習與加權圖的未來方向暗示了與 RLHF 主流研究的潛在深度整合。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                T2I 生成影像品質缺陷<br>（偽影、不一致、低美學）
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                豐富的區域級與詞彙級<br>人類回饋優於標量評分
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                RichHF-18K 資料集<br>RAHF 模型預測高度相關
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                不一致標注雜訊高<br>但改善方向明確
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                豐富回饋可泛化<br>改善不同架構的 T2I 模型
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過蒐集並自動預測區域級偽影定位、詞彙級不一致標記與多維度細粒度評分的豐富人類回饋，可以超越傳統標量評分的侷限，為文字到影像生成模型提供可解釋、可歸因且可操作的品質改善方向。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>跨模型家族的泛化驗證：</strong>以架構截然不同的 Muse（遮罩 Transformer）作為改善目標，而非僅在訓練資料的來源模型（Stable Diffusion）上驗證，令人信服地證明 RAHF 的預測回饋具有模型無關的實用價值。增強提示版本的設計洞察——透過任務特定提示讓單一預測頭適應多種任務——展現了對多任務學習的深刻理解。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>不一致熱力圖的預測品質與資料來源單一性：</strong>文字-影像不一致的區域定位預測顯著弱於偽影定位，而這恰恰是「豐富回饋」區別於既有方法的核心差異化特徵之一。此外，整個資料集僅來源於 Pick-a-Pic（Stable Diffusion 系列），可能使模型對其他生成模型的偽影模式理解不足，雖然 Muse 實驗部分緩解了此疑慮，但僅一個額外模型的驗證仍顯不足。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>
