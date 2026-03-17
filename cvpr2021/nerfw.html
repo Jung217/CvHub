@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeRF in the Wild: Neural Radiance Fields for Unconstrained Photo Collections — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                NeRF in the Wild: Neural Radiance Fields for Unconstrained Photo Collections
+                <span class="course-tag">CVPR 2021</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2008.02268" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-appearance">3.2 外觀建模</a>
+        <a href="#sec-transient">3.3 瞬態物件</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Neural Radiance Fields (NeRF)</span> can be used to reconstruct scenes using photos taken under <span class="hl-rebuttal">controlled settings</span>. However, <span class="hl-rebuttal">"applying NeRF to casually captured images or Internet photo collections remains challenging"</span> due to <span class="hl-concept">variable illumination</span> and <span class="hl-concept">transient occluders</span> (e.g., tourists, vehicles). The authors introduce <span class="hl-concept">NeRF-W</span>, which extends NeRF by <span class="hl-method">modeling per-image appearance variations</span> and <span class="hl-method">separately modeling transient phenomena</span>. This enables <span class="hl-thesis">accurate 3D reconstruction from unstructured, in-the-wild photo collections</span>, such as Internet photos of famous landmarks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                神經輻射場（NeRF）能從受控環境下拍攝的照片重建場景。然而，將 NeRF 應用於隨意拍攝的影像或網路照片集合仍具挑戰性，原因在於變異的光照條件與瞬態遮擋物（如遊客、車輛）。作者提出 NeRF-W，透過建模逐影像的外觀變化與單獨建模瞬態現象來擴展 NeRF。這使得從非結構化的野外照片集合（如著名地標的網路照片）進行精確三維重建成為可能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從 NeRF 的限制出發，引出 NeRF-W 的兩項核心擴展。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「理想 vs. 現實」的對比建構動機：NeRF 在受控環境下表現優異，但真實世界的照片不受控制。NeRF-W 的兩項擴展精準對應兩個現實挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體例子（遊客、車輛、地標照片）使抽象的技術問題變得直觀。但「精確三維重建」的量化標準在摘要中未明確，需待實驗章節驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">NeRF</span> achieves remarkable <span class="hl-evidence">novel view synthesis quality</span> by representing a scene as a <span class="hl-method">continuous 5D function (3D position + 2D viewing direction) mapped to density and color via an MLP</span>. However, the original formulation assumes that <span class="hl-rebuttal">"the scene is static and captured under consistent lighting conditions."</span> Real-world photo collections, such as those found on <span class="hl-evidence">Flickr or Google Images for tourist landmarks</span>, violate these assumptions: photos are taken at <span class="hl-rebuttal">different times of day, seasons, and weather conditions</span>, and commonly contain <span class="hl-rebuttal">transient objects that are not part of the permanent scene structure</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                NeRF 透過將場景表示為一個連續的五維函數（三維位置加二維觀看方向），經 MLP 映射至密度與顏色，達到卓越的新視角合成品質。然而，原始公式假設場景是靜態的且在一致的光照條件下拍攝。真實世界的照片集合（如 Flickr 或 Google 圖片上的旅遊地標照片）違反了這些假設：照片在不同的時段、季節和天氣條件下拍攝，且通常包含不屬於永久場景結構的瞬態物件。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——闡明 NeRF 的核心假設及其在真實世界中的失效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定 NeRF 的能力，再系統性地列舉其「靜態」與「一致光照」假設在實際中的不成立，為擴展方案製造必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以常見的使用場景（旅遊照片）作為動機，使問題具有廣泛的實際相關性。但「不同時段、季節」的變異範圍極大，單一方法是否能涵蓋所有情況值得懷疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有方法的不足 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Traditional <span class="hl-concept">structure-from-motion (SfM)</span> and <span class="hl-concept">multi-view stereo (MVS)</span> pipelines can handle some appearance variation through <span class="hl-method">feature matching invariance</span>, but their reconstructions are often <span class="hl-rebuttal">"incomplete, noisy, and cannot render photorealistic novel views."</span> Simply applying NeRF to such collections results in <span class="hl-rebuttal">"blurry, artifact-laden renderings"</span> as the network attempts to <span class="hl-rebuttal">average over inconsistent observations</span>. The authors argue that the solution requires <span class="hl-thesis">explicitly modeling the factors that cause inter-image variation rather than treating them as noise</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統的運動恢復結構（SfM）與多視圖立體（MVS）管線能透過特徵匹配的不變性處理部分外觀變化，但其重建結果通常是不完整的、含雜訊的，且無法渲染逼真的新視角。直接將 NeRF 應用於此類集合會產生模糊且充滿偽影的渲染結果，因為網路試圖對不一致的觀測進行平均。作者主張，解決方案需要顯式建模導致影像間變異的因素，而非將其視為雜訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判現有方法——指出 SfM/MVS 和原始 NeRF 在野外場景的失敗模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題-解決方案」中的問題深化：「模糊」和「偽影」是直觀且嚴重的失敗，使得擴展 NeRF 的需求變得無可否認。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「顯式建模變異因素」的主張暗示了因果性理解的重要性，這是比暴力擬合更深層的方法論立場。但這也意味著需要正確識別所有變異因素——若遺漏某些因素（如鏡頭畸變差異），方法仍可能失效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior work on <span class="hl-concept">3D reconstruction from Internet photos</span> includes landmark-scale SfM systems that recover <span class="hl-evidence">camera poses and sparse point clouds from thousands of photos</span>. <span class="hl-concept">Appearance modeling</span> in multi-view reconstruction has been explored through <span class="hl-method">per-image affine color transforms</span> and <span class="hl-method">learned appearance embeddings</span>. For <span class="hl-concept">transient object handling</span>, some methods use <span class="hl-method">semantic segmentation to mask out people</span>, but this requires <span class="hl-rebuttal">pre-trained detectors and cannot handle all types of transient phenomena</span>. <span class="hl-concept">NeRF</span> and its concurrent extensions focus on <span class="hl-rebuttal">controlled capture settings</span>, leaving the in-the-wild scenario largely unaddressed.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前關於從網路照片進行三維重建的研究，包括能從數千張照片中恢復攝影機姿態與稀疏點雲的地標級 SfM 系統。多視圖重建中的外觀建模已透過逐影像仿射色彩變換與學習式外觀嵌入加以探索。在瞬態物件處理方面，部分方法使用語義分割來遮罩行人，但這需要預訓練的偵測器且無法處理所有類型的瞬態現象。NeRF 及其同期擴展聚焦於受控拍攝環境，使野外場景在很大程度上未被解決。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——涵蓋 SfM、外觀建模與瞬態處理三個面向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為 NeRF-W 的兩項創新（外觀嵌入+瞬態模型）分別在文獻中找到前身，展示方法的學術根基，同時指出整合缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將外觀建模與瞬態處理作為兩條獨立的研究線來回顧，使 NeRF-W 的「整合」貢獻顯得自然。但 NeRF-W 的外觀嵌入本質上是「學習式仿射變換」的推廣，創新幅度可能不如論述所暗示。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Background: NeRF</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The original <span class="hl-concept">NeRF</span> represents a static scene as a function <span class="hl-method">F: (x, d) -> (c, sigma)</span> mapping a 3D position x and viewing direction d to an RGB color c and volume density sigma. Novel views are synthesized via <span class="hl-method">classical volume rendering</span>: integrating color weighted by accumulated transmittance along camera rays. The model is trained by <span class="hl-method">minimizing the photometric loss between rendered and observed pixel colors</span>. This formulation implicitly assumes that <span class="hl-rebuttal">each 3D point has a single, fixed appearance regardless of when or how it was photographed</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                原始 NeRF 將靜態場景表示為函數 F: (x, d) -> (c, sigma)，將三維位置 x 與觀看方向 d 映射至 RGB 顏色 c 與體積密度 sigma。新視角透過經典的體積渲染合成：沿攝影機光線積分以累積透射率加權的顏色。模型透過最小化渲染像素與觀測像素顏色之間的光度損失進行訓練。此公式隱含假設每個三維點具有單一且固定的外觀，不論拍攝時間或方式為何。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    背景知識——簡潔回顧 NeRF 的核心公式與隱含假設。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續的擴展提供技術基礎：必須先理解原始公式的限制（固定外觀假設），才能理解為何需要引入外觀嵌入。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以數學符號精確定義假設，使後續修改的動機和位置一目了然。將假設明確化（「單一固定外觀」）是學術寫作的良好範式。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 外觀建模 ====== -->
+    <h3 class="subsection-heading" id="sec-appearance">3.2 Appearance Modeling — 外觀建模</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To handle <span class="hl-concept">variable illumination</span>, the authors introduce a <span class="hl-method">per-image appearance embedding vector l_i</span> that is <span class="hl-method">optimized jointly with the network parameters</span>. The NeRF function becomes <span class="hl-method">F: (x, d, l_i) -> (c_i, sigma)</span>, where the color output now depends on which image is being rendered. The density sigma remains <span class="hl-thesis">shared across all images</span>, ensuring that <span class="hl-thesis">"the underlying geometry is consistent while allowing photometric variation."</span> This models phenomena such as <span class="hl-evidence">different times of day, seasonal changes, and varying camera white balance settings</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為處理變異的光照條件，作者引入逐影像的外觀嵌入向量 l_i，與網路參數聯合最佳化。NeRF 函數變為 F: (x, d, l_i) -> (c_i, sigma)，其中顏色輸出現在取決於正在渲染的是哪張影像。密度 sigma 在所有影像間保持共享，確保底層幾何一致的同時允許光度變化。此設計可建模不同時段、季節變化與相機白平衡設定差異等現象。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心擴展之一——描述如何透過外觀嵌入處理光照變異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應緒論提出的第一個挑戰（變異光照）。「幾何共享、外觀分離」的設計原則體現了因果性思維：光照改變外觀但不改變幾何。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    密度不隨外觀嵌入變化的設計假設了光照不影響幾何——這在大多數情況下成立，但在極端光照下（如強烈陰影導致的視覺深度誤判），此假設可能不夠精確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 瞬態物件 ====== -->
+    <h3 class="subsection-heading" id="sec-transient">3.3 Transient Object Modeling — 瞬態物件建模</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">transient occluders</span>, the authors add a <span class="hl-method">separate transient head</span> that predicts <span class="hl-method">per-image transient color and density</span>: <span class="hl-method">F_tau: (x, l_tau_i) -> (c_tau, sigma_tau, beta)</span>. The transient density sigma_tau is <span class="hl-method">image-specific and not shared across views</span>, reflecting that transient objects appear in specific images only. An <span class="hl-method">uncertainty output beta</span> is used to <span class="hl-method">down-weight the loss for pixels containing transient objects</span>. The total rendered color combines <span class="hl-method">static and transient components</span>, and the loss applies <span class="hl-method">per-pixel heteroscedastic uncertainty weighting</span> plus a <span class="hl-method">regularizer that encourages zero transient density</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                針對瞬態遮擋物，作者新增一個獨立的瞬態預測頭，預測逐影像的瞬態顏色與密度：F_tau: (x, l_tau_i) -> (c_tau, sigma_tau, beta)。瞬態密度 sigma_tau 是影像特定的且不跨視角共享，反映了瞬態物件僅出現在特定影像中。一個不確定性輸出 beta 用於降低包含瞬態物件之像素的損失權重。總渲染顏色結合靜態與瞬態分量，損失函數套用逐像素的異方差不確定性加權，加上鼓勵瞬態密度歸零的正則化項。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心擴展之二——描述如何透過獨立的瞬態模型處理遮擋物。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應緒論的第二個挑戰（瞬態遮擋）。「靜態+瞬態」的分離策略與外觀建模的「幾何+外觀」分離形成方法論上的一致性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    不確定性加權是一個優雅的自監督策略——模型自行學習哪些像素包含瞬態物件。但正則化項的強度需要調參，且「鼓勵歸零」可能導致模型低估真實瞬態密度，在瞬態物件密集的影像中表現下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments are conducted on the <span class="hl-evidence">Phototourism dataset</span>, which contains <span class="hl-evidence">Internet photo collections of landmarks including the Brandenburg Gate, the Sacre Coeur, and the Trevi Fountain</span>. NeRF-W is compared against <span class="hl-evidence">original NeRF, NeRF with appearance embedding only, and traditional MVS methods</span>. Results show that NeRF-W <span class="hl-evidence">significantly outperforms baseline NeRF in PSNR, SSIM, and LPIPS metrics</span>. The <span class="hl-evidence">appearance embeddings successfully capture lighting variations</span> — interpolating between embeddings produces smooth transitions between day and night appearances. <span class="hl-evidence">The transient model correctly identifies and down-weights tourists, scaffolding, and other temporary objects</span>. Ablation studies confirm that <span class="hl-rebuttal">both appearance and transient modeling are necessary for optimal results</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗在 Phototourism 資料集上進行，該資料集包含布蘭登堡門、聖心堂與特雷維噴泉等地標的網路照片集合。NeRF-W 與原始 NeRF、僅含外觀嵌入的 NeRF 及傳統 MVS 方法進行比較。結果顯示 NeRF-W 在 PSNR、SSIM 與 LPIPS 指標上顯著優於基線 NeRF。外觀嵌入成功捕捉了光照變化——在嵌入之間進行內插可產生日間與夜間外觀之間的平滑過渡。瞬態模型正確識別並降低了遊客、鷹架及其他臨時物件的權重。消融研究確認外觀建模與瞬態建模均為達到最佳結果所必需。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面實驗驗證——在真實世界地標資料集上展示方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱覆蓋四個維度：(1) 定量指標的改善；(2) 外觀嵌入的定性驗證（日夜內插）；(3) 瞬態模型的語義正確性；(4) 消融研究確認各組件必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用著名地標作為測試場景非常明智——讀者對這些場景有直觀認知，使結果易於評判。但 Phototourism 的場景多為大型戶外建築，對於室內場景或小型物件的泛化性未被驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">NeRF-W</span> extends neural radiance fields to handle <span class="hl-thesis">unconstrained photo collections</span> by introducing <span class="hl-method">per-image appearance embeddings</span> for photometric variation and a <span class="hl-method">transient object model</span> with uncertainty-based loss weighting. The method enables <span class="hl-thesis">high-quality 3D reconstruction and novel view synthesis from Internet photo collections</span>, a setting previously inaccessible to neural rendering methods. The <span class="hl-method">learned appearance and transient decomposition</span> also opens possibilities for <span class="hl-thesis">appearance editing and scene cleaning applications</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                NeRF-W 透過引入處理光度變化的逐影像外觀嵌入，以及基於不確定性損失加權的瞬態物件模型，將神經輻射場擴展至處理非約束照片集合。該方法實現了從網路照片集合進行高品質三維重建與新視角合成——這是先前神經渲染方法無法觸及的場景。所學習到的外觀與瞬態分解也為外觀編輯與場景清理應用開啟了可能性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並暗示應用前景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要，完成論證閉環。「外觀編輯與場景清理」的應用展望超越了純技術貢獻，暗示方法的更廣泛影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論簡潔有力，但未討論局限性——如訓練時間、記憶體需求、對 SfM 姿態估計品質的依賴等。對於一個實際應用導向的工作，部署限制的討論是重要的遺漏。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                NeRF 無法處理<br>野外照片集合
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                顯式建模外觀變異<br>與瞬態物件
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                Phototourism 資料集<br>PSNR/SSIM 顯著提升
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                不確定性加權<br>自動識別瞬態區域
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                網路照片可實現<br>高品質三維重建
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過為神經輻射場引入逐影像的外觀嵌入與具備不確定性估計的瞬態物件模型，非結構化的網路照片集合可被用於高品質的三維場景重建與新視角合成。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>問題分解的清晰性：</strong>將「野外照片」的挑戰精確分解為「外觀變異」與「瞬態遮擋」兩個獨立問題，並以對應的技術手段逐一解決。不確定性加權的自監督機制尤為優雅——模型無需任何瞬態物件的標註即可學會識別與忽略它們。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>實用性限制的討論不足：</strong>方法仍需從 SfM 獲取攝影機姿態作為輸入，而野外照片的 SfM 本身就不穩定。此外，逐影像最佳化外觀嵌入意味著無法直接泛化至訓練集外的新影像，限制了實際部署場景。訓練成本的資訊也未充分報告。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

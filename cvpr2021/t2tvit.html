@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tokens-to-Token ViT: Training Vision Transformers from Scratch on ImageNet — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Tokens-to-Token ViT: Training Vision Transformers from Scratch on ImageNet
+                <span class="course-tag">CVPR 2021</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2101.11986" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+        </div>
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-t2t">3.1 T2T 模組</a>
+        <a href="#sec-backbone">3.2 高效骨幹</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Vision Transformer (ViT)</span> has shown promising performance on image classification but requires
+                <span class="hl-rebuttal">large-scale pre-training datasets (e.g., JFT-300M) to achieve competitive results</span>.
+                This paper identifies two key limitations:
+                <span class="hl-thesis">the simple tokenization of input images fails to model the important local structure such as edges and lines, leading to low training sample efficiency</span>;
+                and the <span class="hl-concept">redundant attention backbone</span> of ViT is
+                <span class="hl-rebuttal">not efficient enough for vision tasks when training from scratch</span>.
+                The authors propose <span class="hl-concept">Tokens-to-Token ViT (T2T-ViT)</span>, which
+                <span class="hl-method">progressively tokenizes images through aggregating neighboring tokens and achieves 81.5% top-1 accuracy on ImageNet training from scratch</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺 Transformer (ViT) 在影像分類上展現了令人期待的性能，但需要大規模預訓練資料集（如 JFT-300M）才能取得具競爭力的結果。本文指出兩項關鍵限制：對輸入影像的簡單分詞化無法建模邊緣、線條等重要局部結構，導致訓練樣本效率低下；且 ViT 的冗餘注意力骨幹在從頭訓練時對視覺任務的效率不足。作者提出 Tokens-to-Token ViT (T2T-ViT)，透過聚合鄰近 token 漸進式地進行影像分詞化，在 ImageNet 上從頭訓練達成 81.5% 的 top-1 準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——精煉地點出 ViT 的兩項限制及 T2T-ViT 的解決方案與核心成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「問題（ViT 限制）→ 診斷（分詞化與骨幹）→ 解決方案（T2T）→ 結果（81.5%）」的完整論證鏈設定讀者預期。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 81.5% 的具體數字作為開場的說服力錨點。但「從頭訓練」的定義需釐清——是否包含 ImageNet 本身的資料增強與正則化策略，這些因素也顯著影響結果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The original <span class="hl-concept">ViT</span> splits an image into
+                <span class="hl-method">non-overlapping 16x16 patches and linearly projects each patch into a token</span>.
+                This hard splitting
+                <span class="hl-rebuttal">destroys the local continuity and structural information of the image</span>, such as edges, corners, and texture patterns that
+                <span class="hl-concept">convolutional neural networks</span> naturally capture through their hierarchical receptive fields.
+                When trained solely on <span class="hl-evidence">ImageNet-1K (1.3M images)</span>,
+                <span class="hl-evidence">ViT-Base achieves only 77.9% top-1 accuracy, significantly below DeiT-Base's 81.8%</span> which uses extensive data augmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                原始 ViT 將影像切分為不重疊的 16x16 區塊，並將每個區塊線性投影為一個 token。這種硬切分方式破壞了影像的局部連續性與結構資訊，例如邊緣、角點及紋理模式——這些正是摺積神經網路透過其階層式感受野自然捕捉的特徵。僅在 ImageNet-1K（130 萬張影像）上訓練時，ViT-Base 僅達到 77.9% 的 top-1 準確率，顯著低於使用大量資料增強的 DeiT-Base（81.8%）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——具體指出 ViT 簡單分詞化策略的結構性缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以具體的性能差距（77.9% vs. 81.8%）量化問題嚴重程度，為 T2T 模組的引入建立必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 ViT 與 DeiT 的性能差距歸因於分詞化方式，但 DeiT 的改善主要來自訓練策略（蒸餾、增強），這種歸因可能過度簡化了問題的根源。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Furthermore, the authors analyze the <span class="hl-concept">attention maps</span> of ViT and observe that
+                <span class="hl-evidence">many attention heads in the later layers exhibit high similarity, indicating redundancy in the backbone design</span>.
+                This redundancy means the model
+                <span class="hl-rebuttal">wastes parameters on repeated computations rather than learning diverse, complementary representations</span>.
+                The authors argue that a
+                <span class="hl-thesis">more compact and efficient backbone architecture, inspired by CNN design principles, can reduce this redundancy while maintaining representational power</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此外，作者分析了 ViT 的注意力圖，觀察到後層的許多注意力頭呈現高度相似性，顯示骨幹設計中存在冗餘。此冗餘意味著模型將參數浪費在重複計算上，而非學習多樣且互補的表徵。作者主張，受 CNN 設計原則啟發的更精簡高效的骨幹架構，能夠在維持表徵能力的同時減少此冗餘。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供分析證據——透過注意力圖的視覺化分析揭示 ViT 骨幹的冗餘問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為第二項貢獻（高效骨幹設計）建立動機。從可觀察的現象（注意力頭相似性）推導出設計改進的方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以視覺化分析作為論證依據直觀有效，但注意力頭的「相似性」不等同於「冗餘」——高度相似的注意力模式可能服務於集成效應，提升穩健性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Vision Transformers</span> have rapidly evolved since the original ViT demonstrated that
+                <span class="hl-method">pure transformer architectures can achieve competitive image classification performance</span>.
+                <span class="hl-concept">DeiT</span> introduced
+                <span class="hl-method">knowledge distillation and advanced data augmentation strategies</span> to improve ViT's training efficiency on ImageNet.
+                Meanwhile, <span class="hl-concept">CNN architectures</span> like
+                <span class="hl-concept">ResNet and EfficientNet</span> have long benefited from
+                <span class="hl-rebuttal">carefully designed hierarchical structures that progressively build local-to-global representations</span> — a principle largely absent in vanilla ViT.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自原始 ViT 證明純 Transformer 架構可達成具競爭力的影像分類性能以來，視覺 Transformer 迅速發展。DeiT 引入知識蒸餾與進階資料增強策略以提升 ViT 在 ImageNet 上的訓練效率。同時，如 ResNet 和 EfficientNet 等 CNN 架構長期受益於精心設計的階層式結構，漸進式地建構從局部到全域的表徵——這一原則在原始 ViT 中大體缺失。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——定位 T2T-ViT 在 ViT 改良與 CNN 設計原則交匯處的位置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立兩條平行的研究脈絡（ViT 改良 vs. CNN 設計智慧），暗示 T2T-ViT 將兩者融合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 CNN 的「階層式局部到全域」原則標記為 ViT 所缺失的特質，巧妙地為 T2T 模組的漸進式聚合設計提供理論支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 T2T 模組 ====== -->
+    <h2 class="section-heading" id="sec-t2t">3. Proposed Approach — 提出方法</h2>
+    <h3 class="subsection-heading">3.1 Tokens-to-Token Module — T2T 模組</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">T2T module</span> performs
+                <span class="hl-method">progressive tokenization through iterative token restructuring</span>.
+                In each T2T step, the module first applies a
+                <span class="hl-method">transformer layer to model relationships among all tokens</span>, then
+                <span class="hl-method">reshapes the output tokens back into a spatial image format and unfolds overlapping patches from neighboring tokens to aggregate local information</span>.
+                This process
+                <span class="hl-thesis">progressively reduces the token length while enriching each token with surrounding structural information, effectively encoding local patterns like edges and textures that simple patch splitting misses</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                T2T 模組透過迭代式的 token 重構實現漸進式分詞化。在每個 T2T 步驟中，模組首先應用 Transformer 層建模所有 token 之間的關係，接著將輸出 token 重塑為空間影像格式，並從鄰近 token 展開重疊區塊以聚合局部資訊。此過程漸進式地縮減 token 長度，同時以周圍的結構資訊豐富每個 token，有效地編碼簡單區塊切分所遺漏的邊緣、紋理等局部模式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導核心——描述 T2T 模組的具體運作機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是全文最核心的技術貢獻。透過「Transformer 建模 → 空間重塑 → 重疊展開」的三步驟迭代，實現了兼具全域注意力與局部結構建模的分詞化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「漸進式縮減」的設計與 CNN 的池化層有異曲同工之妙，使讀者易於理解。但每個 T2T 步驟都需要一個完整的 Transformer 層，引入的計算開銷相較於簡單切分顯著增加，效率權衡未在此段明確討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Specifically, <span class="hl-method">the T2T module uses a soft split operation with overlapping windows</span>.
+                Given tokens reshaped into a 2D spatial map, a
+                <span class="hl-method">sliding window with kernel size k and stride s (where s &lt; k) generates overlapping patches that are concatenated along the channel dimension</span>.
+                After <span class="hl-evidence">two T2T iterations, the token count is reduced from the original patch count while each token now encodes rich local context</span>.
+                The final tokens are then fed into the efficient transformer backbone.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                具體而言，T2T 模組使用帶有重疊視窗的軟切分操作。將 token 重塑為二維空間映射後，以核大小 k 和步幅 s（其中 s &lt; k）的滑動視窗生成重疊區塊，並沿通道維度進行拼接。經過兩次 T2T 迭代後，token 數量從原始區塊數量縮減，同時每個 token 現已編碼豐富的局部上下文。最終的 token 被輸入至高效 Transformer 骨幹。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——闡述軟切分操作的具體實現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將上段的概念性描述落實為可重現的演算法細節，以滑動視窗的核大小與步幅作為關鍵超參數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    重疊視窗的設計直接借鑒了 CNN 中重疊池化的成熟概念，降低了方法的新穎性風險。但重疊視窗增加了 token 的通道維度，對記憶體消耗的影響需要關注。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 高效骨幹 -->
+    <h3 class="subsection-heading" id="sec-backbone">3.2 Efficient Backbone — 高效骨幹設計</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For the transformer backbone, the authors explore architectures inspired by
+                <span class="hl-concept">CNN design principles</span> including
+                <span class="hl-method">dense connections (DenseNet-style), channel attention (SE-Net-style), and ghost operations (GhostNet-style)</span>.
+                Through systematic comparison, a
+                <span class="hl-method">deep-narrow structure with fewer channels but more layers</span> proves most effective.
+                <span class="hl-thesis">This design reduces the attention head redundancy observed in vanilla ViT while maintaining comparable representational capacity with significantly fewer parameters.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Transformer 骨幹方面，作者探索了受 CNN 設計原則啟發的架構，包括密集連接（DenseNet 風格）、通道注意力（SE-Net 風格）及幻影操作（GhostNet 風格）。透過系統性比較，深窄結構（較少通道但更多層數）被證明最為有效。此設計減少了在原始 ViT 中觀察到的注意力頭冗餘，同時以顯著更少的參數維持相當的表徵能力。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示第二項貢獻——以 CNN 設計智慧改良 Transformer 骨幹。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應緒論中對注意力頭冗餘的診斷，提出「深窄結構」作為解決方案。CNN 設計原則的借用為跨架構知識遷移提供了範例。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    系統性比較多種 CNN 設計原則展現了研究的全面性。但最終選擇「深窄結構」可能對特定任務（如偵測、分割）的遷移性產生影響，而此處僅聚焦於分類任務。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">ImageNet-1K</span>, <span class="hl-evidence">T2T-ViT-14 achieves 81.5% top-1 accuracy with only 21.5M parameters</span>,
+                comparable to <span class="hl-evidence">ResNet-50 (25.6M parameters, 76.1% accuracy)</span> and
+                <span class="hl-evidence">DeiT-Small (22.1M parameters, 79.8% accuracy)</span>.
+                <span class="hl-evidence">T2T-ViT-24 further reaches 82.3% accuracy with 64.1M parameters</span>.
+                Ablation studies show that
+                <span class="hl-evidence">the T2T module alone improves accuracy by +2.1% over simple patch embedding</span>, and the
+                <span class="hl-evidence">efficient backbone design contributes an additional +1.4% improvement</span>.
+                On transfer learning tasks,
+                <span class="hl-evidence">T2T-ViT maintains competitive performance on CIFAR-10, CIFAR-100, and Oxford Flowers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ImageNet-1K 上，T2T-ViT-14 以僅 2150 萬個參數達成 81.5% 的 top-1 準確率，可與 ResNet-50（2560 萬參數、76.1% 準確率）和 DeiT-Small（2210 萬參數、79.8% 準確率）相媲美。T2T-ViT-24 進一步以 6410 萬參數達到 82.3% 準確率。消融實驗顯示，T2T 模組本身相較於簡單區塊嵌入提升了 +2.1% 的準確率，而高效骨幹設計額外貢獻了 +1.4% 的改善。在遷移學習任務上，T2T-ViT 在 CIFAR-10、CIFAR-100 及 Oxford Flowers 上維持具競爭力的性能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在 ImageNet 上的主要結果、消融實驗與遷移學習。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的實證支柱，覆蓋三個維度：(1) 與 CNN 及 ViT 變體的公平對比；(2) 消融實驗分離 T2T 模組與骨幹的各自貢獻；(3) 遷移學習驗證泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以參數量作為公平比較的基準是合理的，但 FLOPs（浮點運算量）和實際推論速度同樣重要——T2T 模組的重疊窗口操作可能在 FLOPs 上不佔優勢。與 DeiT 的比較未控制訓練策略（蒸餾 vs. 非蒸餾），需注意公平性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">T2T-ViT</span> addresses two fundamental limitations of vanilla ViT through
+                <span class="hl-method">progressive tokenization that models local structure</span> and an
+                <span class="hl-method">efficient deep-narrow backbone that reduces attention redundancy</span>.
+                The result is a vision transformer that
+                <span class="hl-thesis">achieves CNN-level performance when training from scratch on ImageNet, without requiring massive pre-training datasets or knowledge distillation</span>.
+                This work demonstrates that
+                <span class="hl-thesis">bridging CNN design wisdom with transformer architectures yields models that are both data-efficient and computationally practical</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                T2T-ViT 透過建模局部結構的漸進式分詞化以及減少注意力冗餘的高效深窄骨幹，解決了原始 ViT 的兩項根本限制。所得到的視覺 Transformer 在 ImageNet 上從頭訓練即可達成 CNN 等級的性能，無需大規模預訓練資料集或知識蒸餾。本研究證明，將 CNN 的設計智慧與 Transformer 架構相融合，能夠產生兼具資料效率與計算可行性的模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——回顧兩項貢獻並提煉整體訊息。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段與摘要形成首尾呼應，以「問題 → 解決方案 → 啟示」的三層結構收束全文。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需大規模預訓練」的宣示具有強烈的實用價值訴求。但結論未討論 T2T-ViT 在下游任務（偵測、分割）上的表現，以及隨著 ViT 預訓練資料集日益可得，「從頭訓練」的實際需求可能逐漸減弱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                ViT 分詞化丟失<br>局部結構，骨幹冗餘
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                漸進式 T2T 分詞化<br>＋深窄高效骨幹
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ImageNet 81.5%<br>僅 21.5M 參數
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                消融實驗分離<br>各組件貢獻
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                CNN 與 Transformer<br>設計融合的成功範例
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過漸進式 token 聚合建模局部結構，並以 CNN 設計原則精簡 Transformer 骨幹，視覺 Transformer 無需大規模預訓練即可在 ImageNet 上達成與 CNN 匹敵的性能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>問題診斷的精準性：</strong>透過注意力圖分析揭示骨幹冗餘，並以 token 視覺化展示簡單切分的資訊丟失，為兩項設計改進提供了堅實的經驗基礎。消融實驗清晰量化了 T2T 模組（+2.1%）與骨幹設計（+1.4%）的各自貢獻，展現了嚴謹的實驗方法論。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>效率指標的不完整性：</strong>論文主要以參數量作為效率比較基準，但未充分報告 FLOPs 和實際推論延遲。T2T 模組的重疊操作可能在 FLOPs 上帶來額外開銷。此外，「從頭訓練」的實際需求在預訓練模型日益普及的趨勢下，其長期價值可能受到質疑。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

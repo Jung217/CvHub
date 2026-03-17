@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UP-DETR: Unsupervised Pre-training for Object Detection with Transformers — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                UP-DETR: Unsupervised Pre-training for Object Detection with Transformers
+                <span class="course-tag">CVPR 2021</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2011.09094" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+        </div>
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-pretext">3.1 前置任務</a>
+        <a href="#sec-multiquery">3.2 多查詢定位</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents <span class="hl-concept">UP-DETR</span>, the first
+                <span class="hl-thesis">unsupervised pre-training approach specifically designed for transformer-based object detection</span>.
+                The core idea is a novel pretext task called
+                <span class="hl-concept">random query patch detection</span>, where the model
+                <span class="hl-method">learns to detect randomly cropped patches from the input image using the transformer decoder's object queries</span>.
+                This pre-training enables <span class="hl-concept">DETR</span>-like models to
+                <span class="hl-thesis">converge faster and perform significantly better, especially in low-data regimes</span>.
+                Experiments show
+                <span class="hl-evidence">6.7% AP improvement on PASCAL VOC with only 10% labeled data</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 UP-DETR，首個專門為基於 Transformer 的物件偵測設計的非監督式預訓練方法。核心思路是一項名為隨機查詢區塊偵測的新穎前置任務，模型透過 Transformer 解碼器的物件查詢來學習偵測從輸入影像中隨機裁切的區塊。此預訓練使 DETR 類模型能夠更快收斂並顯著提升性能，尤其在低資料量情境下效果卓著。實驗顯示，在僅使用 10% 標註資料的 PASCAL VOC 上達到 6.7% 的 AP 提升。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義問題（Transformer 偵測器的預訓練）、提出解決方案（隨機查詢區塊偵測）並量化成效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「首個」作為開場，強烈宣示原創性。論證順序為：定位（首個非監督預訓練）→ 機制（前置任務）→ 效益（收斂更快、低資料提升）→ 數字背書（6.7% AP）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首個」的宣示需要嚴格的文獻考證支持。6.7% AP 的提升在 10% 標註資料下確實顯著，但此特定實驗設定可能放大了預訓練的效益——在完整資料量下的改善幅度可能較小。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">DETR (DEtection TRansformer)</span> reformulated object detection as a
+                <span class="hl-method">direct set prediction problem</span>, eliminating the need for
+                <span class="hl-concept">anchor boxes, non-maximum suppression, and hand-crafted components</span>.
+                However, DETR suffers from
+                <span class="hl-rebuttal">slow convergence — requiring 500 epochs to train, approximately 10-20x more than Faster R-CNN</span>.
+                Furthermore, DETR's performance
+                <span class="hl-rebuttal">degrades significantly when labeled training data is limited</span>, a common scenario in many practical applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DETR（偵測 Transformer）將物件偵測重新表述為直接集合預測問題，消除了對錨框、非極大值抑制及手工設計元件的需求。然而，DETR 存在收斂緩慢的問題——需要 500 個訓練週期，約為 Faster R-CNN 的 10 至 20 倍。此外，DETR 在標註訓練資料有限時性能顯著下降，而這在許多實際應用中是常見的情境。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題背景——肯定 DETR 的創新性後，指出其關鍵弱點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先認可 DETR 的範式革新（消除手工元件），再揭示其代價（收斂慢、資料飢渴），為預訓練解決方案製造必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「500 epochs vs. Faster R-CNN」的具體對比量化問題嚴重程度，極具說服力。但 DETR 的慢收斂可能源於匈牙利匹配的不穩定性，而非單純的預訓練缺失——預訓練可能只是部分解方。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While <span class="hl-concept">unsupervised pre-training</span> has shown remarkable success in
+                <span class="hl-concept">NLP (BERT, GPT)</span> and
+                <span class="hl-concept">image classification (MoCo, SimCLR)</span>,
+                <span class="hl-thesis">no prior work has addressed unsupervised pre-training specifically for the transformer decoder in object detection</span>.
+                The challenge lies in designing a pretext task that
+                <span class="hl-rebuttal">aligns with the unique structure of DETR's decoder — particularly its learnable object queries that must localize and classify objects simultaneously</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管非監督式預訓練在自然語言處理（BERT、GPT）和影像分類（MoCo、SimCLR）中已展現卓越成效，但此前尚無研究針對物件偵測中 Transformer 解碼器的非監督預訓練。挑戰在於設計一個與 DETR 解碼器獨特結構相匹配的前置任務——特別是其需要同時定位與分類物件的可學習物件查詢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位研究缺口——指出非監督預訓練在 Transformer 偵測器領域的空白。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過列舉 NLP 與影像分類中預訓練的成功案例，建立「預訓練有效」的論據基礎，再指出偵測器領域的空白，自然地引出研究動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以跨領域類比（NLP → CV 分類 → CV 偵測）建立預訓練的普遍價值，修辭策略有效。但 DETR 的解碼器架構與 BERT 等差異顯著，跨領域類比的適用性需要後續方法章節的具體論證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Self-supervised learning</span> methods like
+                <span class="hl-concept">MoCo and SimCLR</span>
+                <span class="hl-method">learn visual representations through contrastive learning on image-level features</span>.
+                While effective for classification backbones,
+                <span class="hl-rebuttal">these methods pre-train only the CNN encoder and do not address the transformer decoder's object queries</span>.
+                <span class="hl-concept">DETR</span> and its variants (<span class="hl-concept">Deformable DETR</span>) have improved detection performance but
+                <span class="hl-rebuttal">still rely on supervised ImageNet pre-training for the backbone and random initialization for the transformer components</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                如 MoCo 和 SimCLR 等自監督式學習方法透過影像級特徵的對比學習來學習視覺表徵。雖然對分類骨幹有效，但這些方法僅預訓練 CNN 編碼器，未處理 Transformer 解碼器的物件查詢。DETR 及其變體（Deformable DETR）已提升偵測性能，但仍依賴監督式 ImageNet 預訓練作為骨幹，Transformer 組件則採用隨機初始化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——區分編碼器預訓練（已解決）與解碼器預訓練（未解決）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    精準地將研究缺口定位於「Transformer 解碼器的預訓練」，而非整個偵測框架的預訓練，展現了問題定義的精細度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題範圍從「偵測器預訓練」縮小為「解碼器預訓練」，使研究貢獻更加聚焦。但此縮小也意味著 UP-DETR 的整體影響可能受限——骨幹仍需 ImageNet 預訓練。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 前置任務 ====== -->
+    <h2 class="section-heading" id="sec-pretext">3. Proposed Approach — 提出方法</h2>
+    <h3 class="subsection-heading">3.1 Random Query Patch Detection — 隨機查詢區塊偵測</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The pretext task is <span class="hl-concept">random query patch detection</span>:
+                <span class="hl-method">given an input image, the method randomly crops a patch and uses it as a query, asking the model to predict the location (bounding box) of this patch within the original image</span>.
+                The cropped patch is encoded by the
+                <span class="hl-concept">frozen CNN backbone</span> and used to initialize the
+                <span class="hl-concept">object query</span> in the transformer decoder.
+                <span class="hl-thesis">This task naturally teaches the decoder to associate visual features with spatial locations — the exact capability needed for object detection.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                前置任務為隨機查詢區塊偵測：給定一張輸入影像，方法隨機裁切一個區塊並將其作為查詢，要求模型預測此區塊在原始影像中的位置（邊界框）。裁切的區塊由凍結的 CNN 骨幹編碼，並用於初始化 Transformer 解碼器中的物件查詢。此任務自然地教導解碼器將視覺特徵與空間位置進行關聯——這正是物件偵測所需的核心能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導核心——定義前置任務的具體機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是全文最核心的技術貢獻。前置任務的設計精妙之處在於：它模擬了物件偵測的核心操作（從查詢到定位），但完全不需要標註資料。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「自然地教導」的論述優雅地連接了前置任務與下游任務。但隨機區塊與真實物件在語義複雜度上差異顯著——區塊可能僅包含背景紋理，而物件具有豐富的語義結構。此差異可能限制預訓練表徵的遷移效果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 多查詢定位 -->
+    <h3 class="subsection-heading" id="sec-multiquery">3.2 Multi-Query Localization — 多查詢定位</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To better utilize DETR's multiple object queries, the authors extend the pretext task to
+                <span class="hl-method">multi-query localization, where multiple patches are randomly cropped and each is assigned to a different object query for simultaneous detection</span>.
+                An <span class="hl-concept">attention mask</span> is applied to
+                <span class="hl-method">prevent cross-attention between different query patches, ensuring each query independently learns to localize its assigned patch</span>.
+                Additionally, <span class="hl-method">feature reconstruction is added as an auxiliary task</span>, where the decoder must
+                <span class="hl-thesis">reconstruct the frozen CNN features of the cropped patches, encouraging the model to learn richer semantic representations beyond mere localization</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為更好地利用 DETR 的多物件查詢，作者將前置任務擴展為多查詢定位，其中多個區塊被隨機裁切，每個區塊被分配給不同的物件查詢進行同步偵測。透過應用注意力遮罩防止不同查詢區塊之間的交叉注意力，確保每個查詢獨立學習定位其被分配的區塊。此外，特徵重建被加入作為輔助任務，解碼器必須重建裁切區塊的凍結 CNN 特徵，促使模型學習超越單純定位的更豐富語義表徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術擴展——從單查詢到多查詢，並引入特徵重建輔助任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    解決單查詢設計的局限：DETR 在推論時使用多個物件查詢，預訓練也應訓練多查詢的協作能力。注意力遮罩的設計避免了查詢間的資訊洩漏。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多查詢擴展與特徵重建輔助任務的組合設計展現了方法的系統性。但注意力遮罩在預訓練中隔離了查詢間的互動，而微調時查詢間需要互動——此訓練-推論不一致可能帶來問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">PASCAL VOC with only 10% labeled data, UP-DETR improves DETR by 6.7% AP</span>.
+                On <span class="hl-evidence">COCO object detection, UP-DETR achieves 43.1% AP with ResNet-50 backbone</span>, surpassing
+                <span class="hl-evidence">vanilla DETR (42.0% AP) by 1.1%</span>.
+                The pre-training also accelerates convergence:
+                <span class="hl-evidence">UP-DETR reaches DETR's 150-epoch performance in just 60 epochs</span>.
+                Ablation studies demonstrate that
+                <span class="hl-evidence">multi-query localization contributes +0.6% AP and feature reconstruction adds another +0.4% AP over single-query pre-training</span>.
+                <span class="hl-rebuttal">On the full COCO dataset, the improvement is more modest (1.1% AP), suggesting that pre-training benefits are most pronounced in data-scarce scenarios.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在僅使用 10% 標註資料的 PASCAL VOC 上，UP-DETR 較 DETR 提升 6.7% AP。在 COCO 物件偵測上，UP-DETR 以 ResNet-50 骨幹達到 43.1% AP，超越原始 DETR（42.0% AP）1.1%。預訓練也加速了收斂：UP-DETR 在 60 個週期即達到 DETR 150 個週期的性能。消融實驗顯示，多查詢定位貢獻 +0.6% AP，特徵重建在單查詢預訓練基礎上再增加 +0.4% AP。在完整 COCO 資料集上，改善幅度較為溫和（1.1% AP），顯示預訓練的效益在資料稀缺情境下最為顯著。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——涵蓋低資料、完整資料、收斂速度及消融實驗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的實證支柱，覆蓋四個維度：(1) 低資料量的顯著提升；(2) 完整資料的穩定改善；(3) 收斂加速的實用價值；(4) 消融實驗分離各組件貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    誠實地報告完整資料集上較溫和的改善（1.1% AP）展現了學術誠信。但 COCO 上 1.1% 的提升在統計上是否顯著需要更多討論。收斂加速（60 vs. 150 epochs）是最具實用價值的結果，但仍遠多於傳統偵測器的訓練成本。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">UP-DETR</span> demonstrates that
+                <span class="hl-thesis">unsupervised pre-training can be effectively designed for transformer-based object detectors through the random query patch detection pretext task</span>.
+                The approach provides
+                <span class="hl-evidence">significant improvements in data-scarce settings</span> and
+                <span class="hl-evidence">accelerates the notoriously slow convergence of DETR</span>.
+                By <span class="hl-method">aligning the pre-training task with the downstream detection task's query-based architecture</span>,
+                UP-DETR bridges the gap between self-supervised representation learning and end-to-end object detection.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                UP-DETR 證明了透過隨機查詢區塊偵測前置任務，非監督式預訓練可為基於 Transformer 的物件偵測器進行有效設計。此方法在資料稀缺情境下提供顯著改善，並加速 DETR 眾所周知的緩慢收斂。透過將預訓練任務與下游偵測任務的查詢式架構進行對齊，UP-DETR 銜接了自監督表徵學習與端對端物件偵測之間的鴻溝。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——回顧核心貢獻與實際效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段將三項效益（資料效率、收斂加速、任務對齊）整合為統一的敘事，與摘要形成首尾呼應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「銜接鴻溝」的宣示提升了論文的影響力定位。但結論未討論方法對其他 DETR 變體（如 Deformable DETR）的適用性，以及隨著標註資料日益豐富，低資料情境的前提是否成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                DETR 收斂慢<br>低資料性能差
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                隨機查詢區塊偵測<br>非監督預訓練
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                PASCAL VOC +6.7% AP<br>COCO +1.1% AP
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                完整資料改善溫和<br>但收斂加速顯著
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                前置任務與偵測架構<br>對齊的預訓練有效
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過設計與 DETR 查詢式架構對齊的隨機區塊偵測前置任務，可實現有效的非監督預訓練，顯著提升低資料情境下的偵測性能並加速收斂。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>前置任務設計的優雅性：</strong>隨機區塊偵測自然模擬了物件偵測的核心操作（查詢 → 定位），且完全不需要標註資料。低資料情境下 6.7% AP 的提升與 2.5 倍的收斂加速，為方法的實用價值提供了令人信服的證據。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>完整資料下效益有限：</strong>在 COCO 完整資料集上僅提升 1.1% AP，且預訓練本身引入額外的訓練成本。隨機裁切區塊與真實語義物件的差異可能限制了表徵學習的深度。此外，方法僅針對 DETR 架構設計，對其他偵測範式的通用性未予探討。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>
