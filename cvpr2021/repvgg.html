@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepVGG: Making VGG-Style ConvNets Great Again — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                RepVGG: Making VGG-Style ConvNets Great Again
+                <span class="course-tag">CVPR 2021</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2101.03697" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-reparam">3.2 結構重參數化</a>
+        <a href="#sec-architecture">3.3 架構設計</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors present <span class="hl-concept">RepVGG</span>, a simple architecture whose inference-time body consists of nothing but <span class="hl-thesis">a stack of 3x3 convolution and ReLU</span>, while the training-time model has a <span class="hl-method">multi-branch topology</span>. The decoupling of training and inference architectures is realized by a <span class="hl-concept">structural re-parameterization</span> technique, which converts the multi-branch training model into a <span class="hl-method">plain inference model</span>. RepVGG reaches <span class="hl-evidence">over 80% top-1 accuracy on ImageNet</span> with <span class="hl-evidence">higher speed than ResNet-50 and ResNet-101</span>, demonstrating that <span class="hl-thesis">plain models can be made as powerful as complex multi-branch architectures</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提出 RepVGG，一種簡潔的架構，其推論時的主體僅由 3x3 摺積與 ReLU 的堆疊組成，而訓練時的模型則具有多分支拓撲。訓練與推論架構的解耦透過結構重參數化技術實現，將多分支訓練模型轉換為平面推論模型。RepVGG 在 ImageNet 上達到超過 80% 的 top-1 準確率，速度高於 ResNet-50 與 ResNet-101，證明平面模型可以被打造得與複雜的多分支架構同樣強大。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「簡潔推論+複雜訓練」的對偶性概括 RepVGG 的核心創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以三層遞進建構論述：(1) 推論時的極簡性（僅 3x3 + ReLU）；(2) 實現手段（結構重參數化）；(3) 效能證明（80%+ ImageNet）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「Making VGG Great Again」的標題本身就是強力的修辭——它喚起對經典架構簡潔性的懷舊，同時暗示複雜架構未必是最終答案。但 VGG 時代的「簡潔」與 RepVGG 的「訓練時多分支」之間存在落差，此處的「簡潔」僅限於推論階段。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since the introduction of <span class="hl-concept">ResNet</span>, modern <span class="hl-concept">convolutional neural network</span> architectures have become increasingly complex with <span class="hl-concept">multi-branch designs</span> such as <span class="hl-concept">residual connections, dense connections, and neural architecture search (NAS) derived structures</span>. While these designs improve <span class="hl-evidence">accuracy</span>, they come at the cost of <span class="hl-rebuttal">"increased memory consumption due to branch-level outputs"</span> and <span class="hl-rebuttal">"reduced inference speed due to the lack of support for efficient parallel computation."</span> The classic <span class="hl-concept">VGG</span> architecture with its <span class="hl-thesis">plain stack of convolutions</span> is <span class="hl-thesis">"fast and memory-efficient"</span> but has been deemed <span class="hl-rebuttal">"outdated in terms of accuracy."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自 ResNet 問世以來，現代摺積神經網路架構日趨複雜，包含多分支設計如殘差連接、密集連接與神經架構搜尋（NAS）衍生結構。儘管這些設計提升了準確率，但代價是分支層級輸出導致的記憶體消耗增加，以及因缺乏高效平行運算支援而降低的推論速度。經典的 VGG 架構以其摺積的平面堆疊具備快速且記憶體效率高的特性，但在準確率方面被認為已經過時。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——對比複雜多分支架構的效能優勢與效率劣勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：建立「準確率 vs. 效率」的張力，使讀者意識到現有架構設計存在固有的取捨。VGG 的「快速但過時」定位為後續的「復興」埋下伏筆。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將多分支架構的「效率問題」與 VGG 的「準確率問題」對比呈現，暗示兩者可以被同時解決。但現代硬體（如 GPU tensor cores）已針對特定多分支模式進行最佳化，「效率劣勢」的程度取決於具體硬體。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors argue that <span class="hl-thesis">"the training-time and inference-time architecture need not be the same."</span> A model can benefit from <span class="hl-method">multi-branch topology during training</span> (for better gradient flow and implicit regularization) while being <span class="hl-method">converted to a plain architecture at inference time</span> (for speed and simplicity). The key enabling technique is <span class="hl-concept">structural re-parameterization</span>: <span class="hl-thesis">"we equivalently convert a trained multi-branch model into a plain model using algebraic transformations on the convolution kernels."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者主張訓練時與推論時的架構不必相同。模型可以在訓練時受益於多分支拓撲（獲得更好的梯度流動與隱式正則化），同時在推論時轉換為平面架構（追求速度與簡潔性）。關鍵的賦能技術是結構重參數化：透過對摺積核的代數變換，將訓練好的多分支模型等效轉換為平面模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心洞見——提出訓練/推論架構解耦的哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的核心論點：打破「訓練與推論使用同一架構」的隱含假設。結構重參數化是實現此洞見的技術手段。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「訓練與推論可以不同」的主張具有範式轉移的潛力——它將架構設計從單一目標（訓練+推論的聯合最優）轉為雙目標最佳化。但此主張的適用範圍有限：僅適用於可被代數等效轉換的結構（如線性操作的合併）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Multi-branch architectures</span> have dominated since <span class="hl-concept">ResNet</span> introduced <span class="hl-method">skip connections</span>, followed by <span class="hl-concept">DenseNet</span>'s <span class="hl-method">dense connectivity</span> and <span class="hl-concept">NAS-derived models</span> like <span class="hl-concept">EfficientNet</span>. Model compression techniques such as <span class="hl-concept">pruning, quantization, and knowledge distillation</span> aim to improve inference efficiency but <span class="hl-rebuttal">"work within the same architectural paradigm."</span> The concept of <span class="hl-concept">re-parameterization</span> has appeared in <span class="hl-method">kernel decomposition and Winograd-domain transformations</span>, but <span class="hl-rebuttal">prior work has not exploited it for converting between fundamentally different architectures</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自 ResNet 引入跳躍連接以來，多分支架構便主導了此領域，隨後有 DenseNet 的密集連接與 NAS 衍生模型如 EfficientNet。模型壓縮技術如剪枝、量化與知識蒸餾旨在改善推論效率，但仍在相同的架構範式內運作。重參數化的概念曾出現在核分解與 Winograd 域變換中，但先前的研究未曾利用它來在根本不同的架構之間進行轉換。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——涵蓋多分支架構、模型壓縮與重參數化三條研究線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將 RepVGG 定位為跨越「架構設計」與「模型壓縮」兩個子領域的創新——既非單純設計新架構，也非壓縮現有模型，而是重新定義訓練與推論的關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將模型壓縮歸為「同範式內」的方法，使 RepVGG 的「跨範式」定位更加突出。但知識蒸餾也涉及「訓練時複雜、推論時簡單」的思想，與 RepVGG 的哲學有相似之處，此處的差異化可能不如論述中那麼清晰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Training-Time Multi-Branch Block</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                During training, each RepVGG block consists of <span class="hl-method">three parallel branches</span>: a <span class="hl-method">3x3 convolution</span>, a <span class="hl-method">1x1 convolution</span>, and an <span class="hl-method">identity shortcut</span> (when input and output dimensions match). All branches are followed by <span class="hl-method">batch normalization (BN)</span>, and their outputs are <span class="hl-method">summed element-wise before ReLU activation</span>. This multi-branch structure provides <span class="hl-thesis">"the benefits of implicit regularization and better gradient flow similar to ResNet,"</span> resulting in <span class="hl-evidence">higher training accuracy than a plain 3x3 stack</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在訓練期間，每個 RepVGG 區塊由三個平行分支組成：一個 3x3 摺積、一個 1x1 摺積與一個恆等捷徑（當輸入與輸出維度相符時）。所有分支之後接批次正規化（BN），其輸出在 ReLU 啟動前逐元素求和。此多分支結構提供類似 ResNet 的隱式正則化與更佳梯度流動的優勢，帶來比平面 3x3 堆疊更高的訓練準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法描述第一步——定義訓練時的多分支區塊結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段說明 RepVGG 並非放棄多分支的好處，而是將其限制在訓練階段。三種分支的選擇（3x3, 1x1, identity）並非任意——它們恰好可以被合併為單一 3x3 摺積。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    分支設計的選擇看似簡單但實為精心工程：1x1 和 identity 都可以被零填充為 3x3 核，這是後續合併的前提。作者未明確討論為何不包含 5x5 或更大的核——實際上是因為只有相同大小的核才能被代數合併。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 結構重參數化 ====== -->
+    <h3 class="subsection-heading" id="sec-reparam">3.2 Structural Re-parameterization — 結構重參數化</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key insight is that <span class="hl-method">convolution followed by BN can be fused into a single convolution with bias</span>, and then <span class="hl-method">multiple parallel convolutions of compatible kernel sizes can be merged into one</span>. Specifically: (1) The <span class="hl-method">1x1 convolution kernel is zero-padded to 3x3</span>. (2) The <span class="hl-method">identity branch is represented as a 3x3 kernel with 1 at center and 0 elsewhere</span>. (3) Each <span class="hl-method">conv-BN sequence is fused by incorporating BN parameters into the convolution weights and bias</span>. (4) The three resulting <span class="hl-method">3x3 kernels are summed to produce a single 3x3 convolution</span>. This conversion is <span class="hl-thesis">"mathematically exact — the plain model produces identical outputs to the multi-branch model for any input."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                核心洞見在於：摺積後接 BN 可以融合為帶有偏置的單一摺積，接著相容核大小的多個平行摺積可被合併為一個。具體而言：(1) 1x1 摺積核以零填充至 3x3；(2) 恆等分支表示為中心為 1 其餘為 0 的 3x3 核；(3) 每個摺積-BN 序列透過將 BN 參數併入摺積權重與偏置進行融合；(4) 三個所得的 3x3 核相加產生單一的 3x3 摺積。此轉換在數學上是精確的——平面模型對任何輸入都產生與多分支模型完全相同的輸出。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術——逐步推導結構重參數化的代數操作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術核心：「數學上精確」的等價轉換保證了不存在性能損失，這是 RepVGG 區別於近似方法（如剪枝、蒸餾）的關鍵優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    四步驟的推導清晰且可驗證，「數學上精確」是極強的保證。但此精確性僅適用於 BN 在推論模式（使用累積統計量）時——若 BN 處於訓練模式（使用批次統計量），則融合不精確。作者隱含假設讀者理解此區別。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 架構設計 ====== -->
+    <h3 class="subsection-heading" id="sec-architecture">3.3 Architecture Details — 架構設計細節</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The overall <span class="hl-concept">RepVGG architecture</span> follows a <span class="hl-method">VGG-like layout with 5 stages</span>, where each stage begins with a <span class="hl-method">stride-2 layer for downsampling</span>. The width is controlled by multipliers <span class="hl-method">a and b</span> applied to the base channel numbers. The authors propose several variants: <span class="hl-evidence">RepVGG-A (with multipliers a=0.75-2.5, b=2.5) for lightweight models</span> and <span class="hl-evidence">RepVGG-B (with larger multipliers) for high-accuracy models</span>. Notably, RepVGG uses <span class="hl-thesis">"only 3x3 convolution as the only type of spatial convolution,"</span> which is <span class="hl-thesis">"highly optimized on modern GPU and CPU hardware"</span> through libraries like cuDNN and MKL.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                RepVGG 的整體架構遵循類 VGG 的佈局，包含 5 個階段，每個階段以步幅為 2 的層進行下取樣。寬度透過乘數 a 與 b 施加於基礎通道數來控制。作者提出多個變體：RepVGG-A（乘數 a=0.75-2.5, b=2.5）用於輕量模型，RepVGG-B（更大的乘數）用於高準確率模型。值得注意的是，RepVGG 僅使用 3x3 摺積作為唯一的空間摺積類型，這在現代 GPU 與 CPU 硬體上透過 cuDNN 和 MKL 等函式庫獲得高度最佳化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構細節——描述 RepVGG 的整體佈局與變體設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將理論（結構重參數化）轉化為實際可用的架構家族。「僅 3x3」的設計選擇不僅是美學偏好，更是硬體效率的考量。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    援引 cuDNN/MKL 的最佳化支援將「3x3 限制」從弱點轉化為優勢——這是一個巧妙的硬體感知論述。但隨著硬體演進（如針對 depthwise convolution 最佳化的晶片），此優勢可能不永恆。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">ImageNet classification</span>, <span class="hl-evidence">RepVGG-A0 achieves 72.41% top-1 accuracy at 1.36ms inference latency</span> on a single 1080Ti GPU, while <span class="hl-evidence">RepVGG-B3 reaches 80.52% at 5.01ms</span>. For comparison, <span class="hl-evidence">ResNet-50 achieves 76.15% at 3.07ms and ResNet-101 achieves 77.37% at 5.38ms</span>. <span class="hl-evidence">RepVGG-B1g2 achieves 77.79% at 3.46ms</span>, outperforming ResNet-101 in both accuracy and speed. On <span class="hl-evidence">semantic segmentation (Cityscapes) and object detection (COCO)</span>, RepVGG backbones show <span class="hl-evidence">consistent improvements over ResNet counterparts</span>. <span class="hl-rebuttal">Compared to EfficientNet and RegNet which require depthwise or grouped convolutions</span>, RepVGG achieves <span class="hl-evidence">comparable accuracy with significantly higher actual throughput</span> on standard GPU hardware.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ImageNet 分類上，RepVGG-A0 在單張 1080Ti GPU 上以 1.36ms 推論延遲達到 72.41% top-1 準確率，而 RepVGG-B3 以 5.01ms 達到 80.52%。作為對比，ResNet-50 以 3.07ms 達到 76.15%，ResNet-101 以 5.38ms 達到 77.37%。RepVGG-B1g2 以 3.46ms 達到 77.79%，在準確率與速度上均超越 ResNet-101。在語義分割（Cityscapes）與物件偵測（COCO）上，RepVGG 骨幹網路展現對 ResNet 同級模型的一致改進。相較於需要深度可分離摺積或分組摺積的 EfficientNet 與 RegNet，RepVGG 在標準 GPU 硬體上以顯著更高的實際吞吐量達到相當的準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面實驗驗證——以準確率-速度的二維指標展示 RepVGG 的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱以「帕累托最優」的框架呈現：RepVGG 在準確率-速度平面上位於更優的位置。跨任務的一致性（分類、偵測、分割）增強了結論的泛化性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以實際推論延遲（ms）而非理論 FLOPs 作為速度指標非常務實——這直接反映了部署場景的需求。但速度比較高度依賴硬體（1080Ti）與軟體版本，在其他平台上結論可能不同。EfficientNet 在行動裝置上可能仍具優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">RepVGG</span> demonstrates that <span class="hl-thesis">plain VGG-style architectures can compete with and even surpass complex multi-branch designs</span> when equipped with <span class="hl-method">structural re-parameterization</span>. By <span class="hl-method">decoupling training and inference architectures</span>, the method achieves the <span class="hl-thesis">"best of both worlds: the training benefits of multi-branch topology and the inference efficiency of plain models."</span> The resulting models offer a <span class="hl-thesis">favorable trade-off between accuracy and actual speed</span>, and the simplicity of the inference model facilitates <span class="hl-thesis">hardware optimization, quantization, and deployment</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                RepVGG 證明了搭載結構重參數化的平面 VGG 風格架構可以與複雜的多分支設計競爭甚至超越。透過解耦訓練與推論架構，該方法達到了兩全其美的效果：多分支拓撲的訓練益處與平面模型的推論效率。所產生的模型在準確率與實際速度之間提供有利的取捨，且推論模型的簡潔性有利於硬體最佳化、量化與部署。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以「兩全其美」的論述收束全文。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段將 RepVGG 的貢獻從技術層面提升到方法論層面——「訓練與推論架構解耦」的原則可能影響未來的架構設計思維。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「兩全其美」是一個強有力的結語，但未討論方法的天花板——結構重參數化僅適用於線性操作的合併，無法處理非線性分支（如 SE modules、attention）。隨著 Transformer 架構的興起，純摺積方案的長期競爭力值得觀察。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                多分支架構犧牲<br>推論效率換準確率
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                訓練/推論架構解耦<br>透過結構重參數化
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ImageNet 80.52%<br>速度優於 ResNet
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                數學精確轉換<br>無性能損失
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                平面模型可與<br>複雜架構抗衡
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過結構重參數化將訓練時的多分支拓撲等價轉換為推論時的純 3x3 摺積堆疊，VGG 風格的平面架構可以在準確率與實際推論速度上同時超越 ResNet 等複雜設計。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>數學上精確的等價轉換：</strong>結構重參數化不是近似或壓縮，而是代數上完全等價的操作。這意味著轉換後的平面模型與訓練時的多分支模型有完全相同的輸出，消除了「簡化是否犧牲精度」的顧慮。搭配以實際延遲（而非 FLOPs）為度量的實驗比較，論點在理論與實踐上均獲得堅實支撐。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>適用範圍的侷限性：</strong>結構重參數化僅適用於可被代數合併的線性操作，無法涵蓋注意力機制（Attention）、Squeeze-and-Excitation 模組等非線性分支。隨著 Vision Transformer 的崛起，純摺積架構的長期競爭力存疑。此外，速度比較基於特定 GPU（1080Ti），在不同硬體（如行動裝置 NPU）上的優勢未被驗證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>
