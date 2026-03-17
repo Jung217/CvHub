@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A ConvNet for the 2020s (ConvNeXt) — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                A ConvNet for the 2020s (ConvNeXt)
+                <span class="course-tag">CVPR 2022</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2201.03545" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-modernize">2. 現代化路線</a>
+        <a href="#sec-training">2.1 訓練技巧</a>
+        <a href="#sec-macro">2.2 宏觀設計</a>
+        <a href="#sec-resnext">2.3 ResNeXt 化</a>
+        <a href="#sec-inverted">2.4 反轉瓶頸</a>
+        <a href="#sec-largekernel">2.5 大核心</a>
+        <a href="#sec-micro">2.6 微觀設計</a>
+        <a href="#sec-experiments">3. ImageNet 實驗</a>
+        <a href="#sec-downstream">4. 下游任務</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">"Roaring 20s"</span> of visual recognition began with the introduction of <span class="hl-concept">Vision Transformers (ViTs)</span>, which quickly superseded ConvNets as the state-of-the-art image classification model. <span class="hl-rebuttal">A vanilla ViT, on the other hand, faces difficulties when applied to general computer vision tasks such as object detection and semantic segmentation.</span> It is the <span class="hl-concept">hierarchical Transformers</span> (e.g., Swin Transformers) that reintroduced several ConvNet priors, making Transformers practically viable as a generic vision backbone. However, the effectiveness of such hybrid approaches is still largely credited to the intrinsic superiority of Transformers, rather than the inherent inductive biases of convolutions. In this work, the authors <span class="hl-thesis">reexamine the design spaces and test the limits of what a pure ConvNet can achieve</span>. They <span class="hl-method">gradually "modernize" a standard ResNet toward the design of a Vision Transformer</span>, and discover several key components that contribute to the performance difference along the way. The outcome of this exploration is a family of pure ConvNet models dubbed <span class="hl-concept">ConvNeXt</span>. ConvNeXt models, constructed entirely from standard ConvNet modules, <span class="hl-evidence">compete favorably with Transformers in terms of accuracy and scalability, achieving 87.8% ImageNet top-1 accuracy and outperforming Swin Transformers on COCO detection and ADE20K segmentation</span>, while maintaining the simplicity and efficiency of standard ConvNets.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺辨識的「轟轟烈烈的 2020 年代」始於視覺 Transformer（ViT）的問世，它迅速取代摺積網路（ConvNet）成為最先進的影像分類模型。然而，原始 ViT 在應用於物件偵測與語意分割等通用電腦視覺任務時遭遇困難。階層式 Transformer（如 Swin Transformer）重新引入了多項 ConvNet 先驗，使得 Transformer 在實務上得以作為通用視覺骨幹。但這類混合方法的成效，仍普遍被歸功於 Transformer 的固有優越性，而非摺積本身的歸納偏置。本研究重新審視設計空間，測試純摺積網路所能達成的極限。作者逐步將標準 ResNet「現代化」，使其趨近 Vision Transformer 的設計，並在過程中發現數項造成效能差異的關鍵組件。此探索的成果是一系列名為 ConvNeXt 的純摺積網路模型。ConvNeXt 完全由標準 ConvNet 模組建構，在精確度與可擴展性上與 Transformer 相當甚至更優，達到 87.8% 的 ImageNet top-1 精確度，並在 COCO 偵測與 ADE20K 分割上超越 Swin Transformer，同時保持標準 ConvNet 的簡潔與高效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——建立「Transformer 崛起 vs. ConvNet 反擊」的敘事框架，預告研究結論。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時承擔問題定義與結論預告：先肯定 ViT 的崛起，再質疑其優越性是否來自 Transformer 本身，最終以 ConvNeXt 的實證成績回應此質疑。形成「挑戰-回應」的完整論證弧線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「Roaring 20s」的修辭開場極具吸引力，巧妙地將 ViT 的崛起框架為一場「敘事」而非既定事實。87.8% top-1 精確度的數據極具說服力，但此成績來自 ImageNet-22K 預訓練，與純 ImageNet-1K 訓練的公平比較需在正文中釐清。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：ConvNet 的歷史地位 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">"Roaring 20s"</span> of visual recognition began with the introduction of <span class="hl-concept">Vision Transformers (ViTs)</span>. The 2010s were dominated by <span class="hl-concept">convolutional neural networks (ConvNets)</span>, beginning with <span class="hl-concept">AlexNet</span>'s breakthrough in 2012. The field evolved through representative models like <span class="hl-concept">VGGNet, ResNet, DenseNet, and EfficientNet</span>, each focusing on different aspects of accuracy, efficiency, and scalability. ConvNets possessed several <span class="hl-thesis">inherent advantages: translation equivariance</span> (crucial for object detection), <span class="hl-thesis">efficiency through shared computation in sliding-window approaches</span>, and success across diverse applications from digit recognition to pedestrian detection.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺辨識的「轟轟烈烈的 2020 年代」始於視覺 Transformer（ViT）的問世。2010 年代由摺積神經網路（ConvNet）主宰，起始於 AlexNet 在 2012 年的突破。該領域歷經 VGGNet、ResNet、DenseNet 與 EfficientNet 等代表性模型的演進，各自專注於精確度、效率與可擴展性的不同面向。ConvNet 具備若干固有優勢：平移等變性（對物件偵測至關重要）、透過滑動視窗共享計算的效率，以及從手寫數字辨識到行人偵測等多樣應用中的成功經驗。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立歷史脈絡——回顧 ConvNet 在 2010 年代的統治地位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先確立 ConvNet 的歷史合法性與技術優勢，為後續「ConvNet 並未過時」的論點打下基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉經典模型（AlexNet、VGG、ResNet 等）建立 ConvNet 的權威譜系，營造「深厚底蘊」的印象。但這種歷史回顧可能使讀者產生「守舊」的觀感，作者需在後文證明這不僅是懷舊。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：ViT 的衝擊與質疑 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                However, around 2020, <span class="hl-concept">Vision Transformers (ViTs)</span> fundamentally altered the architectural landscape. Unlike ConvNets, <span class="hl-rebuttal">vanilla ViTs introduced minimal image-specific inductive bias</span>. While ViTs demonstrated <span class="hl-evidence">superior scaling behavior on image classification</span>, they faced practical challenges for general computer vision tasks due to <span class="hl-rebuttal">quadratic complexity in global attention mechanisms</span>. <span class="hl-concept">Hierarchical Transformers</span> like <span class="hl-concept">Swin</span> addressed this by <span class="hl-method">reintroducing sliding-window strategies and other ConvNet priors</span>, achieving state-of-the-art results across multiple vision tasks. Yet the authors questioned: <span class="hl-thesis">does the superiority stem from Transformers' inherent advantages, or simply from reincorporating convolution-based principles?</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                然而在 2020 年前後，視覺 Transformer（ViT）從根本上改變了架構格局。與 ConvNet 不同，原始 ViT 僅引入極少的影像特有歸納偏置。雖然 ViT 在影像分類上展現出優越的規模化行為，但因全域注意力機制的二次方複雜度，在通用電腦視覺任務上面臨實務挑戰。階層式 Transformer（如 Swin）透過重新引入滑動視窗策略與其他 ConvNet 先驗來解決此問題，在多項視覺任務上達到最先進成績。然而作者提出質疑：此優越性究竟源自 Transformer 的固有優勢，還是僅僅因為重新納入了基於摺積的設計原則？
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心質疑——挑戰 Transformer 優越性的主流敘事。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    關鍵轉折點：先承認 ViT 的成就（讓步），再指出 Swin 的成功可能源自「借用 ConvNet 設計」而非 Transformer 本身（反駁），從而為全文的研究假設奠基。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「Swin 重新引入摺積先驗」的觀察極為敏銳，但略有簡化——Swin 的移位視窗注意力機制與傳統摺積仍有本質差異（如動態權重 vs. 靜態濾波器）。作者將此差異最小化，以支持「ConvNet 設計原則才是關鍵」的論述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：研究目標與 ConvNeXt -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper's central investigation asks: <span class="hl-thesis">"How do design decisions in Transformers impact ConvNets' performance?"</span> The authors <span class="hl-method">gradually modernize a ResNet toward the design of a Swin Transformer</span>, without introducing any attention-based modules. This exploration yields <span class="hl-concept">ConvNeXt</span>, a family of pure ConvNet models that <span class="hl-evidence">achieves 87.8% ImageNet top-1 accuracy, outperforms Swin Transformers on COCO detection and ADE20K segmentation</span>, while <span class="hl-thesis">maintaining the simplicity and efficiency of standard ConvNets</span>. The key finding is that <span class="hl-thesis">many of the design choices borrowed from Transformers have been individually explored in the ConvNet literature over the past decade, but never collectively assembled</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文的核心探問是：「Transformer 中的設計決策如何影響 ConvNet 的效能？」作者逐步將 ResNet 朝 Swin Transformer 的設計方向現代化，且全程不引入任何基於注意力的模組。此探索產出 ConvNeXt——一系列純摺積網路模型，達到 87.8% 的 ImageNet top-1 精確度，在 COCO 偵測與 ADE20K 分割上超越 Swin Transformer，同時保持標準 ConvNet 的簡潔與高效。關鍵發現在於：許多從 Transformer 借鑑的設計選擇，過去十年間已在 ConvNet 文獻中被個別探索，但從未被集體整合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    宣告研究方法與成果——完整預告實驗設計與最終結論。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接質疑，給出研究策略（漸進式現代化）與實證答案（ConvNeXt 的成績）。「從未被集體整合」一語道破論文的核心貢獻定位：不在於創新元件，而在於系統性的設計空間探索。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「漸進式現代化」的實驗設計非常聰明——每一步的消融都清楚顯示效能變化的來源，使論證極具透明度。但「不引入注意力模組」的自我限制也意味著作者刻意排除了可能進一步提升效能的混合設計，為的是證明一個更強的論點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 現代化路線 ====== -->
+    <h2 class="section-heading" id="sec-modernize">2. Modernizing a ConvNet — 現代化一個摺積網路</h2>
+
+    <!-- ====== 2.1 訓練技巧 ====== -->
+    <h3 class="subsection-heading" id="sec-training">2.1 Training Techniques — 訓練技巧</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Beyond architectural innovations, <span class="hl-thesis">training procedures significantly affect performance</span>. Vision Transformers introduced different optimization strategies and hyperparameters compared to traditional ConvNets. The authors trained baseline <span class="hl-concept">ResNet-50/200</span> models using a recipe similar to <span class="hl-concept">DeiT</span> and <span class="hl-concept">Swin Transformer</span> training approaches. The training is <span class="hl-method">extended to 300 epochs from the original 90 epochs</span> for ResNets. They use the <span class="hl-method">AdamW optimizer</span>, data augmentation techniques such as <span class="hl-method">Mixup, Cutmix, RandAugment, Random Erasing</span>, and regularization schemes including <span class="hl-method">Stochastic Depth and Label Smoothing</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                除了架構創新之外，訓練程序也顯著影響效能。Vision Transformer 引入了與傳統 ConvNet 不同的最佳化策略與超參數。作者使用類似於 DeiT 與 Swin Transformer 的訓練配方來訓練基準 ResNet-50/200 模型。訓練週期從 ResNet 原本的 90 個 epoch 延長至 300 個 epoch，並採用 AdamW 最佳化器、Mixup、Cutmix、RandAugment、Random Erasing 等資料增強技術，以及 Stochastic Depth 與 Label Smoothing 等正則化方案。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立公平基準——將 ConvNet 的訓練環境對齊 Transformer。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是整個現代化路線的第零步：在改動架構之前，先排除「訓練配方差異」這一混淆因素。此步驟的邏輯必要性在於確保後續每一步的效能變化確實來自架構改動。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    先更新訓練配方是極為精明的實驗設計——它同時揭示了一個重要事實：過去 ConvNet 與 Transformer 的效能差距有一部分並非架構差異，而是訓練技術的代差。這削弱了「Transformer 架構更優」的敘事。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This enhanced training recipe alone <span class="hl-evidence">increased ResNet-50 performance from 76.1% to 78.8% (+2.7%)</span>, suggesting that <span class="hl-thesis">"a significant portion of the performance difference between traditional ConvNets and vision Transformers may be due to the training techniques."</span> This 78.8% baseline uses fixed hyperparameters throughout the remainder of the modernization process, with reported <span class="hl-method">ImageNet-1K accuracies averaged across three random seeds</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                僅僅這套改良訓練配方，就將 ResNet-50 的效能從 76.1% 提升至 78.8%（提升 2.7%），顯示傳統 ConvNet 與 Vision Transformer 之間的效能差距，有很大一部分可能歸因於訓練技術。此 78.8% 基準在後續整個現代化過程中使用固定超參數，所報告的 ImageNet-1K 精確度均為三次隨機種子的平均值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供首個關鍵證據——量化訓練技術帶來的效能提升。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    2.7% 的提升是全文最具破壞力的數據之一：它直接證明了 ConvNet 過去被低估，效能差距的很大部分只是「訓練不到位」。這為後續架構改動提供了更高的起點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三次隨機種子取平均是良好的實驗規範。但需注意，這些訓練技術（Mixup、Cutmix 等）本身也源自 Transformer 訓練社群的研究，某種程度上仍是 Transformer 推動的進步。作者刻意不強調此點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.2 宏觀設計 ====== -->
+    <h3 class="subsection-heading" id="sec-macro">2.2 Macro Design — 宏觀設計</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Changing Stage Compute Ratio.</strong> ResNet's empirical design distributed computation across stages, with the <span class="hl-concept">res4 stage</span> being particularly heavy to support downstream object detection tasks operating on <span class="hl-evidence">14x14 feature planes</span>. <span class="hl-concept">Swin Transformer</span> employed a different <span class="hl-method">stage compute ratio of 1:1:3:1</span> (1:1:9:1 for larger models). The authors adjusted ResNet-50's block distribution <span class="hl-method">from (3, 4, 6, 3) to (3, 3, 9, 3)</span>, aligning FLOPs with Swin-T. This change <span class="hl-evidence">improved accuracy from 78.8% to 79.4%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>變更階段計算比例。</strong>ResNet 的經驗性設計將計算分配到各個階段，其中 res4 階段特別沉重，以支援在 14x14 特徵平面上運作的下游物件偵測任務。Swin Transformer 採用了不同的階段計算比例 1:1:3:1（大型模型為 1:1:9:1）。作者將 ResNet-50 的區塊分布從 (3, 4, 6, 3) 調整為 (3, 3, 9, 3)，使 FLOPs 對齊 Swin-T。此變更將精確度從 78.8% 提升至 79.4%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    宏觀調整第一步——將計算分配從 ResNet 經驗值對齊 Swin 比例。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    開始「逐步對齊」的核心實驗策略：每次僅變動一個維度，量化其獨立貢獻。階段比例的調整看似簡單，但 0.6% 的提升暗示 ResNet 原始的計算分配並非最優。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    保持 FLOPs 大致不變是控制變因的好做法。但此調整同時改變了特徵圖解析度在各階段的分布，可能影響下游任務的適用性——作者在後文以 COCO 與 ADE20K 實驗回應此疑慮。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Changing Stem to "Patchify".</strong> Standard <span class="hl-concept">ResNet stems</span> aggressively downsample inputs through a <span class="hl-method">7x7 convolution with stride 2 plus max pooling</span>, yielding 4x downsampling. Vision Transformers use more aggressive <span class="hl-concept">"patchify" strategies</span> with <span class="hl-method">large kernels (14 or 16) and non-overlapping convolutions</span>. Swin Transformer employs a <span class="hl-method">smaller patch size of 4</span> for its multi-stage design. The authors replaced the ResNet stem with a <span class="hl-method">4x4 stride-4 convolutional layer</span>, changing accuracy marginally <span class="hl-evidence">from 79.4% to 79.5%</span>. "The stem cell in a ResNet may be substituted with a simpler 'patchify' layer a la ViT which will result in similar performance."
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>將 Stem 改為「Patchify」。</strong>標準 ResNet 的 stem 透過步幅為 2 的 7x7 摺積加上最大池化，積極地對輸入進行下取樣，產生 4 倍下取樣。Vision Transformer 使用更積極的「patchify」策略，採用大核心（14 或 16）與非重疊摺積。Swin Transformer 在其多階段設計中使用較小的 patch 大小 4。作者以 4x4 步幅為 4 的摺積層取代 ResNet 的 stem，精確度僅微幅變化，從 79.4% 變為 79.5%。「ResNet 中的 stem 可以用類似 ViT 的更簡潔 patchify 層替代，且效能相近。」
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    宏觀調整第二步——簡化網路入口結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此步驟的效能增益幾乎為零（+0.1%），但它服務於更大的論點：證明 ViT 的 patchify 設計並不比 ConvNet 的傳統 stem 更優，兩者效能等價。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    引用原文「similar performance」是誠實的報告——承認某些 Transformer 設計在移植到 ConvNet 時並不帶來顯著提升。此透明度增強了整體論文的可信度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.3 ResNeXt 化 ====== -->
+    <h3 class="subsection-heading" id="sec-resnext">2.3 ResNeXt-ify — ResNeXt 化</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">ResNeXt</span> principles emphasize <span class="hl-method">grouped convolution</span> with the guideline "use more groups, expand width." The authors employed <span class="hl-concept">depthwise convolution</span>, where the <span class="hl-method">number of groups equals the number of channels</span>, popularized by <span class="hl-concept">MobileNet</span> and <span class="hl-concept">Xception</span>. <span class="hl-thesis">"Depthwise convolution is similar to the weighted sum operation in self-attention, which operates on a per-channel basis, i.e., only mixing information in the spatial dimension."</span> This separation of spatial and channel mixing mirrors Vision Transformers' design. Using depthwise convolution initially reduced accuracy, while <span class="hl-method">expanding network width from 64 to 96 channels</span> (matching Swin-T's channel count) <span class="hl-evidence">improved performance to 80.5% with 5.3G FLOPs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ResNeXt 的原則強調分組摺積，其指導方針為「使用更多分組，擴展寬度」。作者採用深度可分離摺積（depthwise convolution），其中分組數等於通道數，此技術由 MobileNet 與 Xception 所推廣。「深度可分離摺積類似於自注意力中的加權求和運算，以逐通道方式運作，即僅在空間維度上混合資訊。」這種空間與通道混合的分離，反映了 Vision Transformer 的設計理念。使用深度可分離摺積起初降低了精確度，而將網路寬度從 64 擴展至 96 個通道（對齊 Swin-T 的通道數），則將效能提升至 80.5%，FLOPs 為 5.3G。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立 ConvNet 與 Transformer 之間的結構類比。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最精彩的類比之一：深度可分離摺積與自注意力的加權求和在功能上等價，都是「空間混合」。這直接支持了「Transformer 的成功可以被 ConvNet 模組複製」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 depthwise convolution 比擬為自注意力是有啟發性的，但存在重要差異：自注意力的權重是內容相依的（動態），而摺積權重是固定的。作者選擇不討論此差異，以維持「等價性」的敘事。FLOPs 的增加（從 4.5G 到 5.3G）伴隨通道擴展，公平性需讀者自行留意。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.4 反轉瓶頸 ====== -->
+    <h3 class="subsection-heading" id="sec-inverted">2.4 Inverted Bottleneck — 反轉瓶頸</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Transformer blocks</span> feature <span class="hl-concept">inverted bottlenecks</span> where the <span class="hl-method">MLP hidden dimension is four times wider than the input dimension</span>. This design also appears in ConvNets, popularized by <span class="hl-concept">MobileNetV2</span> with expansion ratio 4. The authors repositioned the depthwise convolution layer in the block structure. Despite increased FLOPs for depthwise operations, <span class="hl-evidence">overall network FLOPs decreased to 4.6G</span> due to significant reduction in downsampling blocks' 1x1 convolution layers. Performance <span class="hl-evidence">slightly improved from 80.5% to 80.6%</span>. At the <span class="hl-evidence">ResNet-200/Swin-B regime, the gains were more substantial: from 81.9% to 82.6%</span> with reduced FLOPs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Transformer 區塊具有反轉瓶頸結構，其中 MLP 的隱藏維度是輸入維度的四倍。此設計也出現在 ConvNet 中，由 MobileNetV2 以擴展比 4 加以推廣。作者重新調整了區塊結構中深度可分離摺積層的位置。儘管深度可分離運算的 FLOPs 增加，但整體網路 FLOPs 反而降至 4.6G，因為下取樣區塊中的 1x1 摺積層大幅減少。效能從 80.5% 微幅提升至 80.6%。在 ResNet-200/Swin-B 規模下，增益更為顯著：從 81.9% 提升至 82.6%，且 FLOPs 減少。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    引入反轉瓶頸——將 Transformer MLP 的寬窄結構移植到 ConvNet。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    繼續「逐步對齊」：此步不僅提升效能，還降低了 FLOPs，是一個「免費午餐」型的改進。更重要的是，作者強調此設計「早在 MobileNetV2 就有」，暗示 Transformer 的反轉瓶頸並非原創。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提出「大模型收益更大」的觀察（0.7% vs. 0.1%）暗示此設計在規模化時更為關鍵，為後文 ConvNeXt 的大模型實驗鋪路。但小模型上 0.1% 的提升幾乎在誤差範圍內，此步驟對小模型的必要性存疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.5 大核心 ====== -->
+    <h3 class="subsection-heading" id="sec-largekernel">2.5 Large Kernel Sizes — 大核心尺寸</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Moving up depthwise conv layer.</strong> One of <span class="hl-concept">Vision Transformers</span>' distinguishing features is <span class="hl-concept">non-local self-attention</span>, providing a <span class="hl-thesis">global receptive field</span>. While large kernels appeared in early ConvNets, <span class="hl-concept">VGGNet</span> established <span class="hl-rebuttal">3x3 stacking as the gold standard</span> due to efficient GPU implementations. <span class="hl-concept">Swin Transformers</span> employ <span class="hl-method">window sizes of at least 7x7</span>, significantly larger than ResNet's 3x3. To explore large kernels, the <span class="hl-method">depthwise conv layer was repositioned to precede the dense 1x1 layers</span>, paralleling Transformers where <span class="hl-method">MSA blocks precede MLP layers</span>. With inverted bottleneck blocks, complex/inefficient modules now operate on fewer channels while efficient 1x1 layers handle the heavy computation. This intermediate step <span class="hl-evidence">reduced FLOPs to 4.1G but temporarily degraded performance to 79.9%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>將深度可分離摺積層上移。</strong>Vision Transformer 的關鍵特徵之一是非局部自注意力，提供全域感受野。雖然大核心在早期 ConvNet 中就已出現，但 VGGNet 因 GPU 實作效率而確立了 3x3 堆疊作為黃金標準。Swin Transformer 採用至少 7x7 的視窗大小，遠大於 ResNet 的 3x3。為探索大核心，作者將深度可分離摺積層重新定位到稠密 1x1 層之前，類似於 Transformer 中 MSA 區塊置於 MLP 層之前的設計。在反轉瓶頸區塊中，複雜且低效的模組現在在較少的通道上運作，而高效的 1x1 層負責繁重的計算。此中間步驟將 FLOPs 降至 4.1G，但效能暫時下降至 79.9%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    準備工作——重新排列區塊結構以容納大核心。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此步驟本身導致效能下降，但它是通往大核心的必要準備。作者誠實地報告了暫時的效能退步，展現了完整的實驗歷程，而非僅呈現「一路上升」的誤導性敘事。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    報告中間步驟的效能退步（80.6% -> 79.9%）是少見的誠實做法，增強了實驗的可信度。同時也揭示了一個重要的工程洞見：區塊內各元件的排列順序對效能有顯著影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Increasing kernel size.</strong> With the preparations complete, <span class="hl-method">large kernel adoption</span> showed significant benefits. Experiments tested <span class="hl-method">kernel sizes of 3, 5, 7, 9, and 11</span>. <span class="hl-evidence">Performance improved from 79.9% (3x3) to 80.6% (7x7)</span> while FLOPs remained roughly constant. <span class="hl-thesis">"The benefit of larger kernel sizes reaches a saturation point at 7x7."</span> The authors verified this behavior at larger scale: <span class="hl-evidence">"a ResNet-200 regime model does not exhibit further gain when we increase the kernel size beyond 7x7."</span> This finding is noteworthy because it matches <span class="hl-concept">Swin Transformer</span>'s default window size, suggesting a <span class="hl-thesis">convergence in optimal receptive field size between ConvNets and Transformers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>增大核心尺寸。</strong>在完成前置準備後，採用大核心展現了顯著效益。實驗測試了 3、5、7、9 與 11 的核心尺寸。效能從 79.9%（3x3）提升至 80.6%（7x7），FLOPs 大致不變。「大核心尺寸的效益在 7x7 時達到飽和。」作者在更大規模上驗證了此行為：「ResNet-200 規模的模型在核心尺寸超過 7x7 後不再展現進一步增益。」此發現值得注意，因為它恰好與 Swin Transformer 的預設視窗大小吻合，暗示 ConvNet 與 Transformer 在最佳感受野大小上存在收斂現象。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心實證——大核心的效能-尺寸關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    7x7 的飽和點是全文最具啟示性的發現之一：它暗示 ConvNet 的大核心與 Transformer 的注意力視窗在感受野上存在內在的最優尺度。這進一步支持了「兩種架構本質上在做同一件事」的主題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    7x7 與 Swin 視窗大小的巧合被巧妙地詮釋為「收斂」，具有強烈的修辭效果。但 Swin 的 7x7 視窗覆蓋的是局部區域，而非全域注意力；此外，Swin 在後續階段透過移位視窗實現了跨視窗的資訊傳遞，這是固定核心無法完全複製的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2.6 微觀設計 ====== -->
+    <h3 class="subsection-heading" id="sec-micro">2.6 Micro Design — 微觀設計</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Replacing ReLU with GELU.</strong> <span class="hl-concept">Rectified Linear Units (ReLU)</span> remain extensively used in ConvNets for simplicity and efficiency. <span class="hl-concept">Gaussian Error Linear Units (GELU)</span>, a smoother variant, appear in advanced Transformers including <span class="hl-concept">BERT, GPT-2, and ViTs</span>. Substituting GELU for ReLU in ConvNeXt showed <span class="hl-evidence">"the accuracy stays unchanged (80.6%)"</span>, though the authors note it becomes useful in conjunction with later modifications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>以 GELU 取代 ReLU。</strong>修正線性單元（ReLU）因其簡潔與高效，在 ConvNet 中仍被廣泛使用。高斯誤差線性單元（GELU）是一種更平滑的變體，出現在 BERT、GPT-2 與 ViT 等先進 Transformer 中。在 ConvNeXt 中以 GELU 替代 ReLU，精確度維持不變（80.6%），但作者指出它在結合後續修改時會發揮效用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    微觀調整第一步——更換啟動函數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    單獨來看，GELU 的替換無效能影響。但在漸進式設計中，它是一個「潛在的協同因子」——其效益在與其他修改結合後才顯現，體現了設計決策之間的交互作用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    誠實報告「精確度不變」是科學嚴謹的表現。但也暗示：單獨的微觀變更可能無足輕重，效能提升主要來自宏觀結構改動。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Fewer activation functions.</strong> <span class="hl-concept">Transformer blocks</span> contain <span class="hl-thesis">fewer activation functions</span> than ResNet blocks. Transformers include <span class="hl-method">only one activation function in the MLP block</span>, whereas ResNets typically append activations to every convolutional layer including 1x1 convolutions. Eliminating GELU layers from residual blocks except between two 1x1 layers (replicating Transformer style) <span class="hl-evidence">improved performance by 0.7% to 81.3%</span>, <span class="hl-evidence">"practically matching the performance of Swin-T."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>減少啟動函數。</strong>Transformer 區塊所含的啟動函數比 ResNet 區塊少。Transformer 在 MLP 區塊中僅包含一個啟動函數，而 ResNet 通常在每個摺積層（包括 1x1 摺積）後都附加啟動函數。從殘差區塊中移除 GELU 層，僅保留兩個 1x1 層之間的一個（複製 Transformer 風格），將效能提升 0.7% 至 81.3%，「實質上已追平 Swin-T 的效能」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    微觀調整的關鍵突破——減少啟動函數帶來顯著增益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    0.7% 的單步提升是微觀設計中最大的一次跳躍，且直接導致追平 Swin-T。這強力支持了「Transformer 的簡約區塊設計是其效能來源之一」的洞見。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「追平 Swin-T」的措辭極具戲劇效果——暗示在此之前一路追趕，終於在此步追上。但需注意，減少啟動函數的效益可能因模型規模而異，作者僅在小模型上驗證了此數據。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Fewer normalization layers.</strong> Transformer blocks typically include <span class="hl-method">fewer normalization layers</span> than ConvNet blocks. Removing two <span class="hl-concept">BatchNorm</span> layers and retaining only one before the 1x1 convolution layers further <span class="hl-evidence">boosted performance to 81.4%</span>, <span class="hl-evidence">"already surpassing Swin-T's result."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>減少正規化層。</strong>Transformer 區塊通常比 ConvNet 區塊包含更少的正規化層。移除兩個 BatchNorm 層，僅保留 1x1 摺積層之前的一個，進一步將效能提升至 81.4%，「已超越 Swin-T 的成績」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    持續簡化——進一步移除冗餘正規化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    首次超越 Swin-T 是全文的情節高潮之一。此步驗證了一個反直覺的結論：ConvNet 中過多的正規化層可能反而限制了表達能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    連續的「減少啟動函數」與「減少正規化層」都帶來提升，暗示傳統 ConvNet 的區塊設計存在過度正則化的問題。但這也可能是訓練配方（300 epochs + 更強增強）緩解了過擬合，使得更少的正則化成為可行。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Substituting BN with LN.</strong> <span class="hl-concept">Batch Normalization (BN)</span> improved convergence and reduced overfitting but contains complexities that may potentially harm performance. <span class="hl-concept">Layer Normalization (LN)</span>, simpler and widely used in Transformers, <span class="hl-rebuttal">previously showed suboptimal results when directly substituting BN in original ResNets</span>. However, with the accumulated architectural modifications and training techniques, <span class="hl-evidence">"our ConvNet model does not have any difficulties training with LN; in fact, the performance is slightly better, obtaining an accuracy of 81.5%."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>以 LN 取代 BN。</strong>批次正規化（BN）改善了收斂性並減少過擬合，但包含可能損害效能的複雜性。層正規化（LN）更簡潔且廣泛用於 Transformer 中，但過去在原始 ResNet 中直接替代 BN 時表現欠佳。然而，在累積了架構修改與訓練技術後，「我們的 ConvNet 模型使用 LN 訓練毫無困難；事實上效能略有提升，精確度達到 81.5%」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    破除迷思——證明 LayerNorm 在適當條件下可用於 ConvNet。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此步驟具有雙重意義：(1) 效能提升本身；(2) 反駁了「LN 不適用於 ConvNet」的傳統觀點。這暗示許多被認為是 Transformer 專屬的技術，只是在錯誤的 ConvNet 環境中被過早放棄。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「accumulated modifications」的措辭精準地指出：LN 的可行性取決於整體架構環境，而非單獨的相容性。這是一個關於「設計決策的相互依賴性」的深刻洞見，也解釋了為何過去的孤立實驗未能發現此點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Separate downsampling layers.</strong> ResNet achieves <span class="hl-method">spatial downsampling through residual blocks using 3x3 convolution with stride 2</span> at block beginnings. Swin Transformers add <span class="hl-method">separate downsampling layers between stages</span>. The authors explored <span class="hl-method">2x2 stride-2 convolution for downsampling</span> but encountered <span class="hl-rebuttal">training divergence</span>. Adding <span class="hl-method">normalization wherever spatial resolution changes</span> stabilized training, including LayerNorm layers before each downsampling layer, after the stem, and after the final global average pooling. This <span class="hl-evidence">improved accuracy to 82.0%</span>, <span class="hl-evidence">"significantly exceeding Swin-T's 81.3%."</span> The authors remark: <span class="hl-thesis">"These designs are not novel even in the ConvNet literature — they have all been researched separately, but not collectively, over the last decade."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>獨立下取樣層。</strong>ResNet 透過在區塊開頭使用步幅為 2 的 3x3 摺積來實現空間下取樣。Swin Transformer 則在各階段之間加入獨立的下取樣層。作者探索使用 2x2 步幅為 2 的摺積進行下取樣，但遭遇訓練發散。在空間解析度變化處加入正規化穩定了訓練，包括在每個下取樣層之前、stem 之後以及最終全域平均池化之後加入 LayerNorm 層。此改動將精確度提升至 82.0%，「顯著超越 Swin-T 的 81.3%」。作者指出：「這些設計即使在 ConvNet 文獻中也並非新穎——它們在過去十年間已被個別研究，但從未被集體整合。」
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    現代化路線的終點——達成超越 Swin-T 的里程碑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    82.0% vs. 81.3% 是全文的核心數據，標誌著漸進式現代化的成功。「從未被集體整合」一語總結了全文的方法論貢獻。此段同時誠實地報告了訓練發散的問題及其解決方案（加入正規化），展現完整的工程歷程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「顯著超越」的措辭具有修辭力量，但 0.7% 的差距是否「顯著」取決於變異數估計。更重要的是，此處額外引入的多個 LayerNorm 層是新增的正則化，可能在更大資料集上產生不同效果。訓練發散問題的出現也提醒讀者：看似簡單的設計移植實際上需要精細的工程調整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. ImageNet 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">3. Empirical Evaluations on ImageNet — ImageNet 實證評估</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>ImageNet-1K Results.</strong> <span class="hl-concept">ConvNeXt</span> variants demonstrate competitive performance across model sizes. <span class="hl-evidence">ConvNeXt-T achieves 82.1% accuracy compared to Swin-T's 81.3%</span>. At higher resolutions (384x384), <span class="hl-evidence">ConvNeXt-B reaches 85.1% versus Swin-B's 84.5%</span> with superior throughput (<span class="hl-evidence">95.7 vs. 85.1 image/s</span>). The model family includes five variants: <span class="hl-concept">ConvNeXt-T</span> (<span class="hl-evidence">29M parameters, 4.5G FLOPs</span>), <span class="hl-concept">ConvNeXt-S</span> (<span class="hl-evidence">50M parameters, 8.7G FLOPs</span>), <span class="hl-concept">ConvNeXt-B</span> (<span class="hl-evidence">89M parameters, 15.4G FLOPs</span>), <span class="hl-concept">ConvNeXt-L</span> (<span class="hl-evidence">198M parameters, 34.4G FLOPs</span>), and <span class="hl-concept">ConvNeXt-XL</span> (<span class="hl-evidence">350M parameters, 60.9G FLOPs</span>).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>ImageNet-1K 結果。</strong>ConvNeXt 的各個變體在不同模型規模上展現具競爭力的效能。ConvNeXt-T 達到 82.1% 的精確度，對比 Swin-T 的 81.3%。在更高解析度（384x384）下，ConvNeXt-B 達到 85.1%，對比 Swin-B 的 84.5%，且吞吐量更高（95.7 vs. 85.1 張影像/秒）。模型家族包含五個變體：ConvNeXt-T（29M 參數、4.5G FLOPs）、ConvNeXt-S（50M 參數、8.7G FLOPs）、ConvNeXt-B（89M 參數、15.4G FLOPs）、ConvNeXt-L（198M 參數、34.4G FLOPs）、ConvNeXt-XL（350M 參數、60.9G FLOPs）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示完整模型家族的 ImageNet-1K 基準成績。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從小到大五個規模的模型全部超越對應的 Swin 變體，展現了「系統性優勢」而非偶然勝出。吞吐量的額外比較強化了效率論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    五個模型規模全面勝出的呈現方式極具說服力。但需注意，ConvNeXt 的 FLOPs 與參數量是刻意對齊 Swin 的，這種「在相同預算下比較」的實驗設計雖然公平，但也排除了 Swin 在不同配置下可能更優的情形。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>ImageNet-22K Pre-training.</strong> With <span class="hl-method">ImageNet-22K pre-training and fine-tuning</span>, the scaling behavior of ConvNeXt becomes even more impressive. <span class="hl-evidence">ConvNeXt-XL achieves 87.8% accuracy</span>, outperforming <span class="hl-evidence">EfficientNetV2-XL (87.3%)</span> and matching ViT-L results. <span class="hl-evidence">ConvNeXt-B reaches 86.8% compared to Swin-B's 86.4%</span>. The results demonstrate that <span class="hl-thesis">ConvNets scale effectively with larger datasets, challenging the widely held belief about Transformer superiority in the large-data regime</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>ImageNet-22K 預訓練。</strong>透過 ImageNet-22K 預訓練與微調，ConvNeXt 的規模化行為更加令人印象深刻。ConvNeXt-XL 達到 87.8% 的精確度，超越 EfficientNetV2-XL（87.3%）並追平 ViT-L 的結果。ConvNeXt-B 達到 86.8%，對比 Swin-B 的 86.4%。結果證明 ConvNet 在更大資料集上能有效擴展，挑戰了 Transformer 在大資料機制下具備優越性的普遍信念。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    驗證規模化能力——回應「ConvNet 無法在大資料下擴展」的質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    87.8% 是全文的最高成績，直接回應了緒論中「ViT 展現優越的規模化行為」的承認。這完成了從「讓步」到「反駁」的完整論證弧線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「挑戰普遍信念」的措辭非常大膽。但 87.8% 與 ViT-L 的「追平」而非「超越」，以及 ImageNet-22K 預訓練的依賴，暗示 ConvNet 的規模化可能仍有天花板。作者未探索更大的資料規模（如 JFT-300M），留下了開放問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Isotropic ConvNeXt vs. ViT.</strong> When applied to <span class="hl-concept">non-hierarchical (isotropic) architectures</span>, ConvNeXt blocks perform competitively with Vision Transformers. <span class="hl-evidence">Isotropic ConvNeXt-B achieves 82.0% accuracy, matching ViT-B's performance</span> while using comparable parameters and FLOPs. This is a particularly strong result because it shows that <span class="hl-thesis">the ConvNeXt block design is effective even without the hierarchical multi-stage structure that was borrowed from ConvNet traditions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>等向性 ConvNeXt 與 ViT 比較。</strong>當應用於非階層式（等向性）架構時，ConvNeXt 區塊與 Vision Transformer 表現相當。等向性 ConvNeXt-B 達到 82.0% 的精確度，追平 ViT-B 的效能，且使用相近的參數量與 FLOPs。這是一個特別有力的結果，因為它表明 ConvNeXt 的區塊設計即使在沒有從 ConvNet 傳統借鑑的階層式多階段結構下，仍然有效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    額外驗證——在 ViT 的主場（等向性架構）上證明 ConvNeXt 的競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此實驗的巧妙之處在於反轉了常見的批評：有人可能認為 ConvNeXt 的成功仰賴階層式設計（一個 ConvNet 先驗），此實驗證明即使移除此先驗，ConvNeXt 區塊本身就足以與 ViT 抗衡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    在 ViT 的「原生」設定下與之比較，是一個預防性反駁的優秀範例。但等向性模型在實務中較少使用，此結果的實際影響力不如階層式模型的比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 下游任務 ====== -->
+    <h2 class="section-heading" id="sec-downstream">4. Empirical Results on Downstream Tasks — 下游任務實證結果</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>COCO Object Detection and Segmentation.</strong> Using <span class="hl-concept">Mask R-CNN</span> and <span class="hl-concept">Cascade Mask R-CNN</span> frameworks, ConvNeXt demonstrates strong performance on <span class="hl-concept">COCO</span>. With Mask R-CNN, <span class="hl-evidence">ConvNeXt-T achieves 46.2 AP<sup>box</sup> and 41.7 AP<sup>mask</sup></span> compared to <span class="hl-evidence">Swin-T's 46.0 AP<sup>box</sup> and 41.6 AP<sup>mask</sup></span>, with better throughput (25.6 vs. 23.1 FPS). With Cascade Mask R-CNN and ImageNet-22K pre-training, <span class="hl-evidence">ConvNeXt-B achieves 54.0 AP<sup>box</sup> and 46.9 AP<sup>mask</sup></span>, significantly outperforming <span class="hl-evidence">Swin-B's 53.0 AP<sup>box</sup> and 45.8 AP<sup>mask</sup></span> (e.g., +1.0 AP<sup>box</sup>).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>COCO 物件偵測與分割。</strong>使用 Mask R-CNN 與 Cascade Mask R-CNN 框架，ConvNeXt 在 COCO 上展現強勁表現。在 Mask R-CNN 下，ConvNeXt-T 達到 46.2 AP<sup>box</sup> 與 41.7 AP<sup>mask</sup>，對比 Swin-T 的 46.0 AP<sup>box</sup> 與 41.6 AP<sup>mask</sup>，且吞吐量更高（25.6 vs. 23.1 FPS）。使用 Cascade Mask R-CNN 與 ImageNet-22K 預訓練，ConvNeXt-B 達到 54.0 AP<sup>box</sup> 與 46.9 AP<sup>mask</sup>，顯著超越 Swin-B 的 53.0 AP<sup>box</sup> 與 45.8 AP<sup>mask</sup>（例如 +1.0 AP<sup>box</sup>）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    下游任務驗證——在物件偵測與實例分割的工業級基準上證明泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    ImageNet 分類的成功只是第一步；COCO 上的全面勝出證明 ConvNeXt 作為通用骨幹網路的價值。+1.0 AP 的差距在偵測領域是有意義的改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    在小模型（T 規模）上差距微小（+0.2 AP），在大模型（B 規模 + 22K 預訓練）上差距明顯（+1.0 AP），暗示 ConvNeXt 的優勢隨規模放大。但作者未報告訓練時間與記憶體消耗的詳細比較，這在工業應用中往往比精確度差距更重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>ADE20K Semantic Segmentation.</strong> Using the <span class="hl-concept">UperNet</span> framework, ConvNeXt consistently outperforms Swin across all scales. With ImageNet-1K pre-training, <span class="hl-evidence">ConvNeXt-T achieves 46.7 mIoU vs. Swin-T's 45.8 mIoU</span>; <span class="hl-evidence">ConvNeXt-S reaches 49.6 mIoU vs. Swin-S's 49.5</span>; and <span class="hl-evidence">ConvNeXt-B attains 49.9 mIoU vs. Swin-B's 49.7</span>. With ImageNet-22K pre-training, the gap widens: <span class="hl-evidence">ConvNeXt-B achieves 53.1 mIoU vs. Swin-B's 51.7 mIoU</span>, <span class="hl-evidence">ConvNeXt-L reaches 53.7 mIoU vs. Swin-L's 53.5</span>, and <span class="hl-evidence">ConvNeXt-XL achieves the best result at 54.0 mIoU</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>ADE20K 語意分割。</strong>使用 UperNet 框架，ConvNeXt 在所有規模上一致超越 Swin。在 ImageNet-1K 預訓練下，ConvNeXt-T 達到 46.7 mIoU，對比 Swin-T 的 45.8 mIoU；ConvNeXt-S 達到 49.6 mIoU，對比 Swin-S 的 49.5；ConvNeXt-B 達到 49.9 mIoU，對比 Swin-B 的 49.7。在 ImageNet-22K 預訓練下，差距擴大：ConvNeXt-B 達到 53.1 mIoU，對比 Swin-B 的 51.7 mIoU；ConvNeXt-L 達到 53.7 mIoU，對比 Swin-L 的 53.5；ConvNeXt-XL 以 54.0 mIoU 達到最佳成績。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第二項下游任務驗證——語意分割的全面比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三項任務（分類、偵測、分割）的全面勝出構成了堅實的實證三角：ConvNeXt 不僅是一個好的分類器，更是一個全方位的視覺骨幹。22K 預訓練下 +1.4 mIoU 的差距尤其有力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    小模型差距微小（+0.1 ~ +0.9），大模型差距顯著（+1.4），與 COCO 實驗呈現相同趨勢。但 UperNet 是一個相對簡單的框架；在更先進的分割框架（如 Mask2Former）下，兩者的差距可能不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Model Efficiency.</strong> The authors address concerns about <span class="hl-concept">depthwise convolution</span> efficiency. Despite theoretical efficiency concerns, <span class="hl-evidence">"inference throughputs of ConvNeXts are comparable to or exceed that of Swin Transformers."</span> Training memory consumption for <span class="hl-evidence">Cascade Mask R-CNN with ConvNeXt-B requires 17.4GB versus 18.5GB for Swin-B</span>. On <span class="hl-concept">A100 GPUs</span> with TF32 support, ConvNeXt demonstrates <span class="hl-evidence">"up to 49% higher throughput"</span> compared to Swin Transformers, further highlighting that <span class="hl-thesis">pure ConvNets can be both faster and more accurate than hierarchical Transformers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>模型效率。</strong>作者回應了關於深度可分離摺積效率的疑慮。儘管存在理論上的效率擔憂，「ConvNeXt 的推論吞吐量與 Swin Transformer 相當甚至更高」。Cascade Mask R-CNN 搭配 ConvNeXt-B 的訓練記憶體消耗為 17.4GB，對比 Swin-B 的 18.5GB。在支援 TF32 的 A100 GPU 上，ConvNeXt 展現「最高 49% 的吞吐量提升」，進一步凸顯純摺積網路可以同時比階層式 Transformer 更快且更精確。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    預防性反駁——回應「depthwise convolution 效率低」的潛在質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論證的防禦環節：既然 ConvNeXt 大量使用 depthwise convolution，效率質疑是可預見的。以吞吐量與記憶體消耗的硬數據直接回應，堵住了最可能的攻擊路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「49% 更高吞吐量」的數據非常搶眼，但它特定於 A100+TF32 的環境。在其他硬體（如移動端、較舊 GPU）上，depthwise convolution 的效率可能並不佔優。作者選擇了最有利的硬體環境來報告此數據。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper challenges the prevailing narrative that <span class="hl-thesis">"vision Transformers are more accurate, efficient, and scalable than ConvNets."</span> <span class="hl-concept">ConvNeXt</span> demonstrates that <span class="hl-thesis">pure convolutional architectures can compete favorably with state-of-the-art hierarchical vision Transformers across multiple computer vision benchmarks, while retaining the simplicity and efficiency of standard ConvNets</span>. The authors note that <span class="hl-thesis">"many design choices have all been examined separately over the last decade, but not collectively,"</span> suggesting their contribution lies in the systematic synthesis of existing techniques. They express hope that findings will <span class="hl-thesis">"challenge several widely held views and prompt people to rethink the importance of convolution in computer vision."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文挑戰了「Vision Transformer 比 ConvNet 更精確、更高效、更具可擴展性」的主流敘事。ConvNeXt 證明了純摺積架構能在多項電腦視覺基準上與最先進的階層式 Vision Transformer 競爭甚至勝出，同時保持標準 ConvNet 的簡潔與高效。作者指出，「許多設計選擇在過去十年間已被個別探究，但從未被集體整合」，暗示其貢獻在於對既有技術的系統性綜合。他們期望這些發現能「挑戰若干普遍持有的觀點，並促使人們重新思考摺積在電腦視覺中的重要性」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心發現並提出學術展望。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應緒論的問題設定，形成完整的論證閉環：「Transformer 的成功是否源自其固有優勢？」答案是「不完全是」——很大一部分可以被摺積網路複製。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「促使人們重新思考」的呼籲具有學術影響力。但結論未充分討論 Transformer 在 ConvNet 無法複製的領域中的優勢，如跨模態注意力、動態路由等。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Limitations.</strong> The authors acknowledge that <span class="hl-rebuttal">ConvNeXt may be more suited for certain tasks, while Transformers may be more flexible for others</span>. <span class="hl-rebuttal">Multi-modal learning scenarios where cross-attention is preferable</span> represent cases where Transformers maintain advantages. Tasks requiring <span class="hl-rebuttal">"discretized, sparse, or structured outputs"</span> may also favor Transformer approaches. The authors advocate <span class="hl-thesis">choosing architectures based on task needs while striving for simplicity</span>, rather than defaulting to the most hyped approach.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>局限性。</strong>作者承認 ConvNeXt 可能更適合某些任務，而 Transformer 在其他任務上可能更具彈性。需要跨注意力的多模態學習場景，是 Transformer 仍保持優勢的情形。需要「離散化、稀疏或結構化輸出」的任務也可能偏好 Transformer 方法。作者主張依據任務需求選擇架構，同時追求簡潔性，而非預設選用最受追捧的方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    承認局限——劃定 ConvNeXt 的適用邊界。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展現了學術謙遜，避免過度主張。明確指出 Transformer 在多模態與結構化輸出上的優勢，使全文的論點更為平衡與可信。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動承認局限是成熟的學術寫作策略，反而增強了全文的說服力。但「選擇架構應基於任務需求」的建議過於籠統，未提供具體的選擇指南。在實務中，工程師仍需自行判斷何時使用 ConvNet、何時使用 Transformer。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                ViT 崛起後 ConvNet<br>被認為已過時
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                Transformer 的成功可被<br>ConvNet 設計原則複製
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                漸進式現代化路線<br>每步量化效能增益
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                ImageNet/COCO/ADE20K<br>全面超越 Swin
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                純 ConvNet 仍具<br>競爭力與實用價值
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過系統性地將 Transformer 的設計選擇逐步移植到標準 ResNet，純摺積網路 ConvNeXt 能在精確度、效率與可擴展性上全面匹敵甚至超越階層式 Vision Transformer，證明摺積在 2020 年代仍具競爭力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>漸進式消融的實驗設計：</strong>從 ResNet-50 出發，每次僅變動一個設計維度並量化效能變化，使讀者能精確追蹤每項 Transformer 設計選擇的獨立貢獻。76.1% 到 82.0% 的完整路線圖，既是科學嚴謹的消融研究，也是深具啟發性的架構設計教學。訓練技術帶來的 2.7% 提升，更深刻揭示了過去 ConvNet vs. Transformer 比較中被忽略的混淆因素。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>Transformer 獨有優勢的迴避：</strong>論文刻意將比較限定在視覺辨識的三項標準任務上，未觸及 Transformer 在動態注意力、跨模態融合與長程依賴建模上的固有優勢。此外，depthwise convolution 與 self-attention 的「功能等價」類比忽略了注意力機制的內容自適應性——這可能在分布外泛化與少樣本學習中產生質的差異。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Point-NeRF: Point-based Neural Radiance Fields — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Point-NeRF: Point-based Neural Radiance Fields
+                <span class="course-tag">CVPR 2022</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2201.08845" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-pointfield">3.2 點雲輻射場</a>
+        <a href="#sec-rendering">3.3 體積渲染</a>
+        <a href="#sec-growing">4.2 點雲生長與剪枝</a>
+        <a href="#sec-experiments">5. 實驗</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Volumetric neural rendering methods</span> like <span class="hl-concept">NeRF</span> generate high-quality view synthesis results but are <span class="hl-rebuttal">optimized per-scene leading to prohibitive reconstruction time</span>. In this paper, we propose <span class="hl-concept">Point-NeRF</span>, a novel point-based neural radiance field representation that <span class="hl-thesis">uses neural 3D point clouds, with associated neural features, to model a volumetric radiance field</span>. Point-NeRF can be <span class="hl-method">rendered efficiently by aggregating neural point features near scene surfaces, in a ray marching-based rendering pipeline</span>. Point-NeRF can be initialized via <span class="hl-method">direct deep network inference</span>, yielding a reasonable radiance field for novel view synthesis, which can be further <span class="hl-method">fine-tuned to surpass the neural radiance field quality of NeRF</span>, with <span class="hl-evidence">30x faster training time</span>. Point-NeRF further introduces novel <span class="hl-method">pruning and growing mechanisms</span> for the neural point cloud, to handle <span class="hl-rebuttal">errors and outliers in the reconstructed point cloud</span>, achieving <span class="hl-evidence">state-of-the-art results on the DTU, NeRF Synthetics, ScanNet, and Tanks and Temples datasets</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                如 NeRF 等體積式神經渲染方法雖能產生高品質的視角合成結果，但須逐場景最佳化，導致重建時間過長。本文提出 Point-NeRF，一種新穎的基於點雲的神經輻射場表示法，運用帶有關聯神經特徵的三維神經點雲來建模體積輻射場。Point-NeRF 能透過在光線步進渲染管線中聚合場景表面附近的神經點特徵，達成高效渲染。該方法可經由深度網路直接推論進行初始化，產生合理的輻射場以進行新視角合成，並可進一步微調以超越 NeRF 的神經輻射場品質，訓練速度快 30 倍。Point-NeRF 更引入新穎的神經點雲剪枝與生長機制，以處理重建點雲中的誤差與離群點，在 DTU、NeRF Synthetics、ScanNet 及 Tanks and Temples 資料集上達到最先進的成果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「現有方法的瓶頸」為切入點，引出 Point-NeRF 的定位與核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題定義、解決方案預告、成果宣示」的三重功能：先指出 NeRF 的逐場景最佳化瓶頸，再以神經點雲作為替代表示法，最後以 30 倍加速與多資料集 SOTA 作為實證支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「30 倍加速」是極具衝擊力的數據錨點，但此數值的前提是以深度網路推論提供初始化——若初始化品質不佳，微調時間可能大幅增加。摘要迴避了初始化品質對最終結果的影響程度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Modeling real scenes from image data for <span class="hl-concept">photo-realistic novel view synthesis</span> is a long-standing and fundamental problem in computer vision and graphics. While <span class="hl-concept">NeRF</span> and its extensions have achieved great success, <span class="hl-rebuttal">these methods often reconstruct radiance fields using global MLPs for the entire space through ray marching</span>. This leads to <span class="hl-rebuttal">long reconstruction times due to the slow per-scene network fitting and the unnecessary sampling of vast empty space</span>. These limitations make NeRF-based approaches <span class="hl-rebuttal">impractical for real-world applications that require efficient scene reconstruction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從影像資料建模真實場景以實現逼真的新視角合成，是電腦視覺與圖學領域長久以來的基礎問題。儘管 NeRF 及其延伸已取得巨大成功，但這些方法往往以全域多層感知器（MLP）透過光線步進來重建整個空間的輻射場。這導致了過長的重建時間，原因在於緩慢的逐場景網路擬合以及對大量空白空間的不必要取樣。這些限制使得 NeRF 系列方法在需要高效場景重建的實際應用中難以實用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——肯定 NeRF 的成就，同時精準定位其效率瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以「全域 MLP」和「空白空間取樣」兩大效率問題作為動機，為引入點雲表示的必要性鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 NeRF 的全域 MLP 框架為根本性的效率缺陷，論述清晰。但同期已有 Instant-NGP 等方法以雜湊網格加速 NeRF，顯示全域 MLP 並非唯一瓶頸，此處的問題界定可能過於狹隘。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：Point-NeRF 方案提出 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We address these challenges by introducing <span class="hl-concept">Point-NeRF</span>, a point-based neural radiance field representation that uses <span class="hl-concept">3D neural points</span>. <span class="hl-thesis">Unlike NeRF that purely depends on per-scene fitting, Point-NeRF can be effectively initialized via a feed-forward deep neural network, pre-trained across scenes</span>. Each neural point encodes <span class="hl-method">the local 3D scene geometry and appearance around it</span>. By leveraging point clouds approximating scene geometry, our approach <span class="hl-thesis">avoids ray sampling in empty space</span> and can be rendered efficiently. For any 3D location, we propose to use <span class="hl-method">an MLP network to aggregate the neural points in its neighborhood to regress the volume density and view-dependent radiance at that location</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 Point-NeRF 來應對這些挑戰，這是一種基於點雲的神經輻射場表示法，運用三維神經點。不同於 NeRF 完全依賴逐場景擬合，Point-NeRF 能透過跨場景預訓練的前饋深度神經網路進行有效初始化。每個神經點編碼其周圍的局部三維場景幾何與外觀。藉由利用近似場景幾何的點雲，我們的方法避免了在空白空間中的光線取樣，並能高效渲染。對於任意三維位置，我們提出以 MLP 網路聚合其鄰域內的神經點，以迴歸該位置的體積密度與視角相依輻射值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心方案——闡明 Point-NeRF 的三大設計優勢：前饋初始化、局部特徵編碼、跳過空白區域。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「全域 MLP 的瓶頸」過渡到「局部神經點的解決方案」。「前饋初始化」直接回應「逐場景擬合太慢」，「避免空白取樣」直接回應「不必要的取樣」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將每個神經點比擬為局部函數基底，使讀者直覺理解點雲如何取代全域 MLP。但此設計隱含假設：初始點雲須充分覆蓋場景表面，若多視圖立體匹配（MVS）的深度預測有大面積空洞，初始化品質將顯著下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：生長與剪枝機制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our learning framework leverages <span class="hl-method">deep multi-view stereo techniques</span> for initial field generation: a <span class="hl-method">cost-volume-based network predicts depth</span> and a <span class="hl-method">CNN extracts 2D feature maps</span>. These neural points from multiple views are combined as a neural point cloud, which forms a point-based radiance field of the scene. To further handle the inevitable <span class="hl-rebuttal">holes and outliers in the initial point cloud</span>, we introduce novel <span class="hl-concept">point growing and pruning mechanisms</span>. The growing mechanism <span class="hl-method">progressively grows new points near the point cloud boundary based on the local scene geometry modeled by our representation</span>. The pruning mechanism <span class="hl-method">utilizes point confidence values to remove unnecessary outlier points</span>. These mechanisms <span class="hl-evidence">effectively improve our final reconstruction and rendering quality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的學習框架運用深度多視圖立體技術來產生初始場：以成本體積網路預測深度，並以 CNN 提取二維特徵圖。來自多個視角的神經點被合併為神經點雲，形成場景的基於點雲的輻射場。為了進一步處理初始點雲中不可避免的空洞與離群點，我們引入新穎的點雲生長與剪枝機制。生長機制根據我們表示法所建模的局部場景幾何，在點雲邊界附近逐步生長新的點。剪枝機制利用點信賴值來移除不必要的離群點。這些機制有效地改善了最終的重建與渲染品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    補充關鍵技術——說明初始化管線與自我修正機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段預防性地回應一個自然質疑：「如果初始點雲不完美怎麼辦？」生長與剪枝機制作為「自我修正」工具，強化了整體方法的穩健性論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動承認初始點雲「不可避免」的缺陷，再立即提出解決方案，展現了成熟的學術寫作策略。但生長機制的效果取決於「最高不透明度」的閾值設定，此超參數的敏感度分析尚未在此處交代。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：場景表示法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Traditional and neural methods study various <span class="hl-concept">3D representations</span> including <span class="hl-concept">volumes, point clouds, meshes, depth maps, and implicit functions</span>. Recently, various <span class="hl-concept">neural scene representations</span> have been presented, advancing the state of the art in novel view synthesis and realistic rendering, with <span class="hl-concept">volumetric neural radiance fields (NeRFs)</span> producing high fidelity results. Point-NeRF combines volumetric radiance fields with point clouds. We <span class="hl-thesis">distribute fine-grained neural points to model complex local scene geometry and appearance, leading to better rendering quality than NeRF</span>. <span class="hl-concept">Voxel grids</span> with per-voxel neural features offer local neural radiance representation, yet <span class="hl-rebuttal">our point-based representation adapts better to actual surfaces</span>, leading to better quality. Also, we <span class="hl-thesis">directly predict good initial neural point features, bypassing the per-scene optimization that is required by most voxel-based methods</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統與神經方法研究了多種三維表示法，包括體積、點雲、網格、深度圖及隱式函數。近年來，各種神經場景表示法相繼被提出，推進了新視角合成與逼真渲染的最先進水準，其中體積式神經輻射場（NeRF）產生了高保真結果。Point-NeRF 結合了體積輻射場與點雲。我們分布細粒度的神經點來建模複雜的局部場景幾何與外觀，帶來優於 NeRF 的渲染品質。帶有逐體素神經特徵的體素網格提供了局部的神經輻射表示，但我們基於點雲的表示法更能適應實際表面，帶來更好的品質。此外，我們直接預測良好的初始神經點特徵，繞過了大多數基於體素方法所需的逐場景最佳化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻分類——系統性梳理三維場景表示法的演進譜系。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將 Point-NeRF 定位於表示法的交叉點：結合點雲的自適應性與輻射場的高保真度，同時勝出體素方法的兩大劣勢（表面適應性差、需逐場景最佳化）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「點雲適應實際表面」的直覺性論述建立優勢，但體素方法（如 NSVF）透過八叉樹等稀疏結構也能適應表面。此處對體素方法的批評略有簡化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：多視圖重建與基於點的渲染 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Multi-view 3D reconstruction uses <span class="hl-concept">structure-from-motion</span> and <span class="hl-concept">multi-view stereo (MVS)</span> techniques. <span class="hl-concept">Point clouds</span> are often the direct output from MVS or depth sensors, though they are usually converted to meshes for rendering and visualization. <span class="hl-concept">Point-based rendering</span> traditionally uses <span class="hl-method">rasterization-based point splatting</span>. However, <span class="hl-rebuttal">reconstructed point clouds often have holes and outliers that lead to artifacts in rendering</span>. <span class="hl-concept">Point-based neural rendering</span> methods address this by <span class="hl-method">splatting neural features and using 2D CNNs to render them</span>. In contrast, our point-based approach <span class="hl-thesis">utilizes 3D volume rendering, leading to significantly better results than previous point-based methods</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多視圖三維重建使用運動恢復結構（SfM）與多視圖立體匹配（MVS）技術。點雲通常是 MVS 或深度感測器的直接輸出，但一般會轉換為網格用於渲染與視覺化。傳統的基於點雲的渲染使用光柵化式的點潑濺技術。然而，重建的點雲往往存在空洞與離群點，導致渲染產生偽影。基於點雲的神經渲染方法透過潑濺神經特徵並使用二維 CNN 來渲染以解決此問題。相較之下，我們基於點雲的方法使用三維體積渲染，帶來顯著優於先前基於點雲方法的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    區分技術路線——將 Point-NeRF 與傳統點雲渲染做出明確切割。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「2D 點潑濺 vs. 3D 體積渲染」的對比軸，為 Point-NeRF 的「全三維」渲染策略建立技術優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「顯著優於先前基於點雲方法」是強力宣稱，後續實驗中與 NPBG 的比較確實支撐此論點。但 2D CNN 渲染方法的計算效率可能優於體積渲染，作者未在此處討論效率面的取捨。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：神經輻射場 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">NeRFs</span> have demonstrated remarkably high-quality results for <span class="hl-evidence">novel view synthesis</span>. They have been extended to achieve <span class="hl-evidence">dynamic scene capture, relighting, appearance editing, fast rendering, and generative models</span>. Most methods follow the original NeRF framework, training <span class="hl-rebuttal">per-scene MLPs</span>. Point-NeRF uses <span class="hl-method">spatially varying neural features in scene points</span>. This <span class="hl-thesis">localized representation can model more complex scene content than pure MLPs that have limited network capacity</span>. Regarding generalizable methods, <span class="hl-concept">PixelNeRF</span> and <span class="hl-concept">IBRNet</span> aggregate multi-view 2D image features at every sampled ray point. In contrast, we <span class="hl-thesis">leverage features in 3D neural points around the scene surface to model radiance fields</span>. <span class="hl-concept">MVSNeRF</span> can achieve very fast voxel-based radiance field reconstruction, however, <span class="hl-rebuttal">its prediction network requires a fixed number of three small-baseline images as input and thus can only efficiently reconstruct local radiance fields</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                NeRF 已在新視角合成方面展現了極為高品質的成果，並已被擴展至動態場景捕捉、重新打光、外觀編輯、快速渲染及生成模型等方向。大多數方法遵循原始 NeRF 框架，訓練逐場景的 MLP。Point-NeRF 使用場景點中空間變化的神經特徵。這種局部化表示能比容量有限的純 MLP 建模更複雜的場景內容。在可泛化方法方面，PixelNeRF 和 IBRNet 在每個取樣的光線點聚合多視圖二維影像特徵。相較之下，我們利用場景表面周圍三維神經點中的特徵來建模輻射場。MVSNeRF 能達成極快速的基於體素的輻射場重建，但其預測網路需要固定數量的三張小基線影像作為輸入，因此只能高效重建局部輻射場。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位差異化——逐一比較 Point-NeRF 與各類 NeRF 變體的優劣。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了完整的比較矩陣：(1) 對比全域 MLP 的容量限制；(2) 對比 PixelNeRF/IBRNet 的 2D 特徵聚合方式；(3) 對比 MVSNeRF 的輸入限制。每組比較都精確指出 Point-NeRF 的定位優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 MVSNeRF 的「三張小基線影像」限制的指摘十分精準。但 IBRNet 的「略高 PSNR」在後續實驗中被提及，顯示 Point-NeRF 在某些指標上並非全面領先——此處的定位稍顯樂觀。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Point-NeRF Representation — 點雲神經輻射場表示法</h2>
+    <h3 class="subsection-heading">3.1 Volume Rendering and Radiance Field Preliminaries — 體積渲染與輻射場基礎</h3>
+
+    <!-- 方法段落 1：體積渲染預備知識 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Physically-based volume rendering</span> can be numerically evaluated via <span class="hl-method">differentiable ray marching</span>. Specifically, a pixel's radiance can be computed by marching a ray through the pixel, <span class="hl-method">sampling M shading points, and accumulating radiance using volume density</span>. A <span class="hl-concept">radiance field</span> represents <span class="hl-method">volume density and view-dependent radiance at any 3D location</span>. NeRF proposes to use a <span class="hl-concept">multi-layer perceptron (MLP)</span> to regress such radiance fields. We propose <span class="hl-concept">Point-NeRF</span> that instead <span class="hl-thesis">utilizes a neural point cloud to compute the volume properties, allowing for faster and higher-quality rendering</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於物理的體積渲染可透過可微分的光線步進進行數值計算。具體而言，一個像素的輻射值可藉由發射一條穿過像素的光線、取樣 M 個著色點、並使用體積密度來累積輻射值而計算得出。輻射場在任意三維位置表示體積密度與視角相依的輻射值。NeRF 提出使用多層感知器（MLP）來迴歸此類輻射場。我們提出 Point-NeRF，改以神經點雲來計算體積屬性，實現更快且更高品質的渲染。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術鋪墊——建立體積渲染的數學框架，為後續方法推導奠定基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段同時完成兩件事：(1) 向讀者介紹體積渲染的基本原理；(2) 預告 Point-NeRF 將以何種方式替代 NeRF 的全域 MLP，為接下來的技術細節建立期望。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的預備知識段快速過渡至核心方法，避免冗長。但「更快且更高品質」的雙重承諾在此處尚無支撐，需待後續章節逐步驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 點雲輻射場 ====== -->
+    <h3 class="subsection-heading" id="sec-pointfield">3.2 Point-based Radiance Field — 基於點雲的輻射場</h3>
+
+    <!-- 方法段落 2：神經點雲定義 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">neural point cloud</span> is denoted as <span class="hl-method">P = {(p<sub>i</sub>, f<sub>i</sub>, &gamma;<sub>i</sub>)}</span>, where each point <em>i</em> is located at position <span class="hl-method">p<sub>i</sub></span> and associated with a <span class="hl-concept">neural feature vector f<sub>i</sub></span> encoding local scene content. We also assign each point a <span class="hl-concept">confidence value &gamma;<sub>i</sub> &isin; [0,1]</span> that represents how likely that point is being located near an actual scene surface. Given any 3D location <span class="hl-method">x</span>, <span class="hl-method">K neighboring neural points within radius R</span> are queried. Our point-based radiance field can be abstracted as a <span class="hl-thesis">neural module that regresses volume density &sigma; and view-dependent radiance r at any shading location x from its neighboring neural points</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                神經點雲記為 P = {(p_i, f_i, gamma_i)}，其中每個點 i 位於位置 p_i，並關聯一個編碼局部場景內容的神經特徵向量 f_i。我們亦為每個點指派一個信賴值 gamma_i（介於 0 到 1 之間），表示該點位於實際場景表面附近的可能性。給定任意三維位置 x，在半徑 R 內查詢 K 個鄰近的神經點。我們基於點雲的輻射場可抽象為一個神經模組，從任意著色位置 x 的鄰近神經點迴歸體積密度與視角相依的輻射值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心定義——建立神經點雲的三元組形式表示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是整個方法的數學基礎。三元組 (位置, 特徵, 信賴值) 的設計簡潔而完備：位置提供幾何資訊，特徵編碼外觀，信賴值支援後續的剪枝機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    信賴值 gamma 的引入非常巧妙——它既是表示法的一部分，又為剪枝提供了可學習的準則。但 K 近鄰查詢的半徑 R 和點數 K 是超參數，其選擇可能顯著影響渲染品質，作者需在實驗中交代敏感度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 3：逐點處理與特徵聚合 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-method">per-point processing</span>, we use an MLP <em>F</em> to process each neighboring neural point to predict a new feature vector for the shading location <span class="hl-method">x</span>. This expresses <span class="hl-thesis">a local 3D function that outputs the specific neural scene description at x, modeled by the neural point in its local frame</span>. The usage of <span class="hl-method">relative position (x &minus; p)</span> makes the network <span class="hl-thesis">invariant to point translation for better generalization</span>. For <span class="hl-method">view-dependent radiance regression</span>, we use <span class="hl-method">standard inverse distance weighting</span> to aggregate the neural features regressed from K neighboring points to obtain a single feature. Then an MLP <em>R</em> regresses the view-dependent radiance from this feature given a viewing direction. The inverse-distance weight makes <span class="hl-method">closer neural points contribute more</span>. In addition, we use the <span class="hl-method">per-point confidence &gamma;</span> in this process, giving the network the flexibility of <span class="hl-thesis">rejecting unnecessary points</span> through optimization with a sparsity loss.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在逐點處理方面，我們使用 MLP F 處理每個鄰近的神經點，為著色位置 x 預測新的特徵向量。這表達了一個局部三維函數，在神經點的局部座標系中輸出 x 處的特定神經場景描述。使用相對位置 (x - p) 使網路對點的平移保持不變性，以利更好的泛化。在視角相依輻射迴歸方面，我們使用標準的反距離加權來聚合從 K 個鄰近點迴歸的神經特徵，以獲得單一特徵。接著 MLP R 根據觀看方向從此特徵迴歸視角相依的輻射值。反距離權重使較近的神經點貢獻更大。此外，我們在此過程中使用逐點信賴值 gamma，配合稀疏性損失的最佳化，賦予網路拒絕不必要點的彈性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推導核心模組——詳述特徵聚合的兩大管線：逐點 MLP 處理與反距離加權聚合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將抽象的「聚合鄰近點」具體化為可實作的數學形式。相對位置的平移不變性設計確保了跨場景泛化的理論基礎，反距離加權則提供了物理直覺（近者影響大）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    反距離加權是經典的空間插值方法，理論根基穩固。但此方法在高密度點雲區域可能產生過度平滑的效果；在稀疏區域則可能因鄰近點不足而品質下降。作者以信賴值作為緩衝機制，設計上相當周全。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 密度迴歸與三維渲染 ====== -->
+    <h3 class="subsection-heading" id="sec-rendering">3.3 Density Regression and Volume Rendering — 密度迴歸與體積渲染</h3>
+
+    <!-- 方法段落 4：密度迴歸 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To compute <span class="hl-method">volume density &sigma; at x</span>, we follow a similar multi-point aggregation. However, we <span class="hl-method">first regress a density &sigma;<sub>i</sub> per point using an MLP <em>T</em></span> and then do <span class="hl-method">inverse distance-based weighting</span>. Thus, <span class="hl-thesis">each neural point directly contributes to the volume density, and point confidence &gamma;<sub>i</sub> is explicitly associated with this contribution</span>. Unlike previous <span class="hl-concept">neural point-based methods</span> that <span class="hl-rebuttal">rasterize point features and then render them with 2D CNNs</span>, our representation and rendering are <span class="hl-thesis">entirely in 3D</span>. By using a point cloud that approximates the scene geometry, our representation <span class="hl-thesis">naturally and efficiently adapts to scene surfaces and avoids sampling shading locations in empty scene space</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為計算位置 x 的體積密度，我們遵循類似的多點聚合方式。但我們首先以 MLP T 為每個點迴歸密度值，再進行反距離加權。因此，每個神經點直接貢獻於體積密度，且點信賴值與此貢獻顯式關聯。不同於先前基於神經點的方法以光柵化點特徵再用二維 CNN 渲染，我們的表示與渲染完全在三維中進行。藉由使用近似場景幾何的點雲，我們的表示法自然且高效地適應場景表面，並避免在空白場景空間中取樣著色位置。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術差異化——強調「全三維」渲染管線的獨特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成了方法描述的閉環：從特徵定義到輻射迴歸再到密度迴歸，最後以「全三維」作為與先前方法的核心區別。避免空白取樣的論點直接呼應了緒論中對 NeRF 效率問題的批評。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「完全在三維中」的宣稱與 GIRAFFE 等「3D + 2D CNN」的混合方法形成鮮明對比。但全三維渲染的計算成本仍然不低——Point-NeRF 的效率優勢主要來自跳過空白區域和前饋初始化，而非渲染管線本身的效率。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 5：初始點雲生成 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The initial point cloud, features, and confidence values are predicted via <span class="hl-method">feed-forward neural networks</span> for efficient reconstruction. We leverage <span class="hl-method">deep MVS methods to generate 3D point locations using cost volume-based 3D CNNs</span>. For each input image at viewpoint <em>q</em>, a <span class="hl-method">plane-swept cost volume</span> is built by warping 2D features from neighboring viewpoints, then <span class="hl-method">depth probability is regressed using deep 3D CNNs</span>. Since the depth probabilities describe the likelihood of the point being on the surface, we <span class="hl-method">tri-linearly sample the depth probability volume to obtain the point confidence &gamma;<sub>i</sub></span> at each point. We use a <span class="hl-concept">2D CNN G<sub>f</sub></span> to extract neural 2D image feature maps, with a <span class="hl-evidence">VGG network architecture with three downsampling layers</span>. We combine intermediate features at different resolutions as f<sub>i</sub>, providing a <span class="hl-thesis">meaningful point description that models multi-scale scene appearance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                初始點雲、特徵及信賴值透過前饋神經網路進行預測，以達成高效重建。我們運用深度 MVS 方法，以成本體積為基礎的三維 CNN 產生三維點位置。對於每張在視角 q 的輸入影像，藉由從鄰近視角翹曲二維特徵來建構平面掃描成本體積，再以深度三維 CNN 迴歸深度機率。由於深度機率描述了點位於表面的可能性，我們以三線性取樣深度機率體積來獲得每個點的信賴值。我們使用二維 CNN G_f 提取神經二維影像特徵圖，採用具有三個下取樣層的 VGG 網路架構。我們結合不同解析度的中間特徵作為 f_i，提供有意義的點描述來建模多尺度場景外觀。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    初始化管線——詳述如何從多視圖影像直接推論出初始神經點雲。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是 Point-NeRF 「30 倍加速」承諾的技術基石：深度 MVS 網路提供幾何初始化，VGG 提供多尺度特徵初始化，深度機率提供信賴值初始化——三元組的每個成分都有對應的預測模組。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將深度機率直接映射為信賴值是優雅的設計——MVS 的不確定性估計被重新利用為點雲品質的先驗。但這假設 MVS 的機率校準是可靠的，若深度網路過度自信，可能導致錯誤的離群點被賦予高信賴值。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.2 點雲生長與剪枝 ====== -->
+    <h3 class="subsection-heading" id="sec-growing">4.2 Point Growing and Pruning — 點雲生長與剪枝</h3>
+
+    <!-- 方法段落 6：點雲剪枝 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Per-scene optimization improves the radiance field, but initial point clouds <span class="hl-rebuttal">often contain holes and outliers that degrade the rendering quality</span>. For <span class="hl-concept">point pruning</span>, we utilize the <span class="hl-method">confidence values &gamma;<sub>i</sub></span> that describe whether a neural point is near a scene surface. The point confidence is <span class="hl-method">directly related to the per-point contribution in volume density regression</span>; as a result, <span class="hl-thesis">low confidence reflects low volume density in a point's local region indicating that it is empty</span>. Points with <span class="hl-evidence">&gamma;<sub>i</sub> &lt; 0.1</span> are pruned every <span class="hl-evidence">10K iterations</span>. Additionally, a <span class="hl-method">sparsity loss on point confidence</span> is imposed, which <span class="hl-method">forces the confidence value to be close to either zero or one</span>, facilitating clear-cut pruning decisions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                逐場景最佳化能改善輻射場，但初始點雲往往包含空洞與離群點，降低渲染品質。在點雲剪枝方面，我們利用描述神經點是否位於場景表面附近的信賴值。點信賴值與體積密度迴歸中的逐點貢獻直接相關；因此，低信賴值反映該點局部區域的低體積密度，表示該處為空白。信賴值低於 0.1 的點每 10K 次迭代進行一次剪枝。此外，對點信賴值施加稀疏性損失，強制信賴值趨近於零或一，以利明確的剪枝決策。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自我修正機制（一）——說明如何移除不可靠的離群點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    剪枝機制將信賴值 gamma 從被動的表示參數提升為主動的品質控制工具。稀疏性損失迫使二元化（0 或 1），使剪枝決策從連續空間簡化為離散判斷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將信賴值與密度迴歸直接關聯是自洽的設計——離群點自然會因缺乏附近表面而密度趨零。但固定閾值 0.1 的選擇缺乏理論根據，且每 10K 次迭代的剪枝頻率可能不適用於所有場景複雜度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 7：點雲生長 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We also propose a novel technique to <span class="hl-concept">grow new points</span> to cover <span class="hl-rebuttal">missing scene geometry in the original point cloud</span>. Unlike point pruning that directly utilizes information from existing points, <span class="hl-thesis">growing points requires recovering information in empty regions where no point exists</span>. Our method <span class="hl-method">progressively grows points near the point cloud boundary based on the local scene geometry modeled by our Point-NeRF representation</span>. New points are identified using per-ray shading locations with highest opacity along each ray. We <span class="hl-method">identify the shading location with the highest opacity along the ray</span> and compute its distance to the closest neural point. For a marching ray, we <span class="hl-method">grow a neural point at the high-opacity location if both opacity and distance thresholds are exceeded</span>. By repeating this growing strategy, our <span class="hl-thesis">radiance field can be expanded to cover missing regions in the initial point cloud</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們亦提出新穎技術來生長新點，以覆蓋原始點雲中缺失的場景幾何。不同於剪枝直接利用現有點的資訊，生長新點需要在無點存在的空白區域恢復資訊。我們的方法根據 Point-NeRF 表示法所建模的局部場景幾何，在點雲邊界附近逐步生長新點。新點透過每條光線上具有最高不透明度的著色位置來辨識。我們辨識光線上不透明度最高的著色位置，並計算其與最近神經點的距離。對於一條步進光線，若不透明度與距離閾值均被超越，則在高不透明度位置生長一個神經點。透過重複此生長策略，我們的輻射場能擴展以覆蓋初始點雲中的缺失區域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自我修正機制（二）——說明如何填補點雲空洞。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    與剪枝形成互補：剪枝移除離群點，生長填補空洞。兩者合力使 Point-NeRF 從「依賴初始化品質」提升為「能自我修正」的系統，大幅強化穩健性論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「最高不透明度」作為生長位置的依據具有物理直覺——高不透明度暗示該處可能存在表面但缺少點雲覆蓋。但此機制在完全缺乏初始點的大面積區域可能失效，因為無鄰近點意味著無法計算可靠的不透明度。消融實驗中從 1000 點生長的極端案例部分回應了此顧慮。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 8：端對端訓練 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We combine point clouds from multiple viewpoints to obtain our final <span class="hl-concept">neural point cloud</span>. We <span class="hl-method">train the point generation networks along with the representation networks, from end to end with a rendering loss</span>. This allows our generation modules to produce <span class="hl-thesis">reasonable initial radiance fields</span>. It also <span class="hl-thesis">initializes the MLPs in our Point-NeRF representation with reasonable weights, significantly saving the per-scene fitting time</span>. Our pipeline also supports using point clouds from other approaches like <span class="hl-concept">COLMAP</span>, where our model (excluding the MVS network) can still provide <span class="hl-evidence">meaningful initial neural features for each point</span>. Per-scene optimization then combines <span class="hl-method">rendering loss and sparsity loss</span>, with <span class="hl-evidence">point growing and pruning performed every 10K iterations</span> to achieve the final high-quality reconstruction.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們合併來自多個視角的點雲以獲得最終的神經點雲。我們以渲染損失端對端地訓練點雲生成網路與表示網路。這使得我們的生成模組能產生合理的初始輻射場，亦以合理的權重初始化 Point-NeRF 表示法中的 MLP，顯著節省逐場景擬合時間。我們的管線亦支援使用來自其他方法（如 COLMAP）的點雲，其中我們的模型（排除 MVS 網路）仍能為每個點提供有意義的初始神經特徵。逐場景最佳化接著結合渲染損失與稀疏性損失，每 10K 次迭代進行點雲生長與剪枝，以達成最終的高品質重建。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統整合——說明端對端訓練策略與 COLMAP 相容性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段扮演「實用性橋梁」的角色：端對端訓練確保各模組協同最佳化，COLMAP 相容性則將方法的適用範圍從「需要 MVS 網路」擴展到「可使用任意點雲來源」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    COLMAP 相容性是重要的實用性論點——它使 Point-NeRF 不再綁定於特定的深度估計網路。但 COLMAP 點雲通常比 MVS 網路預測更稀疏且噪聲更大，後續實驗需證明在此條件下仍能達到可接受的品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">5. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：DTU 資料集 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Quantitative results on the <span class="hl-evidence">DTU testing set</span> compare Point-NeRF with <span class="hl-concept">PixelNeRF, IBRNet, MVSNeRF, and NeRF</span> using <span class="hl-evidence">PSNR, SSIM, and LPIPS</span> metrics. Fine-tuning results after <span class="hl-evidence">10K iterations achieve the best SSIM and LPIPS</span>, two out of the three metrics, <span class="hl-evidence">significantly better than MVSNeRF and NeRF</span>. While <span class="hl-rebuttal">IBRNet produces slightly better PSNRs</span>, our final renderings in fact <span class="hl-evidence">recover more accurate texture details and highlights</span>. However, <span class="hl-rebuttal">IBRNet is also more expensive to fine-tune, taking 1 hour — 5x longer than ours for the same iterations</span>. This is because IBRNet utilizes a large global CNN, whereas <span class="hl-thesis">Point-NeRF leverages local point features with small MLPs that are easier to optimize</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 DTU 測試集上的定量結果將 Point-NeRF 與 PixelNeRF、IBRNet、MVSNeRF 及 NeRF 進行比較，使用 PSNR、SSIM 及 LPIPS 指標。微調 10K 次迭代後的結果在 SSIM 和 LPIPS 兩項指標上達到最佳，顯著優於 MVSNeRF 和 NeRF。雖然 IBRNet 產生略高的 PSNR，但我們的最終渲染實際上恢復了更精確的紋理細節與高光。然而，IBRNet 的微調成本也更高，相同迭代次數需花費 1 小時——比我們慢 5 倍。這是因為 IBRNet 使用龐大的全域 CNN，而 Point-NeRF 利用具有小型 MLP 的局部點特徵，更易於最佳化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心基準比較——在 DTU 資料集上建立 Point-NeRF 的定量優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段同時展示「品質」與「效率」兩個維度的優勢：三項指標中的兩項最佳，且微調時間僅為 IBRNet 的五分之一。雙維度論證使整體說服力更強。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 IBRNet 的 PSNR 優勢誠實承認，但立即以「紋理細節更精確」和「5 倍效率差」進行反駁，展現學術誠信與論證技巧的平衡。然而，「紋理細節更精確」是定性判斷，可能帶有主觀偏差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：NeRF Synthetics 資料集 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On the <span class="hl-evidence">NeRF Synthetic dataset</span>, though trained solely on DTU, <span class="hl-thesis">our network generalizes well to novel datasets that have completely different camera distributions</span>. Our results at <span class="hl-evidence">20K iterations already outperformed IBRNet's converged results with better PSNR, SSIM, and LPIPS</span>. Results at 20K iterations are <span class="hl-evidence">quantitatively very close to NeRF's results trained with 200K iterations</span>. <span class="hl-evidence">Point-NeRF at 20K is optimized for only 40 minutes, which is at least 30x faster than the 20+ hours optimization time taken by NeRF</span>. Converging to 200K iterations produces <span class="hl-evidence">significantly better results than NeRF, NSVF, and all other comparison methods</span>. As shown in visualizations, our 200K results contain the most geometry and texture details. <span class="hl-thesis">Attributed to the point growing technique, our method is the only one that can fully recover details like the thin rope structure</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 NeRF Synthetic 資料集上，儘管僅在 DTU 上訓練，我們的網路對具有完全不同相機分布的新資料集展現良好泛化能力。我們在 20K 次迭代的結果已在 PSNR、SSIM 和 LPIPS 上超越 IBRNet 的收斂結果。20K 次迭代的結果在定量上非常接近 NeRF 以 200K 次迭代訓練的結果。Point-NeRF 在 20K 次迭代僅需 40 分鐘最佳化，比 NeRF 所需的 20 小時以上快至少 30 倍。收斂至 200K 次迭代後，產生顯著優於 NeRF、NSVF 及所有其他比較方法的結果。如視覺化所示，我們 200K 的結果包含最多的幾何與紋理細節。歸功於點雲生長技術，我們的方法是唯一能完全恢復如細繩結構等細節的方法。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    泛化能力驗證——證明跨資料集的遷移性與絕對品質優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最強的實證段落，同時驗證三個維度：(1) 跨資料集泛化（DTU 訓練，NeRF Synthetic 測試）；(2) 30 倍速度優勢；(3) 200K 收斂後的絕對品質領先。細繩結構的恢復更是生長機制的最佳展示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「30 倍加速」與「唯一能恢復細繩」是極具記憶點的數據與案例，論證效果強烈。但 NeRF Synthetic 是合成資料集，相機姿態完全精確；在真實世界資料中，相機姿態誤差可能削弱此優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：Tanks & Temples 和 ScanNet -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">Tanks and Temples and ScanNet</span> datasets, quantitative comparisons show <span class="hl-evidence">Point-NeRF outperforms NSVF on both datasets across PSNR, SSIM, and LPIPS metrics</span>. Point-NeRF can also be used to <span class="hl-thesis">convert standard point clouds reconstructed by other techniques to point-based radiance fields</span>. Testing on the full NeRF Synthetic dataset using <span class="hl-concept">COLMAP</span>-reconstructed point clouds shows that <span class="hl-evidence">even from this low-quality point cloud, our final results are still of very high quality with very high SSIM and LPIPS numbers compared to all other methods</span>. This demonstrates that <span class="hl-thesis">Point-NeRF is robust to the quality of the initial point cloud</span> and its growing and pruning mechanisms can effectively compensate for imperfect initialization.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Tanks and Temples 與 ScanNet 資料集上，定量比較顯示 Point-NeRF 在兩個資料集的 PSNR、SSIM 及 LPIPS 指標上均優於 NSVF。Point-NeRF 亦可用於將其他技術重建的標準點雲轉換為基於點雲的輻射場。在完整的 NeRF Synthetic 資料集上使用 COLMAP 重建的點雲進行測試顯示，即使從此低品質點雲出發，我們的最終結果仍具有非常高的品質，SSIM 和 LPIPS 數值與所有其他方法相比仍然最優。這證明了 Point-NeRF 對初始點雲的品質具有穩健性，其生長與剪枝機制能有效補償不完美的初始化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    廣度驗證——在更多資料集與替代輸入條件下確認方法的普適性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段強化了兩個核心論點：(1) Point-NeRF 在室內（ScanNet）與室外（Tanks and Temples）真實場景均有效；(2) COLMAP 實驗證明方法不依賴特定的深度估計網路，大幅提升實用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    COLMAP 相容性實驗是重要的穩健性證據。但作者將 COLMAP 點雲描述為「低品質」略有偏頗——COLMAP 在紋理豐富區域的品質其實不錯。更公平的測試可能是使用有意降質的點雲來驗證穩健性下限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：消融研究 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Ablation studies</span> demonstrate the effectiveness of the proposed mechanisms. <span class="hl-evidence">Point growing and pruning techniques are very effective, significantly improving the reconstruction results in both cases</span>. An extreme example demonstrates that <span class="hl-evidence">starting from a very sparse point cloud with only 1000 points sampled from our original point reconstruction, our approach can progressively grow new points from the point cloud boundary until filling the entire scene surface through iterations</span>. Compared with <span class="hl-concept">point-based neural rendering (NPBG)</span>, <span class="hl-evidence">our results are significantly better than the previous state-of-the-art point-based rendering methods</span>. NPBG can only produce <span class="hl-rebuttal">blurry rendering results with their rasterization and 2D CNN framework</span>. In contrast, we leverage <span class="hl-thesis">volumetric rendering technique with neural radiance fields, leading to photo-realistic results</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究展示了所提機制的有效性。點雲生長與剪枝技術非常有效，在兩種情況下均顯著改善了重建結果。一個極端範例證明，從僅有 1000 個點取樣自原始點雲重建的極稀疏點雲出發，我們的方法能透過迭代，從點雲邊界逐步生長新點直到填滿整個場景表面。與基於點雲的神經渲染方法（NPBG）相比，我們的結果顯著優於先前最先進的基於點雲渲染方法。NPBG 以其光柵化和二維 CNN 框架只能產生模糊的渲染結果。相較之下，我們利用體積渲染技術結合神經輻射場，產生逼真的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——透過消融與極端測試確認各機制的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究在方法論上完成閉環：(1) 生長與剪枝的聯合效益；(2) 1000 點極端測試展示系統的下限穩健性；(3) 與 NPBG 的比較重申「全三維」策略的核心優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    1000 點生長實驗是令人印象深刻的展示，但可能帶有選擇偏差——此極端情況是否適用於複雜的真實場景仍不確定。此外，消融研究未單獨測試「僅生長」與「僅剪枝」的個別貢獻，使讀者難以量化各機制的相對重要性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">Point-NeRF</span>, a novel <span class="hl-thesis">point-based volumetric radiance field representation</span> that combines the <span class="hl-concept">classical point cloud representation</span> with <span class="hl-concept">neural radiance fields</span>. We reconstruct a good initialization of Point-NeRF <span class="hl-method">directly from input images via direct network inference</span> and show that we can <span class="hl-thesis">efficiently fine-tune this initialization for a scene</span>. This enables highly efficient Point-NeRF reconstruction with <span class="hl-evidence">only 20-40 min per-scene optimization</span>, leading to <span class="hl-evidence">rendering quality comparable to and even surpassing NeRF that requires substantially longer training time (20+ hours)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 Point-NeRF，一種新穎的基於點雲的體積輻射場表示法，結合了經典點雲表示與神經輻射場。我們透過直接網路推論從輸入影像重建 Point-NeRF 的良好初始化，並展示我們能高效地為特定場景微調此初始化。這使得 Point-NeRF 重建僅需 20 至 40 分鐘的逐場景最佳化，即能達成與需要大幅更長訓練時間（20 小時以上）的 NeRF 相當甚至超越的渲染品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結核心貢獻——重申表示法創新與效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論首段呼應摘要結構，以「20-40 分鐘 vs. 20+ 小時」的鮮明對比作為全文記憶點，形成論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數字對比（40 分 vs. 20 時）是簡潔有力的總結手法。但此比較的前提是初始化由預訓練的 MVS 網路提供——若計入預訓練時間，整體成本可能不再如此懸殊。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Novel <span class="hl-concept">growing and pruning techniques</span> <span class="hl-evidence">significantly improve results and robustness</span>. Our Point-NeRF <span class="hl-thesis">successfully combines the advantages from both classical point cloud representation and neural radiance field representation</span>, making an important step towards <span class="hl-thesis">a practical scene reconstruction solution with high efficiency and realism</span>. The point-based design enables natural handling of <span class="hl-method">scene surfaces at varying scales</span> and the learned neural features provide <span class="hl-method">expressive local appearance modeling</span> beyond what global MLPs can achieve. We believe this direction of <span class="hl-thesis">combining explicit geometric structures with neural implicit representations</span> holds great promise for future 3D vision and graphics applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                新穎的生長與剪枝技術顯著改善了結果與穩健性。我們的 Point-NeRF 成功結合了經典點雲表示與神經輻射場表示的優勢，朝向具備高效率與高逼真度的實用場景重建方案邁出重要一步。基於點雲的設計使得在不同尺度上自然處理場景表面成為可能，而學習到的神經特徵提供了超越全域 MLP 所能達成的富表達力局部外觀建模。我們相信，結合顯式幾何結構與神經隱式表示的方向，對未來的三維視覺與圖學應用前景可期。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望未來——以更宏觀的視角定位 Point-NeRF 的學術價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論尾段從具體方法上升至研究方向層次：「顯式幾何 + 神經隱式表示」的結合被框架為一個更廣泛的研究範式，將 Point-NeRF 從單一方法提升為研究方向的代表。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論適度展望但未充分討論局限性——例如對動態場景、大規模戶外環境的適用性、以及神經點雲的記憶體消耗等問題。後續研究（如 3D Gaussian Splatting）正是沿著此「顯式 + 神經」方向的進一步演進。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                NeRF 全域 MLP 導致<br>逐場景最佳化過慢
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                神經點雲提供局部化<br>輻射場表示與前饋初始化
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                四大資料集 SOTA<br>30 倍訓練加速
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                生長與剪枝機制<br>處理空洞與離群點
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                顯式幾何結合神經表示<br>是實用重建方案的方向
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以帶有神經特徵的三維點雲取代全域 MLP 來建模輻射場，能透過前饋初始化與局部化表示達成 30 倍訓練加速，同時在多個基準資料集上超越 NeRF 的渲染品質。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>前饋初始化的效率跨越：</strong>將 MVS 深度預測與 2D 特徵提取整合為端對端的初始化管線，使逐場景最佳化從 20+ 小時壓縮至 20-40 分鐘。配合點雲生長機制能從 1000 點的極稀疏初始化逐步恢復完整場景，展現了方法的穩健性下限。跨資料集泛化能力（DTU 訓練、NeRF Synthetic 測試）進一步證實了學習到的表示法的通用性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>初始化品質的隱性依賴：</strong>30 倍加速的前提是 MVS 網路提供合理的初始點雲，但此預訓練成本未被計入比較。此外，K 近鄰查詢半徑 R、剪枝閾值 0.1、每 10K 次迭代的操作頻率等超參數的選擇缺乏系統性的敏感度分析。在大面積遮擋或無紋理區域，MVS 的深度預測可能大幅失準，而生長機制在完全無初始點的廣域區域效果有限。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

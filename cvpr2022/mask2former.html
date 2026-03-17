@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masked-attention Mask Transformer for Universal Image Segmentation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Masked-attention Mask Transformer for Universal Image Segmentation
+                <span class="course-tag">CVPR 2022</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2112.01527" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-masked-attn">3.1 遮罩注意力</a>
+        <a href="#sec-multiscale">3.2 多尺度特徵</a>
+        <a href="#sec-optimization">3.3 最佳化改進</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.1 消融研究</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Image segmentation is about grouping pixels with different semantics, e.g., category or instance membership. Each choice of semantics defines a task. While only the semantics of each task differ, current research focuses on designing <span class="hl-rebuttal">specialized architectures for each task</span>. We present <span class="hl-concept">Masked-attention Mask Transformer (Mask2Former)</span>, a new architecture capable of addressing <span class="hl-thesis">any image segmentation task (panoptic, instance, or semantic)</span>. Its key components include <span class="hl-method">masked attention, which extracts localized features by constraining cross-attention within predicted mask regions</span>, <span class="hl-method">multi-scale high-resolution features</span> to handle small objects, and <span class="hl-method">optimization improvements such as switching the order of self- and cross-attention, making query features learnable, and removing dropout</span>. Without bells and whistles, Mask2Former sets a new <span class="hl-evidence">state-of-the-art on all four popular datasets</span> for every segmentation task. Most notably it achieves <span class="hl-evidence">57.8 PQ on COCO panoptic segmentation, 50.1 AP on COCO instance segmentation, and 57.7 mIoU on ADE20K semantic segmentation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像分割的本質在於將具有不同語意的像素加以分組，例如依據類別或實例歸屬。每種語意選擇定義了一項任務。儘管各任務僅在語意上有所差異，當前研究卻致力於為每項任務設計專用架構。本文提出遮罩注意力遮罩 Transformer（Mask2Former），一種能處理任何影像分割任務（全景、實例或語意）的新架構。其關鍵組件包括：遮罩注意力機制，透過將交叉注意力限制在預測遮罩區域內以擷取局部化特徵；多尺度高解析度特徵以處理小物件；以及最佳化改進，如調換自注意力與交叉注意力的順序、使查詢特徵可學習、移除 dropout 等。在無額外技巧的條件下，Mask2Former 在所有四個主流資料集上的每項分割任務均刷新了最先進紀錄，尤其在 COCO 全景分割達到 57.8 PQ、COCO 實例分割達到 50.1 AP、ADE20K 語意分割達到 57.7 mIoU。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從「影像分割的本質」到「專用架構的冗餘」，最終引出 Mask2Former 的通用定位與三大貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時扮演「問題定義」與「成果宣告」的雙重功能：先以哲學層次的觀察（分割任務僅語意不同）解構現有研究的碎片化，再以三組具體數據錨定方法的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    開篇以「任務僅在語意上不同」的簡潔觀察建立了統一架構的必要性，修辭效果極強。但這一前提過度簡化了不同分割任務在標註粒度、評估指標、後處理邏輯上的實質差異。三組 SOTA 數據的並列展示雖有說服力，但讀者需注意各任務仍需獨立訓練。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：研究動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Image segmentation groups pixels with different semantics. Depending on the specific semantics, the community has defined different segmentation tasks: <span class="hl-concept">semantic segmentation</span> assigns a class label to each pixel; <span class="hl-concept">instance segmentation</span> detects and segments each object instance; and <span class="hl-concept">panoptic segmentation</span> unifies both by assigning every pixel a semantic label and grouping pixels into object instances. Despite the fact that these tasks <span class="hl-thesis">only differ in the definition of output semantics</span>, current research develops <span class="hl-rebuttal">specialized architectures and loss functions for each task</span>, fragmenting the segmentation community and tripling the research effort.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像分割將具有不同語意的像素加以分組。依據特定的語意定義，學界界定了不同的分割任務：語意分割為每個像素指派類別標籤；實例分割偵測並分割每個物件實例；全景分割則統一兩者，為每個像素指派語意標籤並將像素分組為物件實例。儘管這些任務僅在輸出語意的定義上有所不同，當前研究卻為每項任務開發專用的架構與損失函數，使分割社群碎片化，研究人力耗費成三倍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義三類分割任務並指出其本質上的共通性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先建立「三類任務僅語意不同」的核心觀察，再以「碎片化」與「三倍人力」的描述製造問題的急迫感，為統一架構的提出建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將三類任務的差異歸結為「僅語意不同」是一個簡潔而有力的框架設定。但語意分割與實例分割在輸出格式（類別圖 vs. 遮罩集合）、評估方式（mIoU vs. AP）上存在結構性差異，這些並非單純的「語意」問題。此處的簡化服務於論證目的，但可能使讀者低估統一化的實際難度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：先前方法的不足 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent work on <span class="hl-concept">universal image segmentation architectures</span> such as <span class="hl-concept">DETR</span> and <span class="hl-concept">MaskFormer</span> has shown that <span class="hl-method">mask classification</span> — predicting a set of binary masks each with an associated class label — can address all three tasks. However, these universal architectures <span class="hl-rebuttal">still lag behind the best specialized models</span>, especially on instance segmentation. For example, MaskFormer is more than <span class="hl-evidence">9 AP behind the leading instance segmentation approach</span> (Swin-HTC++) while requiring <span class="hl-evidence">over 4 times more training epochs (300 vs. 72)</span>. Furthermore, MaskFormer's training <span class="hl-rebuttal">cannot fit multiple images on a 32GB GPU</span>, limiting accessibility. These practical gaps motivate us to ask: <span class="hl-thesis">what makes a good universal architecture for image segmentation?</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期關於通用影像分割架構的研究，如 DETR 與 MaskFormer，已展示遮罩分類——預測一組二值遮罩，每個遮罩附帶一個類別標籤——能處理全部三項任務。然而，這些通用架構在效能上仍落後於最佳的專用模型，尤其在實例分割方面。例如，MaskFormer 在實例分割上比領先方法（Swin-HTC++）低超過 9 AP，同時需要超過四倍的訓練週期（300 對比 72）。此外，MaskFormer 的訓練在 32GB GPU 上無法容納多張影像，限制了可及性。這些實際差距促使我們追問：什麼構成好的通用影像分割架構？
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——以具體數據揭示 MaskFormer 的三重不足（效能、效率、可及性）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題-解決方案」論證中的問題深化：9 AP 差距、4 倍訓練時間、32GB 記憶體瓶頸三組數據，分別從精度、速度、資源三個維度量化了通用架構的劣勢，為逐一改進建立靶標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以設問句「什麼構成好的通用架構？」作結，巧妙地將批評轉為建設性的研究問題，引導讀者期待答案。但 MaskFormer 的作者群與 Mask2Former 高度重疊，這段「自我批評」實際上是在為自身的改進版本鋪路，讀者應意識到此處的修辭策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：Mask2Former 三大貢獻 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">Mask2Former</span>, which improves upon MaskFormer with three key modifications to the <span class="hl-concept">Transformer decoder</span>. First, we propose <span class="hl-method">masked attention</span> to replace the standard cross-attention in the Transformer decoder. Unlike standard cross-attention which attends to the full feature map, <span class="hl-thesis">masked attention restricts attention to localized features centered around predicted segments</span>, which we find <span class="hl-evidence">converges 6 times faster and improves performance</span>. Second, we utilize <span class="hl-method">multi-scale high-resolution features</span> in the Transformer decoder via an efficient round-robin strategy that feeds one scale to each layer in succession. Third, we propose <span class="hl-method">optimization improvements including switching the order of self- and cross-attention, making query features learnable, and removing dropout</span>. Together with a <span class="hl-method">point-based loss calculation</span> that reduces training memory by 3 times, these changes yield a model that sets <span class="hl-evidence">new state-of-the-art results on panoptic, instance, and semantic segmentation across four datasets</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 Mask2Former，透過對 Transformer 解碼器的三項關鍵改進來強化 MaskFormer。第一，我們提出遮罩注意力以取代 Transformer 解碼器中的標準交叉注意力。與標準交叉注意力關注整張特徵圖不同，遮罩注意力將注意力限制在以預測分割區域為中心的局部特徵上，我們發現這使收斂速度加快六倍並提升效能。第二，我們透過一種高效的輪替策略在 Transformer 解碼器中運用多尺度高解析度特徵，依序將不同尺度的特徵輸入各層。第三，我們提出最佳化改進，包括調換自注意力與交叉注意力的順序、使查詢特徵可學習，以及移除 dropout。配合基於點取樣的損失計算（將訓練記憶體需求降低三倍），這些改變產出了一個在四個資料集的全景、實例與語意分割上均刷新最先進紀錄的模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以條列式概述 Mask2Former 的三大改進及其效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段對 MaskFormer 的批評，此段扮演「轉折」角色：三項改進分別對應收斂慢（遮罩注意力）、小物件偵測不佳（多尺度特徵）、訓練效率低（最佳化改進）三個問題，形成嚴密的「問題-對策」對應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將三項改進以「第一、第二、第三」明確條列，結構清晰且易於記憶。但每項改進的貢獻度大小不同——消融研究顯示遮罩注意力的影響遠大於其他兩項，此處的對等呈現方式可能使讀者誤以為三者同等重要。「6 倍加速」的數據尤其引人注目，但需結合基線設定仔細解讀。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：逐像素分類與遮罩分類 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Per-pixel classification</span> has been the dominant paradigm for semantic segmentation since <span class="hl-concept">FCN</span>, where a classification loss is applied independently to each output pixel. Subsequent methods improve upon FCN by incorporating <span class="hl-method">contextual modules, dilated convolutions, and self-attention layers</span>. In contrast, <span class="hl-concept">mask classification</span> — used in <span class="hl-concept">Mask R-CNN</span> and its descendants — predicts a set of binary masks, each associated with a single class prediction. While per-pixel classification dominates semantic segmentation and mask classification dominates instance segmentation, <span class="hl-concept">MaskFormer</span> demonstrated that <span class="hl-thesis">mask classification is sufficiently general to address semantic segmentation as well</span>, unifying the two paradigms under one framework.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                逐像素分類自 FCN 以來一直是語意分割的主流典範，其中分類損失獨立施加於每個輸出像素。後續方法透過引入上下文模組、空洞摺積與自注意力層來改進 FCN。相對地，遮罩分類——用於 Mask R-CNN 及其後繼方法——預測一組二值遮罩，每個遮罩附帶一個類別預測。雖然逐像素分類主導語意分割、遮罩分類主導實例分割，但 MaskFormer 證明了遮罩分類具有足夠的通用性來處理語意分割，將兩種典範統一在一個框架之下。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理逐像素分類與遮罩分類兩大典範的演進脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術譜系：FCN -> 上下文改進 -> Mask R-CNN -> MaskFormer，展現從分裂到統一的趨勢。此段將 MaskFormer 定位為「統一的起點」，為 Mask2Former 的改進提供直接的承接點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以二元對立（逐像素 vs. 遮罩）簡化了豐富的文獻脈絡，例如省略了 PointRend、Panoptic-FPN 等中間形態。MaskFormer「統一兩種典範」的主張雖合理，但其語意分割的效能並未大幅超越逐像素方法，統一性的實際效益值得質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：通用架構與 Transformer -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The pursuit of <span class="hl-concept">universal image segmentation</span> has been accelerated by <span class="hl-concept">Transformer-based architectures</span>. <span class="hl-concept">DETR</span> introduced end-to-end set prediction for object detection using a <span class="hl-method">Transformer encoder-decoder with bipartite matching loss</span>. Subsequent works including <span class="hl-concept">K-Net</span> use <span class="hl-method">dynamic kernels</span> for unified segmentation. However, a persistent concern is that <span class="hl-rebuttal">Transformers converge slowly</span>: standard DETR requires 500 training epochs. Analysis by prior work suggests this slow convergence stems from <span class="hl-rebuttal">cross-attention attending globally to the entire image feature map</span>, where most regions are irrelevant to each query. <span class="hl-concept">Deformable DETR</span> addresses this via <span class="hl-method">deformable attention on sparse sampling points</span>, while our masked attention offers a <span class="hl-thesis">complementary approach by using predicted masks to constrain the attention region</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                通用影像分割的追求因基於 Transformer 的架構而加速。DETR 引入了利用 Transformer 編碼器-解碼器搭配二部匹配損失的端對端集合預測方法。後續工作包括 K-Net 使用動態核心進行統一分割。然而，一個持續的疑慮是 Transformer 收斂緩慢：標準 DETR 需要 500 個訓練週期。先前研究的分析指出，這種緩慢收斂源於交叉注意力全域地關注整張影像特徵圖，而其中大多數區域對每個查詢而言是無關的。Deformable DETR 透過在稀疏取樣點上施加可變形注意力來解決此問題，而我們的遮罩注意力則提供了一種互補的途徑——利用預測遮罩來限制注意力區域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 Mask2Former 放置在 DETR 系列演進中，聚焦收斂性問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段診斷出 Transformer 架構用於分割的核心瓶頸——全域注意力導致的緩慢收斂——並將遮罩注意力定位為與 Deformable DETR「互補」而非「取代」的解法，展現學術謙遜。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「互補」一詞避免了與 Deformable DETR 的直接對抗，策略上相當聰明。但遮罩注意力與可變形注意力在本質上都是限制注意力範圍的方法，兩者的競爭關係被刻意淡化。此外，DETR 需要 500 個週期的問題在後續版本中已有顯著改善，引用此數據可能誇大了問題的嚴重性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：全景分割方法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Panoptic segmentation</span> methods have evolved from <span class="hl-method">combining separate semantic and instance segmentation networks with heuristic merging</span> to more unified approaches. <span class="hl-concept">Panoptic-FPN</span> adds a semantic segmentation branch to Mask R-CNN, while <span class="hl-concept">Panoptic-DeepLab</span> builds upon DeepLab with an instance center prediction head. More recent approaches like <span class="hl-concept">MaX-DeepLab</span> use <span class="hl-method">dual-path transformers for end-to-end panoptic segmentation</span>. Despite these advances, <span class="hl-rebuttal">panoptic methods remain architecturally distinct from pure instance or semantic methods</span>, and performance gaps persist when universal architectures are applied to individual tasks. Mask2Former aims to <span class="hl-thesis">close these gaps by improving the Transformer decoder design rather than introducing entirely new architectures</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                全景分割方法已從結合獨立的語意與實例分割網路並以啟發式方式合併，演進到更統一的途徑。Panoptic-FPN 在 Mask R-CNN 上添加語意分割分支；Panoptic-DeepLab 則在 DeepLab 基礎上增加實例中心預測頭。更近期的方法如 MaX-DeepLab 使用雙路徑 Transformer 進行端對端全景分割。儘管有這些進展，全景方法在架構上仍有別於純實例或語意方法，而通用架構應用於個別任務時效能差距仍然存在。Mask2Former 的目標是透過改善 Transformer 解碼器設計——而非引入全新架構——來縮小這些差距。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻批評——指出全景分割方法的架構碎片化問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    延伸「碎片化」的批判至全景分割領域，強化統一架構的必要性。末句精準地將 Mask2Former 的貢獻定性為「改良」而非「革命」，降低讀者的期望門檻，同時使實驗結果顯得更為驚人。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「改善解碼器設計而非引入全新架構」的定位策略雙面刃：一方面展現了工程效率，另一方面可能被批評為缺乏根本性創新。此外，MaX-DeepLab 已實現端對端全景分割，Mask2Former 相對於它的增量貢獻需在實驗中更明確地量化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Masked-attention Mask Transformer — 方法</h2>
+    <h3 class="subsection-heading" id="sec-masked-attn">3.1 Masked Attention — 遮罩注意力</h3>
+
+    <!-- 方法段落 1：標準交叉注意力的問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Transformer decoder</span> in MaskFormer uses <span class="hl-method">standard cross-attention</span> where each query attends to all spatial locations in the image feature map. Formally, given query features <span class="hl-method">Q</span>, image features as key <span class="hl-method">K</span> and value <span class="hl-method">V</span>, the standard cross-attention computes <span class="hl-method">softmax(Q K^T) V</span> over all positions. This <span class="hl-rebuttal">global attention pattern forces each query to aggregate information from the entire feature map, including large irrelevant regions</span>. Prior analysis has shown that this is a major cause of <span class="hl-rebuttal">slow convergence in DETR-like models</span>, as queries must gradually learn to attend to relevant regions from scratch. Our key observation is that <span class="hl-thesis">local features, guided by predicted mask regions, are sufficient for segmentation, and global context can emerge through self-attention among queries</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MaskFormer 中的 Transformer 解碼器使用標準交叉注意力，每個查詢關注影像特徵圖中的所有空間位置。形式上，給定查詢特徵 Q、影像特徵作為鍵 K 與值 V，標準交叉注意力計算 softmax(Q K^T) V，遍及所有位置。此全域注意力模式迫使每個查詢從整張特徵圖（包括大量無關區域）聚合資訊。先前分析已表明，這是 DETR 類模型收斂緩慢的主要原因，因為查詢必須從頭逐步學習關注相關區域。我們的關鍵觀察是：由預測遮罩區域引導的局部特徵對分割而言已足夠，而全域上下文可透過查詢間的自注意力自然產生。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題診斷——以數學形式精確描述標準交叉注意力的效率瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是遮罩注意力提出的邏輯前提：先以公式化方式定義標準交叉注意力，再以「大量無關區域」指出其冗餘性，最後以核心觀察（局部特徵已足夠）為解法奠基。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「局部特徵已足夠」的假設是全文最關鍵的前提之一。此主張隱含一個強假設：分割任務不需要長距離的像素間依賴，全域上下文可以完全由查詢間的自注意力替代。這在大型連續區域（如天空、草地）的語意分割中可能面臨挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 2：遮罩注意力的具體設計 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">masked attention</span>, which modifies the standard cross-attention by introducing an <span class="hl-method">attention mask derived from the predicted mask of the previous Transformer decoder layer</span>. At each feature location (x, y), the attention mask is set to <span class="hl-method">0 if the location falls within the predicted foreground region (M_{l-1}(x,y) = 1) and -infinity otherwise</span>. After the softmax operation, locations masked with -infinity receive zero attention weight, effectively restricting the query to only attend to its predicted foreground region. The predicted masks are <span class="hl-method">binarized with a threshold of 0.5</span> and used without gradient to define the attention region. For the first decoder layer where no prior prediction exists, <span class="hl-method">the attention mask is initialized from learnable query features that serve as mask proposals</span>. This mechanism creates a <span class="hl-thesis">feedback loop: better masks lead to better attention regions, which in turn produce better masks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出遮罩注意力，透過引入一個源自前一層 Transformer 解碼器預測遮罩的注意力遮罩來修改標準交叉注意力。在每個特徵位置 (x, y)，若該位置落入預測的前景區域（M_{l-1}(x,y) = 1），注意力遮罩值設為 0；否則設為負無窮。經 softmax 運算後，被遮罩為負無窮的位置接收零注意力權重，有效地將查詢限制為僅關注其預測的前景區域。預測遮罩以 0.5 為閾值進行二值化，且在不回傳梯度的情況下用於定義注意力區域。對於不存在先前預測的第一層解碼器，注意力遮罩由作為遮罩提議的可學習查詢特徵初始化。此機制創造了一個正向回饋迴路：更好的遮罩產生更好的注意力區域，進而產出更好的遮罩。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——以數學細節描述遮罩注意力的完整運作機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文方法論的核心支柱。從注意力遮罩的定義到二值化策略、梯度截斷、初始化方案，每個設計細節都服務於「限制注意力至局部區域」的目標。最終以「正向回饋迴路」概括整體機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「正向回饋迴路」的描述既直覺又優雅，但同時暗示了一個風險：若初始遮罩預測品質不佳，可能導致注意力困在錯誤區域而無法修正（退化回饋）。以 0.5 為固定閾值進行二值化也是一個硬性設計選擇，不同的閾值或軟遮罩方案是否有更好效果，值得進一步探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 3：遮罩注意力與其他方案的比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Compared with alternative approaches to restricting attention, <span class="hl-concept">masked attention</span> offers distinct advantages. <span class="hl-concept">Deformable attention</span> in <span class="hl-concept">Deformable DETR</span> learns to attend to <span class="hl-method">a sparse set of sampling points</span>, but these points may not align well with object boundaries. <span class="hl-concept">Mask pooling</span> used in <span class="hl-concept">K-Net</span> applies predicted masks to <span class="hl-method">pool features into a single vector per query</span>, losing spatial structure. In contrast, masked attention <span class="hl-thesis">preserves the spatial resolution of attention while constraining it to relevant regions</span>. Empirically, masked attention achieves <span class="hl-evidence">43.7 AP on COCO instance segmentation, compared to 37.8 AP for standard cross-attention, 37.9 AP for deformable attention (SMCA), and 43.1 AP for mask pooling</span>, validating our design choice.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                與其他限制注意力範圍的方案相比，遮罩注意力具有獨特優勢。Deformable DETR 中的可變形注意力學習關注一組稀疏的取樣點，但這些點可能無法良好地對齊物件邊界。K-Net 使用的遮罩池化透過預測遮罩將特徵匯聚為每個查詢的單一向量，喪失了空間結構。相較之下，遮罩注意力在限制注意力至相關區域的同時，保留了注意力的空間解析度。在實驗上，遮罩注意力在 COCO 實例分割上達到 43.7 AP，相比標準交叉注意力的 37.8 AP、可變形注意力（SMCA）的 37.9 AP 與遮罩池化的 43.1 AP，驗證了我們的設計選擇。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    比較論證——以實驗數據量化遮罩注意力相對於替代方案的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段補強遮罩注意力的設計合理性，從概念層面（保留空間解析度）和實證層面（4 組 AP 數據）雙重論證。43.7 vs. 37.8 AP 的差距尤其凸顯了限制注意力範圍的重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將四種注意力方案放在同一消融設定下比較，公平且有力。但 SMCA（37.9 AP）的表現僅與標準交叉注意力（37.8 AP）相當，這可能暗示 SMCA 的實作或超參數未被充分最佳化，而非可變形注意力本身不適用。此外，0.6 AP 的優勢（43.7 vs. 43.1）在統計上是否顯著，需要進一步的信賴區間分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 多尺度高解析度特徵 ====== -->
+    <h3 class="subsection-heading" id="sec-multiscale">3.2 Multi-scale High-resolution Features — 多尺度高解析度特徵</h3>
+
+    <!-- 多尺度段落 1：特徵金字塔策略 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Utilizing <span class="hl-concept">high-resolution features</span> is crucial for accurately segmenting small objects and fine boundaries. The <span class="hl-concept">pixel decoder</span> produces a <span class="hl-method">feature pyramid at three resolutions: 1/32, 1/16, and 1/8 of the original image</span>. A naive approach would concatenate all resolutions and feed them to every Transformer decoder layer, but this is <span class="hl-rebuttal">prohibitively expensive in computation and memory</span>. Instead, we propose an <span class="hl-method">efficient round-robin strategy: each Transformer decoder layer receives features from only one resolution level, cycling through the three scales in succession</span>. We repeat this 3-layer pattern L times, yielding a total of 3L decoder layers (9 layers with L=3).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                運用高解析度特徵對於精準分割小物件與細緻邊界至關重要。像素解碼器產生三種解析度的特徵金字塔：原始影像的 1/32、1/16 與 1/8。簡單的作法是將所有解析度串接後輸入每一層 Transformer 解碼器，但這在計算與記憶體成本上過於昂貴。我們改為提出一種高效的輪替策略：每層 Transformer 解碼器僅接收一個解析度層級的特徵，依序在三個尺度間循環。此三層模式重複 L 次，總共產生 3L 層解碼器（L=3 時為 9 層）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    效率設計——描述如何在不犧牲多尺度資訊的前提下控制計算成本。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應「小物件偵測不佳」的問題：高解析度特徵是必要的，但計算成本是瓶頸。輪替策略在兩者之間取得平衡，每層僅處理單一尺度但透過多次循環累積多尺度資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    輪替策略的設計簡潔而實用，但隱含一個假設：不同尺度的特徵可以獨立處理，跨尺度的交互作用不需在每層同時存在。此外，9 層解碼器的深度是否為最佳，以及循環順序（由粗到細或由細到粗）的影響，未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 多尺度段落 2：位置與尺度編碼 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Each resolution level is augmented with <span class="hl-method">sinusoidal positional embeddings</span> to encode spatial information, plus a <span class="hl-method">learnable scale-level embedding</span> shared across all spatial locations of the same resolution. These scale-level embeddings allow the Transformer to <span class="hl-method">distinguish which resolution it is processing in each layer</span>. Compared to the naive multi-scale approach that concatenates all resolutions (achieving <span class="hl-evidence">44.0 AP at 247 GFLOPs</span>), our round-robin strategy maintains comparable performance at <span class="hl-evidence">43.7 AP with only 226 GFLOPs</span>, a reduction of approximately 10% in computation. <span class="hl-thesis">The practical benefit is that high-resolution features can be incorporated without the quadratic cost explosion of full-resolution attention</span>, making the approach scalable to high-resolution inputs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                每個解析度層級以正弦位置嵌入來編碼空間資訊，另加入一個在相同解析度的所有空間位置間共享的可學習尺度層級嵌入。這些尺度層級嵌入讓 Transformer 得以辨別每一層正在處理哪個解析度。相比將所有解析度串接的簡單多尺度方法（達到 44.0 AP / 247 GFLOPs），我們的輪替策略以僅 226 GFLOPs 維持了相當的 43.7 AP，計算量降低約 10%。其實質效益在於高解析度特徵可被納入而不會引發全解析度注意力的二次方成本爆炸，使方法能擴展至高解析度輸入。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證支持——以具體的 AP 與 GFLOPs 數據驗證輪替策略的效率。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    提供定量證據支持輪替策略的設計選擇：0.3 AP 的微小犧牲換取 10% 的計算量降低與更好的擴展性。這裡的取捨是明確的工程妥協。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「可擴展性」為賣點是前瞻性的論證策略——即便目前 0.3 AP 的差距微乎其微，在更高解析度的未來應用中，計算效率的優勢將更加顯著。然而，尺度層級嵌入的設計相對簡單，是否存在更精細的跨尺度特徵融合方案，值得探索。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 最佳化改進 ====== -->
+    <h3 class="subsection-heading" id="sec-optimization">3.3 Optimization Improvements — 最佳化改進</h3>
+
+    <!-- 最佳化段落 1：注意力順序與可學習查詢 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce three optimization improvements to the Transformer decoder. First, we <span class="hl-method">switch the order of self-attention and cross-attention</span>. In the standard Transformer decoder, self-attention is applied first, followed by cross-attention. However, the <span class="hl-method">query features fed to the first self-attention layer are image-independent</span> (either zero-initialized or learnable parameters), making the initial self-attention ineffective. By placing <span class="hl-method">cross-attention before self-attention</span>, queries first gather image-specific information, after which self-attention can meaningfully model inter-query relationships. Second, we make <span class="hl-method">query features X_0 learnable instead of zero-initialized</span>. These learnable queries are directly supervised before entering the Transformer decoder, functioning as a <span class="hl-concept">region proposal network</span> that provides initial mask proposals. This gives the decoder a <span class="hl-thesis">warm start with reasonable initial predictions</span> rather than starting from blank.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們對 Transformer 解碼器引入三項最佳化改進。第一，我們調換自注意力與交叉注意力的順序。在標準 Transformer 解碼器中，先施加自注意力，再施加交叉注意力。然而，輸入第一層自注意力的查詢特徵與影像無關（零初始化或可學習參數），使初始自注意力無效。透過將交叉注意力置於自注意力之前，查詢先收集影像特定資訊，之後自注意力才能有意義地建模查詢間的關係。第二，我們將查詢特徵 X_0 改為可學習而非零初始化。這些可學習查詢在進入 Transformer 解碼器前即受到直接監督，扮演區域提議網路的功能，提供初始遮罩提議。這為解碼器提供了合理初始預測的暖啟動，而非從空白開始。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練技巧——描述兩項能改善收斂性的架構微調。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段處理「如何讓遮罩注意力的回饋迴路更快啟動」的問題：調換注意力順序讓查詢更快獲取影像資訊；可學習查詢提供有意義的初始遮罩，避免回饋迴路因差的起點而緩慢啟動。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    調換注意力順序的論證基於「第一層自注意力無效」的觀察，邏輯清晰。但此論證假設查詢的初始化品質是瓶頸——若使用更好的初始化策略（如條件初始化），原始順序可能同樣有效。可學習查詢作為「區域提議網路」的類比雖有助理解，但可能誇大了其功能——它提供的是粗糙的遮罩估計而非精確的提議。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最佳化段落 2：dropout 移除與記憶體最佳化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Third, we find that <span class="hl-method">dropout is unnecessary in the Transformer decoder and typically decreases performance</span> for dense prediction tasks. We <span class="hl-method">remove dropout entirely</span> from the decoder, observing consistent improvement across all three segmentation tasks. Beyond architecture changes, we address <span class="hl-concept">training memory efficiency</span> through a <span class="hl-method">point-based loss calculation</span>. Instead of computing the mask loss over the entire output mask, we <span class="hl-method">randomly sample K = 12,544 points and compute the loss only at these locations</span>. For the bipartite matching, we use <span class="hl-method">uniform random sampling</span>; for the final training loss, we use <span class="hl-method">importance sampling that oversamples uncertain regions</span>. This point-based approach <span class="hl-evidence">reduces per-image training memory from 18 GB to 6 GB</span> — a 3x reduction — making it possible to <span class="hl-thesis">train with multiple images per GPU on standard 32 GB hardware</span>, directly addressing the accessibility limitation of MaskFormer.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第三，我們發現 dropout 在 Transformer 解碼器中並非必要，且在密集預測任務中通常會降低效能。我們完全移除解碼器中的 dropout，觀察到在所有三項分割任務上均有一致改善。除架構調整外，我們透過基於點取樣的損失計算來解決訓練記憶體效率問題。我們不在整張輸出遮罩上計算遮罩損失，而是隨機取樣 K = 12,544 個點，僅在這些位置計算損失。在二部匹配中使用均勻隨機取樣；在最終訓練損失中使用重要性取樣，對不確定區域進行過度取樣。此基於點取樣的方法將每張影像的訓練記憶體從 18 GB 降至 6 GB——三倍的降低——使得在標準 32 GB 硬體上以每張 GPU 多張影像進行訓練成為可能，直接回應了 MaskFormer 的可及性限制。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    效率提升——以記憶體數據量化訓練效率的改善。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應緒論中「MaskFormer 在 32GB GPU 上無法容納多張影像」的批評，形成完整的「提出問題 -> 解決問題」迴路。18 GB 降至 6 GB 的數據與三倍加速的宣稱相互呼應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「移除 dropout」的建議違反了 Transformer 訓練的常見實務，但作者以一致性改善為據，論證有力。基於點取樣的損失是借鑒自 PointRend 的技術，並非原創——但將其整合至 Mask2Former 的匹配損失框架中確有工程價值。重要性取樣「對不確定區域過度取樣」的策略聰明，但可能在類別不平衡嚴重的場景中引入偏差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：全景分割結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate Mask2Former on four major segmentation benchmarks: <span class="hl-evidence">COCO, ADE20K, Cityscapes, and Mapillary Vistas</span>. On <span class="hl-concept">COCO panoptic segmentation</span>, Mask2Former with a <span class="hl-evidence">Swin-L backbone achieves 57.8 PQ</span>, surpassing MaskFormer (52.7 PQ) by <span class="hl-evidence">5.1 points</span> and K-Net (54.6 PQ) by <span class="hl-evidence">3.2 points</span>. Notably, Mask2Former <span class="hl-evidence">converges in only 50 training epochs compared to MaskFormer's 300 epochs</span>, a <span class="hl-evidence">6x improvement in training efficiency</span>. Even with a ResNet-50 backbone, Mask2Former reaches <span class="hl-evidence">51.9 PQ</span>, already outperforming many methods that use larger backbones. On <span class="hl-evidence">ADE20K panoptic segmentation</span>, Mask2Former achieves <span class="hl-evidence">48.1 PQ</span>, setting a new state-of-the-art on this challenging dataset.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在四個主要分割基準上評估 Mask2Former：COCO、ADE20K、Cityscapes 與 Mapillary Vistas。在 COCO 全景分割上，使用 Swin-L 骨幹的 Mask2Former 達到 57.8 PQ，超越 MaskFormer（52.7 PQ）5.1 個百分點、K-Net（54.6 PQ）3.2 個百分點。值得注意的是，Mask2Former 僅需 50 個訓練週期即可收斂，相比 MaskFormer 的 300 個週期，訓練效率提升六倍。即使使用 ResNet-50 骨幹，Mask2Former 也達到 51.9 PQ，已超越許多使用更大骨幹的方法。在 ADE20K 全景分割上，Mask2Former 達到 48.1 PQ，在這個極具挑戰性的資料集上創下新的最先進紀錄。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證支持——以全景分割的跨資料集結果展示方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應摘要中的 SOTA 宣稱，提供具體的數據支撐。5.1 PQ 的提升與 6 倍訓練加速同時出現，直接驗證了遮罩注意力「改善效能且加速收斂」的雙重承諾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以多個比較基準（MaskFormer、K-Net）與多個資料集（COCO、ADE20K）的交叉驗證，論證的覆蓋面很廣。但 MaskFormer 使用 300 個週期可能是原始設定未被充分最佳化——若 MaskFormer 也使用本文的最佳化改進（如基於點的損失），差距是否會縮小？消融研究有必要區分「架構貢獻」與「訓練技巧貢獻」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：實例分割結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">COCO instance segmentation</span>, Mask2Former achieves <span class="hl-evidence">50.1 AP with a Swin-L backbone</span>, which is <span class="hl-thesis">the first time a universal architecture outperforms the best specialized instance segmentation model</span>. Specifically, Mask2Former surpasses <span class="hl-evidence">Swin-HTC++ (49.5 AP)</span>, which uses a cascade structure specifically designed for instance segmentation. The improvement is particularly notable on <span class="hl-evidence">boundary-aware metrics: Mask2Former achieves 2.1 AP higher on AP_boundary</span>, suggesting that masked attention helps produce sharper mask boundaries. On <span class="hl-evidence">Cityscapes instance segmentation</span>, Mask2Former achieves <span class="hl-evidence">43.6 AP</span>, also setting a new state-of-the-art. This result is significant because <span class="hl-thesis">instance segmentation has been the weakest point of universal architectures</span>, and closing this gap removes the last major argument for task-specific designs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 COCO 實例分割上，Mask2Former 使用 Swin-L 骨幹達到 50.1 AP，這是通用架構首次超越最佳的專用實例分割模型。具體而言，Mask2Former 超越了使用專為實例分割設計的級聯結構的 Swin-HTC++（49.5 AP）。改善在邊界感知指標上尤為顯著：Mask2Former 在 AP_boundary 上高出 2.1 AP，顯示遮罩注意力有助於產出更銳利的遮罩邊界。在 Cityscapes 實例分割上，Mask2Former 達到 43.6 AP，同樣創下新的最先進紀錄。此結果意義重大，因為實例分割一直是通用架構的最弱環節，縮小此差距消除了支持任務專用設計的最後一個主要論據。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    里程碑宣告——以實例分割的突破性結果論證通用架構的可行性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最具說服力的實驗段落：實例分割是通用架構的阿基里斯腱，超越 HTC++ 直接回擊「通用架構在實例分割上不行」的批評。邊界 AP 的改善進一步歸功於遮罩注意力的局部化特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首次超越」的里程碑式宣稱極具影響力，但 0.6 AP 的差距（50.1 vs. 49.5）在 COCO 上可能落入統計波動範圍。此外，HTC++ 使用 72 個訓練週期，而 Mask2Former 使用 50 個週期——訓練成本的比較若納入每週期的實際計算量（FLOPs），結論可能有所不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：語意分割結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">ADE20K semantic segmentation</span>, Mask2Former achieves <span class="hl-evidence">57.7 mIoU with Swin-L backbone and FaPN pixel decoder</span>, surpassing the previous best result of <span class="hl-evidence">BEiT-UperNet at 57.0 mIoU</span>. On <span class="hl-evidence">Cityscapes semantic segmentation</span>, Mask2Former reaches <span class="hl-evidence">83.3 mIoU</span>, competitive with specialized methods. On the larger <span class="hl-evidence">Mapillary Vistas dataset</span>, Mask2Former demonstrates consistent improvements across all three tasks. These results confirm that Mask2Former is not merely competitive but <span class="hl-thesis">sets new state-of-the-art benchmarks as a single unified architecture across all tasks and datasets</span>. The <span class="hl-rebuttal">pixel decoder choice matters for semantic segmentation</span>: the FaPN decoder outperforms MSDeformAttn on semantic tasks (57.7 vs. 56.4 mIoU), while MSDeformAttn is better for instance tasks (43.7 vs. 42.7 AP), suggesting that <span class="hl-rebuttal">some task-specific tuning of the pixel decoder may still be beneficial</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ADE20K 語意分割上，Mask2Former 使用 Swin-L 骨幹與 FaPN 像素解碼器達到 57.7 mIoU，超越先前最佳的 BEiT-UperNet（57.0 mIoU）。在 Cityscapes 語意分割上，Mask2Former 達到 83.3 mIoU，與專用方法相當。在規模更大的 Mapillary Vistas 資料集上，Mask2Former 在所有三項任務中均展現一致的改善。這些結果確認 Mask2Former 不僅具有競爭力，更作為單一統一架構在所有任務與資料集上均刷新了最先進基準。像素解碼器的選擇對語意分割而言很重要：FaPN 解碼器在語意任務上優於 MSDeformAttn（57.7 vs. 56.4 mIoU），而 MSDeformAttn 在實例任務上更佳（43.7 vs. 42.7 AP），暗示某些任務特定的像素解碼器微調可能仍有益處。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面驗證與坦誠揭露——展示語意分割結果並承認像素解碼器的任務敏感性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成三任務 SOTA 的完整論證迴路，但末尾誠實地揭示了像素解碼器在不同任務間的偏好差異。這是一個精妙的讓步：承認「完全統一」尚有空間，同時將問題限縮至「像素解碼器」這一組件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    末尾的讓步——不同任務偏好不同的像素解碼器——在一定程度上削弱了「通用架構」的宣稱。若需為不同任務選擇不同的像素解碼器，則架構並非完全任務無關。0.7 mIoU 的優勢（57.7 vs. 57.0）相對於 BEiT 使用的大規模預訓練資料量，Mask2Former 的語意分割優勢可能主要來自骨幹而非架構設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.1 消融研究 ====== -->
+    <h3 class="subsection-heading" id="sec-ablation">4.1 Ablation Studies — 消融研究</h3>
+
+    <!-- 消融段落 1：組件貢獻 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We conduct comprehensive ablation studies using a <span class="hl-evidence">ResNet-50 backbone</span> to analyze each component's contribution. Removing <span class="hl-concept">masked attention</span> causes the largest degradation: <span class="hl-evidence">-5.9 AP on instance segmentation, -4.8 PQ on panoptic segmentation, and -1.7 mIoU on semantic segmentation</span>. Removing <span class="hl-concept">high-resolution multi-scale features</span> leads to <span class="hl-evidence">-2.2 AP, -1.7 PQ, and -1.1 mIoU</span>. Removing <span class="hl-concept">learnable queries</span> reduces performance by <span class="hl-evidence">-0.8 AP, -0.7 PQ, and -1.8 mIoU</span>. Switching back to <span class="hl-concept">cross-attention first (original order)</span> costs <span class="hl-evidence">-0.5 AP, -0.3 PQ, and -0.9 mIoU</span>. These results clearly establish a <span class="hl-thesis">hierarchy of importance: masked attention contributes the most, followed by multi-scale features, learnable queries, and attention ordering</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們使用 ResNet-50 骨幹進行全面的消融研究，分析每個組件的貢獻。移除遮罩注意力導致最大的效能下降：實例分割 -5.9 AP、全景分割 -4.8 PQ、語意分割 -1.7 mIoU。移除高解析度多尺度特徵導致 -2.2 AP、-1.7 PQ、-1.1 mIoU。移除可學習查詢導致 -0.8 AP、-0.7 PQ、-1.8 mIoU。恢復交叉注意力優先（原始順序）則損失 -0.5 AP、-0.3 PQ、-0.9 mIoU。這些結果清楚地建立了重要性的層次：遮罩注意力貢獻最大，其次為多尺度特徵、可學習查詢，最後是注意力順序。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件解剖——以消融實驗量化每項改進的獨立貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為全文的方法論提供最嚴格的驗證：每個組件被獨立移除後的效能變化，建立了因果關係而非僅相關性。遮罩注意力 -5.9 AP 的巨大影響確認其為核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究的設計嚴謹，每次僅移除一個組件。但組件間可能存在交互效應——例如遮罩注意力與可學習查詢的協同效果可能大於各自獨立貢獻之和。此外，消融僅在 ResNet-50 上進行，在 Swin-L 等更強骨幹上，各組件的相對重要性可能不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 2：遮罩注意力深入分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A deeper analysis of masked attention reveals its mechanism of improvement. Visualizing the <span class="hl-method">attention maps across decoder layers</span> shows that masked attention <span class="hl-evidence">quickly focuses on object regions from early layers</span>, while standard cross-attention exhibits <span class="hl-rebuttal">diffuse attention patterns even in later layers</span>. The <span class="hl-concept">learnable queries as mask proposals</span> generate reasonable initial segmentations: the <span class="hl-evidence">average recall at 100 proposals (AR@100) improves progressively from layer 0 through layer 9</span>, confirming the iterative refinement behavior. We also analyze the <span class="hl-concept">pixel decoder architecture</span>, finding that <span class="hl-evidence">MSDeformAttn consistently achieves the best overall performance (43.7 AP)</span> while <span class="hl-evidence">BiFPN is better for instance tasks (43.5 AP) and FaPN is better for semantic tasks (46.8 mIoU)</span>. This modularity — where the pixel decoder can be swapped without changing the Transformer decoder — is a <span class="hl-thesis">practical advantage for adapting Mask2Former to different deployment scenarios</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對遮罩注意力的深入分析揭示了其改善機制。視覺化跨解碼器層的注意力圖顯示，遮罩注意力從早期層就迅速聚焦於物件區域，而標準交叉注意力即使在後期層仍呈現分散的注意力模式。可學習查詢作為遮罩提議生成了合理的初始分割：100 個提議的平均召回率（AR@100）從第 0 層到第 9 層逐步改善，確認了逐層迭代精煉的行為。我們也分析了像素解碼器架構，發現 MSDeformAttn 一致地達到最佳整體效能（43.7 AP），而 BiFPN 在實例任務上更佳（43.5 AP）、FaPN 在語意任務上更佳（46.8 mIoU）。這種模組化——像素解碼器可在不改變 Transformer 解碼器的情況下替換——是 Mask2Former 適應不同部署場景的實用優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    機制闡釋——以視覺化與定量分析深入解釋遮罩注意力的運作原理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段超越「它有效」的層次，深入到「為什麼有效」：注意力圖的視覺化提供直覺理解，AR@100 的逐層改善驗證了迭代精煉機制。像素解碼器的模組化分析則展現架構的靈活性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    注意力圖的視覺化是定性而非定量的證據，選擇展示的案例可能存在挑櫻桃效應。AR@100 的逐層改善雖支持迭代精煉，但未分析在哪些情況下改善停滯或退化。像素解碼器的模組化是一把雙刃劍：它暗示最佳配置需要任務特定的實驗探索，而非真正的「開箱即用」通用性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Mask2Former</span>, a universal image segmentation architecture built upon <span class="hl-method">masked attention in the Transformer decoder</span>. By constraining cross-attention to predicted mask regions, incorporating multi-scale features efficiently, and applying targeted optimization improvements, <span class="hl-thesis">a single architecture now performs on par with or better than specialized architectures across panoptic, instance, and semantic segmentation</span>. Mask2Former achieves state-of-the-art results on <span class="hl-evidence">COCO, ADE20K, Cityscapes, and Mapillary Vistas</span> for every task, while being <span class="hl-evidence">easy to train — reducing research effort by at least three times</span>. Our work demonstrates that the pursuit of universal architectures need not come at the cost of task-specific performance. We <span class="hl-rebuttal">acknowledge that models still require task-specific training; unifying training across multiple segmentation tasks remains an important direction for future work</span>. We hope Mask2Former inspires the community to embrace <span class="hl-thesis">universal model design, reducing fragmentation across image segmentation research</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 Mask2Former，一種建構於 Transformer 解碼器中遮罩注意力之上的通用影像分割架構。透過將交叉注意力限制在預測遮罩區域、高效地融入多尺度特徵，以及施加針對性的最佳化改進，單一架構如今在全景、實例與語意分割上的表現均與專用架構相當或更優。Mask2Former 在 COCO、ADE20K、Cityscapes 與 Mapillary Vistas 上的每項任務均達到最先進結果，同時訓練便捷——至少將研究人力降低三倍。我們的工作證明，追求通用架構不必以犧牲任務特定效能為代價。我們承認模型仍需要任務特定的訓練；跨多項分割任務的統一訓練仍是未來工作的重要方向。我們期望 Mask2Former 能激勵學界擁抱通用模型設計，減少影像分割研究的碎片化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻、承認局限、展望未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段與摘要形成對稱結構，從技術細節回到全局視野。「追求通用架構不必犧牲任務效能」是全文論證的最終結論，而對「統一訓練」局限性的坦承則為後續研究留下空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論的語調在自信與謙遜之間取得良好平衡：「on par with or better than」的措辭精準，避免了過度宣稱。承認仍需任務特定訓練是重要的誠實聲明——這意味著「通用」指的是架構通用而非訓練通用。「減少碎片化」的呼籲具有社群層面的號召力，但碎片化有時也是學術多樣性的體現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                分割任務架構碎片化<br>通用模型落後專用模型
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                遮罩注意力限制交叉<br>注意力至預測遮罩區域
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                四大資料集三項任務<br>均達最先進水準
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                仍需任務特定訓練<br>像素解碼器有偏好差異
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                通用架構不必犧牲<br>任務特定效能
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過在 Transformer 解碼器中以遮罩注意力取代全域交叉注意力，並搭配多尺度特徵與訓練最佳化，單一架構即可在全景、實例與語意分割三項任務上全面超越或匹敵專用架構。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>消融研究的嚴謹性與實例分割的突破：</strong>遮罩注意力在消融中展現 -5.9 AP 的巨大影響，清楚地建立了因果關係而非僅相關性。在實例分割上首次以通用架構超越專用的 HTC++（50.1 vs. 49.5 AP），直接瓦解了「通用架構在實例分割上不行」的主流論述。6 倍收斂加速與 3 倍記憶體降低提供了強有力的工程價值論證。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>「通用」的定義邊界模糊：</strong>模型仍需為每項任務獨立訓練，且不同任務偏好不同的像素解碼器（MSDeformAttn vs. FaPN），使「通用」更接近「架構通用」而非「模型通用」。此外，語意分割的 SOTA 優勢（0.7 mIoU）可能主要歸功於骨幹網路而非架構設計，而實例分割 0.6 AP 的優勢在統計上是否顯著也有待驗證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

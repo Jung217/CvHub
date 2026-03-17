@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPro-PnP: Generalized End-to-End Probabilistic Perspective-n-Points for Monocular Object Pose Estimation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', 'Noto Sans TC', sans-serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* 顏色圖例 */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 14px 16px; }
+            .section-nav { padding: 0 10px; }
+            .main-container { padding: 16px 12px 40px; }
+            .navbar-title { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                EPro-PnP: Generalized End-to-End Probabilistic Perspective-n-Points for Monocular Object Pose Estimation
+                <span class="course-tag">CVPR 2022</span>
+                <span class="best-paper-badge">Best Student Paper</span>
+            </div>
+            <a href="../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2203.13254" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+        <!-- 五維度顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#fff3cd;"></div>
+                <span>核心論點 / Thesis</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#f8d7da;"></div>
+                <span>關鍵概念 / 術語</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#cce5ff;"></div>
+                <span>實證證據 / 資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#d4edda;"></div>
+                <span>讓步 / 反駁處理</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background:#e2d5f1;"></div>
+                <span>方法論說明</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-kl-loss">3.1 KL 散度損失</a>
+        <a href="#sec-mc-loss">3.2 蒙地卡羅姿態損失</a>
+        <a href="#sec-backprop">3.3 反向傳播</a>
+        <a href="#sec-network">4. 對應網路</a>
+        <a href="#sec-experiments">5. 實驗</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Monocular object pose estimation</span> is a long-standing problem in computer vision. Perspective-n-Points (<span class="hl-concept">PnP</span>) is a classic method that solves pose from <span class="hl-method">2D-3D point correspondences</span>, yet existing learning-based methods only learn partial correspondences and <span class="hl-rebuttal">rely on non-differentiable PnP solvers that prevent true end-to-end training</span>. In this paper, the authors present <span class="hl-concept">EPro-PnP</span>, a <span class="hl-thesis">generalized end-to-end probabilistic Perspective-n-Points framework</span> that addresses this limitation. Rather than computing a deterministic pose — which is inherently non-differentiable — <span class="hl-thesis">EPro-PnP outputs a probability density over the pose space SE(3), serving as a continuous analog to the categorical Softmax</span>. The approach minimizes <span class="hl-method">KL divergence between predicted and target pose distributions</span>, efficiently computed via <span class="hl-method">Adaptive Multiple Importance Sampling (AMIS)</span>, with 2D-3D coordinates and weights as fully learnable intermediate variables. EPro-PnP unifies existing PnP-based approaches and demonstrates <span class="hl-evidence">state-of-the-art performance on the LineMOD 6DoF pose estimation benchmark and the nuScenes 3D object detection benchmark</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                單目物體姿態估計是電腦視覺領域一個長期存在的問題。透視 n 點法（PnP）是一種經典的從二維-三維點對應求解姿態的方法，然而現有的基於學習的方法僅學習部分對應關係，並依賴不可微分的 PnP 求解器，阻礙了真正的端到端訓練。本文提出 EPro-PnP，一個通用的端到端機率式透視 n 點框架。不同於計算一個本質上不可微分的確定性姿態，EPro-PnP 輸出姿態空間 SE(3) 上的機率密度，作為類別 Softmax 的連續類比。該方法最小化預測姿態分布與目標姿態分布之間的 KL 散度，透過自適應多重重要性取樣（AMIS）高效計算，其中二維-三維座標與權重皆為完全可學習的中間變數。EPro-PnP 統一了現有的基於 PnP 的方法，並在 LineMOD 六自由度姿態估計基準和 nuScenes 三維物體偵測基準上展現了最先進的效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「經典方法的不可微分瓶頸」為起點，引出 EPro-PnP 的機率式解決方案，最終以兩個基準的實證結果收束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要兼具「問題界定」與「方案預告」的雙重功能：先指出 PnP 不可微分的根本限制，再以「機率密度取代確定性解」的核心洞見回應此問題，最後以 Softmax 類比幫助讀者建立直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 EPro-PnP 比擬為「連續版 Softmax」是極具洞察力的修辭策略，讓熟悉分類問題的讀者立即理解其設計哲學。但「統一現有方法」的宣稱較為強烈，需要在方法章節中嚴格證明各特例的推導。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：問題動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Pose estimation from monocular images</span> is a fundamental task in computer vision with broad applications in <span class="hl-evidence">robotics, autonomous driving, and augmented reality</span>. The problem is typically subdivided into <span class="hl-concept">6DoF object pose estimation</span> — recovering the full rotation and translation of a known object — and <span class="hl-concept">3D object detection</span> — predicting 3D bounding boxes from images. Despite sharing the fundamental goal of estimating object pose, these two communities have developed <span class="hl-rebuttal">largely independently with different methodological traditions</span>: top-performing 3D detection methods employ <span class="hl-method">direct 4DoF prediction with end-to-end learning</span>, while 6DoF pose estimation is dominated by <span class="hl-method">geometry-based approaches exploiting 3D object models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從單目影像估計姿態是電腦視覺中一項基礎任務，在機器人技術、自動駕駛與擴增實境中有廣泛應用。此問題通常被細分為六自由度物體姿態估計（恢復已知物體的完整旋轉與平移）以及三維物體偵測（從影像預測三維邊界框）。儘管兩者共享估計物體姿態的根本目標，這兩個研究社群卻在很大程度上獨立發展，擁有不同的方法論傳統：頂尖的三維偵測方法採用端到端學習的直接四自由度預測，而六自由度姿態估計則由利用三維物體模型的幾何式方法所主導。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——界定姿態估計的兩大子問題及其分裂現狀。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：透過指出 6DoF 與 3D 偵測兩個社群的方法論割裂，為後續「統一框架」的提出奠定動機。此處暗示一個統一的解決方案將具有重大價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將兩個子領域描繪為「獨立發展」是一種戰略性簡化，有助於凸顯統一框架的必要性。實際上兩個領域之間已有一定的方法交流，但作者選擇強調差異以增強論文的貢獻定位。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：PnP 的不可微分瓶頸 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent work has proposed interpreting <span class="hl-concept">PnP as a differentiable layer</span> to enable <span class="hl-thesis">end-to-end correspondence learning</span>. However, existing approaches <span class="hl-rebuttal">only learn portions of the correspondences</span> — some learn 2D coordinates, others learn 3D coordinates, and yet others learn correspondence weights — <span class="hl-rebuttal">while assuming the remaining components are given by prior knowledge</span>. The fundamental challenge is that <span class="hl-thesis">PnP solutions are inherently non-differentiable</span>: given a set of 2D-3D correspondences, there may exist <span class="hl-concept">multiple valid pose solutions</span> (pose ambiguity), and infinitesimal changes in correspondences can cause <span class="hl-rebuttal">discontinuous jumps between solutions</span>. This non-differentiability prevents direct gradient-based optimization of the end-to-end pipeline.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期研究提出將 PnP 詮釋為可微分層以實現端到端的對應學習。然而，現有方法僅學習對應關係的部分組成——有些學習二維座標，有些學習三維座標，還有些學習對應權重——同時假定其餘組成由先驗知識給定。根本挑戰在於 PnP 解本質上是不可微分的：給定一組二維-三維對應，可能存在多個有效的姿態解（姿態歧義），而對應關係的微小變化可能導致解之間的不連續跳躍。此不可微分性阻礙了端到端管線的直接梯度最佳化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    界定核心瓶頸——精確闡述 PnP 不可微分的數學根源。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「問題深化」的關鍵段落：從現有方法的「部分學習」限制，追溯到更根本的「不可微分性」問題，為機率式解法的引入提供嚴格的數學動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「不連續跳躍」的直覺說明不可微分性，使抽象概念變得具體。但需注意，隱式微分方法（如 BPnP）透過在局部解附近線性化，已部分繞過此問題——作者在此有意簡化競爭方法的能力以突顯自身優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：核心洞見與方案概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core insight of this work is that while <span class="hl-rebuttal">"a deterministic pose is non-differentiable,"</span> <span class="hl-thesis">"the probability density of pose is apparently differentiable, just like categorical classification scores."</span> EPro-PnP reinterprets the PnP output as a <span class="hl-method">probability distribution over the pose space SE(3)</span>, parameterized by the learnable 2D-3D correspondences. Specifically, the <span class="hl-method">weighted reprojection error is treated as the negative log-likelihood</span>, from which a <span class="hl-concept">posterior pose distribution</span> is derived via Bayes' theorem. During training, the <span class="hl-method">KL divergence between the predicted distribution and a target distribution centered at the ground-truth pose</span> is minimized. This is efficiently computed via <span class="hl-method">Adaptive Multiple Importance Sampling (AMIS)</span>. The key contributions include: (1) a <span class="hl-thesis">probabilistic PnP layer enabling general end-to-end pose estimation</span> with fully learnable 2D-3D correspondences; (2) <span class="hl-evidence">state-of-the-art 6DoF performance</span> on LineMOD; and (3) a novel <span class="hl-concept">deformable correspondence network</span> for 3D object detection that learns correspondences entirely from scratch.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究的核心洞見在於：儘管「確定性姿態是不可微分的」，但「姿態的機率密度顯然是可微分的，就如同類別分類分數一般」。EPro-PnP 將 PnP 的輸出重新詮釋為姿態空間 SE(3) 上的機率分布，以可學習的二維-三維對應作為參數。具體而言，加權重投影誤差被視為負對數似然，由此透過貝氏定理推導出後驗姿態分布。在訓練過程中，最小化預測分布與以真實姿態為中心的目標分布之間的 KL 散度，並透過自適應多重重要性取樣（AMIS）高效計算。主要貢獻包括：（1）一個機率式 PnP 層，以完全可學習的二維-三維對應實現通用的端到端姿態估計；（2）在 LineMOD 上達到最先進的六自由度效能；（3）一個全新的可變形對應網路，能從零開始完全學習三維物體偵測的對應關係。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心解法——以「機率密度可微分」的洞見推翻「PnP 不可微分」的限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證的「轉折樞紐」：前段建立了不可微分的死結，此段以範式轉換（確定性 -> 機率式）打開了新的可能性。三項貢獻分別對應理論框架、6DoF 實證、3D 偵測擴展，形成層層遞進的價值論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「如同 Softmax」的類比極為精妙——將陌生的姿態空間機率化與熟悉的分類 Softmax 建立對應，大幅降低理解門檻。但 SE(3) 上的分布遠比離散類別上的 Softmax 複雜，AMIS 近似的精度與計算成本需在後續章節嚴格分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：幾何式姿態估計 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Geometry-based object pose estimation</span> methods exploit <span class="hl-method">points, edges, or dense representations subject to perspective projection constraints</span>. These can be divided into <span class="hl-concept">sparse keypoint methods</span> — such as BB8 locating bounding box corners, and PVNet using farthest point sampling — and <span class="hl-concept">dense correspondence methods</span> that predict <span class="hl-method">pixel-wise 3D coordinate maps</span>. Most follow a <span class="hl-rebuttal">two-stage strategy where intermediate 2D-3D correspondences are learned with surrogate losses</span>, then a separate PnP solver or RANSAC procedure recovers the pose. This <span class="hl-rebuttal">decoupled training is suboptimal</span> because the surrogate loss (e.g., coordinate regression loss) does not directly correlate with the final pose accuracy, leading to a gap between training objective and evaluation metric.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                幾何式物體姿態估計方法利用點、邊緣或稠密表示，透過透視投影約束求解。這些方法可分為稀疏關鍵點方法——如 BB8 定位邊界框角點、PVNet 使用最遠點取樣——以及稠密對應方法，預測逐像素的三維座標圖。大多數方法遵循兩階段策略：先以替代損失學習中間的二維-三維對應，再以獨立的 PnP 求解器或 RANSAC 程序恢復姿態。這種解耦訓練是次優的，因為替代損失（如座標迴歸損失）與最終的姿態精度並非直接相關，導致訓練目標與評估指標之間存在落差。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統梳理幾何式方法的兩大流派及其共同弱點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「替代損失 vs. 端到端」的對比框架：幾何式方法雖然利用了三維先驗，但其兩階段訓練造成的「目標-指標落差」恰好為 EPro-PnP 的端到端方案提供了立足點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「訓練目標與評估指標之間的落差」是一個普遍且有力的批評。但需注意，兩階段方法在工程上更穩定且易於除錯，而端到端方法可能面臨更複雜的最佳化景觀——此段未提及這些實務考量。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：端到端對應學習 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">End-to-end correspondence learning</span> methods attempt to backpropagate pose gradients through the PnP operation to the intermediate representations. Prior approaches include <span class="hl-concept">DSAC</span>, which uses a <span class="hl-method">differentiable RANSAC for hypothesis scoring</span>; <span class="hl-concept">BPnP</span>, which differentiates through the PnP solution via <span class="hl-method">implicit differentiation of the KKT conditions</span>; and methods that learn differentiable 3D point locations or 2D keypoint coordinates. However, these methods are <span class="hl-rebuttal">typically coupled with surrogate regularization losses because deterministic pose alone lacks differentiability guarantees</span>. Theoretically, implicit differentiation approaches are related to <span class="hl-method">Laplace approximation</span>, which <span class="hl-rebuttal">assumes a locally normal posterior and fails for multi-modal distributions arising from pose ambiguity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                端到端對應學習方法嘗試透過 PnP 運算將姿態梯度反向傳播至中間表示。先前方法包括 DSAC（使用可微分 RANSAC 進行假設評分）、BPnP（透過 KKT 條件的隱式微分來微分 PnP 解），以及學習可微分三維點位或二維關鍵點座標的方法。然而，這些方法通常需搭配替代正則化損失，因為單獨的確定性姿態缺乏可微分性保證。從理論上看，隱式微分方法與拉普拉斯近似相關，而拉普拉斯近似假設後驗在局部為常態分布，對於姿態歧義所產生的多峰分布將會失效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有端到端方法——指出其理論基礎（拉普拉斯近似）的根本侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的「替代損失」批評，進一步指出即便嘗試端到端學習的方法也有理論缺陷。此段將 EPro-PnP 的定位從「工程改進」提升到「理論突破」：不只是更好的端到端方法，而是根本不同的機率式框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將隱式微分歸約為拉普拉斯近似是一個深刻的理論觀察，有效揭示了其假設的脆弱性。然而，在實務中多數物體（尤其是非對稱物體）的姿態分布接近單峰，拉普拉斯近似的失效場景可能較為罕見——作者需在實驗中展示多峰情況的優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：機率式深度學習 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Probabilistic deep learning</span> methods account for both <span class="hl-concept">epistemic uncertainty</span> (model uncertainty) and <span class="hl-concept">aleatoric uncertainty</span> (data uncertainty). In classification, <span class="hl-concept">categorical Softmax</span> provides a <span class="hl-method">smooth differentiable approximation to the argmax operation</span>, transforming discrete logits into a probability distribution. For continuous variables, tractable parametric distributions such as <span class="hl-method">Gaussian or mixture models</span> are commonly used to capture prediction uncertainty. This paper contributes a unique perspective: <span class="hl-thesis">"backpropagating a complicated continuous distribution derived from a nested optimization layer (the PnP layer), essentially making it a continuous counterpart of Softmax."</span> This connection to Softmax is not merely an analogy but a <span class="hl-method">rigorous mathematical parallel</span>: just as Softmax converts logits into class probabilities, EPro-PnP converts reprojection errors into pose probabilities.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                機率式深度學習方法同時考量認知不確定性（模型不確定性）與偶然不確定性（資料不確定性）。在分類任務中，類別 Softmax 提供了 argmax 運算的平滑可微分近似，將離散的 logits 轉換為機率分布。對於連續變數，通常使用可解析的參數化分布（如高斯或混合模型）來捕捉預測的不確定性。本文提出了一個獨特觀點：「反向傳播一個由巢狀最佳化層（PnP 層）推導出的複雜連續分布，本質上使其成為 Softmax 的連續對應物」。與 Softmax 的連結不僅是一個類比，而是嚴格的數學平行：如同 Softmax 將 logits 轉換為類別機率，EPro-PnP 將重投影誤差轉換為姿態機率。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論定位——將 EPro-PnP 嵌入機率式學習的廣泛脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立關鍵的概念橋樑：Softmax（離散分類）-> EPro-PnP（連續姿態）。此平行關係不僅幫助讀者理解，更暗示 EPro-PnP 具有如 Softmax 般的基礎性地位，是姿態估計問題的「正確」抽象。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將自身方法提升到與 Softmax 同等的基礎性地位，是極具野心的學術定位。此宣稱的說服力取決於「嚴格的數學平行」是否真正成立——SE(3) 上的非參數分布與有限類別上的 Softmax 在拓撲結構上存在本質差異，此類比的適用邊界值得更審慎的討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 通用端到端機率式 PnP</h2>
+    <h3 class="subsection-heading">3.0 Overview — 概觀</h3>
+
+    <!-- 方法段落 1：問題定義 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The goal is to predict <span class="hl-method">N corresponding point pairs</span>, each consisting of a <span class="hl-concept">3D object coordinate</span>, a <span class="hl-concept">2D image coordinate</span>, and a <span class="hl-concept">2D correspondence weight</span>. The classic PnP formulation finds the pose that minimizes the <span class="hl-method">cumulative squared weighted reprojection error</span>. The key insight of EPro-PnP is to treat this <span class="hl-method">cumulative reprojection error as a negative log-likelihood function</span>. Via <span class="hl-method">Bayes' theorem with an uninformative prior</span>, the error function naturally induces a <span class="hl-concept">posterior probability distribution over the pose space SE(3)</span>. This probabilistic reinterpretation transforms the non-differentiable argmin operation into a <span class="hl-thesis">differentiable distribution over poses</span>, enabling gradient flow through the entire pipeline.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                目標是預測 N 組對應點對，每組包含一個三維物體座標、一個二維影像座標與一個二維對應權重。經典的 PnP 公式化旨在找到使累積加權重投影誤差平方和最小的姿態。EPro-PnP 的關鍵洞見在於將此累積重投影誤差視為負對數似然函數。透過貝氏定理搭配無資訊先驗，誤差函數自然地誘導出姿態空間 SE(3) 上的後驗機率分布。此機率式重新詮釋將不可微分的 argmin 運算轉化為姿態上的可微分分布，使梯度能流過整個管線。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法起點——建立從經典 PnP 到機率式 PnP 的概念轉換。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整個方法論的數學基石：「誤差 -> 負對數似然 -> 後驗分布」的推導鏈條將工程直覺轉化為嚴格的機率框架。「無資訊先驗」的選擇使分布完全由資料驅動，避免了額外假設。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從「argmin（不可微）」到「分布（可微）」的概念跳躍是全文最重要的貢獻。然而，「無資訊先驗」在 SE(3) 上的定義並非平凡——SE(3) 是一個非緊緻李群，均勻分布不存在，作者需說明其先驗的具體形式及其對結果的影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.1 KL 散度損失 -->
+    <h3 class="subsection-heading" id="sec-kl-loss">3.1 KL Divergence Loss — KL 散度損失</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than <span class="hl-rebuttal">backpropagating through a single non-differentiable pose solution</span>, EPro-PnP minimizes the <span class="hl-method">KL divergence between the predicted pose distribution and a target distribution</span>. For training, the target distribution is a <span class="hl-method">Dirac-like distribution centered at the ground-truth pose</span>. Expanding the KL divergence yields a loss with <span class="hl-thesis">two essential terms</span>: (1) the <span class="hl-method">reprojection error evaluated at the ground-truth pose</span>, and (2) a <span class="hl-method">log-partition function (normalization constant)</span> computed over the entire predicted pose distribution. The first term alone is <span class="hl-rebuttal">insufficient for learning without strict regularization</span> — correspondences could collapse to a single point without preserving pose discrimination. <span class="hl-thesis">The second term (normalization factor) is the crucial ingredient</span>: it acts as an implicit regularizer ensuring that the predicted distribution is peaked around the correct pose, providing the discriminative signal necessary for learning correspondences from scratch.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                EPro-PnP 不透過單一不可微分的姿態解進行反向傳播，而是最小化預測姿態分布與目標分布之間的 KL 散度。在訓練時，目標分布為以真實姿態為中心的狄拉克式分布。展開 KL 散度後產生包含兩個關鍵項的損失函數：（1）在真實姿態處評估的重投影誤差，以及（2）在整個預測姿態分布上計算的對數配分函數（正規化常數）。僅第一項不足以在無嚴格正則化下進行學習——對應關係可能塌縮至單一點而喪失姿態鑑別力。第二項（正規化因子）是關鍵要素：它作為隱式正則化器，確保預測分布在正確姿態附近呈尖峰狀，提供從零學習對應關係所必需的鑑別訊號。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心損失設計——推導 KL 散度損失的兩個組成項及其各自作用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了 EPro-PnP 訓練的數學核心：對數配分函數不僅是數學上的正規化需要，更是學習信號的來源。此洞見將 EPro-PnP 與僅使用重投影損失的方法（如 BPnP）區分開來，建立了理論優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「對數配分函數作為隱式正則化器」是一個優雅的理論發現，將正則化從外部附加轉變為框架內建。但配分函數在 SE(3) 上的計算是一個高維積分問題，其近似品質直接影響訓練穩定性——此計算挑戰將在下一節透過 AMIS 處理。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 對比拉普拉斯近似 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This formulation stands in <span class="hl-rebuttal">sharp contrast with implicit differentiation methods</span>, which approximate the posterior locally via <span class="hl-concept">Laplace approximation</span>. The Laplace approximation <span class="hl-rebuttal">assumes a unimodal Gaussian posterior around the optimal pose</span>, which <span class="hl-rebuttal">fails catastrophically for objects with symmetry or self-similar appearances</span> that induce <span class="hl-concept">multi-modal pose distributions</span>. EPro-PnP's KL-based formulation <span class="hl-thesis">makes no assumptions about the shape of the posterior</span> and can naturally handle arbitrary distributions, including multi-modal ones arising from symmetric objects. This theoretical advantage directly translates to practical robustness: <span class="hl-evidence">symmetric objects in LineMOD (e.g., eggbox, glue) and nuScenes (e.g., traffic cones, barriers) are handled without special treatment</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此公式化與隱式微分方法形成鮮明對比，後者透過拉普拉斯近似在局部近似後驗。拉普拉斯近似假設在最佳姿態附近存在單峰高斯後驗，對於具有對稱性或自相似外觀而誘發多峰姿態分布的物體，此假設將完全失效。EPro-PnP 基於 KL 的公式化不對後驗形狀做任何假設，能自然處理任意分布，包括對稱物體產生的多峰分布。這一理論優勢直接轉化為實務上的穩健性：LineMOD 中的對稱物體（如蛋盒、膠水瓶）和 nuScenes 中的對稱物體（如交通錐、護欄）無需特殊處理即可應對。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論對比——以拉普拉斯近似的失敗案例凸顯 EPro-PnP 的理論優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    反駁式論證：先指出競爭方法的理論假設，再展示該假設何時失效，最後說明 EPro-PnP 如何避免此問題。此段將抽象的理論優勢連結到具體的實務場景（對稱物體），增強說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以對稱物體作為多峰分布的具體例證非常有效。但值得注意的是，大多數真實場景中的物體並非對稱的，此時拉普拉斯近似可能已足夠。EPro-PnP 的真正優勢或許不在於處理多峰的能力，而在於其不需要外部正則化損失的簡潔性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 蒙地卡羅姿態損失 -->
+    <h3 class="subsection-heading" id="sec-mc-loss">3.2 Monte Carlo Pose Loss — 蒙地卡羅姿態損失</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The log-partition function in the KL loss requires <span class="hl-method">integration over the entire SE(3) pose space</span>, which has no closed-form solution. EPro-PnP solves this via <span class="hl-concept">Adaptive Multiple Importance Sampling (AMIS)</span>, an <span class="hl-method">iterative Monte Carlo method that progressively adapts its proposal distributions to the integrand</span>. The procedure starts by estimating the <span class="hl-method">mode and covariance of the predicted pose distribution</span> using an efficient PnP solver, then iteratively refines the sampling distribution over <span class="hl-evidence">T=4 iterations with K'=128 samples per iteration</span>. The proposal distributions are carefully chosen for each component of the pose: <span class="hl-method">multivariate t-distributions for position</span> (providing robust heavy tails), <span class="hl-method">von Mises mixtures for 1D yaw orientation</span> (capturing rotational ambiguity), and <span class="hl-method">angular central Gaussian distributions on the unit hypersphere for 3D quaternion orientation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                KL 損失中的對數配分函數需要在整個 SE(3) 姿態空間上積分，而此積分沒有封閉形式解。EPro-PnP 透過自適應多重重要性取樣（AMIS）解決此問題，這是一種逐步將提議分布調適至被積函數的迭代式蒙地卡羅方法。程序從使用高效 PnP 求解器估計預測姿態分布的眾數與共變異數開始，然後在 T=4 次迭代中逐步精煉取樣分布，每次迭代使用 K'=128 個樣本。提議分布針對姿態的各組成部分精心選擇：位置使用多變量 t 分布（提供穩健的重尾特性），一維偏航方向使用 von Mises 混合分布（捕捉旋轉歧義），三維四元數方向使用單位超球面上的角心高斯分布。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    計算方案——詳述如何以 AMIS 高效近似不可解析的配分函數積分。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應上段遺留的計算挑戰：KL 損失的理論優美性需要一個實際可行的計算方案。AMIS 的選擇體現了在精度與效率之間的精心權衡——4 次迭代 x 128 樣本的規模使其可嵌入標準訓練迴圈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    為不同姿態組成選擇不同的提議分布（t 分布、von Mises、角心高斯）展現了對各空間拓撲結構的深入理解。但 512 個總樣本（4x128）在六維空間中是否足夠，是一個值得質疑的實務問題——維度詛咒可能使近似品質受限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 反向傳播 -->
+    <h3 class="subsection-heading" id="sec-backprop">3.3 Backpropagation — 反向傳播分析</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Analyzing the <span class="hl-method">gradient of the KL loss</span> reveals important structural insights. The gradient decomposes into <span class="hl-method">the reprojection error gradient at the ground-truth pose minus the expected gradient over the predicted pose distribution</span>. For the correspondence weights specifically, the gradient contains <span class="hl-thesis">two competing terms</span>: a <span class="hl-method">negative-signed term penalizing high uncertainty</span> (large reprojection error at the target pose), and a <span class="hl-method">positive-signed term emphasizing sensitive correspondences that provide strong pose discrimination</span>. This dual mechanism <span class="hl-thesis">automatically balances uncertainty reduction and discrimination enhancement</span>, a property absent in existing methods that <span class="hl-rebuttal">only consider the uncertainty term and therefore lack discriminative ability</span> when learning from scratch.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                分析 KL 損失的梯度揭示了重要的結構性洞見。梯度分解為在真實姿態處的重投影誤差梯度減去在預測姿態分布上的期望梯度。針對對應權重而言，梯度包含兩個競爭項：一個帶負號的項懲罰高不確定性（在目標姿態處的大重投影誤差），以及一個帶正號的項強調提供強姿態鑑別力的敏感對應。此雙重機制自動平衡不確定性降低與鑑別力增強，這是現有方法所不具備的特性——它們僅考慮不確定性項，因此在從零學習時缺乏鑑別能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    梯度分析——揭示 KL 損失如何自動平衡兩種互補的學習訊號。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將數學推導轉化為直覺理解：「不確定性降低」（讓正確姿態處的誤差小）與「鑑別力增強」（讓不同姿態產生不同誤差）的雙重訊號，解釋了為何 EPro-PnP 能從零學習而不需要額外的正則化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將梯度分解為兩個可解釋的項是一種強有力的分析策略——它不僅證明方法有效，還解釋了為什麼有效。但「自動平衡」的程度取決於分布的準確估計；若 AMIS 的近似品質不佳，此平衡可能失調。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 局部導數正則化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For inference, recovering the exact pose requires <span class="hl-method">iterative PnP solvers computing first and second-order derivatives of the reprojection error</span>. To facilitate this optimization, EPro-PnP introduces a <span class="hl-method">local derivative regularization</span> that encourages the <span class="hl-method">Levenberg-Marquardt optimization step to converge toward the true pose</span>. This is implemented by applying <span class="hl-method">smooth L1 loss for position derivatives</span> and <span class="hl-method">cosine similarity for orientation derivatives</span>. This regularization is <span class="hl-rebuttal">optional but beneficial</span>: it does not alter the probabilistic training framework but improves the numerical conditioning of the iterative solver at test time, yielding <span class="hl-evidence">consistent improvements of 1-2 percentage points</span> across benchmarks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在推論時，恢復精確姿態需要計算重投影誤差一階與二階導數的迭代式 PnP 求解器。為促進此最佳化過程，EPro-PnP 引入局部導數正則化，鼓勵 Levenberg-Marquardt 最佳化步驟朝真實姿態收斂。具體實現為對位置導數施加平滑 L1 損失，對方向導數施加餘弦相似度。此正則化是可選但有益的：它不改變機率式訓練框架，但改善了迭代求解器在測試時的數值條件，在各基準上帶來一致的 1-2 個百分點的改進。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    輔助技巧——介紹推論階段的導數正則化以提升數值穩定性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    銜接訓練（機率式 KL 損失）與推論（迭代求解器）的橋梁段落。明確指出此正則化是「可選但有益」的附加組件，不影響核心框架的完整性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦率承認正則化是「可選」的，增強了論文的誠信度。但若此正則化對效能有顯著影響，則暗示純粹的 KL 損失在推論階段的數值表現並非最佳——這可能是框架的一個隱含限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 對應網路 ====== -->
+    <h2 class="section-heading" id="sec-network">4. Correspondence Networks — 對應網路架構</h2>
+    <h3 class="subsection-heading">4.1 Dense Correspondence Network — 稠密對應網路</h3>
+
+    <!-- 稠密對應網路 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">6DoF pose estimation</span>, the authors modify the existing <span class="hl-concept">CDPN</span> framework by expanding its confidence maps into <span class="hl-method">two-channel XY weights with spatial Softmax normalization</span> and a <span class="hl-method">dynamic global weight scaling factor</span>. The <span class="hl-concept">spatial Softmax</span> is vital for stable training: it translates absolute weight values into <span class="hl-method">relative measurements across all correspondence points</span>, preventing weight collapse. The global scaling factors control the <span class="hl-method">concentration of the predicted pose distribution</span> — larger factors produce sharper distributions indicating higher confidence. The network can be trained with <span class="hl-evidence">KL loss alone for decent performance</span>, but adding <span class="hl-method">coordinate regression as auxiliary loss</span> introduces geometric knowledge from 3D models. <span class="hl-evidence">Further regularization loss provides additional improvements.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                針對六自由度姿態估計，作者修改現有的 CDPN 框架，將其信心圖擴展為具有空間 Softmax 正規化的雙通道 XY 權重，並加入動態全域權重縮放因子。空間 Softmax 對穩定訓練至關重要：它將絕對權重值轉換為所有對應點間的相對度量，防止權重塌縮。全域縮放因子控制預測姿態分布的集中度——較大的因子產生更尖銳的分布，表示更高的信心。網路可僅以 KL 損失訓練即獲得不錯的效能，但加入座標迴歸作為輔助損失可引入來自三維模型的幾何知識。進一步的正則化損失提供額外的改進。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構設計——描述如何將 EPro-PnP 整合入現有的稠密對應框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從抽象的機率框架落地到具體的網路架構。空間 Softmax 的設計呼應了緒論中的 Softmax 類比——不僅在損失函數層面，在網路架構層面也貫徹了機率式思維。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「KL 損失足夠、輔助損失錦上添花」的漸進式呈現策略，有效展示了 EPro-PnP 的自足性。但「座標迴歸輔助損失」的加入意味著實務上仍需利用三維模型的幾何知識，部分削弱了「從零學習」的純粹性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">4.2 Deformable Correspondence Network — 可變形對應網路</h3>
+
+    <!-- 可變形對應網路 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">3D object detection</span>, the authors propose a novel <span class="hl-concept">deformable correspondence network</span> that learns <span class="hl-thesis">entire 2D-3D correspondences from scratch</span>, extending the <span class="hl-concept">FCOS3D</span> detection framework. <span class="hl-method">Deformable attention layers</span> sample key-value pairs from dense feature maps, projecting values into <span class="hl-method">point-wise features for correspondence prediction</span> while aggregating them into <span class="hl-method">object-level features for auxiliary tasks</span>. Point features predict <span class="hl-method">3D coordinates and weights (normalized by Softmax)</span>, while object features predict 3D detection score, weight scaling, bounding box size, and optional properties such as velocity. The entire network is trained with <span class="hl-method">KL divergence loss</span>, optionally combined with regularization loss. This architecture demonstrates EPro-PnP's versatility: <span class="hl-thesis">it can learn all correspondence components from raw data without any geometric priors</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                針對三維物體偵測，作者提出一個全新的可變形對應網路，從零開始完全學習二維-三維對應，擴展了 FCOS3D 偵測框架。可變形注意力層從稠密特徵圖中取樣鍵值對，將值投影為逐點特徵以進行對應預測，同時聚合為物體層級特徵以執行輔助任務。逐點特徵預測三維座標與權重（以 Softmax 正規化），而物體特徵預測三維偵測分數、權重縮放、邊界框尺寸及可選屬性（如速度）。整個網路以 KL 散度損失訓練，可選地搭配正則化損失。此架構展現了 EPro-PnP 的多功能性：它能從原始資料中學習所有對應組成，無需任何幾何先驗。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    擴展應用——展示 EPro-PnP 如何推廣至三維偵測任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段實現了緒論中「統一兩個社群」的承諾：同一個機率式框架既適用於 6DoF（稠密對應 + 三維模型）也適用於 3D 偵測（可變形注意力 + 從零學習）。可變形注意力的引入展現了框架的架構靈活性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「從零學習所有對應」是一個引人注目的宣稱，但可變形注意力本身已隱含了學習空間關係的歸納偏差。此外，3D 偵測的「對應」與 6DoF 的「對應」在語義上有所不同——前者學習的是投影幾何關係，後者利用的是已知的三維模型。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">5. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：LineMOD 消融實驗 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On the <span class="hl-evidence">LineMOD benchmark</span> (13 object sequences with ~1.2K images each, annotated with 6DoF poses), comprehensive ablation studies reveal the contribution of each component. The <span class="hl-evidence">pure PnP baseline without end-to-end learning drops 17.46 points from the CDPN-Full baseline</span>, confirming the importance of end-to-end training. <span class="hl-evidence">Adding EPro-PnP with KL loss alone recovers 13.84 of those points</span>, already surpassing CDPN-Full. Regularization loss adds <span class="hl-evidence">1.88 points</span>, and initialization from pretrained CDPN contributes an additional <span class="hl-evidence">5.46 points</span>. A striking finding is that <span class="hl-thesis">"EPro-PnP manages to learn the coordinates from scratch, even outperforming CDPN without translation head (79.46 vs. 74.54)"</span>, demonstrating the power of the end-to-end probabilistic framework.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 LineMOD 基準上（13 個物體序列，每個約 1.2K 張影像，標註六自由度姿態），全面的消融研究揭示了各組件的貢獻。不進行端到端學習的純 PnP 基線較 CDPN-Full 基線下降 17.46 個百分點，確認了端到端訓練的重要性。僅加入 EPro-PnP 搭配 KL 損失即恢復其中 13.84 個百分點，已超越 CDPN-Full。正則化損失貢獻 1.88 個百分點，而從預訓練 CDPN 初始化再貢獻 5.46 個百分點。一個引人注目的發現是：「EPro-PnP 能從零學習座標，甚至超越不含平移頭的 CDPN（79.46 對 74.54）」，展示了端到端機率式框架的強大力量。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融驗證——逐步拆解各組件的貢獻，量化 EPro-PnP 的增益來源。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱之一：透過系統性的消融實驗，將 EPro-PnP 的效能增益歸因到具體的設計選擇（KL 損失 > 正則化 > 預訓練初始化），使讀者理解每個組件的邊際貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    逐步加入組件的消融設計清晰且有說服力。但 79.46 vs. 74.54 的比較條件（無平移頭的 CDPN）是一個較弱的基線——若與完整 CDPN 比較，EPro-PnP 從零學習的優勢可能較不顯著。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：關鍵發現 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Further ablation reveals that <span class="hl-evidence">end-to-end weight learning impacts performance more than coordinate learning (-8.69 vs. -3.08 when disabled)</span>, indicating that <span class="hl-thesis">correspondence weighting is the most critical learnable component</span>. The <span class="hl-concept">spatial Softmax normalization</span> is found to be <span class="hl-evidence">essential — without it, training diverges entirely</span>. Examining the balance between uncertainty and discrimination, the authors find that <span class="hl-evidence">the uncertainty term alone shows strong performance with intermediate supervision</span>, but <span class="hl-thesis">the discrimination term is indispensable for learning from scratch</span>. This validates the theoretical analysis in Section 3.3: existing methods that only model uncertainty can function when auxiliary losses provide geometric guidance, but EPro-PnP's dual-term gradient is necessary for truly end-to-end learning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                進一步的消融揭示：端到端權重學習對效能的影響大於座標學習（停用時分別下降 8.69 與 3.08 個百分點），顯示對應權重是最關鍵的可學習組件。空間 Softmax 正規化被發現是不可或缺的——沒有它，訓練將完全發散。檢驗不確定性與鑑別力之間的平衡，作者發現單獨的不確定性項在有中間監督時展現強效能，但鑑別項對於從零學習而言不可或缺。這驗證了第 3.3 節的理論分析：僅建模不確定性的現有方法在輔助損失提供幾何指引時能正常運作，但 EPro-PnP 的雙項梯度對於真正的端到端學習是必要的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深入消融——驗證理論預測，確認各學習訊號的相對重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「理論-實驗」閉環：第 3.3 節的梯度分析預測了「鑑別項對從零學習至關重要」，此處的消融實驗精確驗證了此預測，大幅增強了理論框架的可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    理論預測與實驗結果的一致性是強有力的論證。但「訓練發散」（無 Softmax 時）暗示框架對架構細節較為敏感——理論上的「通用性」在實務中需要精心的工程設計來保障。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：最先進比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">LineMOD state-of-the-art comparison, EPro-PnP reaches 98.54% at the 5-degree-5cm metric</span>, which is <span class="hl-evidence">comparable to top refinement-based methods while being more straightforward</span> in pipeline design. On the <span class="hl-evidence">nuScenes 3D object detection benchmark</span>, the deformable correspondence network with EPro-PnP achieves <span class="hl-evidence">NDS 0.425 versus the FCOS3D baseline of 0.372</span>, a substantial improvement of <span class="hl-evidence">5.3 NDS points</span>. With test-time augmentation, the method reaches <span class="hl-evidence">NDS 0.439 versus the previous best of 0.422</span>. The improvements are particularly pronounced in <span class="hl-evidence">pose-related metrics: mATE (average translation error) and mAOE (average orientation error)</span>, directly demonstrating PnP's advantage in geometric reasoning. Notably, the <span class="hl-thesis">multimodal pose distributions naturally capture orientation ambiguity for symmetric objects</span> (barriers, traffic cones) <span class="hl-evidence">without requiring discrete binning or mixture models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 LineMOD 最先進比較中，EPro-PnP 在 5 度 5 公分指標上達到 98.54%，與頂尖的基於精修的方法相當，同時管線設計更為直接。在 nuScenes 三維物體偵測基準上，搭配 EPro-PnP 的可變形對應網路達到 NDS 0.425，較 FCOS3D 基線的 0.372 有大幅提升（5.3 NDS 點）。加入測試時增強後，方法達到 NDS 0.439，優於先前最佳的 0.422。改進在姿態相關指標上尤為顯著：平均平移誤差（mATE）與平均方向誤差（mAOE），直接展示了 PnP 在幾何推理上的優勢。值得注意的是，多峰姿態分布自然地捕捉了對稱物體（護欄、交通錐）的方向歧義，無需離散分箱或混合模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面比較——在兩個基準上與最先進方法進行定量對決。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證高潮：LineMOD 的 98.54% 展示了 6DoF 的競爭力，nuScenes 的 5.3 NDS 點改進展示了 3D 偵測的顯著增益。兩個基準的成功共同支撐了「統一框架」的核心宣稱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    在兩個截然不同的任務和基準上均展現改進，是一個強有力的泛化性證據。但 LineMOD 上「與精修方法相當」的表述暗示 EPro-PnP 並非絕對最佳——精修方法（如 DeepIM）可能在某些物體上仍具優勢。nuScenes 的比較基線（FCOS3D）也非最新的偵測器。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：定性分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Qualitative analysis of learned correspondence maps</span> reveals that EPro-PnP's correspondence maps show <span class="hl-evidence">less fine-grained detail than CDPN due to higher uncertainty around sharp edges</span>, yet achieve <span class="hl-evidence">comparable pose accuracy (79.46 vs. 79.96)</span>. When initialized from pretrained CDPN, the <span class="hl-evidence">inherited geometric profiles confine weights to the foreground region</span>, achieving the best overall performance. <span class="hl-evidence">Visualized pose distributions on nuScenes</span> clearly capture <span class="hl-concept">multimodal orientations for symmetric objects</span> — barriers and traffic cones exhibit <span class="hl-evidence">bimodal or uniform rotational distributions</span>, while uncertain observations (e.g., heavily occluded pedestrians) show <span class="hl-evidence">broader, more diffuse distributions</span>. These visualizations provide compelling evidence that the probabilistic formulation captures meaningful geometric uncertainty.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對學習到的對應圖進行定性分析後發現，EPro-PnP 的對應圖由於在銳利邊緣附近具有較高的不確定性，呈現出不如 CDPN 精細的細節，但仍達到可比較的姿態精度（79.46 對 79.96）。當從預訓練 CDPN 初始化時，繼承的幾何輪廓將權重限制在前景區域，達到最佳的整體效能。在 nuScenes 上視覺化的姿態分布清楚地捕捉了對稱物體的多峰方向——護欄和交通錐展現雙峰或均勻的旋轉分布，而不確定的觀測（如嚴重遮擋的行人）則呈現更寬廣、更擴散的分布。這些視覺化提供了令人信服的證據，表明機率式公式化捕捉了有意義的幾何不確定性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定性驗證——以視覺化佐證機率分布的語義合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補充定量結果的「可解釋性」維度：數字證明方法有效，視覺化解釋方法為何有效。對稱物體的多峰分布直接回應了第 3.1 節中對拉普拉斯近似的批評。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體的視覺案例（護欄的雙峰、行人的擴散分布）來驗證抽象的理論預測，非常有說服力。但定性分析具有選擇性——作者必然選擇了最能支持論點的案例。對於分布不合理的失敗案例未見討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">EPro-PnP</span> <span class="hl-thesis">translates the non-differentiable deterministic PnP into a differentiable probabilistic layer</span>, enabling <span class="hl-thesis">unprecedented flexibility in end-to-end 2D-3D correspondence learning</span>. The theoretical connections to prior work — including <span class="hl-method">implicit differentiation as Laplace approximation</span>, <span class="hl-method">uncertainty-only gradients as special cases of the full KL gradient</span>, and <span class="hl-method">the Softmax analogy for continuous pose distributions</span> — are thoroughly discussed both theoretically and experimentally. The approach can either be <span class="hl-method">inserted into existing PnP-based networks</span> to improve their end-to-end capability, or <span class="hl-method">inspire entirely novel architectures</span> like the deformable correspondence network for 3D detection. The underlying principles <span class="hl-thesis">generalize beyond pose estimation to any declarative network with nested optimization layers</span>, suggesting broad applicability to geometric reasoning tasks in computer vision.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                EPro-PnP 將不可微分的確定性 PnP 轉化為可微分的機率式層，在端到端二維-三維對應學習中實現了前所未有的靈活性。與先前工作的理論連結——包括隱式微分作為拉普拉斯近似、僅不確定性梯度作為完整 KL 梯度的特例、以及連續姿態分布的 Softmax 類比——在理論與實驗上都得到了充分的討論。該方法既可嵌入現有的基於 PnP 的網路以提升其端到端能力，也可啟發全新的架構，如用於三維偵測的可變形對應網路。其基本原理可推廣到姿態估計之外——適用於任何具有巢狀最佳化層的宣告式網路，暗示在電腦視覺的幾何推理任務中具有廣泛的適用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並提出更廣泛的適用性展望。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段完成三層遞進：（1）方法回顧（確定性 -> 機率式）；（2）統一性論證（拉普拉斯近似、Softmax 皆為特例）；（3）推廣展望（任何巢狀最佳化層）。此結構使論文的貢獻從「一個具體方法」提升到「一個通用原理」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「推廣到任何宣告式網路」的展望極具野心，但缺乏具體證據。將 EPro-PnP 的成功歸因為「通用原理」需要在更多巢狀最佳化問題上驗證。此外，結論未充分討論方法的局限性——如 AMIS 的計算開銷、對超參數的敏感性、以及在極端遮擋或少量對應點情境下的表現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：未來方向 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Looking forward, several promising directions emerge. The <span class="hl-method">AMIS-based Monte Carlo estimation</span> could potentially be replaced with <span class="hl-method">more efficient sampling strategies</span> or even <span class="hl-method">learned proposal distributions</span>. The <span class="hl-concept">deformable correspondence framework</span> could be extended to <span class="hl-method">multi-view and temporal settings</span>, where pose distributions across frames could be fused coherently. Furthermore, the <span class="hl-thesis">probabilistic output of EPro-PnP naturally interfaces with downstream uncertainty-aware planning systems</span> in autonomous driving and robotics, where knowing not just the most likely pose but also its confidence is critical for safe decision-making. The success of EPro-PnP across both 6DoF estimation and 3D detection suggests that <span class="hl-thesis">bridging the gap between geometric reasoning and end-to-end learning remains a fertile research direction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                展望未來，幾個有前景的方向浮現。基於 AMIS 的蒙地卡羅估計有可能被更高效的取樣策略甚至學習式提議分布所取代。可變形對應框架可擴展至多視角與時序設定，其中跨幀的姿態分布能被一致地融合。此外，EPro-PnP 的機率式輸出自然地與自動駕駛和機器人中下游的不確定性感知規劃系統接軌——在這些場景中，不僅需要知道最可能的姿態，還需了解其信心度，這對安全決策至關重要。EPro-PnP 在六自由度估計和三維偵測兩者的成功顯示，彌合幾何推理與端到端學習之間的鴻溝仍是一個豐碩的研究方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    未來展望——描繪 EPro-PnP 的延伸方向與更廣泛的影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從技術層面（更好的取樣、多視角融合）到應用層面（不確定性感知規劃），層層擴展研究的影響範圍。最後以「幾何推理 vs. 端到端學習」的宏觀命題收束，將論文定位在一個更大的研究敘事中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    與自動駕駛安全決策的連結是一個有效的應用動機，但從「姿態分布」到「安全規劃」之間還有很長的研究路徑。未來方向的描述偏向樂觀，未充分考量可能的障礙——如即時推論的計算限制、與其他感知模組的整合挑戰等。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                PnP 不可微分<br>阻礙端到端學習
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                機率密度可微分<br>如同連續版 Softmax
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                LineMOD 98.54%<br>nuScenes NDS 0.439
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                KL 散度雙項梯度<br>勝過拉普拉斯近似
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                統一 6DoF 與 3D 偵測<br>推廣至宣告式網路
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將 PnP 的確定性解轉化為 SE(3) 上的機率分布，並以 KL 散度作為損失函數，能實現完全端到端的二維-三維對應學習，統一六自由度姿態估計與三維物體偵測兩大任務。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論-實驗一致性：</strong>第 3.3 節的梯度分析精確預測了「鑑別項對從零學習不可或缺」，而消融實驗完美驗證了此預測。此外，將現有隱式微分方法統一為拉普拉斯近似的特例，展現了深刻的理論洞察力。機率式框架同時解決了可微分性、不確定性估計與多峰姿態歧義三個問題，體現了設計的優雅統一性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>計算效率與近似品質的張力：</strong>AMIS 在六維 SE(3) 空間中僅使用 512 個樣本進行蒙地卡羅積分，面臨維度詛咒的挑戰，近似品質難以保證。此外，空間 Softmax 的「必要性」（移除後訓練發散）暗示框架對架構細節較為敏感，削弱了其宣稱的「通用性」。在 LineMOD 上僅達到「與精修方法相當」而非超越，也限制了「最先進」宣稱的力度。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+</body>
+</html>

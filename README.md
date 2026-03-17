@@ -56,3 +56,20 @@ https://jung217.github.io/CvHub/
 | Tokens-to-Token ViT: Training Vision Transformers from Scratch on ImageNet | Vision Transformer |
 | UP-DETR: Unsupervised Pre-training for Object Detection with Transformers | 物件偵測 |
 | Learning High Fidelity Depths of Dressed Humans by Watching Social Media Dance Videos | 人體深度估計 (Honorable Mention) |
+
+## CVPR 2022
+
+| 論文 | 領域 |
+|------|------|
+| Learning to Solve Hard Minimal Problems | 幾何視覺 (Best Paper) |
+| Dual-Shutter Optical Vibration Sensing | 計算攝影 (Best Paper Honorable Mention) |
+| EPro-PnP: Generalized End-to-End Probabilistic Perspective-n-Points for Monocular Object Pose Estimation | 姿態估計 (Best Student Paper) |
+| Ref-NeRF: Structured View-Dependent Appearance for Neural Radiance Fields | 神經輻射場 (Best Student Paper Honorable Mention) |
+| Masked Autoencoders Are Scalable Vision Learners (MAE) | 自監督學習 |
+| High-Resolution Image Synthesis with Latent Diffusion Models (LDM) | 擴散模型 |
+| A ConvNet for the 2020s (ConvNeXt) | 網路架構 |
+| Swin Transformer V2: Scaling Up Capacity and Resolution | Vision Transformer |
+| Masked-attention Mask Transformer for Universal Image Segmentation (Mask2Former) | 統一分割 |
+| DN-DETR: Accelerate DETR Training by Introducing Query DeNoising | 物體偵測 |
+| Restormer: Efficient Transformer for High-Resolution Image Restoration | 影像修復 |
+| Point-NeRF: Point-based Neural Radiance Fields | 3D 重建 |
