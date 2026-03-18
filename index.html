@@ -127,9 +127,15 @@
     .filter-chart-section.visible { display: block; }
     .filter-chart-card {
       background: #fff; border: 1px solid #e0dbd2; border-radius: 6px;
-      padding: 16px 20px; position: relative; max-width: 600px;
+      padding: 16px 20px; position: relative; max-width: 600px; margin: 0 auto;
     }
-    .filter-chart-title { font-size: 0.85rem; font-weight: 600; color: #1a2332; margin-bottom: 8px; }
+    .filter-chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .filter-chart-title { font-size: 0.85rem; font-weight: 600; color: #1a2332; }
+    .filter-chart-legend { display: flex; gap: 12px; font-size: 0.7rem; color: #5c5c5c; }
+    .filter-chart-legend span { display: inline-flex; align-items: center; gap: 4px; }
+    .filter-chart-legend span::before { content: ''; width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+    .filter-chart-legend .leg-cvpr::before { background: #1a2332; }
+    .filter-chart-legend .leg-iccv::before { background: #c9a84c; }
     .filter-chart-canvas { width: 100%; height: 160px; }
     .paper-card.hidden-by-filter { display: none !important; }
     .conf-panel.filtering .charts-section,
@@ -407,7 +413,10 @@
   <!-- ===== 篩選趨勢圖 ===== -->
   <section class="filter-chart-section" id="filterChartSection">
     <div class="filter-chart-card">
-      <div class="filter-chart-title" id="filterChartTitle"></div>
+      <div class="filter-chart-header">
+        <div class="filter-chart-title" id="filterChartTitle"></div>
+        <div class="filter-chart-legend" id="filterChartLegend"></div>
+      </div>
       <canvas class="filter-chart-canvas" id="filterChart"></canvas>
       <div class="chart-tooltip" id="tipFilter"></div>
     </div>
@@ -2756,6 +2765,7 @@
     function drawFilterTrend(tagId, tagText, includeIccv) {
       var sec = document.getElementById('filterChartSection');
       var title = document.getElementById('filterChartTitle');
+      var legend = document.getElementById('filterChartLegend');
       if (!tagId) { sec.classList.remove('visible'); return; }
       var patterns = tagRules[tagId] || [];
 
@@ -2795,7 +2805,12 @@
       }
 
       var suffix = includeIccv ? ' (CVPR + ICCV)' : ' (CVPR)';
-      title.textContent = tagText + ' -- 各年度論文數' + suffix;
+      title.textContent = tagText;
+      if (includeIccv) {
+        legend.innerHTML = '<span class="leg-cvpr">CVPR</span><span class="leg-iccv">ICCV</span>';
+      } else {
+        legend.innerHTML = '<span class="leg-cvpr">CVPR</span>';
+      }
       sec.classList.add('visible');
 
       // 繪製折線圖
