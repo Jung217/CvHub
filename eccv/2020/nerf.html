@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis
+                <span class="course-tag">ECCV 2020</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2003.08934" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 神經輻射場</a>
+        <a href="#sec-volume">2.1 體積渲染</a>
+        <a href="#sec-positional">2.2 位置編碼</a>
+        <a href="#sec-experiments">3. 實驗</a>
+        <a href="#sec-conclusion">4. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a method that achieves <span class="hl-thesis">state-of-the-art results for synthesizing novel views of complex scenes</span> by optimizing an underlying continuous <span class="hl-concept">volumetric scene function</span> using a sparse set of input views. Our algorithm represents a scene using a <span class="hl-concept">fully-connected (non-convolutional) deep network</span>, whose input is a <span class="hl-method">single continuous 5D coordinate (spatial location and viewing direction)</span> and whose output is the <span class="hl-method">volume density and view-dependent emitted radiance</span> at that spatial location. We synthesize views by querying 5D coordinates along camera rays and use <span class="hl-method">classic volume rendering techniques</span> to project the output colors and densities into an image.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種方法，透過使用稀疏的輸入視角集合最佳化底層的連續<span class="hl-concept">體積場景函數</span>，<span class="hl-thesis">在複雜場景的新視角合成上達到最先進的成果</span>。我們的演算法使用一個<span class="hl-concept">全連接（非摺積）深度網路</span>來表徵場景，其輸入為<span class="hl-method">單一連續五維座標（空間位置與觀看方向）</span>，輸出為該空間位置的<span class="hl-method">體積密度與視角相關的發射輻射</span>。我們沿相機光線查詢五維座標來合成視角，並使用<span class="hl-method">經典體積渲染技術</span>將輸出的色彩與密度投影到影像上。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義 NeRF 的核心表徵（5D 連續函數）與渲染流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「輸入（稀疏視角）→ 表徵（神經輻射場）→ 輸出（新視角影像）」的完整論述框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「非摺積」強調與主流 CNN 架構的差異性。但全連接網路在每個場景上都需重新訓練的成本未被提及。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we address the long-standing problem of <span class="hl-concept">view synthesis</span> — generating photorealistic novel views of a scene from a set of input photographs. Existing approaches using <span class="hl-concept">discrete representations</span> such as <span class="hl-rebuttal">triangle meshes or voxel grids</span> are fundamentally limited by <span class="hl-rebuttal">their discrete nature, which requires prohibitively large storage for high-resolution complex scenes</span>. We propose to represent a continuous scene as a <span class="hl-thesis">5D neural radiance field — a multilayer perceptron (MLP) that maps a 3D location and 2D viewing direction to color and density</span>. This continuous representation naturally handles arbitrary resolution and avoids the storage limitations of discrete methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在本研究中，我們處理<span class="hl-concept">視角合成</span>這個長久以來的問題——從一組輸入照片生成場景的逼真新視角。使用<span class="hl-concept">離散表徵</span>的現有方法，如<span class="hl-rebuttal">三角網格或體素網格</span>，根本上受到<span class="hl-rebuttal">其離散本質的限制，對於高解析度複雜場景需要極大的儲存空間</span>。我們提議以<span class="hl-thesis">五維神經輻射場——一個將三維位置和二維觀看方向映射到色彩與密度的多層感知器（MLP）</span>來表徵連續場景。這種連續表徵自然地處理任意解析度，避免了離散方法的儲存限制。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立動機——透過批判離散表徵的限制，引出連續神經表徵的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    經典的「問題界定→現有缺陷→本文提案」論證結構，清晰地建立了研究缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將離散表徵的「儲存限制」框定為根本性問題是有效的修辭，但 MLP 的推論速度遠低於離散查找，這一取捨未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While neural networks have been used for <span class="hl-concept">implicit scene representations</span> before, <span class="hl-rebuttal">prior work has been limited to simple scenes with low geometric complexity</span>. We overcome this by introducing two key improvements: <span class="hl-method">positional encoding of input coordinates to enable the MLP to represent high-frequency functions</span>, and a <span class="hl-method">hierarchical sampling strategy</span> that efficiently allocates samples to regions with visible scene content. Together, these allow us to <span class="hl-thesis">represent complex real-world scenes with unprecedented photorealistic quality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                雖然神經網路此前已被用於<span class="hl-concept">隱式場景表徵</span>，但<span class="hl-rebuttal">先前的工作僅限於幾何複雜度較低的簡單場景</span>。我們透過引入兩項關鍵改進來克服此問題：<span class="hl-method">對輸入座標進行位置編碼，使 MLP 能夠表徵高頻函數</span>；以及<span class="hl-method">分層採樣策略</span>，將樣本高效分配到具有可見場景內容的區域。這些改進結合起來，使我們能夠<span class="hl-thesis">以前所未有的逼真品質表徵複雜的真實世界場景</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術創新——指出兩項使 NeRF 從先前隱式表徵中脫穎而出的關鍵改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應先前工作的局限，以具體技術手段（位置編碼 + 分層採樣）建立差異化優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    位置編碼後來被證明是 NeRF 成功的關鍵因素之一，此處的識別展現了深刻的技術洞察。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Neural Radiance Field Scene Representation — 神經輻射場場景表徵</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We represent a continuous scene as a <span class="hl-concept">5D vector-valued function</span> whose input is a 3D location <span class="hl-method">x = (x, y, z)</span> and 2D viewing direction <span class="hl-method">(theta, phi)</span>, and whose output is an emitted color <span class="hl-method">c = (r, g, b)</span> and volume density <span class="hl-method">sigma</span>. In practice, we express direction as a <span class="hl-method">3D Cartesian unit vector d</span>. We approximate this continuous function with an <span class="hl-method">MLP network F_Theta: (x, d) -> (c, sigma)</span> and optimize its weights Theta to map from each input 5D coordinate to its corresponding volume density and directional emitted color. We encourage the representation to be <span class="hl-thesis">multiview consistent by restricting the network to predict volume density sigma as a function of only the location x</span>, while allowing the color c to be predicted as a function of both location and viewing direction.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將連續場景表徵為一個<span class="hl-concept">五維向量值函數</span>，其輸入為三維位置 <span class="hl-method">x = (x, y, z)</span> 和二維觀看方向 <span class="hl-method">(theta, phi)</span>，輸出為發射色彩 <span class="hl-method">c = (r, g, b)</span> 和體積密度 <span class="hl-method">sigma</span>。實務上，我們以<span class="hl-method">三維笛卡爾單位向量 d</span> 表示方向。我們使用 <span class="hl-method">MLP 網路 F_Theta: (x, d) -> (c, sigma)</span> 來近似此連續函數，並最佳化其權重 Theta 將每個輸入的五維座標映射到對應的體積密度和方向性發射色彩。我們透過<span class="hl-thesis">限制網路僅以位置 x 為函數來預測體積密度 sigma</span>，同時允許色彩 c 作為位置與觀看方向兩者的函數來預測，以此鼓勵表徵具有多視角一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心表徵定義——完整描述 NeRF 的 5D 函數形式與多視角一致性設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此為全文的技術核心，密度僅依賴位置、色彩同時依賴方向的設計確保了物理合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    密度與色彩的不對稱依賴是精妙的歸納偏置，符合物理直覺（物體的存在不因觀看角度而改變，但外觀會隨角度變化）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-volume">2.1 Volume Rendering with Radiance Fields — 體積渲染</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We render the color of any ray passing through the scene using <span class="hl-concept">classical volume rendering</span> principles. The volume density <span class="hl-method">sigma(x)</span> can be interpreted as the <span class="hl-method">differential probability of a ray terminating at an infinitesimal particle at location x</span>. The expected color C(r) of camera ray r(t) = o + td with near and far bounds t_n and t_f is computed by integrating the color weighted by the accumulated transmittance along the ray. In practice, we estimate this integral using <span class="hl-method">stratified sampling</span>, dividing [t_n, t_f] into N evenly-spaced bins and drawing one sample uniformly at random from within each bin.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們使用<span class="hl-concept">經典體積渲染</span>原理來渲染穿過場景的任何光線的色彩。體積密度 <span class="hl-method">sigma(x)</span> 可解讀為<span class="hl-method">光線在位置 x 處的無窮小粒子上終止的微分機率</span>。相機光線 r(t) = o + td 在近遠界限 t_n 和 t_f 之間的期望色彩 C(r)，透過沿光線對色彩以累積透射率加權進行積分來計算。實務上，我們使用<span class="hl-method">分層採樣</span>來估計此積分，將 [t_n, t_f] 分為 N 個等距區間，並從每個區間中均勻隨機抽取一個樣本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    渲染機制——將神經輻射場連接到影像生成的具體步驟。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    橋接「表徵」與「輸出」：說明如何從學到的 5D 函數實際產生 2D 影像。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    借用成熟的體積渲染理論為神經表徵提供了物理基礎，增強了方法的可解釋性。但逐光線的渲染方式計算量極大，限制了即時應用。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-positional">2.2 Positional Encoding — 位置編碼</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Despite containing universal approximation properties, we found that having the network <span class="hl-method">F_Theta directly operate on (x, d) input coordinates results in poor performance at representing high-frequency variation in color and geometry</span>. This is consistent with recent work showing that <span class="hl-concept">deep networks are biased towards learning lower frequency functions</span> — a phenomenon known as <span class="hl-concept">spectral bias</span>. We address this by mapping the inputs to a higher dimensional space using <span class="hl-method">high frequency functions gamma(p) = (sin(2^0 pi p), cos(2^0 pi p), ..., sin(2^{L-1} pi p), cos(2^{L-1} pi p))</span> before passing them to the network. This <span class="hl-thesis">positional encoding enables the MLP to more easily approximate higher frequency functions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管具備通用近似性質，我們發現讓網路 <span class="hl-method">F_Theta 直接作用於 (x, d) 輸入座標，在表徵色彩和幾何的高頻變化上效果不佳</span>。這與近期研究一致，後者顯示<span class="hl-concept">深度網路偏向於學習低頻函數</span>——此現象稱為<span class="hl-concept">頻譜偏差</span>。我們透過在傳入網路前，使用<span class="hl-method">高頻函數 gamma(p) = (sin(2^0 pi p), cos(2^0 pi p), ..., sin(2^{L-1} pi p), cos(2^{L-1} pi p))</span> 將輸入映射到更高維的空間來解決此問題。這種<span class="hl-thesis">位置編碼使 MLP 能更容易地近似高頻函數</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    關鍵創新——位置編碼解決 MLP 的頻譜偏差問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此為 NeRF 從「理論可行」到「實際有效」的關鍵跳躍。位置編碼後來成為整個神經場領域的基礎技術。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    援引「頻譜偏差」這一已知現象來佐證設計選擇，增強了理論基礎。頻率的選擇（L 的大小）對結果有顯著影響，但選擇策略的討論較簡略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">3. Results — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We quantitatively evaluate NeRF on both <span class="hl-concept">synthetic</span> and <span class="hl-concept">real-world</span> scenes. On the synthetic dataset of 8 complex scenes, NeRF achieves an average <span class="hl-evidence">PSNR of 31.01 dB</span>, compared to <span class="hl-evidence">26.50 dB for SRN</span>, <span class="hl-evidence">27.81 dB for LLFF</span>, and <span class="hl-evidence">24.15 dB for NV</span>. On real forward-facing scenes, NeRF achieves <span class="hl-evidence">26.50 dB PSNR</span>, outperforming all baselines. The visual quality shows <span class="hl-evidence">sharp details, accurate specular reflections, and coherent geometry</span> that prior methods fail to capture.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在<span class="hl-concept">合成</span>和<span class="hl-concept">真實世界</span>場景上定量評估 NeRF。在包含 8 個複雜場景的合成資料集上，NeRF 達到平均 <span class="hl-evidence">31.01 dB 的 PSNR</span>，相較之下 <span class="hl-evidence">SRN 為 26.50 dB</span>、<span class="hl-evidence">LLFF 為 27.81 dB</span>、<span class="hl-evidence">NV 為 24.15 dB</span>。在真實的前向場景上，NeRF 達到 <span class="hl-evidence">26.50 dB 的 PSNR</span>，超越所有基線方法。視覺品質展現出<span class="hl-evidence">銳利的細節、準確的鏡面反射與一致的幾何結構</span>，這些是先前方法無法捕捉的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量與定性評估——展示 NeRF 在多個基準上的全面優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 4-7 dB 的大幅領先（在合成場景上）建立無可爭議的效能優勢，支撐核心宣稱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    定量指標的領先幅度極為顯著（PSNR 每增加 3 dB 約等於品質翻倍）。但評估僅限於靜態場景，動態場景的適用性未被探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We perform an <span class="hl-concept">ablation study</span> to analyze the contribution of each component. Removing <span class="hl-method">positional encoding</span> reduces PSNR by <span class="hl-evidence">more than 4 dB</span>, confirming its critical role. Removing <span class="hl-method">view dependence</span> reduces PSNR by <span class="hl-evidence">about 1 dB</span> and eliminates specular effects. Replacing the <span class="hl-method">hierarchical sampling</span> with uniform sampling reduces quality and increases training time. Each component is shown to contribute meaningfully to the final performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進行<span class="hl-concept">消融研究</span>以分析各組件的貢獻。移除<span class="hl-method">位置編碼</span>使 PSNR 降低<span class="hl-evidence">超過 4 dB</span>，確認了其關鍵作用。移除<span class="hl-method">視角依賴性</span>使 PSNR 降低<span class="hl-evidence">約 1 dB</span>並消除鏡面效果。將<span class="hl-method">分層採樣</span>替換為均勻採樣會降低品質並增加訓練時間。每個組件均被證明對最終效能有顯著貢獻。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融分析——驗證各設計選擇的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將整體效能的提升歸因於具體的設計選擇，使每個創新點都有實驗證據支持。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    位置編碼 4 dB 的影響遠大於其他組件，揭示了方法成功的核心因素。消融設計完整且具說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">4. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">neural radiance fields (NeRF)</span>, a method that represents scenes as <span class="hl-thesis">continuous 5D functions parameterized by neural networks for photorealistic view synthesis</span>. Our approach achieves unprecedented visual quality by leveraging <span class="hl-method">positional encoding</span> and <span class="hl-method">hierarchical volume sampling</span>. While our method requires <span class="hl-rebuttal">per-scene optimization and is computationally intensive</span>, we believe that neural radiance fields open up <span class="hl-thesis">a promising new direction for representing and rendering 3D scenes</span> from captured images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了<span class="hl-concept">神經輻射場（NeRF）</span>，一種將場景表徵為<span class="hl-thesis">以神經網路參數化的連續五維函數以實現逼真視角合成</span>的方法。我們的方法透過利用<span class="hl-method">位置編碼</span>和<span class="hl-method">分層體積採樣</span>達到了前所未有的視覺品質。雖然我們的方法需要<span class="hl-rebuttal">逐場景最佳化且計算密集</span>，但我們相信神經輻射場為從捕獲的影像<span class="hl-thesis">表徵和渲染三維場景開闢了一個充滿希望的新方向</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結並展望——重申貢獻，坦承限制，指出未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以開放性的展望結尾，將技術成果提升至研究範式的層次。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦承「逐場景最佳化」和「計算密集」的限制是誠實的科學態度。後續的大量研究（NeRF 的引用量已超過萬次）證明了作者「新方向」的預言極為準確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>離散表徵限制視角合成</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">論點<br>連續神經場可突破限制</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">方法<br>5D MLP + 位置編碼</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">證據<br>PSNR 大幅領先基線</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">結論<br>開創神經場新範式</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過將場景表徵為以 MLP 參數化的連續五維輻射場，結合位置編碼與分層採樣，可實現前所未有品質的新視角合成。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>在合成與真實場景上均大幅超越先前方法（4-7 dB），消融實驗清楚地歸因於各設計選擇，且視覺品質差異肉眼可辨。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>每個場景需數小時的獨立訓練、僅處理靜態場景、推論速度慢，這些根本性限制在論文中僅簡短提及而未深入討論。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div>核心論點 / Thesis</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div>關鍵概念 / 術語</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div>實證證據 / 資料</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div>讓步 / 反駁處理</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div>方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9673;</button>
+</div>
+
+</body>
+</html>

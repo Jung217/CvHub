@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>MaskGIT — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar"><div class="navbar-inner"><div class="navbar-top-row">
+    <div class="navbar-title">MaskGIT: Masked Generative Image Transformer<span class="course-tag">ECCV 2022</span></div>
+    <div class="navbar-links"><a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a><a href="https://arxiv.org/abs/2202.04200" target="_blank" class="navbar-home-link">arXiv 原文連結</a></div>
+</div></div></nav>
+
+<div class="section-nav"><div class="section-nav-inner">
+    <a href="#sec-abstract">摘要</a><a href="#sec-intro">1. 緒論</a><a href="#sec-method">2. 方法</a><a href="#sec-experiments">3. 實驗</a><a href="#sec-conclusion">4. 結論</a><a href="#sec-overview">論證總覽</a>
+</div></div>
+
+<div class="main-container">
+
+    <!-- ===== 摘要 ===== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">We propose <span class="hl-concept">MaskGIT</span>, a novel image synthesis paradigm using a <span class="hl-concept">bidirectional transformer decoder</span>. During training, MaskGIT learns to predict <span class="hl-method">randomly masked tokens</span> by attending to tokens in all directions. At inference, the model begins by <span class="hl-method">generating all tokens simultaneously</span>, then iteratively refines the image by <span class="hl-method">re-masking and re-predicting low-confidence tokens</span>. MaskGIT <span class="hl-evidence">significantly outperforms the state-of-the-art transformer model on the ImageNet dataset</span>, while accelerating autoregressive decoding by <span class="hl-evidence">up to 64x</span>. We further demonstrate that MaskGIT can be easily extended to various image editing tasks, such as inpainting, extrapolation, and image manipulation.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">本文提出 <span class="hl-concept">MaskGIT</span>，一種使用<span class="hl-concept">雙向 Transformer 解碼器</span>的新穎影像合成範式。在訓練階段，MaskGIT 學習透過關注所有方向的 token 來預測<span class="hl-method">隨機遮罩的 token</span>。在推論時，模型首先<span class="hl-method">同時生成所有 token</span>，然後透過<span class="hl-method">重新遮罩並重新預測低信心的 token</span> 迭代精煉影像。MaskGIT <span class="hl-evidence">在 ImageNet 資料集上大幅超越最先進的 Transformer 模型</span>，同時將自迴歸解碼<span class="hl-evidence">加速達 64 倍</span>。我們進一步展示 MaskGIT 可輕鬆擴展至多種影像編輯任務，如修補、外推和影像操控。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>全文總覽——以遮罩建模取代自迴歸序列生成的範式轉變。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>三個層次的宣稱：品質（超越 SOTA）、效率（64 倍加速）、通用性（多種編輯任務）。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>64 倍加速是極為吸引人的數字。但加速倍率高度依賴迭代次數的選擇——需確認在相同品質下的公平比較。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 緒論 ===== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">Existing generative transformers treat images as <span class="hl-rebuttal">sequential 1D token sequences following raster scan ordering</span> (left-to-right, line-by-line). This approach is fundamentally problematic because <span class="hl-rebuttal">images are inherently 2D and non-sequential</span>. The sequential decoding strategy creates <span class="hl-rebuttal">quadratically long sequences</span> and requires substantial computation — approximately <span class="hl-evidence">30 seconds per GPU-generated image with 32x32 tokens</span>. This computational bottleneck limits practical deployment and restricts the achievable image resolution.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">現有的生成式 Transformer 將影像視為<span class="hl-rebuttal">遵循光柵掃描順序的一維序列 token</span>（由左至右、逐行進行）。此方法存在根本性問題，因為<span class="hl-rebuttal">影像本質上是二維且非序列性的</span>。序列化解碼策略產生<span class="hl-rebuttal">二次方長度的序列</span>，需要大量計算——以 32x32 token 計算，每張 GPU 生成的影像約需 <span class="hl-evidence">30 秒</span>。此計算瓶頸限制了實際部署並制約了可達到的影像解析度。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section"><span class="ann-label">段落功能</span>建立問題意識——批判自迴歸序列生成的根本缺陷。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「2D 影像被強制轉為 1D 序列」的矛盾精準點出自迴歸方法的結構性問題。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>30 秒的具體數字使問題可感知。但自迴歸方法在 token 品質上的優勢（因果一致性）未被討論。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text"><span class="hl-concept">MaskGIT</span> adopts a <span class="hl-thesis">non-autoregressive approach</span> inspired by how artists create paintings: starting with a sketch and progressively refining details. The model <span class="hl-method">predicts all tokens in parallel at each iteration</span>, retaining only the most confident predictions while <span class="hl-method">masking uncertain ones for refinement in subsequent iterations</span>. This constant-iteration approach completes <span class="hl-evidence">256-token images in 8 steps versus 256 steps for autoregressive methods</span>. Key technical innovations include: (1) <span class="hl-method">bidirectional self-attention</span> enabling context from all directions, (2) a novel <span class="hl-method">mask scheduling strategy</span> determining which tokens to predict at each iteration, and (3) <span class="hl-method">iterative refinement</span> balancing quality and efficiency.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text"><span class="hl-concept">MaskGIT</span> 採用<span class="hl-thesis">非自迴歸方法</span>，靈感來自畫家創作的過程：先打草稿，再逐步精煉細節。模型在<span class="hl-method">每次迭代中平行預測所有 token</span>，僅保留最具信心的預測，同時<span class="hl-method">遮罩不確定的 token 留待後續迭代精煉</span>。此固定迭代方法以 <span class="hl-evidence">8 步完成 256 個 token 的影像，對比自迴歸方法的 256 步</span>。關鍵技術創新包括：(1) 啟用全方向上下文的<span class="hl-method">雙向自注意力</span>；(2) 決定每次迭代預測哪些 token 的新穎<span class="hl-method">遮罩排程策略</span>；(3) 平衡品質與效率的<span class="hl-method">迭代精煉機制</span>。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>提出解決方案——以畫家比喻引入迭代式平行生成。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>「8 步 vs. 256 步」的對比直觀展示了效率優勢。三個創新點結構清晰。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>畫家比喻是出色的直覺解釋——從粗到細的漸進生成。但 8 步迭代的品質是否真能匹配 256 步的精度需要實驗驗證。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">Our work is inspired by <span class="hl-concept">BERT</span>'s masked language modeling for bidirectional representation learning. While masked modeling has been extended to vision tasks (MAE, BEiT) for representation learning, <span class="hl-rebuttal">few works have applied it successfully to image generation on standard benchmarks</span>. We provide the <span class="hl-thesis">first evidence demonstrating the efficacy of masked modeling for image generation on the common ImageNet benchmark</span>. Our approach borrows from bidirectional machine translation but introduces novel <span class="hl-method">masking strategies and decoding algorithms</span> specifically designed for generation rather than representation learning.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">本工作受 <span class="hl-concept">BERT</span> 用於雙向表徵學習的遮罩語言建模所啟發。儘管遮罩建模已擴展至視覺任務（MAE、BEiT）的表徵學習，<span class="hl-rebuttal">鮮少有工作成功地將其應用於標準基準上的影像生成</span>。我們提供了<span class="hl-thesis">遮罩建模在通用 ImageNet 基準上用於影像生成的首個有效性證明</span>。我們的方法借鑑雙向機器翻譯，但引入了專為生成而非表徵學習設計的新穎<span class="hl-method">遮罩策略與解碼演算法</span>。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section"><span class="ann-label">段落功能</span>定位學術貢獻——從表徵學習到生成任務的遮罩建模遷移。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>「首個有效性證明」是強力的優先權宣稱，將 BERT 的成功從 NLP 延伸至影像生成。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>巧妙地將 BERT 的聲譽轉移至影像生成領域。但「首個」的宣稱需確認是否忽略了同期的類似工作。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 方法 ===== -->
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">The model learns <span class="hl-concept">Masked Visual Token Modeling (MVTM)</span>, inspired by BERT's approach. Given latent tokens Y and binary mask M, the training objective minimizes the <span class="hl-method">negative log-likelihood of masked tokens</span>. Training randomly masks a variable number of tokens determined by a <span class="hl-method">mask scheduling function</span>: the number of masked tokens equals the ceiling of gamma(r) times N, where gamma is the scheduling function, r is a random ratio, and N is the total sequence length. The <span class="hl-method">bidirectional transformer</span> predicts probability distributions for masked positions, utilizing context from all directions rather than only preceding tokens as in autoregressive models.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">模型學習<span class="hl-concept">遮罩視覺 Token 建模（MVTM）</span>，靈感來自 BERT 的方法。給定潛在 token Y 和二元遮罩 M，訓練目標為最小化<span class="hl-method">被遮罩 token 的負對數似然</span>。訓練隨機遮罩由<span class="hl-method">遮罩排程函數</span>決定的可變數量 token：被遮罩 token 數等於 gamma(r) 乘以 N 的上取整，其中 gamma 為排程函數、r 為隨機比率、N 為總序列長度。<span class="hl-method">雙向 Transformer</span> 為被遮罩位置預測機率分佈，利用所有方向的上下文，而非如自迴歸模型般僅利用前序 token。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>訓練機制——MVTM 的遮罩策略與雙向注意力。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>遮罩排程函數 gamma(r) 是連接訓練與推論的橋樑，其設計直接影響生成品質。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>BERT 風格的遮罩訓練與 token 生成之間存在訓練-推論不一致問題——迭代精煉機制正是為解決此問題而設計。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">At inference, the <span class="hl-method">iterative decoding algorithm</span> proceeds in T steps: (1) <span class="hl-method">Predict</span>: the model generates probability distributions for all masked positions in parallel; (2) <span class="hl-method">Sample</span>: tokens are sampled with prediction confidence serving as confidence scores; (3) <span class="hl-method">Mask Schedule</span>: compute the number of tokens to mask next using gamma(t/T) times N; (4) <span class="hl-method">Mask</span>: retain only the most confident predictions and mask lower-confidence positions for refinement. This process continues until all tokens are generated. The <span class="hl-thesis">mask scheduling function critically impacts generation quality</span> — it must be continuous, bounded in (0,1], and monotonically decreasing with gamma(0) approaching 1 and gamma(1) approaching 0.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">在推論時，<span class="hl-method">迭代解碼演算法</span>以 T 步進行：(1) <span class="hl-method">預測</span>：模型平行為所有被遮罩位置生成機率分佈；(2) <span class="hl-method">取樣</span>：取樣 token 並以預測信心作為信心分數；(3) <span class="hl-method">遮罩排程</span>：使用 gamma(t/T) 乘以 N 計算下一步要遮罩的 token 數；(4) <span class="hl-method">遮罩</span>：僅保留最具信心的預測，將低信心位置遮罩以待精煉。此過程持續直至所有 token 生成完畢。<span class="hl-thesis">遮罩排程函數對生成品質有關鍵影響</span>——它必須是連續的、在 (0,1] 上有界的、且單調遞減，gamma(0) 趨近 1 而 gamma(1) 趨近 0。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>推論機制——四步迭代解碼的完整流程。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>「預測-取樣-排程-遮罩」的循環結構是方法論的核心，信心分數驅動的選擇機制保證了品質。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以數學約束（連續、有界、單調遞減）確保演算法收斂的分析是嚴謹的理論基礎。但信心分數的校準品質直接影響哪些 token 被保留。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">The paper evaluates three families of scheduling functions: <span class="hl-method">linear</span> (equal tokens masked per iteration), <span class="hl-method">concave</span> (cosine, square, cubic, exponential — emphasizing early iterations with fewer correct predictions), and <span class="hl-method">convex</span> (square root, logarithmic — requiring most tokens to be finalized early). Ablations show that <span class="hl-evidence">concave functions outperform others, with cosine achieving the best results</span>. The authors hypothesize that concave functions succeed by <span class="hl-thesis">challenging training with difficult cases and appropriately prioritizing a less-to-more prediction progression</span> — generating fewer tokens with high confidence initially, then progressively committing to more tokens as context accumulates.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">論文評估了三類排程函數：<span class="hl-method">線性</span>（每次迭代遮罩等量 token）、<span class="hl-method">凹函數</span>（餘弦、平方、立方、指數——強調早期迭代中較少的正確預測）和<span class="hl-method">凸函數</span>（平方根、對數——要求大多數 token 在早期即確定）。消融實驗顯示<span class="hl-evidence">凹函數優於其他類型，其中餘弦函數達到最佳結果</span>。作者假設凹函數之所以成功，在於<span class="hl-thesis">以困難案例挑戰訓練，並適當優先安排從少到多的預測漸進</span>——初始以高信心生成較少 token，隨著上下文累積逐步承諾更多 token。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>遮罩排程設計——系統性比較三類函數族。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>排程函數的選擇是調控生成過程的核心超參數，凹函數的「從少到多」策略與擴散模型的「從粗到細」異曲同工。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>餘弦排程的成功可能源於其與擴散模型噪聲排程的相似性——兩者都在中間階段分配最多計算資源。但最佳排程可能是資料集特定的。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 實驗 ===== -->
+    <h2 class="section-heading" id="sec-experiments">3. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">The implementation uses <span class="hl-evidence">24 transformer layers, 8 attention heads, 768 embedding dimensions, and 3072 hidden dimensions</span>. Images are compressed by <span class="hl-method">factor 16</span> using a tokenizer with <span class="hl-evidence">1024-token codebook</span>. Training uses <span class="hl-evidence">4x TPU devices, batch size 256, Adam optimizer</span>. On <span class="hl-evidence">ImageNet 256x256</span>, MaskGIT achieves <span class="hl-evidence">FID of 6.18 versus VQGAN's 15.78</span> and <span class="hl-evidence">Inception Score 182.1 versus 78.3</span>. At <span class="hl-evidence">512x512 resolution, FID reaches 7.32</span>, establishing new state-of-the-art on classification accuracy score and FID metrics, exceeding <span class="hl-evidence">BigGAN's 8.43 FID</span> at this resolution.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">實作使用 <span class="hl-evidence">24 層 Transformer、8 個注意力頭、768 維嵌入和 3072 維隱藏層</span>。影像透過具有 <span class="hl-evidence">1024 token 碼本</span>的分詞器壓縮 <span class="hl-method">16 倍</span>。訓練使用 <span class="hl-evidence">4 個 TPU 裝置、批次大小 256、Adam 最佳化器</span>。在 <span class="hl-evidence">ImageNet 256x256</span> 上，MaskGIT 達到 <span class="hl-evidence">FID 6.18 對比 VQGAN 的 15.78</span> 以及<span class="hl-evidence">Inception Score 182.1 對比 78.3</span>。在 <span class="hl-evidence">512x512 解析度下 FID 達到 7.32</span>，在分類準確度分數和 FID 指標上建立新的最先進水準，超越 <span class="hl-evidence">BigGAN 在此解析度的 8.43 FID</span>。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>核心品質結果——FID 與 IS 的全面超越。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>FID 從 15.78 到 6.18 的巨幅改進（-60.8%）是方法有效性的最強實證。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>同時超越 VQGAN（同為 Transformer）和 BigGAN（不同架構族）的雙重超越強化了結論的穩健性。但 FID 本身的局限性（對模式內插的偏好）可能掩蓋某些品質差異。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">MaskGIT requires <span class="hl-evidence">8-12 inference steps versus VQGAN's 256-1024 steps</span>. Wall-clock runtime comparisons demonstrate <span class="hl-evidence">MaskGIT accelerates VQGAN by 30-64x</span>, with speed advantages increasing at higher resolutions due to token sequence length growth. Using <span class="hl-method">Classification Accuracy Score (CAS)</span>, MaskGIT achieves <span class="hl-evidence">63.14 (top-1) and 84.45 (top-5) on 256x256</span> versus VQGAN's 53.10 and 76.18. <span class="hl-method">Precision/Recall analysis</span> shows MaskGIT balances quality and coverage better than single-mode GANs, offering <span class="hl-evidence">competitive sample diversity with superior coverage</span> compared to BigGAN.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">MaskGIT 僅需 <span class="hl-evidence">8-12 個推論步驟對比 VQGAN 的 256-1024 步</span>。實際計時比較顯示 <span class="hl-evidence">MaskGIT 將 VQGAN 加速 30-64 倍</span>，且由於 token 序列長度增長，速度優勢在更高解析度下更為顯著。使用<span class="hl-method">分類準確度分數（CAS）</span>，MaskGIT 在 256x256 上達到 <span class="hl-evidence">top-1 63.14 和 top-5 84.45</span>，對比 VQGAN 的 53.10 和 76.18。<span class="hl-method">精確度/召回率分析</span>顯示 MaskGIT 比單模式 GAN 更好地平衡了品質與覆蓋率，相較 BigGAN 提供<span class="hl-evidence">具競爭力的樣本多樣性與更優的覆蓋率</span>。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>效率與多樣性分析——速度優勢與覆蓋率指標。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>30-64 倍加速是本文最具實用影響力的結果。CAS 指標補充了 FID 無法衡量的類別覆蓋能力。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>多角度的評估指標（FID、IS、CAS、Precision/Recall）構成了完整的品質圖景。加速倍率隨解析度增長的趨勢進一步強化了方法在高解析度場景的價值。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">The model's bidirectional nature enables a novel <span class="hl-method">class-conditional image editing</span> task: replacing bounding box content with target class objects while preserving context — a task <span class="hl-rebuttal">infeasible for autoregressive methods</span> due to their sequential left-to-right generation constraint. For <span class="hl-evidence">image inpainting on Places2</span> (center 50% masking), MaskGIT achieves <span class="hl-evidence">FID 7.92</span>, comparable to dedicated inpainting methods like CoModGAN (7.13) without task-specific training. For <span class="hl-evidence">image outpainting</span> (right 50% extrapolation), MaskGIT achieves <span class="hl-evidence">FID 6.78 and IS 11.69</span>, beating all baselines including InfinityGAN (10.60 FID), handling arbitrary-direction outpainting with a single model.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">模型的雙向特性支援了一項新穎的<span class="hl-method">類別條件式影像編輯</span>任務：以目標類別物件替換邊界框內容的同時保留上下文——這項任務由於序列化左至右生成的限制，對<span class="hl-rebuttal">自迴歸方法而言不可行</span>。在 <span class="hl-evidence">Places2 影像修補</span>（中央 50% 遮罩）上，MaskGIT 達到 <span class="hl-evidence">FID 7.92</span>，與專門的修補方法 CoModGAN（7.13）相當，且未經任務特定訓練。在<span class="hl-evidence">影像外推</span>（右側 50% 擴展）上，MaskGIT 達到 <span class="hl-evidence">FID 6.78 和 IS 11.69</span>，超越包括 InfinityGAN（10.60 FID）在內的所有基線，以單一模型處理任意方向的外推。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>編輯應用——修補、外推與類別條件編輯。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>「自迴歸不可行而 MaskGIT 可行」的對比是雙向架構的結構性優勢證明。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>在未經任務特定訓練下接近專門修補方法的表現是出色的泛化能力展示。但 FID 7.92 對比 7.13 的差距表明專門化訓練仍有其價值。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 結論 ===== -->
+    <h2 class="section-heading" id="sec-conclusion">4. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text"><span class="hl-concept">MaskGIT</span> introduces a <span class="hl-thesis">paradigm shift in generative transformers through bidirectional masked modeling and iterative parallel decoding</span>. The method achieves <span class="hl-evidence">state-of-the-art image synthesis results on ImageNet</span> while demonstrating <span class="hl-evidence">substantial speed improvements (30-64x) and versatility across editing tasks</span>. The <span class="hl-method">cosine mask scheduling strategy</span> provides the optimal less-to-more prediction progression, and the iterative refinement mechanism resolves the training-inference discrepancy inherent in single-pass non-autoregressive generation. The authors acknowledge <span class="hl-rebuttal">limitations in handling complex structures like faces and text</span>, and propose extending the approach to additional synthesis tasks as future work.</div>
+            <div class="lang-divider"></div>
+            <div class="zh-text"><span class="hl-concept">MaskGIT</span> 透過<span class="hl-thesis">雙向遮罩建模與迭代平行解碼，引入了生成式 Transformer 的範式轉移</span>。此方法在<span class="hl-evidence">ImageNet 上達到最先進的影像合成結果</span>，同時展示了<span class="hl-evidence">顯著的速度提升（30-64 倍）與跨編輯任務的多功能性</span>。<span class="hl-method">餘弦遮罩排程策略</span>提供了最佳的從少到多預測漸進，而迭代精煉機制解決了單次非自迴歸生成固有的訓練-推論不一致問題。作者承認<span class="hl-rebuttal">在處理人臉和文字等複雜結構上的局限</span>，並提出將方法擴展至更多合成任務作為未來工作。</div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>總結全文——重申範式轉移的核心貢獻與已知局限。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「範式轉移」定位全文，同時誠實承認局限，增強學術可信度。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>MaskGIT 開創的遮罩生成範式已被後續大量工作採用（如 MUSE、Phenaki），證明其影響力。人臉與文字的局限在後續工作中已被逐步解決。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 論證結構總覽 ===== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br><small>自迴歸序列生成<br>效率低且不自然</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">論點<br><small>雙向遮罩建模<br>平行迭代生成</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">方法<br><small>MVTM + 餘弦排程<br>+ 信心精煉</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">證據<br><small>FID 6.18, 64x 加速<br>多任務泛化</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">結論<br><small>生成式 Transformer<br>的範式轉移</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張（一句話）</h3>
+                <p>透過雙向遮罩建模與迭代平行解碼，MaskGIT 在 ImageNet 上以 8 步完成 256 token 影像的生成，FID 達 6.18 並實現 30-64 倍的加速，證明非自迴歸方法在品質與效率上均可超越序列生成。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>餘弦遮罩排程函數的系統性消融實驗提供了清晰的設計指南，「從少到多」的預測漸進原則既有直覺支撐（畫家比喻）又有實驗驗證（消融中一致勝出），理論與實踐的結合極為出色。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>影像品質完全依賴 VQGAN 分詞器的壓縮品質——碼本大小（1024）和壓縮率（16x）設定了品質上限。此外，對人臉和文字等精細結構的生成能力不足，限制了實際應用範圍。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div> 核心論點 / Thesis</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div> 關鍵概念 / 術語</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div> 實證證據 / 資料</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div> 讓步 / 反駁處理</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" aria-label="切換顏色圖例">?</button>
+</div>
+
+</body>
+</html>

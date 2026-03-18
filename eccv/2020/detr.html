@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>DETR: End-to-End Object Detection with Transformers — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                DETR: End-to-End Object Detection with Transformers
+                <span class="course-tag">ECCV 2020</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2005.12872" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. DETR 模型</a>
+        <a href="#sec-loss">2.1 集合預測損失</a>
+        <a href="#sec-arch">2.2 架構設計</a>
+        <a href="#sec-experiments">3. 實驗</a>
+        <a href="#sec-conclusion">4. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a new method that views <span class="hl-thesis">object detection as a direct set prediction problem</span>. Our approach, called <span class="hl-concept">DEtection TRansformer (DETR)</span>, streamlines the detection pipeline, effectively removing the need for many hand-designed components like <span class="hl-rebuttal">non-maximum suppression (NMS)</span> or <span class="hl-rebuttal">anchor generation</span> that explicitly encode prior knowledge about the task. The main ingredients of DETR are a <span class="hl-method">set-based global loss that forces unique predictions via bipartite matching</span>, and a <span class="hl-method">transformer encoder-decoder architecture</span>. Given a fixed small set of <span class="hl-concept">learned object queries</span>, DETR reasons about the relations of the objects and the global image context to <span class="hl-thesis">directly output the final set of predictions in parallel</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種將<span class="hl-thesis">物件偵測視為直接集合預測問題</span>的新方法。我們的方法稱為 <span class="hl-concept">DEtection TRansformer（DETR）</span>，簡化了偵測流程，有效移除了許多手工設計的元件，如<span class="hl-rebuttal">非極大值抑制（NMS）</span>或<span class="hl-rebuttal">錨框生成</span>等明確編碼任務先驗知識的步驟。DETR 的主要成分是<span class="hl-method">基於集合的全域損失函數，透過二部匹配強制唯一預測</span>，以及<span class="hl-method">Transformer 編碼器-解碼器架構</span>。給定一組固定的小型<span class="hl-concept">可學習物件查詢</span>，DETR 推理物件之間的關係與全域影像上下文，<span class="hl-thesis">直接以平行方式輸出最終的預測集合</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——將物件偵測重新定義為集合預測問題，介紹 DETR 的核心設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過「移除手工設計元件」的框架，將 DETR 定位為偵測領域的範式轉移。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「簡化流程」作為核心賣點極具吸引力。但此簡化是否犧牲了效能，需要後續實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The goal of <span class="hl-concept">object detection</span> is to predict a set of bounding boxes and category labels for each object of interest. Modern detectors address this set prediction task in an indirect way, by defining <span class="hl-rebuttal">surrogate regression and classification problems on a large set of proposals, anchors, or window centers</span>. Their performance is significantly influenced by <span class="hl-rebuttal">postprocessing steps to collapse near-duplicate predictions</span>, by the <span class="hl-rebuttal">design of the anchor sets</span>, and by the <span class="hl-rebuttal">heuristics that assign target boxes to anchors</span>. To simplify these pipelines, we propose a <span class="hl-thesis">direct set prediction approach to bypass the surrogate tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">物件偵測</span>的目標是為每個感興趣的物件預測一組邊界框和類別標籤。現代偵測器以間接方式處理此集合預測任務，透過在大量的提案、錨框或視窗中心上定義<span class="hl-rebuttal">替代性的迴歸與分類問題</span>。它們的效能顯著受到<span class="hl-rebuttal">合併近似重複預測的後處理步驟</span>、<span class="hl-rebuttal">錨框集合的設計</span>以及<span class="hl-rebuttal">將目標框分配給錨框的啟發式規則</span>的影響。為簡化這些流程，我們提出一種<span class="hl-thesis">直接集合預測方法以繞過替代性任務</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題陳述——批判現有偵測器依賴大量手工設計元件的間接方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    列舉四項「手工設計的依賴」建立問題的嚴重性，為「端到端」的替代方案建立必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將錨框、NMS 等成熟元件框定為「缺陷」是大膽的修辭策略。這些元件歷經多年改進，移除它們的代價可能被低估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our <span class="hl-concept">DEtection TRansformer (DETR)</span> makes predictions through two key ingredients: a <span class="hl-method">set loss function</span> that performs bipartite matching between predicted and ground-truth objects, eliminating the need for NMS, and a <span class="hl-method">transformer-based architecture</span> that models all pairwise interactions between elements using attention mechanisms. The <span class="hl-concept">self-attention</span> mechanisms in the transformer allow DETR to perform <span class="hl-thesis">global reasoning about the image, enabling it to capture long-range dependencies and remove duplicate detections without NMS</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的 <span class="hl-concept">DEtection TRansformer（DETR）</span>透過兩個關鍵要素進行預測：<span class="hl-method">集合損失函數</span>在預測與真實物件之間執行二部匹配，消除對 NMS 的需求；以及<span class="hl-method">基於 Transformer 的架構</span>使用注意力機制建模所有元素之間的成對互動。Transformer 中的<span class="hl-concept">自注意力</span>機制使 DETR 能夠執行<span class="hl-thesis">對影像的全域推理，捕捉長距離依賴關係並在不使用 NMS 的情況下消除重複偵測</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法概述——介紹 DETR 的兩大核心機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應上段的問題，展示具體的解決方案。二部匹配取代 NMS，注意力取代局部處理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 Transformer 的全域推理能力與偵測的去重需求巧妙連結。但全域注意力的二次複雜度可能限制處理高解析度影像。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. The DETR Model — DETR 模型</h2>
+
+    <h3 class="subsection-heading" id="sec-loss">2.1 Object Detection Set Prediction Loss — 集合預測損失</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                DETR infers a fixed-size set of <span class="hl-method">N predictions</span>, in a single pass through the decoder, where N is set to be significantly larger than the typical number of objects in an image. One of the main difficulties is to <span class="hl-thesis">score predicted objects with respect to the ground truth</span>. Our loss produces an <span class="hl-method">optimal bipartite matching between predicted and ground truth objects</span>, and then optimizes object-specific losses. We search for a permutation of N elements with the <span class="hl-method">lowest cost using the Hungarian algorithm</span>. The matching cost takes into account both the class prediction and the similarity of predicted and ground truth boxes.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DETR 在解碼器的一次通過中推斷一組固定大小的 <span class="hl-method">N 個預測</span>，其中 N 設定為顯著大於影像中物件的典型數量。主要困難之一是<span class="hl-thesis">將預測物件與真實標註進行評分</span>。我們的損失函數在預測與真實物件之間產生<span class="hl-method">最佳二部匹配</span>，然後最佳化物件特定的損失。我們使用<span class="hl-method">匈牙利演算法搜索 N 個元素的最低成本排列</span>。匹配成本同時考慮類別預測和預測框與真實框之間的相似度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    損失函數設計——描述二部匹配的核心機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此為 DETR 能夠「端到端」訓練的數學基礎——匈牙利演算法確保預測與標註之間的一對一對應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    借用組合最佳化中成熟的匈牙利演算法是優雅的設計。但 N 必須預設且遠大於實際物件數，這種冗餘設計在計算上並非最優。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-arch">2.2 DETR Architecture — 架構設計</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The overall DETR architecture is surprisingly simple and consists of three main components: a <span class="hl-concept">CNN backbone</span> to extract a compact feature representation, an <span class="hl-concept">encoder-decoder transformer</span>, and a simple <span class="hl-concept">feed forward network (FFN)</span> that makes the final detection prediction. The <span class="hl-method">encoder receives a flattened sequence of features</span> supplemented with <span class="hl-method">positional encodings</span> and applies self-attention. The <span class="hl-method">decoder receives N learned object queries</span> and attends to the encoder output through cross-attention, producing N output embeddings that are independently decoded into box coordinates and class labels.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DETR 的整體架構驚人地簡潔，由三個主要元件組成：<span class="hl-concept">CNN 骨幹網路</span>用於提取緊湊的特徵表徵、<span class="hl-concept">編碼器-解碼器 Transformer</span>以及做出最終偵測預測的簡單<span class="hl-concept">前饋網路（FFN）</span>。<span class="hl-method">編碼器接收展平的特徵序列</span>，輔以<span class="hl-method">位置編碼</span>並施用自注意力。<span class="hl-method">解碼器接收 N 個可學習的物件查詢</span>，透過交叉注意力關注編碼器輸出，產生 N 個輸出嵌入，各自獨立解碼為邊界框座標和類別標籤。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構描述——完整呈現 DETR 從特徵提取到預測輸出的流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「驚人地簡潔」的描述強調了設計的優雅性——複雜的偵測任務被簡化為三個標準元件的組合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「可學習的物件查詢」是 DETR 最具創新性的概念——每個查詢可被理解為「在影像中搜索特定物件的探針」。但這種設計的可解釋性仍是開放問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">3. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate DETR on the <span class="hl-concept">COCO 2017 detection dataset</span>. Using a <span class="hl-method">ResNet-50 backbone</span>, DETR achieves <span class="hl-evidence">42.0 AP</span>, which is competitive with the well-established <span class="hl-evidence">Faster R-CNN baseline at 42.0 AP</span> after training schedule optimizations. With a <span class="hl-method">ResNet-101 backbone</span>, DETR achieves <span class="hl-evidence">43.5 AP</span>. Notably, DETR <span class="hl-evidence">significantly outperforms Faster R-CNN on large objects (AP_L)</span>, gaining <span class="hl-evidence">+7.8 AP</span>, likely due to the global reasoning performed by the transformer's self-attention. However, DETR shows <span class="hl-rebuttal">lower performance on small objects</span>, achieving <span class="hl-evidence">only 20.5 AP_S compared to Faster R-CNN's 22.5</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-concept">COCO 2017 偵測資料集</span>上評估 DETR。使用 <span class="hl-method">ResNet-50 骨幹網路</span>時，DETR 達到 <span class="hl-evidence">42.0 AP</span>，在訓練排程最佳化後與成熟的 <span class="hl-evidence">Faster R-CNN 基線的 42.0 AP</span> 相當。使用 <span class="hl-method">ResNet-101 骨幹網路</span>時，DETR 達到 <span class="hl-evidence">43.5 AP</span>。值得注意的是，DETR <span class="hl-evidence">在大型物件上顯著超越 Faster R-CNN（AP_L）</span>，提升了 <span class="hl-evidence">+7.8 AP</span>，這可能歸因於 Transformer 自注意力執行的全域推理。然而，DETR 在<span class="hl-rebuttal">小型物件上表現較弱</span>，僅達到 <span class="hl-evidence">AP_S 20.5，相較 Faster R-CNN 的 22.5</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量評估——在 COCO 上與 Faster R-CNN 的全面比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    展示 DETR 在全面 AP 上與 Faster R-CNN 持平，在大物件上大幅領先，建立方法的競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦誠呈現小物件偵測的劣勢是誠實的科學態度。大物件 +7.8 AP 的優勢與全域推理的解釋形成自洽的論述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further demonstrate the <span class="hl-concept">versatility of DETR</span> by extending it to <span class="hl-concept">panoptic segmentation</span>. By adding a simple <span class="hl-method">segmentation head on top of the decoder outputs</span>, DETR achieves <span class="hl-evidence">competitive panoptic quality (PQ) results</span>, demonstrating that the unified architecture can be naturally extended to related tasks. We also perform extensive ablation studies on the number of encoder/decoder layers, the role of positional encodings, and the importance of the FFN in the transformer, confirming that each component contributes to the final performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步將 DETR 擴展到<span class="hl-concept">全景分割</span>，展示其<span class="hl-concept">多用途性</span>。透過在解碼器輸出上添加一個簡單的<span class="hl-method">分割頭</span>，DETR 達到了<span class="hl-evidence">具競爭力的全景品質（PQ）結果</span>，證明統一架構可自然地擴展到相關任務。我們也對編碼器/解碼器層數、位置編碼的角色以及 Transformer 中 FFN 的重要性進行了廣泛的消融研究，確認每個組件都對最終效能有貢獻。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    擴展應用與消融——展示架構的泛化能力與各組件的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從「單任務效能」擴展到「多任務泛化」，強化 DETR 作為通用偵測框架的定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    全景分割的擴展以「添加簡單分割頭」完成，凸顯了架構的模組化優勢。但訓練需要 300 個 epoch（遠多於 Faster R-CNN），此效率問題未被強調。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">4. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">DETR</span>, a new design for <span class="hl-thesis">object detection systems based on transformers and bipartite matching loss for direct set prediction</span>. DETR achieves <span class="hl-evidence">comparable results to an optimized Faster R-CNN baseline on COCO</span> while being <span class="hl-thesis">conceptually simpler and requiring no hand-designed components</span>. DETR is <span class="hl-thesis">easily extensible to panoptic segmentation</span>, demonstrating its potential as a <span class="hl-thesis">unified architecture for visual recognition</span>. We believe that the transformer-based approach opens up new possibilities for end-to-end object detection and beyond.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 <span class="hl-concept">DETR</span>，一種<span class="hl-thesis">基於 Transformer 和二部匹配損失進行直接集合預測的物件偵測系統新設計</span>。DETR 在 COCO 上<span class="hl-evidence">達到與最佳化的 Faster R-CNN 基線相當的結果</span>，同時<span class="hl-thesis">概念上更為簡潔，不需要手工設計的元件</span>。DETR <span class="hl-thesis">可輕鬆擴展至全景分割</span>，展現其作為<span class="hl-thesis">統一視覺辨識架構</span>的潛力。我們相信基於 Transformer 的方法為端到端物件偵測及更廣泛的應用開啟了新的可能性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結——重申 DETR 的核心價值與前瞻性意義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將技術貢獻上升至「範式轉移」的高度，定位 DETR 為偵測領域的新方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    後續的 Deformable DETR、DAB-DETR 等工作證明了 DETR 確實開創了新範式。但原始 DETR 的訓練效率和小物件偵測問題在結論中未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>偵測器依賴手工設計</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">論點<br>集合預測取代替代任務</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">方法<br>Transformer + 二部匹配</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">證據<br>COCO 上媲美 Faster R-CNN</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">結論<br>端到端偵測新範式</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過 Transformer 編碼器-解碼器架構與二部匹配損失，物件偵測可被簡化為直接集合預測問題，無需 NMS 或錨框等手工設計元件。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>以極簡的架構達到與高度最佳化的 Faster R-CNN 相當的效能，且在大物件偵測上大幅超越。全景分割的無縫擴展進一步驗證了架構的通用性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>訓練需要 300 個 epoch（Faster R-CNN 僅需 36 個），小物件偵測效能不足，且固定 N 個查詢的設計在概念上不夠靈活。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div>核心論點 / Thesis</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div>關鍵概念 / 術語</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div>實證證據 / 資料</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div>讓步 / 反駁處理</div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div>方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9673;</button>
+</div>
+
+</body>
+</html>
