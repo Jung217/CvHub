@@ -1,10 +1,24 @@
 # CvHub
 
-> 電腦視覺論文精選集 -- 中英雙語對照 + 雙欄批注
+> 深度解讀電腦視覺論文 -- 經典到前沿 -- 中英雙語對照 + 多維度深度解析
 
 ## GitHub Pages
 
 https://jung217.github.io/CvHub/
+
+## 經典論文 (Classics)
+
+| 論文 | 領域 |
+|------|------|
+| Deep Residual Learning for Image Recognition (ResNet) | 影像分類 (CVPR 2016 Best Paper) |
+| You Only Look Once (YOLO) | 物件偵測 (CVPR 2016) |
+| Attention Is All You Need (Transformer) | 序列模型 (NeurIPS 2017) |
+| An Image is Worth 16x16 Words (ViT) | Vision Transformer (ICLR 2021) |
+| Denoising Diffusion Probabilistic Models (DDPM) | 擴散模型 (NeurIPS 2020) |
+
+---
+
+## CVPR (2013-2025, 13 屆, 156 篇)
 
 ## CVPR 2013
 
@@ -226,3 +240,126 @@ https://jung217.github.io/CvHub/
 | TRELLIS: Structured 3D Latents for Scalable and Versatile 3D Generation | 3D 生成 |
 | DepthCrafter: Generating Consistent Long Depth Sequences for Open-world Videos | 影片深度估測 |
 | OmniGen: Unified Image Generation | 統一影像生成 |
+
+---
+
+## ICCV (2013-2025, 7 屆, 84 篇)
+
+## ICCV 2013
+
+| 論文 | 領域 |
+|------|------|
+| From Large Scale Image Categorization to Entry-Level Categories | 影像分類 (Marr Prize) |
+| Hierarchical Data-driven Descent for Efficient Optimal Deformation Estimation | 形變估計 (Honorable Mention) |
+| Piecewise Rigid Scene Flow | 3D 場景流 (Honorable Mention) |
+| Action Recognition with Improved Trajectories | 動作辨識 |
+| Structured Forests for Fast Edge Detection | 邊緣偵測 |
+| OverFeat: Integrated Recognition, Localization and Detection | 物件偵測 |
+| Saliency Detection: A Boolean Map Approach | 顯著偵測 |
+| Holistic Scene Understanding for 3D Object Detection with RGBD | 3D 偵測 |
+| Saliency Detection via Absorbing Markov Chain | 顯著偵測 |
+| Segmentation Driven Object Detection with Fisher Vectors | 物件偵測 |
+| PhotoOCR: Reading Text in Uncontrolled Conditions | 文字辨識 |
+| Robust Object Tracking with Online Multi-lifespan Dictionary Learning | 視覺追蹤 |
+
+## ICCV 2015
+
+| 論文 | 領域 |
+|------|------|
+| Deep Neural Decision Forests | 分類 (Marr Prize) |
+| Holistically-Nested Edge Detection (HED) | 邊緣偵測 (Honorable Mention) |
+| Fast R-CNN | 物件偵測 |
+| Delving Deep into Rectifiers (PReLU) | 影像分類 |
+| FlowNet: Learning Optical Flow with Convolutional Networks | 光流估計 |
+| Learning Spatiotemporal Features with 3D Convolutional Networks (C3D) | 影片理解 |
+| Conditional Random Fields as Recurrent Neural Networks (CRF-RNN) | 語意分割 |
+| Learning Deconvolution Network for Semantic Segmentation | 語意分割 |
+| Unsupervised Visual Representation Learning by Context Prediction | 自監督學習 |
+| Ask Your Neurons: A Neural-Based Approach to Answering Questions | 視覺問答 |
+| Unsupervised Learning of Visual Representations using Videos | 自監督學習 |
+| Dense Optical Flow Prediction From a Static Image | 運動預測 |
+
+## ICCV 2017
+
+| 論文 | 領域 |
+|------|------|
+| Mask R-CNN | 實例分割 (Marr Prize) |
+| Focal Loss for Dense Object Detection (RetinaNet) | 物件偵測 (Best Student Paper) |
+| First-Person Activity Forecasting | 活動預測 (Honorable Mention) |
+| CycleGAN: Unpaired Image-to-Image Translation | 影像生成 |
+| Grad-CAM: Visual Explanations from Deep Networks | 可解釋性 |
+| Channel Pruning for Accelerating Very Deep Neural Networks | 模型壓縮 |
+| Open Set Domain Adaptation | 領域適應 |
+| Globally-Optimal Inlier Set Maximisation | 3D 視覺 |
+| Structured Attentions for Visual Question Answering | VQA |
+| Generative Image Inpainting with Contextual Attention | 影像修補 |
+| Globally and Locally Consistent Image Completion | 影像補全 |
+| Learning to Segment Every Thing | 實例分割 |
+
+## ICCV 2019
+
+| 論文 | 領域 |
+|------|------|
+| SinGAN: Learning a Generative Model from a Single Natural Image | 影像生成 (Marr Prize) |
+| PLMP: Point-Line Minimal Problems | 多視圖幾何 (Best Student Paper) |
+| CutMix: Regularization Strategy to Train Strong Classifiers | 資料增強 |
+| FCOS: Fully Convolutional One-Stage Object Detection | 物件偵測 |
+| Deep Hough Voting for 3D Object Detection (VoteNet) | 3D 偵測 |
+| SlowFast Networks for Video Recognition | 影片理解 |
+| Mesh R-CNN | 3D 重建 |
+| Larger Norm More Transferable | 領域適應 |
+| Exploring Randomly Wired Neural Networks | 架構搜尋 |
+| Cascade R-CNN | 物件偵測 |
+| Asynchronous Single-Photon 3D Imaging | 計算攝影 (Honorable Mention) |
+| Specifying Object Attributes and Relations in Interactive Scene Generation | 場景生成 (Honorable Mention) |
+
+## ICCV 2021
+
+| 論文 | 領域 |
+|------|------|
+| Swin Transformer | Vision Transformer (Marr Prize) |
+| Pixel-Perfect Structure-from-Motion | SfM (Best Student Paper) |
+| Mip-NeRF: Anti-Aliasing Neural Radiance Fields | 神經輻射場 (Honorable Mention) |
+| OpenGAN: Open-Set Recognition via Open Data Generation | 開放集辨識 (Honorable Mention) |
+| Common Objects in 3D (CO3D) | 3D 資料集 (Honorable Mention) |
+| Vision Transformers for Dense Prediction (DPT) | 稠密預測 |
+| Pyramid Vision Transformer (PVT) | Vision Transformer |
+| Focal Transformer | Vision Transformer |
+| NeRF in the Dark | 神經輻射場 |
+| MaskFormer: Per-Pixel Classification is Not All You Need | 語意分割 |
+| Viewing Graph Solvability via Cycle Consistency | 多視圖幾何 (Honorable Mention) |
+| Multiscale Vision Transformers (MViT) | Vision Transformer |
+
+## ICCV 2023
+
+| 論文 | 領域 |
+|------|------|
+| Passive Ultra-Wideband Single-Photon Imaging | 計算攝影 (Marr Prize) |
+| ControlNet: Adding Conditional Control to Text-to-Image Diffusion Models | 可控生成 (Marr Prize) |
+| Segment Anything (SAM) | 分割基礎模型 (Honorable Mention) |
+| Tracking Everything Everywhere All at Once | 運動追蹤 (Best Student Paper) |
+| 3D Gaussian Splatting for Real-Time Radiance Field Rendering | 3D 渲染 |
+| DINOv2: Learning Robust Visual Features without Supervision | 自監督學習 |
+| AnyDoor: Zero-shot Object-level Image Customization | 影像編輯 |
+| LAVIE: High-Quality Video Generation | 影片生成 |
+| Nerfstudio: A Modular Framework for Neural Radiance Fields | 神經輻射場 |
+| LERF: Language Embedded Radiance Fields | 3D 語言 |
+| IP-Adapter: Text Compatible Image Prompt Adapter | 可控生成 |
+| Tracking Anything in High Quality | 追蹤 |
+
+## ICCV 2025
+
+| 論文 | 領域 |
+|------|------|
+| BrickGPT: Generating Physically Stable Brick Structures from Text | 3D 生成 (Marr Prize) |
+| Spatially-Varying Autofocus | 計算攝影 (Honorable Mention) |
+| RayZer: A Self-supervised Large View Synthesis Model | 新視角合成 (Best Student Paper HM) |
+| FlowEdit: Inversion-Free Text-Based Editing | 影像編輯 |
+| LLaVA-CoT: Let Vision Language Models Reason Step-by-Step | 視覺語言模型 |
+| Sa2VA: Marrying SAM2 with LLaVA | 多模態定位 |
+| Dynamic-DINO: MoE for Real-time Open-Vocabulary Detection | 開放詞彙偵測 |
+| MaskControl: Spatio-Temporal Control for Motion Synthesis | 動作生成 |
+| HERMES: A Unified Self-Driving World Model | 自動駕駛 |
+| LongSplat: Robust Unposed 3D Gaussian Splatting | 3D 重建 |
+| SceneSplat: Gaussian Splatting-based Scene Understanding | 3D 場景理解 |
+| From Image to Video: An Empirical Study of Diffusion Representations | 表示學習 |
