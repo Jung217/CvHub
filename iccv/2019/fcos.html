@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCOS: Fully Convolutional One-Stage Object Detection — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                FCOS: Fully Convolutional One-Stage Object Detection
+                <span class="course-tag">ICCV 2019</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1904.01355" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-fpn">3.2 FPN 多尺度預測</a>
+        <a href="#sec-centerness">3.3 Center-ness</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">FCOS</span>, a <span class="hl-thesis">fully convolutional one-stage object detector</span> that solves object detection in a <span class="hl-thesis">per-pixel prediction fashion, anchor-free and proposal-free</span>, analogous to semantic segmentation. By eliminating <span class="hl-concept">predefined anchor boxes</span>, FCOS avoids the <span class="hl-rebuttal">computation related to anchor boxes such as the commonly needed IoU computation and matching during training</span>, and also avoids all <span class="hl-rebuttal">hyper-parameters related to anchor boxes</span>. With the only post-processing being <span class="hl-method">non-maximum suppression (NMS)</span>, FCOS with <span class="hl-evidence">ResNeXt-64x4d-101 achieves 44.7% AP</span> on the MS-COCO benchmark, <span class="hl-evidence">surpassing previous one-stage detectors</span> with the advantage of being much simpler.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 FCOS，一個以逐像素預測方式解決物件偵測的全摺積單階段偵測器，無需錨框與候選區域，類似於語意分割。透過消除預定義的錨框，FCOS 避免了與錨框相關的計算（如訓練時常需的 IoU 計算與匹配），也避免了所有與錨框相關的超參數。僅以非極大值抑制作為後處理，FCOS 搭配 ResNeXt-64x4d-101 在 MS-COCO 基準上達到 44.7% AP，超越先前的單階段偵測器，且更為簡潔。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「消除錨框」為核心訊息，定位 FCOS 為更簡潔且更強的偵測器。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的論證策略是「減法」：移除錨框後不僅沒有效能損失，反而取得更好結果，有力地質疑了錨框的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將物件偵測類比為語意分割是精妙的框架轉換，暗示偵測可借用分割的成熟技術棧。44.7% AP 的具體數字提供了即時的說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Current mainstream detectors rely on <span class="hl-concept">anchor boxes</span>, which introduce several drawbacks: <span class="hl-rebuttal">detection performance is sensitive to anchor sizes and aspect ratios, affecting performance by ~4% AP on COCO</span>; <span class="hl-rebuttal">fixed-scale anchor boxes struggle with shape variations, particularly small objects</span>; <span class="hl-rebuttal">dense anchor box placement creates excessive negative samples, exacerbating class imbalance</span>; and anchor-based methods involve <span class="hl-rebuttal">complicated IoU computation</span>. The authors ask: can object detection adopt the same <span class="hl-thesis">per-pixel prediction framework</span> that has succeeded in <span class="hl-evidence">semantic segmentation, depth estimation, keypoint detection, and counting</span>?
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                當前主流偵測器依賴錨框，這帶來多項缺陷：偵測效能對錨框大小與長寬比敏感，在 COCO 上影響約 4% AP；固定尺度錨框難以應對形狀變化，尤其是小物件；密集的錨框放置產生過多負樣本，加劇類別不平衡；且基於錨框的方法涉及複雜的 IoU 計算。作者提問：物件偵測是否能採用在語意分割、深度估計、關鍵點偵測與計數等任務中已成功的逐像素預測框架？
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題陳述——系統性列舉錨框的四大缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以四項具體缺陷建立「錨框有害」的論點，為無錨框設計的必要性提供充分動機。4% AP 的量化損失使論點具體而有力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉式論證清晰有力。但錨框自 Faster R-CNN 以來已被廣泛驗證，作者可能低估了錨框在某些場景下的優勢（如提供先驗形狀資訊）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Previous <span class="hl-concept">FCN-based detectors</span> like <span class="hl-concept">DenseBox</span> required <span class="hl-rebuttal">image resizing to fixed scales</span> and proved <span class="hl-rebuttal">unsuitable for generic detection due to overlapping bounding box ambiguity</span>. FCOS addresses this through <span class="hl-method">multi-level FPN prediction</span>, largely eliminating the ambiguity. A novel <span class="hl-concept">"center-ness" branch</span> predicts <span class="hl-method">the deviation of each location from its corresponding object center</span>, suppressing low-quality detections. This simple yet effective component enables <span class="hl-thesis">the FCN detector to outperform anchor-based alternatives under identical settings</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的 FCN 基偵測器如 DenseBox 需要將影像縮放至固定尺度，且因重疊邊界框的歧義而不適用於一般偵測。FCOS 透過多尺度 FPN 預測解決此問題，大幅消除歧義。一個新穎的「中心度」分支預測每個位置偏離對應物件中心的程度，抑制低品質的偵測結果。這個簡單卻有效的組件使 FCN 偵測器在相同設定下超越基於錨框的替代方案。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術方案預告——點出 FPN 與 center-ness 兩項關鍵創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段回應兩個具體質疑：(1) 重疊框歧義由 FPN 解決；(2) 低品質偵測由 center-ness 抑制。邏輯完整。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將兩項技術分別對應兩個問題的敘事結構清晰。但 center-ness 本質上是一種啟發式加權，其最佳性缺乏理論保證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Anchor-based Detectors</span> inherit from traditional sliding-window approaches. <span class="hl-concept">Faster R-CNN</span> popularized anchor boxes, followed by <span class="hl-concept">SSD</span> and <span class="hl-concept">YOLOv2</span>. However, <span class="hl-rebuttal">anchor-based methods require extensive hyperparameter tuning regarding anchor shapes and positive/negative sample labeling via IoU thresholds</span>. <span class="hl-concept">Anchor-free Detectors:</span> <span class="hl-concept">YOLOv1</span> predicted boxes at object centers but <span class="hl-rebuttal">suffered low recall</span>, prompting YOLOv2 to adopt anchors. <span class="hl-concept">CornerNet</span> detects corner pairs but requires <span class="hl-rebuttal">complicated grouping procedures</span>. FCOS leverages <span class="hl-thesis">all points within ground-truth boxes as positive samples</span>, using center-ness to suppress low-quality detections.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於錨框的偵測器繼承自傳統的滑動視窗方法。Faster R-CNN 普及了錨框，隨後 SSD 與 YOLOv2 沿用。然而，基於錨框的方法需要大量的超參數調整，涉及錨框形狀與透過 IoU 門檻值的正負樣本標註。無錨框偵測器方面：YOLOv1 在物件中心預測邊界框但召回率低，促使 YOLOv2 採用錨框。CornerNet 偵測角點對但需要複雜的分組程序。FCOS 利用真實框內的所有點作為正樣本，以 center-ness 抑制低品質偵測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 FCOS 放置於錨框與無錨框方法的雙重脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過指出 YOLOv1 因低召回率而「回歸」錨框的歷史，隱含 FCOS 終於解決了無錨框方法的痼疾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以歷史演進的敘事暗示 FCOS 是無錨框方法的成熟體——「是時候了」的訊息。但同期的 CenterNet 等方法也在做類似嘗試，FCOS 的獨特性需更精確界定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Approach — 方法</h2>
+    <h3 class="subsection-heading">3.1 Fully Convolutional One-Stage Detector</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Unlike anchor-based methods, FCOS <span class="hl-method">directly regresses target bounding boxes at each spatial location</span>, treating them as training samples similar to semantic segmentation. A location is <span class="hl-method">positive if it falls within any ground-truth box, negative otherwise</span>. For each positive location, the network predicts a <span class="hl-method">4D vector t* = (l*, t*, r*, b*) representing distances from the location to the four sides of the bounding box</span>. The training loss combines <span class="hl-method">focal loss for classification</span> and <span class="hl-method">IoU loss for bounding box regression</span>. FCOS outputs <span class="hl-evidence">9x fewer parameters per location</span> than anchor-based detectors using 9 anchors per location.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                不同於基於錨框的方法，FCOS 在每個空間位置直接迴歸目標邊界框，將其視為訓練樣本，類似語意分割。若位置落在任何真實框內則為正樣本，否則為負樣本。對每個正位置，網路預測一個 4D 向量 t* = (l*, t*, r*, b*)，表示位置到邊界框四邊的距離。訓練損失結合了分類的焦點損失與邊界框迴歸的 IoU 損失。FCOS 每個位置的輸出參數量僅為使用 9 個錨框之偵測器的九分之一。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——定義逐像素迴歸的基本架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了 FCOS 的數學基礎。4D 距離迴歸是一種優雅的參數化——直接預測到四邊的距離，避免了錨框的中心/寬高表示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    9 倍參數減少的量化比較直觀有力。但「真實框內所有點為正樣本」可能導致大量低品質正樣本（框邊緣的點），需 center-ness 來彌補。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-fpn">3.2 Multi-level Prediction with FPN — FPN 多尺度預測</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Multi-level prediction using <span class="hl-method">five FPN levels {P3, P4, P5, P6, P7} with strides 8, 16, 32, 64, and 128</span> addresses two concerns: low best possible recall (BPR) from large feature map strides, and <span class="hl-rebuttal">ambiguity from overlapping ground-truth boxes</span>. Object sizes are assigned to appropriate levels by <span class="hl-method">constraining the regression range</span> — if max(l*, t*, r*, b*) exceeds a level-specific threshold, the location becomes a negative sample. With FPN, <span class="hl-evidence">FCOS achieves 98.40% BPR</span>, nearly matching RetinaNet's best (99.23%), and <span class="hl-evidence">ambiguous samples are reduced from 23.16% to 7.14%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用五層 FPN {P3, P4, P5, P6, P7}（步幅分別為 8、16、32、64、128）的多尺度預測解決兩個問題：大步幅特徵圖導致的低最佳可能召回率，以及重疊真實框造成的歧義。物件尺寸透過約束迴歸範圍被分配至適當的層級——若 max(l*, t*, r*, b*) 超過特定層級的門檻值，該位置即成為負樣本。搭配 FPN，FCOS 達到 98.40% 的最佳可能召回率，幾近 RetinaNet 的最佳值（99.23%），且歧義樣本從 23.16% 降至 7.14%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心設計——以 FPN 解決召回率與歧義兩大挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應先前無錨框方法被質疑的兩個弱點。98.40% BPR 的數據有力證明無錨框方法的召回率不再是瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體數字（23.16% -> 7.14%）量化改善效果極具說服力。但剩餘 7.14% 的歧義如何處理，以及 FPN 層級分配的門檻值如何選擇，可能仍是影響效能的因素。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-centerness">3.3 Center-ness Branch — 中心度分支</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Despite multi-level prediction, <span class="hl-rebuttal">low-quality predicted boxes emerge from locations far from object centers</span>. A parallel single-layer branch predicts <span class="hl-concept">"center-ness"</span>, measuring the <span class="hl-method">normalized distance from each location to its corresponding object center</span>: <span class="hl-method">centerness* = sqrt[(min(l*,r*)/max(l*,r*)) * (min(t*,b*)/max(t*,b*))]</span>. Center-ness ranges from 0 to 1, trained with <span class="hl-method">binary cross-entropy loss</span>. During testing, predicted center-ness is <span class="hl-method">multiplied with the classification score</span>, down-weighting far-from-center predictions. This <span class="hl-evidence">improves AP from 33.5% to 37.1%</span>, enabling FCOS to <span class="hl-evidence">surpass RetinaNet (35.9%)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管有多尺度預測，遠離物件中心的位置仍會產生低品質的預測框。一個平行的單層分支預測「中心度」，衡量每個位置到對應物件中心的正規化距離：centerness* = sqrt[(min(l*,r*)/max(l*,r*)) * (min(t*,b*)/max(t*,b*))]。中心度範圍從 0 到 1，以二元交叉熵損失訓練。在測試時，預測的中心度與分類分數相乘，降低遠離中心之預測的權重。這將 AP 從 33.5% 提升至 37.1%，使 FCOS 超越 RetinaNet（35.9%）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    關鍵創新——提出 center-ness 作為品質評估機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    Center-ness 是使 FCOS 超越錨框方法的「最後一塊拼圖」：3.6% AP 的跳躍（33.5% -> 37.1%）證明此組件的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    Center-ness 的數學形式優雅且直覺——越接近中心值越高。但此公式假設物件中心是最佳預測位置，對非凸或細長物件可能不成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On MS-COCO test-dev, FCOS achieves remarkable results across multiple backbones: <span class="hl-evidence">ResNet-101-FPN: 41.5% AP versus RetinaNet 39.1% AP (+2.4%)</span>; <span class="hl-evidence">ResNeXt-64x4d-101-FPN: 43.2% AP, surpassing CornerNet (40.5%)</span>; and with additional improvements, <span class="hl-evidence">FCOS reaches 44.7% AP</span>. As a <span class="hl-concept">Region Proposal Network (RPN)</span> replacement, FCOS <span class="hl-evidence">improves AR_100 by 8.1% and AR_1k by 3.4%</span> over anchor-based RPNs. The center-ness branch alone accounts for <span class="hl-evidence">+3.6% AP improvement</span>, and a separate branch outperforms computing center-ness from predicted regression vectors.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 MS-COCO test-dev 上，FCOS 在多種骨幹網路下達到卓越成果：ResNet-101-FPN：41.5% AP 對比 RetinaNet 39.1% AP（+2.4%）；ResNeXt-64x4d-101-FPN：43.2% AP，超越 CornerNet（40.5%）；加入額外改進後，FCOS 達到 44.7% AP。作為區域候選網路（RPN）的替代，FCOS 的 AR_100 提升 8.1%、AR_1k 提升 3.4%，優於基於錨框的 RPN。center-ness 分支單獨貢獻 +3.6% AP 的改善，且獨立分支優於從預測迴歸向量計算中心度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面實驗驗證——在多骨幹、多應用場景下展示 FCOS 的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗結果在三個維度支撐論點：(1) 對比錨框方法的一致優勢；(2) 對比其他無錨框方法的領先；(3) 作為 RPN 替代的泛用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多角度的數字比較非常具說服力。但 44.7% 包含了「額外改進」（如可變形摺積等），純粹的 FCOS 架構效能應單獨呈現以避免誤導。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">FCOS</span> presents a <span class="hl-thesis">simpler, anchor-free, proposal-free alternative to mainstream anchor-based detectors</span>, achieving <span class="hl-evidence">state-of-the-art one-stage performance</span> with significantly <span class="hl-thesis">fewer design complexities</span>. By eliminating anchor computation and hyperparameters, the method <span class="hl-thesis">unifies detection with dense prediction tasks</span>. The framework extends readily to <span class="hl-evidence">instance-level tasks including instance segmentation and keypoint detection</span>, serving as a strong baseline for instance-wise prediction problems. FCOS demonstrates that <span class="hl-thesis">anchor boxes, long considered essential for competitive detection, are in fact unnecessary</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                FCOS 提出了一個更簡潔的無錨框、無候選區域的替代方案，以顯著更少的設計複雜度達到最先進的單階段偵測效能。透過消除錨框計算與超參數，該方法將偵測與密集預測任務統一。此框架可輕易擴展至實例分割與關鍵點偵測等實例級任務，作為實例預測問題的強基線。FCOS 證明了長期被視為競爭性偵測所必需的錨框，實際上是不必要的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以「錨框不必要」作為核心結論性宣言。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將 FCOS 的意義提升至範式層次：不僅是一個更好的偵測器，更是對「錨框必要性」這一共識的挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「錨框不必要」的宣言大膽有力，但後續研究顯示錨框與無錨框方法各有優勢場景，FCOS 的結論可能過於絕對。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                錨框帶來超參數<br>敏感性與計算負擔
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                逐像素預測<br>可取代錨框
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                44.7% AP COCO<br>超越所有單階段方法
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                FPN + center-ness<br>解決歧義與品質
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                錨框非必要<br>偵測可統一於密集預測
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過逐像素預測搭配 FPN 多尺度分配與 center-ness 品質評估，物件偵測可完全擺脫錨框，以更簡潔的架構達到更優越的效能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>系統性的消融驗證：</strong>每項設計（FPN 多尺度、center-ness 分支）都有獨立的消融實驗量化其貢獻。Center-ness 單獨帶來 +3.6% AP 的跳躍，FPN 將歧義從 23.16% 降至 7.14%。這種逐步建構的論證方式使每項創新的必要性都得到獨立驗證。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>Center-ness 的理論基礎薄弱：</strong>center-ness 公式雖然直覺且有效，但缺乏理論推導——為何此特定公式（幾何均值）是最佳選擇？對非凸物件或極端長寬比物件，中心未必是最佳預測位置。此外，44.7% AP 包含了額外技巧（可變形摺積），純粹 FCOS 的效能增幅相對較小。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

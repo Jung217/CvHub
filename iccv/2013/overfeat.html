@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverFeat: Integrated Recognition, Localization and Detection using Convolutional Networks — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .topic-badge { display: inline-block; background: linear-gradient(135deg, #dc3545, #b02a37); color: #fff; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .topic-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                OverFeat: Integrated Recognition, Localization and Detection using Convolutional Networks
+                <span class="course-tag">ICCV 2013</span>
+                <span class="topic-badge">深度學習先驅</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1312.6229" target="_blank" class="navbar-home-link">arXiv: 1312.6229</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-classification">2. 分類</a>
+        <a href="#sec-multiscale">2.2 多尺度推理</a>
+        <a href="#sec-localization">3. 定位</a>
+        <a href="#sec-detection">4. 偵測</a>
+        <a href="#sec-experiments">5. 實驗</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present an <span class="hl-concept">integrated framework</span> for using <span class="hl-concept">Convolutional Networks (ConvNets)</span> for <span class="hl-thesis">classification, localization, and detection</span>. We show how a <span class="hl-method">multi-scale, sliding window approach</span> can be efficiently implemented within a ConvNet. We introduce a novel <span class="hl-method">deep learning approach to localization by learning to predict object boundaries</span>. We also introduce a method that <span class="hl-method">accumulates predicted bounding boxes rather than suppressing them</span>. We show that different tasks can be learned simultaneously using a <span class="hl-thesis">single shared network</span>. The resulting system, called <span class="hl-concept">OverFeat</span>, <span class="hl-evidence">won the localization task of the ImageNet Large Scale Visual Recognition Challenge 2013 (ILSVRC2013)</span> and <span class="hl-evidence">obtained competitive results on the detection task</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一個使用摺積網路（ConvNet）進行分類、定位與偵測的整合式框架。我們展示多尺度滑動視窗方法如何在摺積網路內高效實現。我們引入一種新穎的深度學習定位方法——學習預測物件邊界。我們也引入了一種累積預測邊界框而非抑制它們的方法。我們展示了不同任務可使用單一共享網路同時學習。所產生的系統稱為 OverFeat，贏得了 ImageNet 大規模視覺辨識挑戰 2013（ILSVRC2013）的定位任務，並在偵測任務上取得了具競爭力的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「整合」為關鍵詞，預告三項視覺任務的統一框架與 ILSVRC 冠軍結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「一個網路，三個任務」的統一敘事建立方法的核心定位，並以 ILSVRC 冠軍提供權威性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    ILSVRC2013 冠軍是強力的「結果先行」策略。但「整合框架」的宣稱需要展示三任務之間的真正協同效應，而非僅僅是共享特徵萃取層。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Convolutional Networks</span> enable <span class="hl-thesis">end-to-end learning from raw pixels to category predictions</span> without manual feature engineering. The success of <span class="hl-concept">Krizhevsky et al. (2012)</span> on <span class="hl-evidence">ImageNet</span> has demonstrated the power of deep ConvNets for classification. However, <span class="hl-rebuttal">most ConvNet-based systems treat classification, localization, and detection as separate problems</span> with distinct architectures. We argue that <span class="hl-thesis">a single ConvNet trained for classification already contains rich spatial and semantic information that can be repurposed for localization and detection</span>. By sharing feature representations across tasks, we can achieve <span class="hl-method">better performance with reduced computational overhead</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                摺積網路實現了從原始像素到類別預測的端對端學習，無需手動特徵工程。Krizhevsky 等人（2012）在 ImageNet 上的成功證明了深度摺積網路用於分類的威力。然而，大多數基於摺積網路的系統將分類、定位與偵測視為具有不同架構的獨立問題。我們主張，為分類而訓練的單一摺積網路已包含豐富的空間與語意資訊，可重新用於定位與偵測。透過跨任務共享特徵表示，我們可以在降低計算開銷的同時達到更佳的表現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——從 AlexNet 的成功出發，指出多任務分離的低效問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 AlexNet（2012）作為起點，論證特徵共享的可行性與效率性。「一個網路包含豐富資訊」的假設是全文的立論基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「分類特徵可重新用於定位」的假設直覺合理但非顯然——分類關注「是什麼」，定位關注「在哪裡」，兩者是否真的共享最佳特徵表示需要實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-classification">2. Classification — 分類</h2>
+    <h3 class="subsection-heading">2.1 Architecture and Training — 架構與訓練</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The architecture builds upon <span class="hl-concept">Krizhevsky et al. (2012)</span> with key modifications: <span class="hl-method">no contrast normalization is used</span>, <span class="hl-method">non-overlapping pooling regions</span> are employed, and <span class="hl-method">the first and second layer feature maps are larger due to smaller strides</span>. Two models are released: a <span class="hl-concept">fast model</span> achieving <span class="hl-evidence">16.39% top-5 error</span> and an <span class="hl-concept">accurate model</span> achieving <span class="hl-evidence">14.18% top-5 error</span>. A committee of 7 accurate models reaches <span class="hl-evidence">13.6% error</span>. Training uses <span class="hl-method">stochastic gradient descent with momentum 0.6 and L2 weight decay of 1e-5</span> on <span class="hl-evidence">ImageNet 2012 (1.2 million images, 1000 classes)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                架構建立在 Krizhevsky 等人（2012）之上並帶有關鍵修改：不使用對比度正規化、採用非重疊的池化區域，且因步幅較小使第一與第二層特徵圖更大。發布了兩個模型：快速模型達到 16.39% top-5 錯誤率，精確模型達到 14.18% top-5 錯誤率。由 7 個精確模型組成的委員會達到 13.6% 錯誤率。訓練使用動量 0.6 的隨機梯度下降法與 1e-5 的 L2 權重衰減，在 ImageNet 2012（120 萬張影像、1000 類別）上進行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法基礎——描述分類網路的架構選擇與訓練配置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    分類網路是整個系統的骨幹——其特徵萃取層將被定位與偵測共享，因此架構的品質決定了所有下游任務的表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    與 AlexNet 的具體差異（無正規化、非重疊池化、小步幅）展現了有根據的工程改進。但未充分解釋為何這些修改有效——去除對比度正規化是否經過系統性消融？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-multiscale">2.2 Multi-Scale Classification — 多尺度分類</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than using <span class="hl-rebuttal">fixed 10-view voting</span> (as in Krizhevsky et al.), we <span class="hl-method">densely apply the network at all locations and across 6 scales</span>. The key insight enabling efficient dense evaluation is that <span class="hl-thesis">ConvNets naturally compute sliding windows — fully connected layers can be viewed as 1x1 convolutions</span>, making the entire architecture purely convolutional at test time. To further increase resolution, we apply <span class="hl-method">offset pooling with pixel shifts</span> that reduce the effective subsampling ratio from 36x to 12x. This dense multi-scale approach achieves <span class="hl-evidence">13.24% top-5 error with 7 models</span>, compared to <span class="hl-evidence">18.2% for Krizhevsky et al.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                不同於 Krizhevsky 等人的固定 10 視角投票，我們在所有位置與 6 個尺度上稠密地套用網路。啟用高效稠密評估的關鍵洞見在於：摺積網路天然地計算滑動視窗——全連接層可被視為 1x1 摺積，使整個架構在測試時變為純摺積。為進一步提高解析度，我們套用帶像素偏移的偏移池化，將有效下取樣比率從 36x 降至 12x。此稠密多尺度方法以 7 個模型達到 13.24% top-5 錯誤率，相比 Krizhevsky 等人的 18.2%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心洞見——將全連接層重新詮釋為 1x1 摺積以實現高效稠密推理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「FC = 1x1 Conv」的洞見是全文最重要的技術貢獻之一——它不僅提升分類表現，更為定位與偵測的稠密預測奠定了基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    此洞見的重要性超越了 OverFeat 本身——後續的 FCN（完全摺積網路）等工作均建立在此概念之上。偏移池化的設計雖然精巧，但增加了 3x3=9 倍的計算量，這一成本是否合理需要效率分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-localization">3. Localization — 定位</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For localization, we add a <span class="hl-method">bounding box regression network on top of the shared feature extraction layers (1-5)</span>. The regressor has <span class="hl-method">two fully-connected hidden layers (4096 and 1024 units)</span> and outputs <span class="hl-method">four bounding box edge coordinates</span>. Both the classifier and regressor run simultaneously across all locations and scales. The <span class="hl-method">classification output provides confidence scores</span> while the <span class="hl-method">regression network predicts bounding boxes</span>. A key innovation is the <span class="hl-concept">greedy merge strategy</span> for combining predictions: rather than <span class="hl-rebuttal">non-maximum suppression (which discards potentially correct boxes)</span>, we <span class="hl-thesis">iteratively merge overlapping predictions by accumulating evidence</span>. This yields <span class="hl-evidence">29.9% localization error — winning ILSVRC2013</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                用於定位時，我們在共享特徵萃取層（1-5 層）之上添加邊界框迴歸網路。迴歸器具有兩個全連接隱藏層（4096 與 1024 單元）並輸出四個邊界框邊座標。分類器與迴歸器在所有位置與尺度上同時執行。分類輸出提供信心分數，而迴歸網路預測邊界框。關鍵創新是用於合併預測的貪心合併策略：不同於非極大值抑制（會捨棄可能正確的邊界框），我們透過累積證據來迭代合併重疊的預測。這達到了 29.9% 的定位錯誤率——贏得 ILSVRC2013。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位方法——描述迴歸網路與貪心合併策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    展示「整合」框架的第二個應用：分類與定位共享 1-5 層，僅頂層不同。貪心合併取代 NMS 是定位任務的獨特貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「累積而非抑制」的哲學轉變具有深刻的設計洞見。但貪心合併策略的超參數（合併閾值、最大迭代次數）可能對結果敏感，且在物件密集的場景中可能過度合併相鄰物件。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-detection">4. Detection — 偵測</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Detection extends localization by requiring the system to <span class="hl-method">predict a background class and handle multiple objects per image</span>. Unlike methods based on <span class="hl-concept">selective search</span> or other <span class="hl-concept">object proposal methods</span>, OverFeat uses a <span class="hl-method">dense sliding window approach</span>. Training proceeds spatially, with <span class="hl-method">multiple locations per image processed simultaneously</span>, selecting <span class="hl-method">informative negative examples on-the-fly</span> rather than through traditional bootstrapping. The system achieved <span class="hl-evidence">19.4% mAP during the ILSVRC2013 competition (3rd place)</span> and <span class="hl-evidence">24.3% mAP in post-competition experiments</span>. Notably, the gap between the top 3 methods (19.4-22.6%) and 4th place (11.5%) was substantial, highlighting the <span class="hl-evidence">effectiveness of ConvNet-based approaches for detection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                偵測擴展了定位，要求系統預測背景類別並處理每張影像中的多個物件。不同於基於選擇性搜尋或其他物件提議方法的方法，OverFeat 使用稠密滑動視窗方法。訓練以空間方式進行，每張影像同時處理多個位置，即時選擇有資訊量的負例而非透過傳統的自舉法。系統在 ILSVRC2013 比賽中達到 19.4% mAP（第三名），後競賽實驗中達到 24.3% mAP。值得注意的是，前三名方法（19.4-22.6%）與第四名（11.5%）之間的差距巨大，凸顯了基於摺積網路的偵測方法之有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    偵測任務——展示框架在第三個任務上的應用與競賽結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    完成「三任務統一」的最後一環。3rd place + 前三名遠超第四名的格局，間接論證了 ConvNet 偵測方法的革命性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「前三 vs. 第四」的差距來論證 ConvNet 偵測的有效性是巧妙的——即使 OverFeat 只是第三，整個 ConvNet 陣營的集體優勢仍然明顯。但偵測的 19.4% mAP 絕對值不高，顯示當時方法的侷限性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">5. Experiments Summary — 實驗彙總</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Across all three tasks, OverFeat demonstrates the <span class="hl-thesis">power of shared ConvNet features</span>. In <span class="hl-evidence">classification, the multi-scale dense evaluation improves top-5 error from 18.2% to 13.24%</span>. In <span class="hl-evidence">localization, the system wins ILSVRC2013 with 29.9% error</span>, compared to 40% for single-crop and 30% for 4-scale evaluation. The <span class="hl-evidence">single-class regression (SCR) outperforms per-class regression (PCR)</span> due to insufficient training examples per class — a finding that highlights the importance of <span class="hl-thesis">sharing statistical strength across classes</span>. In <span class="hl-evidence">detection, the post-competition system achieves 24.3% mAP</span>. Key architectural insights include the <span class="hl-method">FC-as-Conv trick for efficient dense evaluation</span> and the <span class="hl-method">offset pooling for increased resolution</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在所有三項任務中，OverFeat 展示了共享摺積網路特徵的威力。在分類方面，多尺度稠密評估將 top-5 錯誤率從 18.2% 改善至 13.24%。在定位方面，系統以 29.9% 的錯誤率贏得 ILSVRC2013，相比單裁剪的 40% 與 4 尺度的 30%。單類迴歸（SCR）優於逐類迴歸（PCR），因每類訓練範例不足——此發現凸顯了跨類別共享統計強度的重要性。在偵測方面，後競賽系統達到 24.3% mAP。關鍵的架構洞見包括用於高效稠密評估的「全連接即摺積」技巧，以及用於提升解析度的偏移池化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗彙總——整合三項任務的結果與關鍵洞見。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從實驗結果中提煉出兩個跨任務的洞見：(1) 特徵共享提升所有任務；(2) 跨類別共享統計強度有益迴歸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    SCR vs. PCR 的比較揭示了深度學習的關鍵原則——當資料不足時，共享表示比獨立模型更有效。但此發現也暗示了 ImageNet 的類別不平衡可能影響系統表現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">6. Discussion — 討論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">OverFeat</span> demonstrates that <span class="hl-thesis">a single ConvNet can effectively serve as the backbone for classification, localization, and detection</span>. The <span class="hl-method">multi-scale, fully convolutional dense evaluation</span> strategy is broadly applicable and forms the basis for efficient inference. The final ILSVRC2013 rankings — <span class="hl-evidence">4th in classification, 1st in localization, 1st in detection</span> — validate the integrated approach. Potential improvements identified include <span class="hl-rebuttal">back-propagating through the entire system for localization</span>, <span class="hl-rebuttal">directly optimizing intersection-over-union rather than L2 loss</span>, and <span class="hl-rebuttal">exploring alternative bounding box parameterizations</span>. The integrated multi-task learning paradigm suggests that <span class="hl-thesis">future vision systems should move toward unified architectures rather than task-specific pipelines</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                OverFeat 證明了單一摺積網路可以有效地作為分類、定位與偵測的骨幹。多尺度、全摺積稠密評估策略具有廣泛的適用性，且形成了高效推理的基礎。ILSVRC2013 的最終排名——分類第四、定位第一、偵測第一——驗證了整合式方法。已辨識的潛在改進包括：為定位進行整個系統的反向傳播、直接最佳化交集比聯集（IoU）而非 L2 損失，以及探索替代的邊界框參數化方式。整合式多任務學習範式建議未來的視覺系統應朝向統一架構而非任務專用管線。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與展望——重申整合方法的價值並指出改進方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論超越 OverFeat 本身，提出「統一架構 vs. 任務專用管線」的方法論主張——這預見了後續多任務學習的發展方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項改進建議（端對端反向傳播、IoU 損失、替代參數化）均在後續研究中被實現——展現了作者對問題的深刻理解。但結論中未充分討論滑動視窗方法在偵測中的效率問題——後續的 R-CNN 系列以物件提議取代了密集滑動，表明此方向的侷限性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                分類/定位/偵測<br>使用分離架構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                單一 ConvNet 骨幹<br>統一三項任務
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ILSVRC2013<br>定位與偵測冠軍
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                滑動視窗效率<br>與 L2 損失的侷限
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                統一架構是未來<br>視覺系統的方向
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將全連接層重新詮釋為摺積並實現多尺度稠密推理，單一摺積網路可同時勝任分類、定位與偵測三項視覺任務，開創了多任務統一框架的先河。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>「FC = 1x1 Conv」的概念革新：</strong>此洞見不僅使 OverFeat 的稠密推理成為可能，更成為後續全摺積網路（FCN）、語意分割乃至所有現代偵測框架的理論基礎。ILSVRC2013 定位冠軍提供了整合方法有效性的權威驗證。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>偵測框架的效率問題：</strong>稠密滑動視窗在所有位置和尺度上計算，大量計算浪費在無物件的背景區域。後續的 R-CNN 系列以選擇性物件提議取代密集滑動，展現了更高的效率。此外，L2 損失用於邊界框迴歸與定位的實際目標（IoU）不完全對齊。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlowFast Networks for Video Recognition — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                SlowFast Networks for Video Recognition
+                <span class="course-tag">ICCV 2019</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1812.03982" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 架構</a>
+        <a href="#sec-fast">3.2 快速路徑</a>
+        <a href="#sec-lateral">3.3 橫向連接</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">SlowFast networks</span>, a model for video recognition involving <span class="hl-thesis">a Slow pathway operating at low frame rate to capture spatial semantics, and a Fast pathway operating at high frame rate to capture motion at fine temporal resolution</span>. The Fast pathway can be made very lightweight by <span class="hl-method">reducing its channel capacity</span>, as it is designed to represent <span class="hl-thesis">rapidly changing motion rather than detailed spatial appearance</span>. Our models achieve strong performance for both <span class="hl-evidence">action classification and detection</span>, on the <span class="hl-evidence">Kinetics, Charades, and AVA datasets</span>, consistently outperforming prior art.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 SlowFast 網路，一種用於影片辨識的模型，包含一條以低幀率運作以捕捉空間語意的慢速路徑，以及一條以高幀率運作以精細時間解析度捕捉動態的快速路徑。快速路徑可透過降低其通道容量而變得非常輕量，因為它被設計為表示快速變化的動態而非詳細的空間外觀。我們的模型在 Kinetics、Charades 與 AVA 資料集上，於動作分類與偵測兩方面均達到強勁表現，持續超越先前的最佳成果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以雙路徑架構為核心，點出慢/快分工的設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以功能分工（空間語意 vs. 時間動態）為核心訊息，暗示影片理解需要不同粒度的時間處理——這是架構設計的根本動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將快速路徑描述為「輕量」既是技術優勢也是效率論點——雙路徑不等於雙倍計算。但「空間語意不需高幀率」的假設在快速場景變化時可能不成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors argue that <span class="hl-thesis">video differs fundamentally from images because spatiotemporal orientations are not equally likely — slow motions dominate</span>. They propose factoring the architecture to <span class="hl-thesis">handle spatial structures and temporal events separately</span>. <span class="hl-concept">Categorical semantics</span> evolve slowly — <span class="hl-evidence">a hand remains a "hand" throughout a waving motion</span> — while <span class="hl-concept">motion dynamics</span> change rapidly. This <span class="hl-method">biological intuition</span> parallels the structure of primate retinal cells: approximately <span class="hl-evidence">80% are Parvocellular (P-cells, slow, high spatial detail, color-sensitive)</span> while <span class="hl-evidence">15-20% are Magnocellular (M-cells, fast temporal response, motion-sensitive, low spatial detail)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者論證影片與影像有根本性差異，因為時空方向並非等機率——慢動作佔主導地位。他們提議將架構分工以分別處理空間結構與時間事件。類別語意演變緩慢——手在揮動的整個過程中仍是「手」——而動態則快速變化。此生物學直覺呼應了靈長類視網膜細胞的結構：約 80% 為小細胞型（P 細胞，慢速、高空間細節、對色彩敏感），而約 15-20% 為大細胞型（M 細胞，快速時間回應、對動態敏感、低空間細節）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    生物學動機——以視覺神經科學為架構設計提供自然界的先例。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：從「影片不等於影像序列」的觀察出發，以生物視覺系統的雙通道結構為架構設計的靈感來源，賦予方法以自然合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    援引神經科學作為架構動機是強大的修辭策略——「大自然已經驗證了此設計」。但生物系統的設計不必然是計算系統的最佳方案，P/M 細胞的功能分工遠比 Slow/Fast 路徑複雜。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper reviews <span class="hl-concept">spatiotemporal filtering</span> approaches like <span class="hl-concept">3D ConvNets</span> (C3D, I3D), <span class="hl-concept">optical flow methods</span> including <span class="hl-concept">two-stream networks</span>, and prior work on <span class="hl-concept">hand-crafted features</span> (HOG, HOF, MBH). A critical distinction is drawn between SlowFast and <span class="hl-concept">traditional two-stream methods</span>: the latter combine <span class="hl-rebuttal">RGB frames with precomputed optical flow — two different modalities</span>, while SlowFast emphasizes <span class="hl-thesis">different temporal speeds of the same raw input</span>. Unlike two-stream networks that require <span class="hl-rebuttal">expensive optical flow precomputation</span>, SlowFast operates on <span class="hl-thesis">raw RGB frames at different sampling rates</span>, making it end-to-end trainable and more efficient.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                論文回顧了時空濾波方法如三維摺積網路（C3D、I3D）、光流方法（包括雙串流網路），以及先前的手工特徵（HOG、HOF、MBH）。一個關鍵區別在 SlowFast 與傳統雙串流方法之間被點出：後者結合 RGB 幀與預計算的光流——兩種不同的模態，而 SlowFast 強調的是同一原始輸入的不同時間速度。不同於需要昂貴光流預計算的雙串流網路，SlowFast 以不同取樣率操作原始 RGB 幀，使其端對端可訓練且更有效率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻區分——精確劃清 SlowFast 與雙串流方法的本質差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應最可能的批評：「SlowFast 只是另一種雙串流方法嗎？」答案是否——差異在於「速度分工」vs.「模態分工」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將差異定義在「時間速度 vs. 感測模態」是精確的概念區分。但在功能上，Fast 路徑學到的表示是否等價於光流資訊？若是，則兩者的差異可能主要是工程上的而非概念上的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. SlowFast Networks — 架構</h2>
+    <h3 class="subsection-heading">3.1 Slow Pathway — 慢速路徑</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Slow pathway</span> processes video with a <span class="hl-method">large temporal stride (tau = 16)</span>, sampling only <span class="hl-method">sparse frames to capture semantic content</span>. For a 64-frame clip, the Slow pathway sees only <span class="hl-evidence">4 frames</span>. It can be any <span class="hl-method">standard convolutional architecture (e.g., ResNet)</span> operating on these sparsely sampled frames. The key insight is that <span class="hl-thesis">spatial semantics and object identities change slowly over time</span> — a table remains a table across many frames — so a low temporal sampling rate <span class="hl-thesis">suffices for capturing spatial features without temporal redundancy</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                慢速路徑以大時間步幅（tau = 16）處理影片，僅取樣稀疏的幀以捕捉語意內容。對一個 64 幀的片段，慢速路徑僅看到 4 幀。它可以是任何操作在這些稀疏取樣幀上的標準摺積架構（如 ResNet）。核心洞察是空間語意與物件身分隨時間緩慢變化——桌子在許多幀中仍是桌子——因此低時間取樣率足以捕捉空間特徵而不產生時間冗餘。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    慢速路徑定義——以具體參數說明稀疏取樣策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「桌子仍是桌子」的直覺範例支撐低幀率的合理性。64 幀中僅取 4 幀的具體數字讓讀者理解壓縮程度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以日常直覺（物件身分不變）支撐技術設計是有效的溝通策略。但在快速場景切換或物件出現/消失的情境中，4 幀可能不足以捕捉重要的語意變化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-fast">3.2 Fast Pathway — 快速路徑</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Fast pathway</span> operates at <span class="hl-method">alpha x 8 denser frame sampling</span> (typically alpha = 8, seeing <span class="hl-evidence">32 frames from the same 64-frame clip</span>), maintaining <span class="hl-method">temporal resolution without temporal downsampling</span>. Critically, the Fast pathway uses a <span class="hl-method">reduced channel capacity with ratio beta = 1/8</span>, resulting in <span class="hl-evidence">only ~20% of the Slow pathway's computational cost</span>. This asymmetry reflects the design principle: <span class="hl-thesis">temporal motion does not require as many channels as spatial semantics</span>. The Fast pathway focuses on <span class="hl-thesis">capturing "what is changing" rather than "what is there"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                快速路徑以 alpha x 8 倍更密集的幀取樣運作（通常 alpha = 8，從同一個 64 幀片段中看到 32 幀），維持時間解析度而不進行時間降取樣。關鍵地，快速路徑使用縮減的通道容量，比率 beta = 1/8，結果僅約慢速路徑計算成本的 20%。此不對稱反映了設計原則：時間動態不需要與空間語意一樣多的通道。快速路徑專注於捕捉「什麼在變化」而非「什麼在那裡」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    快速路徑定義——以輕量化設計實現高時間解析度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段的核心論點是「不對稱性」的合理性：高時間解析度 + 低通道數。20% 的計算成本使雙路徑方案在效率上仍具競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「什麼在變化 vs. 什麼在那裡」的二分法簡潔有力。但 beta = 1/8 的選擇是否最佳？過低的通道數可能遺失精細的動態資訊（如手勢的細微差異）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-lateral">3.3 Lateral Connections — 橫向連接</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The two pathways are fused through <span class="hl-method">lateral connections</span> that transfer information from the Fast pathway to the Slow pathway. Several fusion strategies are explored: <span class="hl-method">time-to-channel reshaping, time-strided sampling, and temporal convolutions</span>. These connections allow the <span class="hl-thesis">Slow pathway to be informed by the temporal dynamics captured by the Fast pathway</span> while maintaining its own spatial processing. The fusion is <span class="hl-method">unidirectional (Fast to Slow)</span>, reflecting the design intuition that <span class="hl-thesis">spatial reasoning benefits from motion cues, but motion capture is a simpler task that can proceed independently</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                兩條路徑透過橫向連接融合，將快速路徑的資訊傳遞至慢速路徑。作者探索了多種融合策略：時間到通道的重塑、時間步幅取樣與時間摺積。這些連接允許慢速路徑獲知快速路徑捕捉的時間動態，同時維持自身的空間處理。融合為單向的（快速至慢速），反映了設計直覺：空間推理受益於動態線索，但動態捕捉是較簡單的任務，可獨立進行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    融合機制——描述雙路徑間的資訊流動設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    單向融合是精心的設計選擇：它暗示動態資訊應增強空間理解，但反之則不然。此不對稱性與 P/M 細胞的資訊流向一致。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    單向融合的選擇簡化了架構但可能損失資訊——空間上下文是否能改善動態偵測？雙向融合的消融實驗結果將是有說服力的補充。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Kinetics-400:</span> SlowFast achieves <span class="hl-evidence">79.8% top-1 accuracy</span>, substantially outperforming prior work trained from scratch. <span class="hl-concept">Ablation studies</span> demonstrate: the <span class="hl-evidence">Fast pathway consistently improves Slow-only baselines across all variants</span>; various <span class="hl-evidence">channel ratios (beta = 1/32 to 1/4) all maintain improvements</span>; and <span class="hl-evidence">alternative Fast inputs (grayscale, reduced resolution) remain effective</span>, confirming the pathway is capturing temporal rather than spatial features. <span class="hl-concept">AVA Action Detection:</span> SlowFast <span class="hl-evidence">improves from 19.0 to 24.2 mAP</span> against the Slow baseline, with <span class="hl-evidence">largest gains in motion-heavy categories like "hand clap" (+27.7 AP)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Kinetics-400 方面：SlowFast 達到 79.8% top-1 準確率，大幅超越先前從零訓練的方法。消融研究展示：快速路徑在所有變體中持續改善僅慢速的基線；各種通道比率（beta = 1/32 至 1/4）均維持改善；替代性的快速輸入（灰階、降解析度）仍然有效，確認該路徑捕捉的是時間而非空間特徵。AVA 動作偵測方面：SlowFast 相對慢速基線從 19.0 提升至 24.2 mAP，在動態密集類別如「拍手」上獲得最大增益（+27.7 AP）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面驗證——以分類、偵測與消融三個維度展示方法有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融實驗特別有力：灰階 Fast 輸入仍有效，直接證明 Fast 路徑確實學到了時間（而非空間）資訊。「拍手」+27.7 AP 的案例精確對應了設計動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以灰階輸入的消融實驗驗證設計假設是精妙的實驗設計。但 79.8% 的 Kinetics 結果是否包含預訓練模型的比較？僅與「從零訓練」的方法比較可能不夠全面。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">SlowFast networks</span> demonstrate that the <span class="hl-thesis">temporal axis warrants special architectural treatment in video understanding</span>. By <span class="hl-method">factoring the architecture into a Slow pathway for spatial semantics and a lightweight Fast pathway for temporal dynamics</span>, the model achieves <span class="hl-evidence">state-of-the-art video recognition</span> through <span class="hl-thesis">contrasting temporal speeds rather than contrasting modalities</span>. The design is grounded in the <span class="hl-method">biological insight that spatial and temporal information are processed asymmetrically</span> in biological vision systems, and this principle proves computationally effective. The approach opens new directions for architectures that <span class="hl-thesis">explicitly encode temporal structure</span> in video analysis.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SlowFast 網路證明了時間軸在影片理解中值得特殊的架構處理。透過將架構分工為處理空間語意的慢速路徑與處理時間動態的輕量快速路徑，模型以對比時間速度而非對比模態的方式達到最先進的影片辨識。此設計根植於生物學洞察：空間與時間資訊在生物視覺系統中被不對稱地處理，而此原則在計算上證明是有效的。此方法為明確編碼時間結構的影片分析架構開啟了新方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以「時間軸的特殊地位」作為核心結論。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論回到生物學動機，形成閉環：生物學啟發 -> 架構設計 -> 實驗驗證 -> 證實生物學原則的計算有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「對比速度而非對比模態」精簡地總結了與雙串流方法的差異。但結論未討論方法的局限性——何種影片任務可能不受益於此架構？長時間依賴的任務是否需要不同的時間建模？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                影片的空間語意與<br>時間動態需求不同
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                雙路徑以不同速度<br>分別處理空間與時間
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                Kinetics 79.8%<br>AVA +5.2 mAP
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                非模態分離<br>而是速度分離
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                時間軸值得<br>特殊架構處理
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    影片理解應將空間語意與時間動態以不同速度的雙路徑架構分別處理，其中快速路徑可極為輕量，因為動態捕捉不需要高通道容量。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>消融實驗的設計巧思：</strong>灰階 Fast 輸入仍然有效的實驗，直接且無可辯駁地證明了 Fast 路徑確實學到時間而非空間資訊。動態密集類別（如拍手 +27.7 AP）的顯著增益精確對應了設計動機。生物學類比雖非嚴格證明，但作為直覺支撐極為有效。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>生物學類比的嚴謹性與架構泛化性：</strong>P/M 細胞的功能遠比 Slow/Fast 路徑複雜，直接類比可能過度簡化。此外，固定的 beta = 1/8 通道比率是否在所有影片任務中均為最佳？對需要精細空間-時間交互作用的任務（如手勢辨識），此分離式設計的效果未被充分驗證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

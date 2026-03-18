@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LERF: Language Embedded Radiance Fields — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                LERF: Language Embedded Radiance Fields
+                <span class="course-tag">ICCV 2023</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2303.09553" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-rendering">3.1 體積渲染</a>
+        <a href="#sec-multiscale">3.2 多尺度監督</a>
+        <a href="#sec-query">3.3 查詢機制</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">"Humans describe the physical world using natural language to refer to specific 3D locations based on a vast range of properties: visual appearance, semantics, abstract associations, or actionable affordances."</span> In this work the authors propose <span class="hl-concept">Language Embedded Radiance Fields (LERF)</span>, <span class="hl-thesis">a method for grounding language embeddings from off-the-shelf models like CLIP into NeRF, which enable open-ended language queries in 3D</span>. LERF learns a <span class="hl-method">dense, multi-scale language field</span> by <span class="hl-method">volume rendering CLIP embeddings along training rays with multi-view consistency</span>. After optimization, LERF generates <span class="hl-evidence">3D relevancy maps for language prompts in real-time</span> without requiring region proposals or masks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人類使用自然語言描述物理世界，根據廣泛的屬性（視覺外觀、語義、抽象關聯或可操作性）指涉特定的三維位置。本研究提出語言嵌入輻射場（LERF），一種將 CLIP 等現成模型的語言嵌入植入 NeRF 的方法，使得在三維空間中進行開放式語言查詢成為可能。LERF 透過沿訓練射線對 CLIP 嵌入進行體積渲染並施加多視角一致性約束，學習密集的多尺度語言場。最佳化後，LERF 能即時生成語言提示的三維相關性圖，無需區域提案或遮罩。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從人類認知的角度引出「以語言查詢三維場景」的研究目標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「人類如何描述世界」作為哲學性開場，將技術問題（CLIP + NeRF 融合）提升為認知科學層面的探索，擴大了論文的影響力範圍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「開放式語言查詢」的範圍極廣，但實際受限於 CLIP 的能力——CLIP 本身對空間關係、組合概念的理解有限。「無需區域提案」是相對於 2D 方法的優勢，但在 3D 中的精度需實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">"Neural Radiance Fields (NeRFs) have emerged as a powerful technique for capturing photorealistic digital representations of intricate real-world 3D scenes."</span> However, <span class="hl-rebuttal">"the immediate output of NeRFs is nothing but a colorful density field, devoid of meaning or context."</span> The authors propose enabling <span class="hl-thesis">natural language interaction with 3D scenes</span> by grounding <span class="hl-concept">CLIP</span> embeddings within NeRF structures. LERF supports diverse query types — from <span class="hl-evidence">visual properties to abstract concepts</span> — without fine-tuning CLIP or relying on region proposals. This bridges the gap between <span class="hl-concept">photorealistic 3D reconstruction</span> and <span class="hl-concept">semantic scene understanding</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                神經輻射場（NeRF）已成為捕捉精密真實世界三維場景的逼真數位表示的強大技術。然而，NeRF 的直接輸出不過是一個彩色密度場，缺乏意義與脈絡。作者提議透過將 CLIP 嵌入植入 NeRF 結構，實現與三維場景的自然語言互動。LERF 支援從視覺屬性到抽象概念的多樣查詢類型，無需微調 CLIP 或依賴區域提案。這橋接了逼真三維重建與語義場景理解之間的鴻溝。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出 NeRF 缺乏語義理解的根本限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「彩色密度場，缺乏意義」的批評精準描繪了原始 NeRF 的本質限制，為語言嵌入的融入提供了強有力的動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「缺乏意義」的措辭有效但也稍嫌激進——語義 NeRF（如 Semantic NeRF）已透過分割標籤引入了部分語義。LERF 的差異化在於開放詞彙而非封閉標籤集。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior work covers <span class="hl-concept">open-vocabulary detection</span> in 2D, <span class="hl-concept">2D feature distillation into NeRF</span>, and <span class="hl-concept">3D language grounding</span> approaches. Methods like <span class="hl-concept">Distilled Feature Fields (DFF)</span> distill features from 2D vision models into NeRF but <span class="hl-rebuttal">operate at a single scale, missing the multi-scale nature of language concepts</span>. <span class="hl-concept">3D-SLR</span> and similar approaches use <span class="hl-rebuttal">region proposals or pre-extracted bounding boxes</span>, creating a bottleneck. LERF is positioned as offering a <span class="hl-thesis">"dense, volumetric interface for 3D text queries"</span> distinct from prior sparse or single-scale methods, without requiring any pre-segmentation or region proposal stages.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前工作涵蓋二維開放詞彙偵測、二維特徵蒸餾至 NeRF，以及三維語言定位方法。如蒸餾特徵場（DFF）等方法將二維視覺模型的特徵蒸餾至 NeRF，但僅在單一尺度運作，忽略了語言概念的多尺度本質。3D-SLR 等方法使用區域提案或預提取的邊界框，形成瓶頸。LERF 被定位為提供密集的體積式三維文字查詢介面，有別於先前的稀疏或單尺度方法，且不需要任何預分割或區域提案階段。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——區分 LERF 與既有 2D/3D 語義方法的關鍵差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「單尺度」和「區域提案依賴」兩個維度批評先前工作，為 LERF 的「密集、多尺度、無提案」三重優勢鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 DFF 歸類為「單尺度」是精準的技術區分。但 LERF 的「密集」特性也意味著更高的記憶體與計算需求，此取捨未在此段討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-rendering">3.1 Volumetric Rendering of Language — 語言的體積渲染</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">"To render language embeddings into an image, we adopt a similar technique as prior work to render language embeddings along a ray."</span> Since LERF is a <span class="hl-concept">field over volumes, not points</span>, the method must also define a <span class="hl-method">scale parameter</span>. The scale is defined proportionally: <span class="hl-method">s(t) = s_img * f_xy / t</span>, representing a frustum along each ray where <span class="hl-method">s_img is the physical scale in image space and f_xy is the focal length</span>. This enables <span class="hl-thesis">multi-scale language supervision</span> — the same 3D point can hold different language meanings at different scales, mirroring how humans describe objects at varying levels of granularity.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為了將語言嵌入渲染為影像，本方法採用與先前工作類似的技術，沿射線渲染語言嵌入。由於 LERF 是一個體積場而非點場，方法還需定義一個尺度參數。尺度按比例定義：s(t) = s_img * f_xy / t，表示沿每條射線的錐體，其中 s_img 是影像空間的物理尺度，f_xy 是焦距。這實現了多尺度語言監督——同一個三維點在不同尺度下可以持有不同的語言意義，模擬人類在不同粒度層級描述物件的方式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——定義如何將語言嵌入從二維監督融入三維體積場。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    尺度參數的引入是 LERF 區別於 DFF 的關鍵創新——它將「多尺度」的概念從影像空間映射到三維空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    錐體幾何模型優雅地連結了影像尺度與三維深度。但假設 CLIP 嵌入在不同裁切尺度下保持語義一致性——實際上 CLIP 對裁切方式較為敏感，可能在極端尺度下失效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-multiscale">3.2 Multi-Scale Supervision — 多尺度監督</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                LERF supervises the language field using <span class="hl-method">image pyramids at multiple scales</span>. For each training ray, <span class="hl-method">CLIP embeddings are computed from image crops at three scales</span> centered on the pixel corresponding to that ray. The rendered language embedding is trained to match all three simultaneously. Additionally, <span class="hl-concept">DINO</span> features are used as a <span class="hl-method">regularizer to enforce spatial smoothness</span> in the language field. The DINO regularization helps because <span class="hl-thesis">DINO features capture local visual similarity that CLIP's global pooling may miss</span>, providing complementary geometric grounding for the language embeddings.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LERF 使用多尺度影像金字塔監督語言場。對於每條訓練射線，在以該射線對應像素為中心的三個尺度影像裁切上計算 CLIP 嵌入。渲染的語言嵌入被訓練為同時匹配三者。此外，使用 DINO 特徵作為正則化器，強制語言場的空間平滑性。DINO 正則化之所以有效，是因為 DINO 特徵捕捉了 CLIP 全域池化可能遺漏的局部視覺相似性，為語言嵌入提供互補的幾何定位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略——描述多尺度 CLIP 監督與 DINO 正則化的具體實施。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    CLIP（語義廣度）+ DINO（空間精度）的互補組合直接回應了單一模型不足的問題，形成了方法的雙支柱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三尺度監督加 DINO 正則化使每條射線的計算量顯著增加（3 次 CLIP 推論 + 1 次 DINO 推論），訓練效率可能成為瓶頸。此外，三個尺度的選擇（而非連續尺度）引入了離散化近似。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-query">3.3 Querying Mechanism — 查詢機制</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                At inference time, LERF generates <span class="hl-method">3D relevancy maps</span> for arbitrary text queries. The query process uses <span class="hl-method">cosine similarity between the rendered CLIP embedding and the text query embedding</span>. To normalize relevancy scores, the method employs <span class="hl-method">canonical phrase comparisons</span> — computing similarity against a set of generic text prompts (e.g., "object," "things," "texture") and normalizing the target query's score relative to these baselines. This produces a <span class="hl-evidence">per-point relevancy score that can be volume-rendered into 2D relevancy maps or queried directly in 3D</span>, enabling applications in <span class="hl-evidence">robotics, scene interaction, and spatial reasoning</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在推論時，LERF 為任意文字查詢生成三維相關性圖。查詢過程使用渲染的 CLIP 嵌入與文字查詢嵌入之間的餘弦相似度。為正規化相關性分數，方法採用典範短語比較——計算與一組通用文字提示（如「物件」、「東西」、「紋理」）的相似度，並將目標查詢的分數相對於這些基線進行正規化。這產生了逐點的相關性分數，可透過體積渲染為二維相關性圖或直接在三維中查詢，適用於機器人學、場景互動與空間推理等應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推論階段——描述如何從訓練好的語言場中提取資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    典範短語正規化是實用性的關鍵——原始餘弦相似度的絕對值缺乏語義，相對比較才具有可解釋性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    典範短語的選擇（「object」、「things」等）可能對查詢結果有顯著影響，但作者未詳細分析此敏感度。此外，體積渲染相關性圖時的遮擋處理需要注意——被遮擋的物件可能無法被查詢到。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                LERF is evaluated on <span class="hl-evidence">13 real-world scenes</span> spanning indoor and outdoor environments. For <span class="hl-evidence">localization tasks, LERF demonstrates superior performance over LSeg (3D)</span> and <span class="hl-evidence">competitive results against OWL-ViT</span>, a 2D open-vocabulary detector. Ablation studies confirm the importance of both <span class="hl-evidence">DINO regularization and multi-scale training</span> — removing either component degrades localization accuracy significantly. The method handles diverse query types including <span class="hl-evidence">object names ("mug"), visual attributes ("shiny"), abstract concepts ("something to write with"), and even text recognition ("SUNKIST")</span>, demonstrating the breadth of open-vocabulary 3D querying.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LERF 在 13 個涵蓋室內外環境的真實世界場景上進行評估。在定位任務上，LERF 展現了優於 LSeg（3D）的表現，且與二維開放詞彙偵測器 OWL-ViT 競爭力相當。消融研究確認了 DINO 正則化與多尺度訓練的重要性——移除任一組件都會顯著降低定位準確度。該方法處理多樣的查詢類型，包括物件名稱（「馬克杯」）、視覺屬性（「閃亮的」）、抽象概念（「可以用來寫字的東西」），甚至文字辨識（「SUNKIST」），展示了開放詞彙三維查詢的廣度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證支撐——以多元查詢類型展示方法的泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「可以用來寫字的東西」這類抽象查詢的成功是最具說服力的證據——它超越了物件辨識，達到了功能性理解的層次。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    13 個場景的評估規模適中但不算大。與 OWL-ViT「競爭力相當」而非「超越」值得注意——OWL-ViT 是 2D 方法，LERF 作為 3D 方法理應在空間推理上有優勢。消融研究的完整性為方法設計提供了堅實的支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">"We present LERF, a novel method of fusing raw CLIP embeddings into a NeRF in a dense, multi-scale fashion without requiring region proposals or fine-tuning."</span> The method demonstrates that <span class="hl-thesis">language understanding can be seamlessly integrated into 3D scene representations</span>, enabling real-time open-ended queries. Acknowledged limitations include <span class="hl-rebuttal">CLIP's bag-of-words behavior</span> (difficulty with compositional queries like "the red cup to the left of the book"), <span class="hl-rebuttal">spatial reasoning difficulties</span>, and <span class="hl-rebuttal">dependency on NeRF reconstruction quality</span> — poorly reconstructed regions yield unreliable language embeddings.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 LERF，一種以密集、多尺度方式將原始 CLIP 嵌入融入 NeRF 的新方法，無需區域提案或微調。該方法證明了語言理解可以無縫整合至三維場景表示中，實現即時的開放式查詢。已知限制包括 CLIP 的詞袋行為（難以處理如「書旁邊的紅色杯子」等組合式查詢）、空間推理困難，以及對 NeRF 重建品質的依賴——重建不佳的區域會產生不可靠的語言嵌入。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申創新點並坦承三項具體限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三項限制的自我批評展現了學術誠實：CLIP 的語言理解瓶頸、空間推理不足、重建品質依賴，各自指向不同的未來研究方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將限制歸因於 CLIP 而非 LERF 本身是巧妙的論證——暗示 LERF 的框架是正確的，只要基礎模型改進（如 SigLIP），結果即可提升。但 NeRF 重建品質的依賴是更根本的架構限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>NeRF 僅產生密度場<br>缺乏語義理解</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>多尺度 CLIP 嵌入<br>融入體積輻射場</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>13 場景評估<br>抽象概念查詢成功</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>CLIP 詞袋限制<br>空間推理不足</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>語言理解可無縫<br>整合至 3D 表示</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過以多尺度方式將 CLIP 語言嵌入融入 NeRF 的體積場並以 DINO 正則化，可在三維空間中實現密集、即時且開放詞彙的自然語言查詢。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>多尺度語言場的設計理念：</strong>以錐體幾何模型將影像空間的裁切尺度映射至三維深度，使同一點能在不同粒度持有不同語義——這不僅是技術創新，更深刻反映了人類對世界的多層次語言描述。抽象概念查詢（如「可以用來寫字的東西」）的成功展示了超越物件辨識的功能性理解。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>對基礎模型的雙重依賴：</strong>LERF 同時依賴 NeRF 的重建品質與 CLIP 的語言理解能力，任一端的失敗都會傳播至最終結果。CLIP 的詞袋特性限制了組合式空間查詢（如「左邊的紅杯」），而 NeRF 重建失敗區域的語言嵌入也無法修復。雙重瓶頸使得系統的可靠性受限於最弱的環節。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

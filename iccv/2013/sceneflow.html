@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piecewise Rigid Scene Flow — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Piecewise Rigid Scene Flow
+                <span class="course-tag">ICCV 2013</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://openaccess.thecvf.com/content_iccv_2013/html/Vogel_Piecewise_Rigid_Scene_2013_ICCV_paper.html" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-energy">3.2 能量函數</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We address the problem of <span class="hl-concept">3D scene flow estimation</span> from <span class="hl-concept">stereo video sequences</span>. Our approach represents the dynamic 3D scene as <span class="hl-thesis">a collection of planar, rigidly moving, local segments</span>. We <span class="hl-method">jointly estimate the assignment of pixels to segments along with the 3D shape and rigid motion parameters</span> of each plane. Our formulation combines <span class="hl-method">occlusion-sensitive data terms with regularizers on shape, motion, and segmentation</span> within a unified energy minimization framework. The optimization proceeds in two stages: first estimating <span class="hl-method">shape and motion parameters by assigning moving plane proposals</span>, then updating <span class="hl-method">pixel-to-segment assignments while keeping plane parameters fixed</span>. Our method achieves <span class="hl-evidence">leading performance on the KITTI benchmark</span>, outperforming competing 3D scene flow methods and yielding <span class="hl-evidence">superior 2D optical flow estimates compared to dedicated optical flow techniques</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文處理從立體視訊序列中估計三維場景流的問題。我們的方法將動態三維場景表示為分段式剛性運動的局部平面片段集合。我們同時估計像素到片段的指派，以及每個平面的三維形狀與剛性運動參數。我們的公式化在統一的能量最小化框架內，結合了遮擋敏感的資料項與形狀、運動和分割的正則化項。最佳化分兩階段進行：首先透過指派運動平面提議來估計形狀和運動參數，接著在保持平面參數不變的情況下更新像素到片段的指派。本方法在 KITTI 基準上達到領先表現，優於競爭的三維場景流方法，且比專門的光流技術產生更佳的二維光流估計。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以分段式剛性表示為核心，預告方法、能量框架與實驗結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以密集的技術描述建立方法的完整圖像：「表示→聯合估計→兩階段最佳化→KITTI 領先結果」的遞進結構清晰明瞭。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    宣稱不僅超越場景流方法，甚至超越專門光流技術的二維結果——此交叉領域的宣稱極具影響力但需強力實驗支持。「分段式剛性」假設隱含地排除了非剛性運動場景。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Scene flow</span> — the dense 3D motion field of a scene — is the natural extension of <span class="hl-concept">optical flow</span> from 2D to 3D. Recovering scene flow from stereo sequences provides rich geometric and dynamic information for applications in <span class="hl-evidence">autonomous driving, robotics, and 3D reconstruction</span>. Existing methods typically estimate scene flow by <span class="hl-rebuttal">independently computing stereo depth and optical flow, then combining them post-hoc</span>. This decoupled strategy <span class="hl-rebuttal">fails to exploit the mutual constraints between geometry and motion</span>, leading to suboptimal results especially in occluded regions. We propose a <span class="hl-thesis">joint estimation framework based on the assumption that real-world scenes can be well-approximated by a collection of rigidly moving planar segments</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                場景流——場景的稠密三維運動場——是光流從二維到三維的自然延伸。從立體序列中恢復場景流為自動駕駛、機器人學與三維重建等應用提供豐富的幾何與動態資訊。現有方法通常透過獨立計算立體深度與光流，再事後組合來估計場景流。此解耦策略未能利用幾何與運動之間的相互約束，導致次優結果，特別是在遮擋區域。我們提出一個聯合估計框架，基於真實世界場景可以被剛性運動平面片段的集合良好近似的假設。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——從場景流的定義到現有方法的「解耦」缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「獨立估計 vs. 聯合估計」的對比建構問題，為聯合框架的引入提供邏輯必然性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「解耦失去相互約束」的論證直覺且合理。但「分段式剛性」假設是一個強假設——在包含大量非剛性運動（如行人走路）的場景中，此假設的有效性需要討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Early <span class="hl-concept">scene flow</span> methods by <span class="hl-concept">Vedula et al. (1999)</span> required multiple calibrated cameras. Subsequent work by <span class="hl-concept">Huguet and Devernay (2007)</span> formulated stereo scene flow as a <span class="hl-method">variational optimization problem</span>, but produced <span class="hl-rebuttal">overly smooth results that fail to preserve motion boundaries</span>. <span class="hl-concept">Piecewise planar models</span> for stereo have been successful in static depth estimation; our work extends this to the <span class="hl-method">dynamic setting with joint segmentation and rigid motion</span>. In <span class="hl-concept">optical flow</span>, recent <span class="hl-concept">piecewise rigid methods</span> have shown that the rigidity assumption is <span class="hl-evidence">surprisingly effective even for non-rigid scenes</span>, as local regions often exhibit approximately rigid motion over short time intervals.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                早期由 Vedula 等人（1999）提出的場景流方法需要多個校準攝影機。Huguet 與 Devernay（2007）後續將立體場景流公式化為變分最佳化問題，但產生過於平滑、無法保留運動邊界的結果。分段式平面模型在靜態深度估計中已獲成功；本研究將其擴展至具有聯合分割與剛性運動的動態設定。在光流方面，近期的分段式剛性方法顯示，剛性假設即使對非剛性場景也令人意外地有效——因為局部區域在短時間間隔內通常呈現近似剛性的運動。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——追溯場景流的學術演進，並為分段式剛性假設尋找支持。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「剛性假設對非剛性場景也有效」的文獻證據，預先化解讀者對核心假設的質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    巧妙地將變分方法的「過度平滑」缺陷與本方法的「保留邊界」優勢對比。引用光流文獻中剛性假設的成功案例作為預防性論證是聰明的策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Scene Representation — 場景表示</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We represent the scene as a set of <span class="hl-concept">planar segments</span> <em>S = {s<sub>1</sub>, ..., s<sub>K</sub>}</em>, where each segment <em>s<sub>k</sub></em> is characterized by a <span class="hl-method">3D plane (normal n<sub>k</sub> and offset d<sub>k</sub>)</span> and a <span class="hl-method">rigid motion (rotation R<sub>k</sub> and translation t<sub>k</sub>)</span>. Each pixel <em>i</em> is assigned to exactly one segment via a <span class="hl-method">labeling function l: pixels → {1,...,K}</span>. The depth of pixel <em>i</em> assigned to segment <em>k</em> is determined by the <span class="hl-method">plane equation z<sub>i</sub> = -d<sub>k</sub> / (n<sub>k</sub> · r<sub>i</sub>)</span>, where <em>r<sub>i</sub></em> is the viewing ray. The 3D motion of each pixel is then given by applying the <span class="hl-method">rigid transformation (R<sub>k</sub>, t<sub>k</sub>)</span> to its 3D position. This representation <span class="hl-thesis">compactly encodes both geometry and motion with only 9 parameters per segment</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將場景表示為一組平面片段 S = {s1, ..., sK}，其中每個片段 sk 以一個三維平面（法向量 nk 與偏移 dk）和一個剛性運動（旋轉 Rk 與平移 tk）表徵。每個像素 i 透過標記函數 l: pixels → {1,...,K} 被指派至恰好一個片段。指派至片段 k 的像素 i 之深度由平面方程 zi = -dk / (nk · ri) 決定，其中 ri 為觀看光線。每個像素的三維運動接著由將剛性變換 (Rk, tk) 套用至其三維位置而得。此表示以每個片段僅 9 個參數便緊湊地編碼了幾何與運動。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法基礎——定義分段式剛性場景表示的數學形式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立方法的數學骨架：每片段 9 參數（3 法向量 + 1 偏移 + 3 旋轉 + 3 平移 - 1 法向量正規化）的緊湊性是計算效率的基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「每片段 9 個參數」的緊湊性強調是有效的——相比逐像素估計的高維問題，此參數化大幅降低了自由度。但片段數量 K 本身也是需要決定的超參數，且表示的品質高度依賴於分割的品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-energy">3.2 Energy Function — 能量函數</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The energy function consists of four terms: (1) a <span class="hl-method">stereo data term</span> measuring photometric consistency between left and right images at both time steps, with <span class="hl-method">explicit occlusion reasoning</span>; (2) a <span class="hl-method">temporal data term</span> measuring photometric consistency between consecutive frames; (3) a <span class="hl-method">shape regularizer</span> encouraging neighboring segments to have similar depth; and (4) a <span class="hl-method">motion regularizer</span> encouraging spatially adjacent segments to have consistent rigid motions. The <span class="hl-thesis">explicit handling of occlusions in the data term</span> is critical — occluded pixels are identified and excluded from the matching cost rather than being treated as outliers, leading to <span class="hl-evidence">more accurate depth and motion estimates near object boundaries</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                能量函數由四項組成：(1) 立體資料項，在兩個時間步測量左右影像之間的光度一致性，並帶有顯式遮擋推理；(2) 時序資料項，測量連續影格之間的光度一致性；(3) 形狀正則化項，鼓勵相鄰片段具有相似的深度；(4) 運動正則化項，鼓勵空間上相鄰的片段具有一致的剛性運動。資料項中對遮擋的顯式處理至關重要——被遮擋的像素被辨識並從匹配成本中排除，而非被視為離群值，從而在物件邊界附近產生更準確的深度與運動估計。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——詳述四項能量函數的設計與遮擋處理策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    能量函數的四項設計體現了「聯合估計」的哲學：形狀、運動、分割在同一目標函數中相互約束，避免了解耦方法的資訊損失。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將遮擋從「雜訊」提升為「顯式變數」是設計上的關鍵決策，展現了對問題的深刻理解。但四項能量的權重平衡是一個敏感的調參問題，作者需說明這些權重如何選定及其對結果的影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on the <span class="hl-evidence">KITTI Scene Flow benchmark</span>, which provides ground truth from LiDAR measurements in real-world driving scenarios. Our method ranks <span class="hl-evidence">1st among all scene flow methods at the time of submission</span>, with an average endpoint error of <span class="hl-evidence">approximately 5.0 pixels for optical flow and 4.5% outliers for disparity estimation</span>. Notably, our scene flow method also <span class="hl-evidence">outperforms several dedicated optical flow methods</span> on the 2D motion component, demonstrating that <span class="hl-thesis">joint 3D reasoning improves even 2D motion estimation</span>. Qualitative results show <span class="hl-evidence">crisp motion boundaries and accurate depth discontinuities</span> that are absent in variational methods. We further validate on synthetic sequences with <span class="hl-evidence">known ground truth, achieving sub-pixel accuracy for both depth and flow</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 KITTI 場景流基準上進行評估，該基準提供真實駕駛場景中由光學雷達測量的真值。本方法在提交時排名所有場景流方法的第一名，光流的平均端點誤差約 5.0 像素，視差估計的離群值比率約 4.5%。值得注意的是，我們的場景流方法在二維運動分量上也優於多個專門的光流方法，證明了聯合三維推理甚至能改善二維運動估計。定性結果展現了銳利的運動邊界與準確的深度不連續性——這些在變分方法中是缺失的。我們進一步在具有已知真值的合成序列上驗證，深度與光流均達到次像素精度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供關鍵實驗證據——在 KITTI 基準上的第一名結果與跨任務改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證核心：KITTI 排名第一是強有力的定量證據；「場景流改善光流」的發現直接驗證了聯合估計的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    在真實基準（KITTI）與合成資料上的雙重驗證增強了說服力。但 KITTI 主要為駕駛場景——環境以剛性物件（車輛、建築）為主——這恰好適合分段式剛性假設。在非剛性物件較多的場景（如行人密集區域）中的表現未被充分展示。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-thesis">piecewise rigid scene flow method</span> that <span class="hl-thesis">jointly estimates 3D geometry, segmentation, and rigid motion from stereo video</span>. The <span class="hl-method">planar, rigidly-moving segment representation</span> provides a compact and effective parameterization, while the <span class="hl-method">occlusion-aware energy formulation</span> enables accurate estimation near object boundaries. Our results on <span class="hl-evidence">KITTI demonstrate state-of-the-art performance</span>, and the finding that <span class="hl-thesis">joint 3D scene flow estimation improves 2D optical flow</span> highlights the value of holistic scene understanding. Future work may extend the framework to <span class="hl-rebuttal">handle non-rigid deformations</span> and <span class="hl-rebuttal">exploit temporal consistency across longer sequences</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了分段式剛性場景流方法，從立體視訊中聯合估計三維幾何、分割與剛性運動。平面式剛性運動片段表示提供了緊湊且有效的參數化，而遮擋感知的能量公式化則使得在物件邊界附近的估計更為準確。在 KITTI 上的結果展示了最先進的表現，且聯合三維場景流估計能改善二維光流的發現，凸顯了整體式場景理解的價值。未來工作可將框架擴展以處理非剛性形變，並利用更長序列中的時序一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並坦承限制與展望。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以「聯合估計的價值」作為最高層級的訊息，將技術貢獻昇華為方法論洞見。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動提出「非剛性形變」與「長序列」作為未來方向，既展現學術誠實也暗示了當前方法的兩大限制。分段式剛性在非剛性場景中的退化程度是讀者最關心的問題之一。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                解耦式場景流估計<br>忽略幾何-運動約束
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                分段式剛性聯合估計<br>兼具緊湊性與準確性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                KITTI 第一名<br>甚至改善光流結果
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                剛性假設限制<br>非剛性場景適用性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                聯合三維推理<br>提升場景理解品質
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將動態場景表示為分段式剛性運動平面並進行聯合能量最小化，可在場景流估計中達到最先進表現，同時改善二維光流結果。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>跨任務的改進效益：</strong>場景流方法不僅在自身任務上排名第一，甚至在二維光流上超越了專門方法——這是「聯合估計優於解耦估計」的最有力實驗證明。遮擋的顯式處理在物件邊界上帶來的品質提升也是重要的技術貢獻。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>剛性假設的場景限制：</strong>分段式剛性表示天然適合駕駛場景（車輛、建築等剛性物件），而 KITTI 恰好以此類場景為主。在包含大量非剛性運動的場景（行人肢體、飄動旗幟等）中，方法的表現可能顯著退化，但此方面的實驗證據不足。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

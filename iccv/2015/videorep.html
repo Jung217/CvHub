@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsupervised Learning of Visual Representations using Videos — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Unsupervised Learning of Visual Representations using Videos
+                <span class="course-tag">ICCV 2015</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1505.00687" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-training">3.2 訓練策略</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors investigate whether <span class="hl-thesis">extensive labeled datasets are truly necessary for training effective CNNs</span>. They propose using <span class="hl-method">hundreds of thousands of unlabeled videos from the web</span> to learn visual representations. The core insight leverages <span class="hl-concept">visual tracking</span> as a <span class="hl-thesis">supervisory signal — patches connected by a track likely belong to the same object and should share similar visual representations</span>. A <span class="hl-concept">Siamese-triplet network</span> with a <span class="hl-method">ranking loss function</span> is designed to enforce this constraint. Training on <span class="hl-evidence">100K unlabeled videos plus VOC 2012 data</span>, their ensemble achieves <span class="hl-evidence">52% mAP (without bounding box regression)</span> on VOC 2007 detection, which comes <span class="hl-evidence">"tantalizingly close" to the ImageNet-supervised baseline of 54.4% mAP</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者探討大規模標註資料集對訓練有效 CNN 是否真正必要。他們提出利用來自網路的數十萬支無標籤影片來學習視覺表示。核心洞見是利用視覺追蹤作為監督訊號——被追蹤軌跡連接的圖塊可能屬於同一物件，因此應共享相似的視覺表示。設計了一個帶有排序損失函數的孿生-三元組網路以強制此約束。在 10 萬支無標籤影片加 VOC 2012 資料上訓練後，其集成在 VOC 2007 偵測上達到 52% mAP（無邊界框迴歸），「令人心動地接近」ImageNet 監督式基線的 54.4% mAP。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以挑戰性問題開場，預告「影片自監督」的核心命題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以反問句「標註是否必要？」引發好奇，再以具體方案（追蹤即監督）與量化結果（52% vs 54.4%）回應，構成完整的懸念-解答結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「tantalizingly close」的措辭巧妙——既凸顯成就又承認差距。但 52% 包含集成策略，單一模型的差距可能更大。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The remarkable success of <span class="hl-concept">deep CNNs</span> in computer vision is <span class="hl-rebuttal">heavily dependent on large labeled datasets like ImageNet</span>. Creating such datasets requires <span class="hl-rebuttal">millions of human annotations — a process that is expensive, time-consuming, and difficult to scale to new domains</span>. Meanwhile, <span class="hl-evidence">billions of hours of video are uploaded to the web every day</span>, representing an <span class="hl-thesis">enormous source of free visual data with inherent temporal structure</span>. The authors argue that <span class="hl-thesis">temporal coherence in videos provides a natural supervisory signal</span>: objects maintain their identity across frames, so patches tracked across time should yield <span class="hl-method">invariant representations</span>. This idea builds on the <span class="hl-concept">slowness principle</span> in neuroscience — that useful visual features should change slowly over time.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度 CNN 在電腦視覺中的卓越成功高度依賴如 ImageNet 般的大規模標註資料集。建立此類資料集需要數百萬人工標註——一個昂貴、耗時且難以擴展至新領域的過程。同時，每天有數十億小時的影片被上傳至網路，代表著具有內在時序結構的巨大免費視覺資料來源。作者論證影片中的時序連貫性提供了自然的監督訊號：物件在連續影格間維持其身份，因此跨時間追蹤的圖塊應產生不變的表示。此概念建立於神經科學的「緩慢性原則」——有用的視覺特徵應隨時間緩慢變化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    動機建立——從標註瓶頸到影片自監督的跳躍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三步論證：(1) 標註昂貴建立需求；(2) 影片豐富建立機會；(3) 時序連貫建立方法論基礎。「緩慢性原則」從神經科學提供理論背書。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「緩慢性原則」的引用提升了理論深度，但影片追蹤並非完美——遮擋、視角變化與光照改變都可能破壞追蹤的一致性，這些雜訊是否影響學習品質尚待分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Self-supervised learning</span> methods exploit inherent data structure as supervision. <span class="hl-concept">Context prediction</span> (Doersch et al.) uses spatial relationships between image patches. <span class="hl-concept">Autoencoder-based methods</span> learn representations through <span class="hl-rebuttal">reconstruction objectives that may focus on low-level details</span>. For video-based learning, prior work on <span class="hl-concept">temporal coherence</span> used <span class="hl-rebuttal">simple L2 distance penalties that are difficult to optimize and may collapse representations</span>. <span class="hl-concept">Metric learning</span> approaches, particularly <span class="hl-concept">Siamese networks</span>, provide a more principled framework for learning similarity-preserving embeddings. The proposed method combines the <span class="hl-thesis">temporal signal from videos with the discriminative power of triplet-based metric learning</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自監督學習方法利用資料的內在結構作為監督。脈絡預測（Doersch 等人）使用影像圖塊間的空間關係。基於自編碼器的方法透過重建目標學習表示，但可能聚焦於低階細節。在基於影片的學習方面，先前關於時序連貫性的研究使用簡單的 L2 距離懲罰，難以最佳化且可能導致表示崩塌。度量學習方法，特別是孿生網路，為學習保持相似性的嵌入提供了更有原則的框架。所提出的方法結合了影片的時序訊號與三元組度量學習的判別能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——定位於自監督與度量學習的交匯處。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立兩條並行脈絡（時序自監督 + 度量學習），論證兩者結合的自然性與必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 L2 懲罰的「崩塌」批評精準指出了先前方法的核心弱點。但三元組損失本身也有已知問題（困難樣本挖掘、收斂速度），此處未提及。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Siamese-Triplet Network</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The architecture is a <span class="hl-concept">Siamese-triplet network</span> consisting of <span class="hl-method">three weight-sharing CNN streams</span>. For each training triplet: the <span class="hl-method">anchor patch</span> is a region in frame t, the <span class="hl-method">positive patch</span> is the same region tracked to frame t+k, and the <span class="hl-method">negative patch</span> is a random region from a different video. The network is trained with a <span class="hl-method">ranking loss</span> that enforces: <span class="hl-method">D(anchor, positive) &lt; D(anchor, negative) - margin</span>, where D is the cosine distance in the embedding space. This formulation ensures that <span class="hl-thesis">tracked patches (same object across time) are embedded closer together than unrelated patches</span>, learning representations that are <span class="hl-thesis">invariant to the transformations an object undergoes across video frames</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                架構為孿生-三元組網路，由三個共享權重的 CNN 串流組成。對每個訓練三元組：錨點圖塊為影格 t 中的區域，正樣本圖塊為追蹤至影格 t+k 的同一區域，負樣本圖塊為來自不同影片的隨機區域。網路以排序損失訓練，強制：D(錨點, 正樣本) < D(錨點, 負樣本) - 邊距，其中 D 為嵌入空間中的餘弦距離。此公式確保被追蹤的圖塊（跨時間的同一物件）在嵌入中比不相關圖塊更接近，學習對物件在影片影格間經歷的變換具有不變性的表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心架構——描述三元組網路與排序損失。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法的數學核心：排序損失將「時序連貫性」假說轉化為可最佳化的目標函數，是從概念到實現的關鍵橋樑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三元組損失的設計直覺清晰——同物件近、異物件遠。但負樣本來自不同影片（而非同影片不同物件），可能使任務過於簡單，無法學到精細的物件間區分。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 訓練策略 ====== -->
+    <h3 class="subsection-heading" id="sec-training">3.2 Training with Tracked Patches — 以追蹤圖塊訓練</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training data is generated by applying an <span class="hl-method">unsupervised visual tracker (based on IDT — Improved Dense Trajectories)</span> to <span class="hl-evidence">100,000 unlabeled videos from YouTube</span>. The tracker produces <span class="hl-method">dense correspondences between patches across frames</span>, providing millions of training triplets automatically. To handle tracker noise, the authors use <span class="hl-method">a temporal gap of 30 frames between anchor and positive</span>, ensuring sufficient visual transformation while maintaining identity. The CNN architecture follows <span class="hl-concept">AlexNet/CaffeNet</span> with modifications for the triplet input. Training proceeds with <span class="hl-method">stochastic gradient descent with momentum</span>, and careful <span class="hl-method">hard negative mining</span> is employed to select the most informative negative examples.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練資料透過對 10 萬支來自 YouTube 的無標籤影片應用無監督視覺追蹤器（基於 IDT——改良稠密軌跡）而生成。追蹤器產生跨影格圖塊間的稠密對應，自動提供數百萬個訓練三元組。為處理追蹤器雜訊，作者在錨點與正樣本之間使用 30 個影格的時間間隔，確保充分的視覺變換同時維持身份一致性。CNN 架構遵循 AlexNet/CaffeNet 並針對三元組輸入進行修改。訓練以帶有動量的隨機梯度下降法進行，並採用謹慎的困難負樣本挖掘以選取最具資訊量的負樣本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實作細節——資料生成與訓練流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將「影片追蹤即監督」的概念落地為具體的資料管線。30 影格間隔是平衡「變換多樣性」與「身份保持」的工程決策。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    困難負樣本挖掘是度量學習的標準技巧，顯示作者對該領域的掌握。但追蹤器的錯誤（漂移、遮擋斷裂）會引入標籤雜訊，此雜訊對表示學習的影響未被量化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">Pascal VOC 2007 object detection</span>, the video-trained features achieve <span class="hl-evidence">52% mAP (ensemble, no bounding box regression)</span>, compared to <span class="hl-evidence">54.4% for ImageNet-supervised pre-training</span> — a gap of only <span class="hl-evidence">2.4 percentage points</span>. This result is <span class="hl-thesis">"tantalizingly close" to supervised performance, suggesting that strong labeled supervision may not be strictly necessary</span>. Single-model performance reaches <span class="hl-evidence">44.5% mAP without fine-tuning and 47.4% with fine-tuning</span>. The representations also demonstrate <span class="hl-evidence">competitive performance on surface normal estimation</span> tasks on the NYU depth dataset, showing <span class="hl-thesis">generalization to geometric understanding beyond object recognition</span>. Nearest-neighbor retrieval confirms that the learned features capture <span class="hl-evidence">semantic object similarity rather than low-level visual similarity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Pascal VOC 2007 物件偵測上，影片訓練的特徵達到 52% mAP（集成，無邊界框迴歸），相較 ImageNet 監督式預訓練的 54.4%——差距僅 2.4 個百分點。此結果「令人心動地接近」監督式效能，暗示強標註監督可能並非嚴格必要。單一模型效能無微調時達 44.5% mAP，微調後達 47.4%。該表示在 NYU 深度資料集的表面法向量估計任務上亦展現具競爭力的效能，顯示超越物件辨識的幾何理解泛化能力。最近鄰檢索確認學到的特徵捕捉的是語意物件相似性而非低階視覺相似性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗結果——以多個下游任務驗證表示品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    2.4% 的差距是全文最強有力的論據——它將「影片自監督」從概念驗證提升為 ImageNet 預訓練的可行替代方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    52% 來自集成而非單一模型（單一模型僅 47.4%），差距實為 7%。作者可能選擇性地強調了集成結果。此外，「tantalizingly close」的措辭在學術上有主觀色彩。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work demonstrates that <span class="hl-thesis">visual representations learned from unlabeled videos through temporal coherence can approach the quality of ImageNet-supervised pre-training</span>. The <span class="hl-concept">Siamese-triplet architecture</span> with <span class="hl-method">ranking loss over tracked patches</span> provides an effective framework for <span class="hl-method">converting temporal consistency into a discriminative learning signal</span>. The <span class="hl-evidence">2.4% mAP gap to supervised baselines</span> suggests that <span class="hl-thesis">the visual world itself — captured through freely available video — contains sufficient structure for learning powerful representations</span>. Future directions include exploring <span class="hl-concept">larger video datasets</span>, <span class="hl-concept">better tracking algorithms</span>, and <span class="hl-concept">combining temporal and spatial self-supervision signals</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究展示了透過時序連貫性從無標籤影片中學到的視覺表示，能接近 ImageNet 監督式預訓練的品質。帶有追蹤圖塊排序損失的孿生-三元組架構，為將時序一致性轉化為判別式學習訊號提供了有效框架。與監督式基線僅 2.4% mAP 的差距暗示，視覺世界本身——透過免費可得的影片捕捉——包含足以學習強大表示的結構。未來方向包括探索更大的影片資料集、更好的追蹤演算法，以及結合時序與空間自監督訊號。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心發現並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將技術成果提升至哲學層面：「視覺世界本身包含足夠結構」是一個深刻的洞見，超越了具體方法的範疇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「結合時序與空間」的展望具有先見之明——後續的多模態自監督方法正是沿此方向發展。但未討論影片資料的偏差問題（YouTube 影片的分布不同於 ImageNet 的類別均衡分布）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                標註資料昂貴<br>影片資料免費充足
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                時序追蹤提供<br>自然的監督訊號
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                VOC 偵測 52% mAP<br>僅差 ImageNet 2.4%
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                集成結果 vs 單模型<br>差距實為 7%
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                影片包含足夠結構<br>學習強大表示
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將影片中的視覺追蹤軌跡轉化為三元組排序損失的監督訊號，無標籤影片可提供接近 ImageNet 監督式預訓練品質的視覺表示。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>與監督式基線的微小差距：</strong>52% vs 54.4% mAP 的結果具有強烈的衝擊力——它從根本上挑戰了「大規模標註不可或缺」的假設。配合表面法向量估計等跨任務驗證，有力地支持了表示的通用性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>集成對結果的過度美化：</strong>單一模型（47.4%）與監督基線（54.4%）的差距為 7 個百分點，遠大於摘要中強調的 2.4%。此外，方法依賴外部追蹤器（IDT），其品質直接限制了學習效果，但追蹤器的錯誤率與對最終表示的影響未被充分分析。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

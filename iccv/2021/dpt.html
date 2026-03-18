@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision Transformers for Dense Prediction — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Vision Transformers for Dense Prediction
+                <span class="course-tag">ICCV 2021</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2103.13413" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-reassemble">3.2 重組操作</a>
+        <a href="#sec-fusion">3.3 融合解碼器</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper introduces <span class="hl-concept">Dense Prediction Transformers (DPT)</span>, an architecture that leverages <span class="hl-concept">vision transformers</span> in place of convolutional networks as backbone for <span class="hl-concept">dense prediction tasks</span>. The model <span class="hl-method">reassembles tokens from various stages of the vision transformer into image-like representations at various resolutions</span> and progressively combines them using a <span class="hl-method">convolutional decoder</span>. The key advantage is that <span class="hl-thesis">vision transformers maintain a constant and relatively high resolution throughout the computational process and have a global receptive field at every stage</span>. DPT achieves <span class="hl-evidence">a 28% improvement in relative performance on monocular depth estimation</span> and sets new state-of-the-art results, producing <span class="hl-thesis">"more fine-grained and globally coherent predictions"</span> compared to fully-convolutional architectures.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出密集預測 Transformer（DPT），一種以視覺 Transformer 取代摺積網路作為密集預測任務主幹的架構。模型將視覺 Transformer 各階段的 token 重組為不同解析度的類影像表示，並以摺積解碼器漸進式地融合它們。核心優勢在於視覺 Transformer 在整個計算過程中維持恆定且相對高的解析度，並在每個階段都具有全域感受野。DPT 在單眼深度估計上達到 28% 的相對性能改進，並創造新的最先進成果，產生比全摺積架構「更精細且全域一致的預測」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以 ViT 的兩大固有優勢（恆定解析度 + 全域感受野）為核心賣點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要將 DPT 定位為 ViT 的自然延伸：ViT 的特性天然適合密集預測，DPT 提供了實現此潛力的具體架構。28% 改進提供了強力的數據支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「恆定且高解析度」的描述需要限定——ViT 的 token 數量取決於 patch size，16x16 patches 實際上將解析度降至 1/16。作者所指的是 token 不再被進一步下採樣，而非「高解析度」的字面意義。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Dense prediction</span> tasks such as <span class="hl-concept">monocular depth estimation</span> and <span class="hl-concept">semantic segmentation</span> require generating per-pixel outputs from input images. Dominant approaches use <span class="hl-concept">convolutional neural networks</span> with <span class="hl-concept">encoder-decoder architectures</span>, where the encoder progressively <span class="hl-rebuttal">downsamples the input, losing fine-grained spatial information</span>. While skip connections and feature pyramid networks partially mitigate this loss, the fundamental issue remains: <span class="hl-rebuttal">"downsampling has distinct drawbacks that are particularly salient in dense prediction tasks: feature resolution and granularity are lost."</span> The authors argue that <span class="hl-concept">vision transformers</span> offer a natural solution because they <span class="hl-thesis">maintain constant resolution throughout processing and have global receptive fields at every stage</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                單眼深度估計與語意分割等密集預測任務需要從輸入影像生成逐像素的輸出。主流方法使用具有編碼器-解碼器架構的摺積神經網路，其中編碼器逐步下採樣輸入，丟失精細的空間資訊。雖然跳躍連結與特徵金字塔網路部分緩解了此損失，但根本問題依然存在：「下採樣具有在密集預測任務中尤為突出的明顯缺陷：特徵的解析度與精細度會喪失。」作者主張視覺 Transformer 提供了自然的解決方案，因為它們在整個處理過程中維持恆定的解析度，並在每個階段都具有全域感受野。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——以 CNN 下採樣的結構性缺陷為核心批判。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：CNN 的下採樣是密集預測的結構性障礙，skip connections 僅是「補丁」而非根本解決方案。ViT 的恆定解析度從根本上避免了此問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 skip connections 描述為「部分緩解」而非「有效解決」，巧妙地為 ViT 方案留出必要性空間。但 HRNet 等架構已在不犧牲解析度的前提下實現了強大的密集預測——作者未提及這些架構。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Encoder-decoder architectures</span> for dense prediction, pioneered by <span class="hl-concept">FCN</span> and refined by <span class="hl-concept">U-Net</span> and <span class="hl-concept">DeepLab</span>, have become the standard paradigm. <span class="hl-concept">MiDaS</span> achieved strong zero-shot monocular depth estimation by training on <span class="hl-evidence">multiple mixed datasets</span> with a ResNeXt-101 encoder. <span class="hl-concept">Vision Transformer (ViT)</span> demonstrated that a pure transformer encoder applied to <span class="hl-method">sequences of image patches</span> can match or exceed CNNs for classification, but <span class="hl-rebuttal">its adaptation to dense prediction is non-trivial</span> because the output tokens lack explicit spatial structure. <span class="hl-concept">SETR</span> made an initial attempt at using ViT for semantic segmentation but <span class="hl-rebuttal">did not fully exploit the representation capacity of intermediate transformer layers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由 FCN 開創、經 U-Net 與 DeepLab 精煉的編碼器-解碼器架構已成為密集預測的標準範式。MiDaS 透過在多個混合資料集上以 ResNeXt-101 編碼器訓練，達到了強力的零樣本單眼深度估計。Vision Transformer (ViT) 展示了將純 Transformer 編碼器應用於影像區塊序列可以在分類上匹敵或超越 CNN，但其適配密集預測並非易事，因為輸出 token 缺乏明確的空間結構。SETR 進行了將 ViT 用於語意分割的初步嘗試，但未能充分利用中間 Transformer 層的表示能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 DPT 置於 CNN 密集預測與 ViT 適配的交匯點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 MiDaS 建立深度估計的比較基線（後續實驗中直接取代其 CNN 主幹），以 SETR 建立「ViT 用於密集預測」的先驅但不完整的嘗試，為 DPT 的更完整方案鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    指出 SETR「未充分利用中間層」巧妙地預告了 DPT 的核心設計——從多個中間層提取並融合特徵。但 SETR 是並行工作，DPT 對其的批評是否公允取決於具體的時間線與技術細節。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Transformer Encoder</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                DPT uses a <span class="hl-concept">Vision Transformer (ViT)</span> as the encoder backbone. Three variants are employed: <span class="hl-concept">ViT-Base</span> (12 layers, patch size p=16), <span class="hl-concept">ViT-Large</span> (24 layers, D=1024), and <span class="hl-concept">ViT-Hybrid</span> (ResNet50 embedding + 12 transformer layers). Tokens from <span class="hl-method">four evenly-spaced transformer layers</span> are extracted — for ViT-Base with 12 layers, tokens are taken from <span class="hl-method">layers {3, 6, 9, 12}</span>. Unlike CNN encoders that produce feature maps at decreasing resolutions, <span class="hl-thesis">all extracted token sets have the same spatial resolution (H/p x W/p)</span>, preserving fine-grained information that would be lost in a CNN's deeper layers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DPT 使用 Vision Transformer (ViT) 作為編碼器主幹。採用三種變體：ViT-Base（12 層，區塊大小 p=16）、ViT-Large（24 層，D=1024）與 ViT-Hybrid（ResNet50 嵌入 + 12 層 Transformer）。從四個等距的 Transformer 層提取 token——對於 12 層的 ViT-Base，從第 {3, 6, 9, 12} 層提取。不同於產生遞減解析度特徵圖的 CNN 編碼器，所有提取的 token 集具有相同的空間解析度（H/p x W/p），保留了在 CNN 深層會丟失的精細資訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    編碼器設計——描述如何從 ViT 的中間層提取多級特徵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「等距提取」的策略簡潔但需要理論支撐：淺層捕捉局部紋理、深層捕捉語意資訊的 CNN 直覺是否也適用於 Transformer？作者透過實驗間接驗證了此假設。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「相同空間解析度」的強調是相對 CNN 的關鍵差異化賣點。但 p=16 意味著 token 解析度僅為原圖的 1/16——對於需要像素級精度的任務（如深度估計），這仍是一個顯著的瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-reassemble">3.2 Reassemble Operation — 重組操作</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Reassemble</span> operation converts 1D token sequences back into <span class="hl-method">2D spatial feature maps at various resolutions</span>. It consists of three steps: (1) <span class="hl-method">Read</span>: handles the readout token through one of three strategies — ignore, add, or project (concatenate and project); (2) <span class="hl-method">Concatenate</span>: reshapes the 1D token sequence into a 2D feature map at H/p x W/p resolution; (3) <span class="hl-method">Resample</span>: applies <span class="hl-method">1x1 convolutions to adjust channel dimensions</span> followed by <span class="hl-method">3x3 transposed convolutions (with stride 2) or strided convolutions</span> to produce feature maps at <span class="hl-evidence">four resolutions: H/4, H/8, H/16, and H/32</span>. This creates a multi-scale feature representation analogous to CNN feature pyramids.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                重組操作將一維 token 序列轉換回不同解析度的二維空間特徵圖。它包含三個步驟：(1) 讀取：透過三種策略之一處理 readout token——忽略、加法或投射（串接後投射）；(2) 串接：將一維 token 序列重塑為 H/p x W/p 解析度的二維特徵圖；(3) 重取樣：以 1x1 摺積調整通道維度，隨後以 3x3 轉置摺積（步幅 2）或跨步摺積產生四個解析度的特徵圖：H/4、H/8、H/16 與 H/32。這創造了類似 CNN 特徵金字塔的多尺度特徵表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心架構模組——描述如何從 Transformer token 重建空間結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    重組操作是 DPT 的橋接模組——將 Transformer 的「序列」輸出轉換為解碼器可處理的「空間」特徵圖。四個解析度恰好匹配 RefineNet 解碼器的輸入需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用轉置摺積上取樣來「人工」創造多尺度表示，與 CNN 透過下採樣「自然」產生多尺度表示形成對比。這暗示 Transformer 的恆定解析度既是優勢也是挑戰——需要額外模組來適配現有的多尺度框架。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-fusion">3.3 Fusion Decoder — 融合解碼器</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The reassembled multi-scale features are combined using a <span class="hl-concept">RefineNet-based fusion module</span>. Starting from the lowest resolution (H/32), features are <span class="hl-method">progressively upsampled and fused with higher-resolution features</span> using <span class="hl-method">residual convolution units and multi-resolution fusion blocks</span>. The final output is at <span class="hl-evidence">H/2 resolution for depth estimation and H/1 for semantic segmentation</span>. This decoder is deliberately kept <span class="hl-method">lightweight</span> to emphasize that <span class="hl-thesis">the representation quality of the transformer encoder, rather than the decoder complexity, drives the performance gains</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                重組後的多尺度特徵使用基於 RefineNet 的融合模組進行結合。從最低解析度（H/32）開始，特徵以殘差摺積單元與多解析度融合區塊漸進式地上取樣並與更高解析度的特徵融合。最終輸出在深度估計時為 H/2 解析度，在語意分割時為 H/1。此解碼器刻意保持輕量，以強調驅動性能增益的是 Transformer 編碼器的表示品質而非解碼器的複雜度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解碼器設計——描述漸進式多尺度融合策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「刻意輕量」的設計決策暗示作者意圖歸因性能增益於 Transformer 編碼器而非精巧的解碼器設計。這使論文的貢獻更加聚焦。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用已有的 RefineNet 作為解碼器是「控制變數」的實驗策略——只改變編碼器（CNN -> ViT），保持解碼器不變，使性能差異可歸因於編碼器的改進。但更複雜的解碼器可能進一步釋放 Transformer 特徵的潛力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">monocular depth estimation</span>, DPT-Large achieves <span class="hl-evidence">28% relative improvement</span> in zero-shot transfer, including <span class="hl-evidence">13.2% on DIW and 31.2% on ETH3D</span> compared to the CNN-based MiDaS baseline. After fine-tuning, DPT sets <span class="hl-evidence">new state-of-the-art on NYUv2 (0.110 AbsRel) and KITTI (0.062 AbsRel)</span>. On <span class="hl-evidence">semantic segmentation</span>, DPT-Hybrid achieves <span class="hl-evidence">49.02% mIoU on ADE20K</span>, exceeding the prior best of 48.36%, and <span class="hl-evidence">60.46% mIoU on Pascal Context</span>, setting a new state-of-the-art. Qualitative analysis reveals that DPT produces <span class="hl-evidence">"finer-grained delineations of object boundaries"</span> and <span class="hl-evidence">more globally consistent depth maps</span> — objects at similar distances receive more uniform depth values. <span class="hl-evidence">Inference latency is comparable: 35ms for DPT-Large vs. 32ms for MiDaS</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在單眼深度估計上，DPT-Large 在零樣本遷移中達到 28% 的相對改進，包括在 DIW 上提升 13.2% 與在 ETH3D 上提升 31.2%（相較 CNN 的 MiDaS 基線）。經微調後，DPT 在 NYUv2（0.110 AbsRel）與 KITTI（0.062 AbsRel）上創下最先進紀錄。在語意分割上，DPT-Hybrid 在 ADE20K 上達到 49.02% mIoU，超越先前最佳的 48.36%，在 Pascal Context 上達到 60.46% mIoU，創下新紀錄。定性分析顯示 DPT 產生了「更精細的物件邊界描繪」與更全域一致的深度圖——相似距離的物件獲得更均勻的深度值。推論延遲相當：DPT-Large 35ms 對比 MiDaS 32ms。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面實證——跨兩項密集預測任務與多個資料集驗證 DPT 的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗覆蓋四個維度：(1) 零樣本深度（28% 改進），(2) 微調深度（SOTA），(3) 語意分割（SOTA），(4) 延遲（相當）。零樣本改進尤為有力，因為它反映了純粹的表示能力差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將定性優勢（邊界精細度、全域一致性）與定量指標並列增強了說服力。35ms vs 32ms 的延遲對比化解了效率顧慮。但 DPT-Large 使用 ViT-Large（比 MiDaS 的 ResNeXt-101 更大），參數量與計算量的公平比較未被明確呈現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Dense Prediction Transformers</span> demonstrate that <span class="hl-thesis">vision transformers can effectively serve as backbones for dense prediction tasks</span>, producing <span class="hl-thesis">"more fine-grained and globally coherent predictions when compared to fully-convolutional architectures."</span> The key architectural contributions — <span class="hl-method">the reassemble operation and multi-scale fusion decoder</span> — enable seamless integration of ViT into existing dense prediction frameworks. The consistent improvements across <span class="hl-evidence">depth estimation and semantic segmentation</span> validate that the <span class="hl-thesis">constant resolution and global receptive field of transformers are particularly beneficial for tasks requiring per-pixel understanding</span>. The results suggest that <span class="hl-thesis">transformer-based backbones will become the dominant paradigm for dense prediction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                密集預測 Transformer 展示了視覺 Transformer 可有效作為密集預測任務的主幹，產生「比全摺積架構更精細且全域一致的預測」。關鍵架構貢獻——重組操作與多尺度融合解碼器——使 ViT 無縫整合至現有密集預測框架。在深度估計與語意分割上的一致改進驗證了 Transformer 的恆定解析度與全域感受野對需要逐像素理解的任務尤為有利。結果顯示基於 Transformer 的主幹將成為密集預測的主流範式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——將 DPT 的成功昇華為範式轉移的預測。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段從具體成果（深度/分割 SOTA）昇華到範式預測（Transformer 將主導密集預測）。這一預測在後續的 SegFormer、Mask2Former 等工作中已被部分驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「主流範式」的大膽預測在當時具有前瞻性。但 DPT 的成功部分依賴大規模預訓練（ImageNet-21K）——在中小規模資料上，CNN 主幹可能仍具優勢。此外，後續的 Swin Transformer 等階層式設計暗示「恆定解析度」可能不是唯一的正確方向。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                CNN 下採樣丟失<br>精細空間資訊
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                ViT 恆定解析度<br>+ 全域感受野
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                深度估計 +28%<br>分割 49.02 mIoU
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                推論延遲相當<br>（35ms vs 32ms）
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                Transformer 主幹<br>將主導密集預測
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以視覺 Transformer 取代摺積網路作為密集預測的編碼器主幹，透過重組操作與多尺度融合產生更精細且全域一致的預測，在深度估計與語意分割上顯著超越全摺積架構。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>零樣本遷移的巨大改進：</strong>在零樣本深度估計上達到 28% 的相對改進，這是純粹反映編碼器表示能力的指標——不受微調技巧或任務特定設計的影響。ETH3D 上 31.2% 的改進尤為顯著，且推論延遲僅增加 3ms，展現了極佳的性能-效率取捨。定性結果中更清晰的物件邊界直接驗證了「恆定解析度保留精細資訊」的核心假說。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>歸因分析的不完整性：</strong>性能改進來自 ViT 的三個交纏因素——(1) 恆定解析度（不下採樣），(2) 全域感受野（自注意力），(3) 更大的預訓練規模（ImageNet-21K）。論文未充分分離這三個因素的各自貢獻。若在相同的預訓練資料量下比較（如 ResNeXt-101 也用 ImageNet-21K），改進幅度可能會縮小。此外，ViT-Hybrid（使用 ResNet50 + Transformer）的存在暗示純 Transformer 並非唯一的有效設計。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

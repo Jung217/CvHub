@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LongSplat: Robust Unposed 3D Gaussian Splatting for Casual Long Videos — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                LongSplat: Robust Unposed 3D Gaussian Splatting for Casual Long Videos
+                <span class="course-tag">ICCV 2025</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2508.14041" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-octree">3.2 八叉樹錨點形成</a>
+        <a href="#sec-joint">3.4 增量聯合最佳化</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">LongSplat</span> addresses critical challenges in <span class="hl-concept">novel view synthesis (NVS)</span> from casually captured long videos characterized by <span class="hl-rebuttal">irregular camera motion, unknown camera poses, and expansive scenes</span>. The method introduces three main components: <span class="hl-method">Incremental Joint Optimization</span> that concurrently optimizes camera poses and 3D Gaussians; a robust <span class="hl-method">Pose Estimation Module</span> leveraging learned 3D priors from <span class="hl-concept">MASt3R</span>; and an efficient <span class="hl-method">Octree Anchor Formation</span> mechanism converting dense point clouds into anchors based on spatial density. The authors report achieving <span class="hl-evidence">state-of-the-art results in rendering quality, pose accuracy, and computational efficiency</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LongSplat 解決了從隨手拍攝的長影片中進行新視角合成的關鍵挑戰，這些影片的特徵包括不規則的攝影機運動、未知的攝影機姿態與廣闊的場景。該方法引入三個主要組件：增量聯合最佳化同時最佳化攝影機姿態與三維高斯；穩健的姿態估計模組利用 MASt3R 的學習式三維先驗；以及高效的八叉樹錨點形成機制，基於空間密度將密集點雲轉換為錨點。作者報告在渲染品質、姿態精確度與計算效率上均達到最先進的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以三重挑戰（不規則運動、未知姿態、大場景）定義問題，以三組件架構回應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「挑戰-組件」的一對一映射結構呈現，每個組件對應一個具體挑戰，論證結構簡潔有力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三重最先進的宣稱（品質、精度、效率）需在實驗中逐一驗證。MASt3R 作為外部先驗的依賴意味著方法的成功部分歸功於預訓練模型而非框架本身。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">High-quality 3D reconstruction and novel view synthesis</span> are essential for applications such as <span class="hl-evidence">virtual reality, augmented reality, virtual tourism, and cultural heritage preservation</span>. <span class="hl-rebuttal">Traditional methods rely on accurate poses from Structure-from-Motion (SfM) preprocessing, yet pipelines like COLMAP frequently fail in casual settings.</span> The framework departs from conventional approaches by <span class="hl-thesis">jointly optimizing camera poses and 3DGS in a unified framework</span>, integrating correspondence-guided pose estimation with 3DGS geometry and photometric refinements.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                高品質的三維重建與新視角合成對虛擬實境、擴增實境、虛擬觀光與文化遺產保存等應用至關重要。傳統方法依賴運動恢復結構（SfM）前處理所提供的精確姿態，但如 COLMAP 等管線在隨手拍攝的設定下經常失敗。本框架脫離傳統方法，在統一框架中聯合最佳化攝影機姿態與三維高斯潑灑，整合對應關係引導的姿態估計與 3DGS 的幾何及光度精煉。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出 SfM 前處理的脆弱性，為無姿態方法建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「COLMAP 經常失敗」作為強力動機，將無姿態三維重建從學術好奇心提升為實際需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    COLMAP 的失敗率取決於場景特性與影像品質。在結構化場景（如室內）中 COLMAP 通常表現良好，此處的「經常失敗」可能過度泛化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Neural Radiance Fields (NeRF)</span> revolutionized photorealistic rendering, with subsequent improvements in anti-aliasing, reflectance, sparse view training, and faster rendering. Recent <span class="hl-concept">3D Gaussian Splatting</span> <span class="hl-evidence">"enables real-time rendering through explicit representations"</span>. However, <span class="hl-rebuttal">"most approaches still rely on pre-computed camera parameters from SfM"</span>. For unposed NVS, methods like i-NeRF, BARF, and GARF <span class="hl-rebuttal">"typically assume small pose perturbations, limited camera motion, or additional priors, struggling with challenging trajectories"</span>. <span class="hl-concept">Casual long videos</span> present unique challenges: <span class="hl-rebuttal">free-moving trajectories, lack of pose information, and continuously expanding scenes</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                神經輻射場（NeRF）革新了逼真渲染，後續在反鋸齒、反射率、稀疏視角訓練與更快渲染方面持續改進。近期的三維高斯潑灑「透過顯式表示實現即時渲染」。然而，「大多數方法仍依賴 SfM 預先計算的攝影機參數」。對於無姿態的新視角合成，如 i-NeRF、BARF 與 GARF 等方法「通常假設小幅姿態擾動、有限的攝影機運動或額外先驗，在具挑戰性的軌跡上表現不佳」。隨手拍攝的長影片帶來獨特挑戰：自由移動的軌跡、缺乏姿態資訊、以及持續擴展的場景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——從 NeRF 到 3DGS 的演進，再到無姿態方法的現有侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以層層遞進的方式縮窄問題範圍：即時渲染已解決（3DGS）、小擾動姿態已解決（BARF 等），但「長影片 + 自由運動 + 無姿態」的組合仍是未解問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將現有方法的限制歸因於「假設」的約束，暗示 LongSplat 不需這些假設。但 LongSplat 對 MASt3R 的依賴實際上也是一種先驗假設。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Preliminaries — 前置知識</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3D Gaussian Splatting</span> represents scenes with explicit Gaussians, where each Gaussian is projected onto the image plane using the camera pose W. The <span class="hl-concept">anchor-based representation</span> from Scaffold-GS divides scenes into <span class="hl-method">sparse voxels, with k Gaussians initialized per anchor</span>. Unlike Scaffold-GS's <span class="hl-rebuttal">fixed-resolution approach</span>, LongSplat constructs structured anchors from <span class="hl-method">MASt3R's per-frame dense point clouds using an adaptive octree</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三維高斯潑灑以顯式高斯表示場景，每個高斯使用攝影機姿態 W 投影至影像平面。Scaffold-GS 的錨點式表示法將場景分割為稀疏體素，每個錨點初始化 k 個高斯。不同於 Scaffold-GS 的固定解析度方法，LongSplat 使用自適應八叉樹從 MASt3R 的逐幀密集點雲中建構結構化錨點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術基礎——建立 3DGS 與錨點表示的前置知識，並引出八叉樹的改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從 Scaffold-GS 的固定解析度出發，引出自適應八叉樹的動機：長影片中場景密度差異大，固定解析度在稀疏區域浪費記憶體、在密集區域品質不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    MASt3R 作為密集點雲來源是關鍵依賴——其預測品質直接影響錨點品質。若 MASt3R 在特定場景（如無紋理區域）失效，整個管線可能受影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-octree">3.2 Octree Anchor Formation — 八叉樹錨點形成</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                LongSplat constructs structured anchors from MASt3R's per-frame dense point clouds using an <span class="hl-method">adaptive octree</span>. The method <span class="hl-method">progressively subdivides space based on local point density</span>: voxels exceeding density threshold tau_split split into 8 smaller voxels, while <span class="hl-method">low-density voxels are removed to reduce redundancy</span>. Each anchor inherits <span class="hl-method">a spatial scale proportional to its voxel size</span>, ensuring <span class="hl-thesis">coarse anchors for sparsely observed areas and finer anchors for detailed regions</span>. This achieves <span class="hl-evidence">7.92x compression</span> compared to dense point cloud representation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LongSplat 使用自適應八叉樹從 MASt3R 的逐幀密集點雲中建構結構化錨點。該方法基於局部點密度漸進式地細分空間：超過密度門檻的體素分裂為 8 個更小的體素，低密度體素則被移除以減少冗餘。每個錨點繼承與其體素大小成正比的空間尺度，確保稀疏觀察區域使用粗糙錨點、細節區域使用精細錨點。相比密集點雲表示達到 7.92 倍壓縮。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之一——描述自適應八叉樹如何實現記憶體效率。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    7.92 倍壓縮是處理長影片的關鍵：數千幀累積的點雲在無壓縮下將耗盡記憶體，八叉樹提供了精確到場景局部密度的自適應壓縮。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    密度門檻 tau_split 是關鍵超參數——過高導致粗糙錨點在細節區域品質不足，過低導致壓縮效率下降。此門檻的設定策略與敏感性分析值得關注。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.3 Pose Estimation Module — 姿態估計模組</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For each new frame, <span class="hl-method">MASt3R provides 2D correspondences</span>, allowing back-projection of matched points to 3D. These correspondences are used to <span class="hl-method">solve the initial pose via PnP, followed by photometric refinement</span>. To correct <span class="hl-rebuttal">MASt3R's depth scale drift</span>, the method <span class="hl-method">computes a scale factor by comparing rendered depth and MASt3R's aligned depth</span>. Newly visible regions are detected via <span class="hl-method">occlusion mask</span> and unprojected into 3D, then converted into anchors via Octree Anchor Formation. If PnP fails, <span class="hl-method">a fallback mechanism triggers global re-optimization of all past frames</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於每個新幀，MASt3R 提供二維對應關係，允許將匹配點反投影至三維。這些對應關係用於透過 PnP 求解初始姿態，再以光度精煉。為校正 MASt3R 的深度尺度漂移，方法計算渲染深度與 MASt3R 對齊深度之間的尺度因子。新可見區域透過遮擋遮罩偵測並反投影至三維，再透過八叉樹錨點形成轉換為錨點。若 PnP 失敗，回退機制觸發對所有過去幀的全域重新最佳化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    穩健性設計——描述從粗略姿態到精煉姿態的完整管線，包含失敗回退機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    多層次的姿態估計策略（MASt3R 對應 -> PnP -> 光度精煉 -> 全域回退）體現了工程上的穩健性思維，每層為下一層的失敗提供保護網。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    尺度漂移校正是實用但事後的修補策略。全域重新最佳化在長序列中的計算成本可能很高，但作為罕見的回退機制是可接受的工程妥協。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-joint">3.4 Incremental Joint Optimization — 增量聯合最佳化</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The process begins with a small set of initial frames using MASt3R for pose and point cloud estimation. After initialization, <span class="hl-method">all 3D Gaussian parameters and camera poses are jointly optimized across all processed frames</span>. <span class="hl-method">Covisibility between frames is measured using Intersection-over-Union (IoU) of visible anchors</span>, and frames with covisibility below threshold are excluded from the local optimization window. This <span class="hl-thesis">visibility-adaptive mechanism ensures local Gaussians are consistently supervised by reliable multi-view constraints</span>. The total loss combines <span class="hl-method">photometric loss, depth loss from MASt3R's scale-aligned depth prior, and keypoint reprojection loss</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                流程從使用 MASt3R 進行姿態與點雲估計的少量初始幀開始。初始化後，所有三維高斯參數與攝影機姿態在所有已處理幀上聯合最佳化。幀間的共視性以可見錨點的交集/聯集比（IoU）衡量，共視性低於門檻的幀被排除在局部最佳化窗口之外。此可見性自適應機制確保局部高斯始終受到可靠的多視角約束監督。總損失結合光度損失、MASt3R 尺度對齊深度先驗的深度損失、以及關鍵點重投影損失。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心最佳化策略——描述全域與局部最佳化的交替機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    共視性自適應窗口是處理長序列的關鍵創新：固定窗口在攝影機快速移動時可能包含無重疊的幀，而自適應窗口確保每個局部最佳化都有有效的多視角約束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三重損失函數提供了互補的監督訊號：光度確保外觀品質、深度確保幾何準確、重投影確保姿態一致。但三者的權重平衡可能需要針對不同場景調整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Evaluation is conducted on three datasets: <span class="hl-evidence">Tanks and Temples</span> (smooth forward-facing), <span class="hl-evidence">Free Dataset</span> (complex unconstrained), and <span class="hl-evidence">Hike Dataset</span> (long videos with complex geometry). On Tanks and Temples, <span class="hl-evidence">LongSplat achieves state-of-the-art rendering quality with average PSNR 32.83 dB</span>. Competing methods like <span class="hl-concept">CF-3DGS</span> often face <span class="hl-rebuttal">out-of-memory issues</span>, while <span class="hl-concept">LocalRF</span> produces <span class="hl-rebuttal">fragmented geometry and pose drift</span>. LongSplat achieves <span class="hl-evidence">281.71 FPS and trains in just 1 hour on an NVIDIA RTX 4090, nearly 30x faster than LocalRF</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在三個資料集上進行評估：Tanks and Temples（平順前向式）、Free Dataset（複雜無約束）與 Hike Dataset（具複雜幾何的長影片）。在 Tanks and Temples 上，LongSplat 達到最先進的渲染品質，平均 PSNR 32.83 dB。競爭方法如 CF-3DGS 經常面臨記憶體耗盡問題，而 LocalRF 產生碎裂的幾何與姿態漂移。LongSplat 在 NVIDIA RTX 4090 上達到 281.71 FPS 且僅需 1 小時訓練，比 LocalRF 快近 30 倍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面的實驗比較——以三個難度遞增的資料集展示方法的穩健性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    30 倍加速與 OOM 免疫是極具說服力的實用優勢。三個資料集的難度遞增（平順 -> 複雜 -> 長序列）系統性地驗證了方法的可擴展性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    PSNR 32.83 dB 是優秀的結果，但 PSNR 在感知品質上的代表性有限。LPIPS 與 SSIM 的對應結果將更具說服力。30 倍加速部分歸功於 3DGS 相對於 NeRF 的固有效率優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Ablation studies</span> confirm each component's contribution. Removing pose estimation, global optimization, or local optimization significantly degrades performance. The <span class="hl-evidence">visibility-adapted window achieves the best balance</span> compared to fixed-size windows. The <span class="hl-evidence">adaptive octree achieves superior reconstruction quality with 7.92x memory compression</span>. The method demonstrates <span class="hl-evidence">robustness against pose drift, effectively minimizing drift and maintaining stable trajectories</span> even over long sequences.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究確認各組件的貢獻。移除姿態估計、全域最佳化或局部最佳化均顯著降低效能。可見性自適應窗口相比固定大小窗口達到最佳平衡。自適應八叉樹以 7.92 倍記憶體壓縮達到卓越的重建品質。方法展現了對姿態漂移的穩健性，即使在長序列上也能有效減少漂移並維持穩定軌跡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——消融研究逐一確認三個核心組件的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    7.92 倍壓縮與可見性自適應窗口的優勢提供了設計決策的實證支持。漂移穩健性分析直接回應了長序列中累積誤差的核心擔憂。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究全面但缺少 MASt3R 本身的消融——若將 MASt3R 替換為其他深度估計方法，效能會如何變化？這將揭示框架對特定預訓練模型的依賴程度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper presents a complete framework addressing <span class="hl-concept">casual long video reconstruction</span> challenges. The method successfully integrates <span class="hl-method">incremental joint optimization, a robust tracking module, and adaptive octree anchors</span>, <span class="hl-thesis">significantly improving pose accuracy, reconstruction quality, and memory efficiency</span>. The authors note shared limitations with unposed reconstruction methods: <span class="hl-rebuttal">assuming static scenes and fixed intrinsics, making it unsuitable for dynamic objects or varying focal lengths</span>. Future work includes handling dynamic scenes and enhancing pose estimation robustness.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了一個完整的框架來解決隨手拍攝長影片重建的挑戰。方法成功整合了增量聯合最佳化、穩健追蹤模組與自適應八叉樹錨點，顯著改善了姿態精確度、重建品質與記憶體效率。作者指出此方法與無姿態重建方法共有的侷限：假設靜態場景與固定內參，使其不適用於動態物件或變焦鏡頭。未來工作包括處理動態場景與增強姿態估計的穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與展望——重申貢獻並誠實揭露局限性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的誠實程度值得讚賞：明確指出靜態場景假設是根本性限制，這在實際應用中（如街景拍攝中的行人與車輛）是重大約束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    靜態場景假設是所有基於多視角一致性的方法的共同限制，此處的坦誠反而增強了論文的可信度。固定內參假設在現代智慧手機（自動對焦）中可能被違反。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>隨手拍攝長影片<br>無姿態、大場景<br>COLMAP 易失敗</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>增量聯合最佳化<br>+ 八叉樹錨點<br>+ MASt3R 先驗</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>PSNR 32.83 dB<br>30 倍加速<br>7.92 倍壓縮</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>共視性自適應窗口<br>+ 回退機制<br>防止漂移與失敗</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>無姿態 3DGS<br>已可處理<br>隨手長影片</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過增量聯合最佳化、學習式三維先驗姿態估計與自適應八叉樹錨點的整合，可以從無姿態的隨手拍攝長影片中實現高品質、高效率的三維重建與新視角合成。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>系統性的穩健性設計：</strong>多層次的姿態估計（對應 -> PnP -> 光度精煉 -> 全域回退）與共視性自適應窗口確保了在極具挑戰性的長序列中維持穩定。7.92 倍的記憶體壓縮使方法在實際應用中可行，而競爭方法（如 CF-3DGS）在相同條件下面臨記憶體耗盡。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>對 MASt3R 的深度依賴：</strong>框架的多個核心組件（點雲初始化、姿態估計、尺度校正）均依賴 MASt3R，使方法的成功難以完全歸因於 LongSplat 本身的設計。此外，靜態場景與固定內參假設在真實世界的隨手拍攝場景中經常被違反，限制了方法的適用範圍。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

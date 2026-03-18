@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet — 雙欄批注</title>
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        /* ===== 章節導航條 ===== */
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        /* ===== 主體容器 ===== */
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        /* ===== 批注卡片 ===== */
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet
+                <span class="course-tag">ICCV 2015</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1502.01852" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-prelu">2. PReLU</a>
+        <a href="#sec-init">3. 初始化方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Rectified activation units (rectifiers)</span> are essential for recent advances in deep neural networks. In this work, we study rectifier neural networks from two aspects. First, we propose <span class="hl-concept">Parametric Rectified Linear Unit (PReLU)</span>, which generalizes the traditional rectified unit and <span class="hl-evidence">improves model fitting with nearly zero extra computational cost and little overfitting risk</span>. Second, we derive a <span class="hl-concept">robust initialization method</span> that particularly considers the rectifier nonlinearities, enabling us to <span class="hl-thesis">train extremely deep rectified models directly from scratch</span>. Based on these two techniques, we achieve <span class="hl-evidence">4.94% top-5 test error on the ImageNet 2012 classification dataset</span>, which <span class="hl-thesis">surpasses the reported human-level performance (5.1%) for the first time</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                整流激活單元（整流器）對深度神經網路的近期進展至關重要。本文從兩個面向研究整流器神經網路。首先，我們提出參數化整流線性單元（PReLU），它泛化了傳統整流單元，以幾乎零額外計算成本與極低過擬合風險改善模型擬合。其次，我們推導出一種穩健的初始化方法，特別考量整流器的非線性，使我們能從零開始直接訓練極深的整流模型。基於這兩項技術，我們在 ImageNet 2012 分類資料集上達到 4.94% top-5 測試錯誤率，首次超越已報告的人類水準效能（5.1%）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以兩項技術貢獻與里程碑式結果定義論文核心。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「兩項貢獻 -> 一個突破」的結構組織，PReLU 與初始化方法互為補充，共同實現超越人類的目標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「超越人類水準」是極具標題效應的主張，但 5.1% 的「人類水準」基於特定實驗設定（單人標注者在 1000 類中的錯誤率），不等同於一般人類視覺辨識能力。此定義的侷限性在後續文獻中引發了廣泛討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Deep neural networks</span> have recently achieved remarkable progress in visual recognition. A key factor behind this success is the use of <span class="hl-concept">Rectified Linear Units (ReLU)</span>: <span class="hl-method">f(x) = max(0, x)</span>. While ReLU has enabled training of deeper networks compared to sigmoid and tanh, its behavior on the <span class="hl-rebuttal">negative side — hard zero activation — leads to "dying neurons"</span> that never activate again once pushed into the negative regime. Moreover, <span class="hl-rebuttal">standard initialization methods like Xavier assume linear activations</span> and are not designed for networks with rectifier nonlinearities, causing <span class="hl-rebuttal">training difficulties for very deep models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度神經網路近期在視覺辨識上取得了顯著進展。此成功背後的關鍵因素是整流線性單元（ReLU）的使用：f(x) = max(0, x)。雖然 ReLU 相較 sigmoid 與 tanh 已能訓練更深的網路，但其負側的行為——硬零激活——導致「死亡神經元」：一旦被推入負區間便永不再激活。此外，如 Xavier 等標準初始化方法假設線性激活，並非為具有整流器非線性的網路設計，導致極深模型的訓練困難。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題脈絡——指出 ReLU 與初始化的已知缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：肯定 ReLU 的貢獻後指出其兩個缺陷（死亡神經元、不適當的初始化），恰好對應論文的兩項貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「死亡神經元」是一個被廣泛認知的問題，以此作為動機十分有效。但 Leaky ReLU 已在此之前提出了類似的解決方案（負側非零斜率），作者需說明 PReLU 的增量貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. PReLU ====== -->
+    <h2 class="section-heading" id="sec-prelu">2. Parametric Rectified Linear Unit — 參數化整流線性單元</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">PReLU</span>, which generalizes ReLU by allowing <span class="hl-method">a learnable slope for negative inputs</span>: <span class="hl-method">f(y_i) = y_i if y_i &gt; 0; a_i &middot; y_i if y_i &le; 0</span>. The coefficient <span class="hl-method">a_i is learned jointly with the other model parameters through back-propagation</span>, requiring no manual tuning. When <span class="hl-method">a_i = 0, PReLU reduces to ReLU; when a_i is a fixed small value, it becomes Leaky ReLU</span>. We investigate both <span class="hl-method">channel-wise</span> (each channel has its own a_i) and <span class="hl-method">channel-shared</span> (all channels share one a) variants. The channel-wise version on a 14-layer model shows a <span class="hl-evidence">1.2% gain over the ReLU baseline</span>. The additional parameters are negligible: only one per channel for channel-wise, <span class="hl-evidence">adding virtually zero computational cost</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 PReLU，透過允許負輸入的可學習斜率來泛化 ReLU：f(y_i) = y_i（若 y_i &gt; 0）；a_i &middot; y_i（若 y_i &le; 0）。係數 a_i 透過反向傳播與其他模型參數聯合學習，無需手動調整。當 a_i = 0 時，PReLU 退化為 ReLU；當 a_i 為固定小值時，即為 Leaky ReLU。我們研究了逐通道（每個通道有自己的 a_i）與共享通道（所有通道共享一個 a）兩種變體。逐通道版本在 14 層模型上展現相較 ReLU 基準 1.2% 的增益。額外參數可忽略不計：逐通道僅每通道一個參數，幾乎零額外計算成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心貢獻一——定義 PReLU 的數學形式與變體。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 ReLU 與 Leaky ReLU 作為特例的展示，巧妙地將 PReLU 定位為一般化框架，而非全新的發明。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 ReLU 與 Leaky ReLU 收編為 PReLU 的特例是高明的定位策略。1.2% 的改善幅度不大，但「零額外成本」使其成為「無損改進」，大大降低了採用門檻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 初始化方法 ====== -->
+    <h2 class="section-heading" id="sec-init">3. Initialization Method — 初始化方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We derive a new <span class="hl-concept">initialization method</span> specifically designed for <span class="hl-concept">rectifier networks</span>. The key insight is that the <span class="hl-method">variance of responses in each layer</span> must be maintained during both forward and backward passes. For ReLU networks, the proper standard deviation for weight initialization should be <span class="hl-method">&radic;(2/n_l)</span>, where n_l is the number of input connections, rather than Xavier's <span class="hl-rebuttal">&radic;(1/n_l) which assumes linear activations</span>. The factor of 2 accounts for the <span class="hl-method">fact that ReLU zeros out roughly half of the activations</span>. This seemingly simple correction has <span class="hl-thesis">dramatic practical impact: it enables training extremely deep rectified models (30+ layers) directly from scratch</span> without the need for pre-training or other tricks, whereas <span class="hl-rebuttal">Xavier initialization causes such models to fail to converge</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們推導出一種專為整流器網路設計的新初始化方法。核心洞察在於，每層回應的變異數必須在前向與反向傳播中都得以維持。對 ReLU 網路而言，權重初始化的適當標準差應為 &radic;(2/n_l)（n_l 為輸入連接數），而非 Xavier 的 &radic;(1/n_l)（假設線性激活）。2 的因子考量了 ReLU 大約將一半激活歸零的事實。此看似簡單的修正具有巨大的實際影響：它使得極深的整流模型（30 層以上）能直接從零開始訓練，無需預訓練或其他技巧，而 Xavier 初始化會導致此類模型無法收斂。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心貢獻二——推導適合整流器的初始化公式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將直覺（ReLU 歸零一半）轉化為數學（2 的因子），再以實驗結果（30+ 層可訓練 vs. 不收斂）驗證。理論-直覺-實踐的三層論證結構極為完整。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    &radic;(2/n_l) vs. &radic;(1/n_l) 的差異僅在於一個 &radic;2 的因子，但其對深度模型訓練的影響卻是質變性的。此「小修正大影響」的敘事極具說服力，也成為此文最被廣泛引用的貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We train a series of deep models on <span class="hl-evidence">ImageNet 2012</span> using PReLU and our initialization. <span class="hl-evidence">Model A (19-layer) achieves 6.28% top-5 error with PReLU</span>; <span class="hl-evidence">Model B (22-layer) achieves 6.27%</span>; <span class="hl-evidence">Model C (wider variant) achieves 5.71% single-model top-5 error</span>. The <span class="hl-evidence">multi-model ensemble reaches 4.94% top-5 test error</span>, representing a <span class="hl-evidence">26% relative improvement over ILSVRC 2014 winner GoogLeNet (6.66%)</span>. This is the <span class="hl-thesis">first result to surpass the reported human-level performance of 5.1%</span>. Our models use <span class="hl-method">spatial pyramid pooling</span>, aggressive <span class="hl-method">data augmentation with scale jittering in range [256, 512]</span>, and <span class="hl-method">multi-GPU training</span>. The paper emphasizes that <span class="hl-thesis">width increases (more filters per layer) contribute more than depth alone</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們以 PReLU 與本文初始化方法在 ImageNet 2012 上訓練一系列深度模型。模型 A（19 層）以 PReLU 達到 6.28% top-5 錯誤率；模型 B（22 層）達 6.27%；模型 C（加寬變體）達 5.71% 單模型 top-5 錯誤率。多模型集成達到 4.94% top-5 測試錯誤率，相較 ILSVRC 2014 冠軍 GoogLeNet（6.66%）有 26% 的相對改善。這是首次超越已報告的 5.1% 人類水準效能的結果。我們的模型使用空間金字塔池化、在 [256, 512] 範圍內的尺度抖動積極資料增強以及多 GPU 訓練。論文強調寬度增加（每層更多濾波器）比單純增加深度貢獻更大。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面的實驗驗證——以漸進式模型展示改進與最終突破。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗段以 A -> B -> C -> 集成的漸進結構展示每項技術的增量貢獻，最終以 4.94% 的集成結果達成「超越人類」的論文主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    4.94% vs. 5.1% 的差距（0.16%）在統計上可能不顯著，且「人類水準」的定義較為寬鬆。「寬度比深度重要」的發現十分有洞察力，但與隨後 ResNet 論文的「深度至關重要」似有矛盾——實際上兩者在不同情境下皆有道理。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have investigated <span class="hl-concept">rectifier neural networks</span> from the perspectives of activation functions and initialization. <span class="hl-concept">PReLU</span> provides a <span class="hl-thesis">principled generalization of ReLU with negligible extra cost</span>, while our <span class="hl-concept">initialization method</span> enables <span class="hl-thesis">training of very deep models that were previously intractable</span>. Together, these contributions achieve <span class="hl-evidence">4.94% top-5 error on ImageNet</span>, <span class="hl-thesis">surpassing human-level performance for the first time</span>. These results demonstrate that <span class="hl-thesis">careful attention to seemingly minor design choices — activation functions and initialization — can yield substantial practical improvements</span> in deep learning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們從激活函數與初始化兩個角度研究了整流器神經網路。PReLU 以可忽略的額外成本提供 ReLU 的有原則泛化，而我們的初始化方法使得先前不可訓練的極深模型成為可能。這些貢獻共同在 ImageNet 上達到 4.94% top-5 錯誤率，首次超越人類水準效能。這些結果證明，對看似微小的設計選擇——激活函數與初始化——的仔細關注，能在深度學習中產生實質性的改善。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——提煉出超越具體方法的一般性啟示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論從具體技術上升至一般原則：「看似微小的設計選擇可產生巨大影響」，為深度學習社群提供了方法論啟示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論的哲學層次提升（微小設計 -> 巨大影響）是有效的修辭手法。但未討論「超越人類水準」的定義爭議，也未充分說明此結果在多大程度上依賴集成（單模型最佳 5.71% 仍未超越 5.1%）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                ReLU 死亡神經元<br>Xavier 初始化不適配
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                PReLU 可學習斜率<br>&radic;(2/n) 初始化
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ImageNet 4.94% top-5<br>首次超越人類 5.1%
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                零額外成本、可訓練<br>30+ 層深度模型
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                微小設計選擇可<br>帶來重大實務改善
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過可學習的 PReLU 激活函數與考量整流器非線性的 &radic;(2/n_l) 初始化方法，能從零訓練極深模型並在 ImageNet 上以 4.94% top-5 錯誤率首次超越人類水準。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>初始化方法的理論優雅性與實踐影響力：</strong>&radic;(2/n_l) 的推導基於嚴謹的變異數分析，一個 &radic;2 的因子就能將不可訓練的 30+ 層網路變為可訓練，且此方法（He 初始化）已成為深度學習的標準做法，影響力遠超論文本身。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>「超越人類」主張的定義爭議：</strong>5.1% 的人類基準基於單一標注者在 1000 類分類任務上的表現，並非一般性的人類視覺能力。單模型最佳結果（5.71%）實際上仍未超越此基準，需 7 模型集成才能達到 4.94%。此外，PReLU 相較 Leaky ReLU 的增量貢獻較為有限。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

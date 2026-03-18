@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>From Large Scale Image Categorization to Entry-Level Categories — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                From Large Scale Image Categorization to Entry-Level Categories
+                <span class="course-tag">ICCV 2013</span>
+                <span class="best-paper-badge">Marr Prize (Best Paper)</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://openaccess.thecvf.com/content_iccv_2013/html/Ordonez_From_Large_Scale_2013_ICCV_paper.html" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-visual">3.1 視覺辨識</a>
+        <a href="#sec-linguistic">3.2 語言特徵</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Humans use <span class="hl-concept">entry-level categories</span> — the labels people naturally use to name objects — as the default level of abstraction when communicating about the visual world. For example, people say "dog" rather than "Labrador Retriever" or "animal." While <span class="hl-evidence">large-scale visual recognition systems</span> have made impressive progress on fine-grained classification tasks, <span class="hl-rebuttal">they do not address the problem of predicting the names that humans would naturally use</span>. In this paper, we develop <span class="hl-thesis">the first computational models for predicting entry-level categories at large scale</span> by combining <span class="hl-method">visual recognition outputs with linguistic knowledge derived from web text corpora</span>. Our models successfully <span class="hl-evidence">predict the nouns that humans naturally associate with images</span> and map fine-grained visual categories to entry-level concepts.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人類使用「入門層級類別」——人們自然用來命名物件的標籤——作為溝通視覺世界時的預設抽象層級。例如，人們會說「狗」而非「拉布拉多犬」或「動物」。雖然大規模視覺辨識系統在細粒度分類任務上已取得令人印象深刻的進展，但它們並未解決預測人類自然使用之名稱的問題。本文開發了首個用於大規模預測入門層級類別的計算模型，結合視覺辨識輸出與從網路文本語料庫中擷取的語言知識。我們的模型成功預測了人類自然與影像聯想的名詞，並將細粒度視覺類別映射到入門層級概念。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從認知心理學的「入門層級」概念出發，界定研究問題並預告解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時承擔「問題定義」與「方案預告」的功能：先以日常語言直覺（「狗」vs.「拉布拉多」）建立讀者共鳴，再指出現有系統的盲點，最後提出跨領域（視覺+語言）的整合方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以日常經驗（「狗」vs.「拉布拉多」）作為引入極具說服力，讓非專業讀者也能立刻理解問題。但「首個大規模計算模型」的宣稱需要嚴謹的文獻回顧支撐——心理學界對入門層級的研究已有數十年歷史。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The study of <span class="hl-concept">entry-level categories</span> dates back to the seminal work of <span class="hl-concept">Rosch et al. (1976)</span> in cognitive psychology. Entry-level categories represent <span class="hl-thesis">the most informative yet cognitively economical level of abstraction</span> for categorizing objects. At this level, categories share the most <span class="hl-method">common attributes</span>, have the most <span class="hl-method">distinct shapes</span>, and are <span class="hl-method">named most quickly</span> by human subjects. Despite the fundamental importance of this concept, <span class="hl-rebuttal">computational vision has largely ignored entry-level categorization</span>, focusing instead on either basic object detection or increasingly fine-grained classification.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                入門層級類別的研究可追溯至 Rosch 等人（1976）在認知心理學領域的開創性工作。入門層級類別代表了物件分類中最具資訊量且認知上最經濟的抽象層級。在此層級上，類別共享最多的共同屬性、具有最顯著的外型特徵，且被受試者命名得最快。儘管此概念具有根本性的重要性，計算視覺領域卻大致忽略了入門層級分類，轉而聚焦於基本物件偵測或日益細粒度的分類任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立學術脈絡——從認知心理學的經典文獻出發，揭示計算視覺的研究缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：以 Rosch 的權威性建立「入門層級」概念的合法性，再指出電腦視覺對此概念的忽視，為本研究的必要性奠基。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    引用認知心理學經典（Rosch 1976）是強力的跨學科論證策略。但將整個計算視覺領域描述為「大致忽略」入門層級可能過於簡化——語意層級的研究在知識圖譜和本體論中已有相當發展。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Current <span class="hl-evidence">large-scale recognition systems</span>, such as those built on <span class="hl-concept">ImageNet</span>, can classify images into thousands of fine-grained categories. However, <span class="hl-rebuttal">the output labels are often overly specific for human communication</span> — e.g., predicting "Pembroke Welsh Corgi" when a user would simply say "dog." Conversely, top-level categories like "organism" are <span class="hl-rebuttal">too abstract to be useful</span>. We argue that <span class="hl-thesis">bridging visual recognition with human-level naming requires explicitly modeling the entry-level of categorization</span>, which depends on both <span class="hl-method">visual distinctiveness and linguistic conventionality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                當前的大規模辨識系統，例如基於 ImageNet 建構的系統，能夠將影像分類至數千個細粒度類別。然而，輸出的標籤對人類溝通而言往往過於具體——例如預測「彭布羅克威爾斯柯基犬」，而使用者只會說「狗」。反之，頂層類別如「生物」又過於抽象而缺乏實用性。我們主張，要橋接視覺辨識與人類層級的命名，需要明確建模入門層級的分類，而這同時取決於視覺辨別性與語言慣例性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    具體化問題——以實例展示「過於具體」與「過於抽象」的兩難。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「柯基犬 vs. 狗 vs. 生物」的三層對比，精確界定入門層級的位置——既非最粗也非最細，而是認知上最自然的那一層。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「柯基犬」的例子極具直覺說服力，但入門層級可能因上下文而變——對犬類專家而言「柯基犬」可能就是入門層級。作者需處理這種主觀性與上下文依賴性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Research on <span class="hl-concept">object categorization hierarchies</span> in vision has explored <span class="hl-concept">WordNet</span> and <span class="hl-concept">ImageNet</span> taxonomies for organizing visual concepts. <span class="hl-concept">Deng et al. (2012)</span> proposed <span class="hl-method">Hierarchy and Exclusion (HEX) graphs</span> for reasoning about semantic relationships. Work on <span class="hl-concept">attribute-based recognition</span> attempts to describe objects via shared properties, which relates to — but does not directly address — entry-level naming. In <span class="hl-concept">natural language processing</span>, <span class="hl-method">word frequency, familiarity, and corpus statistics</span> have been used to assess the naturalness of category labels. Our work is <span class="hl-thesis">the first to systematically combine visual recognition with linguistic analysis to predict entry-level naming at scale</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺領域中關於物件分類層級的研究已探索了 WordNet 與 ImageNet 分類體系來組織視覺概念。Deng 等人（2012）提出了層級與排除（HEX）圖來推理語意關係。基於屬性的辨識嘗試透過共享屬性來描述物件，這與入門層級命名相關但並未直接處理之。在自然語言處理中，詞頻、熟悉度與語料統計已被用於評估類別標籤的自然程度。本研究首度系統性地結合視覺辨識與語言分析，以大規模預測入門層級命名。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——橫跨視覺辨識、語意推理與自然語言處理三個領域。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立本研究的跨學科定位：既非純視覺辨識，亦非純語言學研究，而是兩者的系統性整合。這為方法論的設計提供了正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將多個領域的相關工作各指出其「未直接處理」入門層級的面向，有效地為本研究創造了獨特的學術位置。但此策略也可能忽略了某些跨領域整合的先行研究。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-visual">3.1 Visual Recognition Component — 視覺辨識組件</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The visual component leverages <span class="hl-method">predictions from large-scale image classifiers</span> trained on <span class="hl-evidence">ImageNet's hierarchical label structure</span>. Given an input image, the system obtains <span class="hl-method">probability distributions over fine-grained categories</span>. These probabilities are then <span class="hl-method">propagated up the WordNet hierarchy</span> to compute <span class="hl-method">aggregated confidence scores at every level of abstraction</span>. For a node <em>n</em> in the hierarchy, the visual score is the <span class="hl-method">sum of posterior probabilities of all descendant leaf categories</span>. This propagation naturally produces higher scores for broader categories that encompass many fine-grained classes.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺組件運用在 ImageNet 層級標籤結構上訓練的大規模影像分類器之預測結果。給定一張輸入影像，系統取得細粒度類別的機率分布。這些機率接著沿 WordNet 層級向上傳播，以計算每個抽象層級的聚合信心分數。對於層級中的節點 n，視覺分數為所有子代葉節點類別之後驗機率總和。此傳播機制自然地為涵蓋眾多細粒度類別的較廣泛類別產生較高分數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第一支柱——描述視覺辨識分數的計算方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    視覺組件解決了「哪些類別在視覺上是合理的」這一問題，但單靠它無法判斷哪個抽象層級最自然——因為較廣的類別總是獲得較高分數。這為語言組件的引入埋下伏筆。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    利用 WordNet 層級進行機率傳播是優雅的設計，但完全依賴 ImageNet 的分類體系意味著模型被限制在 WordNet 所定義的語意空間內，無法處理 WordNet 之外的自然語言命名慣例。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-linguistic">3.2 Linguistic Features — 語言特徵</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The linguistic component captures <span class="hl-thesis">how natural or conventional a category name is in everyday language</span>. The authors extract several features from <span class="hl-evidence">large web text corpora</span>: (1) <span class="hl-method">word frequency</span> — more common words tend to be used at the entry level; (2) <span class="hl-method">word length</span> — entry-level names are typically shorter; (3) <span class="hl-method">familiarity scores</span> — derived from psycholinguistic databases; (4) <span class="hl-method">contextual diversity</span> — entry-level words appear in more diverse contexts. These features are combined into a <span class="hl-method">linguistic naturalness score</span> that biases the system toward the abstraction level humans would prefer. The <span class="hl-thesis">key insight is that entry-level categories are determined not only by visual similarity structure but also by linguistic conventionality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                語言組件捕捉類別名稱在日常語言中的自然度或慣例性。作者從大型網路文本語料庫中擷取數項特徵：(1) 詞頻——較常見的詞彙傾向用於入門層級；(2) 詞長——入門層級名稱通常較短；(3) 熟悉度分數——源自心理語言學資料庫；(4) 語境多樣性——入門層級詞彙出現在更多元的語境中。這些特徵組合為一個語言自然度分數，將系統偏向人類偏好的抽象層級。關鍵洞見在於：入門層級類別不僅取決於視覺相似度結構，也取決於語言慣例性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第二支柱——描述語言自然度分數的構建方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應了視覺組件的不足：單靠視覺分數無法區分抽象層級，而語言特徵正好填補此缺口。「視覺+語言」的雙軌設計是全文方法論的核心架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    四種語言特徵的設計合理且有心理學支持，但這些特徵主要適用於英語——入門層級在不同語言中可能有不同表現。此外，網路語料庫的偏向可能使模型反映的是「網路用語習慣」而非真正的認知入門層級。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The final prediction model <span class="hl-method">combines visual and linguistic scores</span> using either a <span class="hl-method">product-of-experts formulation</span> or a <span class="hl-method">learned combination via logistic regression</span>. For a given image, the system traverses the <span class="hl-method">WordNet hierarchy from fine-grained leaves to the root</span>, evaluating the combined score at each node. The predicted entry-level category is the node that <span class="hl-thesis">maximizes the joint visual-linguistic score</span>. The authors also propose a <span class="hl-method">threshold-based method</span> that selects the most specific category whose visual confidence exceeds a learned threshold, effectively balancing <span class="hl-thesis">specificity against naturalness</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最終預測模型結合視覺與語言分數，使用專家乘積公式或透過邏輯迴歸的學習式組合。對於給定影像，系統從細粒度葉節點至根節點遍歷 WordNet 層級，在每個節點評估組合分數。預測的入門層級類別即為使視覺-語言聯合分數最大化的節點。作者也提出了一種基於閾值的方法，選擇視覺信心超過學習閾值的最具體類別，有效地在具體性與自然度之間取得平衡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法整合——描述視覺與語言分數的融合機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將前兩個組件整合為完整的預測系統，形成「視覺分數 x 語言分數 → 入門層級預測」的閉環。提供兩種融合策略顯示方法的靈活性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    兩種融合方法（乘積 vs. 迴歸）的並列是良好的實驗設計，允許讀者比較不同組合策略的效果。但 WordNet 的固定樹狀結構可能遺漏某些人類自然使用但不在層級路徑上的名稱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors evaluate their models on <span class="hl-evidence">a large-scale dataset of images with human-provided entry-level labels</span> collected via <span class="hl-evidence">Amazon Mechanical Turk</span>. Annotators were asked to <span class="hl-method">name objects in images using the word they would naturally use</span>. The evaluation covers <span class="hl-evidence">over 1,500 ImageNet categories</span> and demonstrates that the combined visual-linguistic model <span class="hl-evidence">significantly outperforms baselines using only visual or only linguistic features</span>. The learned model achieves <span class="hl-evidence">accuracy improvements of 15-20% over a visual-only baseline</span> in predicting human-preferred category names. Furthermore, <span class="hl-evidence">qualitative analysis shows that the model correctly predicts "dog" instead of breed-specific labels and "car" instead of model-specific names</span>, aligning well with human intuitions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者在透過 Amazon Mechanical Turk 蒐集的、附有人類提供之入門層級標籤的大規模資料集上評估其模型。標註者被要求使用他們自然會用的詞彙來命名影像中的物件。評估涵蓋超過 1,500 個 ImageNet 類別，證明了視覺-語言結合模型顯著優於僅使用視覺或僅使用語言特徵的基線。學習式模型在預測人類偏好類別名稱方面，比純視覺基線提高了 15-20% 的準確率。此外，定性分析顯示模型正確預測「dog」而非品種特定標籤，「car」而非車型特定名稱，與人類直覺高度吻合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實證支持——在大規模人類標註資料上驗證模型效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論證的實證核心：15-20% 的準確率提升與定性案例共同證明了語言特徵對入門層級預測的關鍵作用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用人類標註作為金標準是恰當的實驗設計，但 Mechanical Turk 標註者的人口結構偏向可能影響結果——不同文化、年齡或專業背景的人可能有不同的入門層級。且 15-20% 的改進雖顯著，但絕對準確率未明確報告。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents <span class="hl-thesis">the first large-scale computational models for predicting entry-level categories</span>, bridging the gap between <span class="hl-concept">fine-grained visual recognition</span> and <span class="hl-concept">human-level object naming</span>. By combining <span class="hl-method">visual recognition with linguistic analysis</span>, we demonstrate that <span class="hl-thesis">entry-level prediction requires modeling both visual structure and language conventionality</span>. Our models have practical implications for <span class="hl-evidence">image description generation, visual search, and human-computer interaction</span>, where using natural category names enhances user experience. Future work includes extending the approach to <span class="hl-rebuttal">context-dependent naming</span> and <span class="hl-rebuttal">cross-cultural variations in entry-level categories</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了首個用於預測入門層級類別的大規模計算模型，橋接了細粒度視覺辨識與人類層級物件命名之間的差距。透過結合視覺辨識與語言分析，我們證明了入門層級預測需要同時建模視覺結構與語言慣例性。我們的模型對影像描述生成、視覺搜尋與人機互動具有實際意涵，使用自然類別名稱能提升使用者體驗。未來工作包括將此方法擴展至依賴語境的命名以及入門層級類別的跨文化差異。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻、實際應用與未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應摘要的問題定義，形成論證閉環。由「入門層級是什麼」到「如何預測」到「為何重要」，邏輯完整。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者在結論中主動提及「語境依賴命名」與「跨文化差異」這兩個限制，展現學術誠實。但這也暗示了當前模型在這些方面的不足——入門層級很可能不是一個固定的語言現象，而是高度依賴情境的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺辨識系統的輸出<br>不符合人類命名直覺
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                入門層級預測需結合<br>視覺與語言特徵
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                大規模人類標註驗證<br>準確率提升 15-20%
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                語境與文化差異<br>尚待未來研究處理
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                視覺+語言整合<br>是入門層級預測的方向
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過結合大規模視覺辨識系統的輸出與網路語料庫的語言自然度特徵，可以首度在大規模上預測人類自然使用的入門層級類別名稱。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>跨學科洞見的整合：</strong>將認知心理學的入門層級理論與計算視覺和自然語言處理結合，開闢了全新的研究方向。以人類標註作為評估標準的實驗設計直接對應了研究問題的本質——預測「人類會怎麼說」。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>入門層級的固定性假設：</strong>模型假設入門層級在不同語境和人群中是相對穩定的，但認知科學研究顯示入門層級會隨專業程度、文化背景和交際情境而變化。以英語為中心的語言特徵設計也限制了跨語言的通用性。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

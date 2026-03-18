@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adding Conditional Control to Text-to-Image Diffusion Models (ControlNet) — 雙欄批注</title>
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        /* ===== 主體容器 ===== */
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        /* 批注卡片 */
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Adding Conditional Control to Text-to-Image Diffusion Models (ControlNet)
+                <span class="course-tag">ICCV 2023</span>
+                <span class="best-paper-badge">Marr Prize (Best Paper)</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2302.05543" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-training">3.3 訓練</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">ControlNet</span>, a neural network architecture to <span class="hl-thesis">add spatial conditioning controls to large, pretrained text-to-image diffusion models</span>. ControlNet <span class="hl-method">locks the production-ready large diffusion model and reuses its deep and robust encoding layers</span> as a strong backbone to learn diverse conditional controls. The <span class="hl-method">trainable copy is connected to the locked model via "zero convolution" layers</span> — convolution layers initialized with zero weights — that <span class="hl-thesis">progressively grow the parameters from zero and ensure that no harmful noise affects the finetuning</span>. We test ControlNet with <span class="hl-evidence">Stable Diffusion on various conditioning inputs such as edges, depth, segmentation, and human pose</span>, showing that the training is <span class="hl-evidence">robust even with limited data (&lt;50k) and scales well to large datasets (&gt;1M)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 ControlNet，一種為大型預訓練文生圖擴散模型新增空間條件控制的神經網路架構。ControlNet 鎖定已就緒的大型擴散模型，並重用其深層且穩健的編碼層作為強大的骨幹網路，以學習多樣的條件控制。可訓練的副本透過「零摺積」層——以零權重初始化的摺積層——連接至鎖定的模型，使參數從零逐步增長，確保微調過程中不會受到有害雜訊的影響。我們以 Stable Diffusion 在多種條件輸入上測試 ControlNet，包括邊緣、深度、語義分割和人體姿態，展示了訓練即使在有限資料（不到五萬張）下也具穩健性，且能良好擴展到大型資料集（超過一百萬張）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以架構設計為核心，從「鎖定+副本」到「零摺積」，完整預覽 ControlNet 的技術路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承載「問題（缺乏空間控制）→方案（零摺積連接的可訓練副本）→驗證（多條件多規模）」的三段式論證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「零摺積」概念的引入既巧妙又直觀——從零開始成長的參數天然避免破壞預訓練權重。但摘要未提及此架構相對於 LoRA 等輕量微調方法的額外記憶體成本（需複製整個編碼器）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Large text-to-image diffusion models such as <span class="hl-concept">Stable Diffusion</span> have demonstrated remarkable capabilities in generating high-quality images from text descriptions. However, <span class="hl-rebuttal">text prompts alone provide limited control over the spatial composition of generated images</span>. Users cannot precisely specify where objects should appear, what pose a person should take, or how edges in the scene should be arranged. <span class="hl-thesis">Enabling finer-grained spatial control by letting users provide additional images that directly specify their desired image composition</span> — such as edge maps, pose skeletons, or depth maps — is a crucial next step for practical creative applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大型文生圖擴散模型（如 Stable Diffusion）已展示了從文字描述生成高品質影像的卓越能力。然而，僅靠文字提示對生成影像的空間構圖提供有限的控制。使用者無法精確指定物件應出現的位置、人物應採取的姿態，或場景中的邊緣應如何排列。讓使用者提供直接指定所需影像構圖的額外影像——如邊緣圖、姿態骨架或深度圖——以實現更細粒度的空間控制，是邁向實用創意應用的關鍵一步。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出文字提示在空間控制上的根本限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：肯定擴散模型的成就，再以「有限控制」指出缺口，為空間條件輸入的引入建立必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體的使用場景（物件位置、人物姿態、邊緣排列）來闡述抽象的「控制不足」問題，極具說服力。但實際上 Stable Diffusion 的提示工程（prompt engineering）已能實現部分空間控制，此處的敘述略有簡化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A core challenge is that <span class="hl-rebuttal">task-specific datasets for spatial conditioning are typically orders of magnitude smaller</span> than the billions of image-text pairs used to train models like Stable Diffusion. Directly finetuning the entire model on such small datasets risks <span class="hl-concept">catastrophic forgetting</span> — degrading the model's original generative capabilities. Existing approaches such as <span class="hl-concept">HyperNetworks</span>, <span class="hl-concept">Adapters</span>, and <span class="hl-concept">LoRA</span> offer partial solutions but <span class="hl-rebuttal">may not fully preserve the quality of the pretrained backbone when learning complex spatial conditions</span>. We propose ControlNet to address this challenge with a <span class="hl-thesis">dedicated architecture that fundamentally prevents degradation through zero-initialized connections</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                核心挑戰在於，用於空間條件化的特定任務資料集通常比訓練 Stable Diffusion 等模型所用的數十億影像文字對小數個數量級。直接在如此小的資料集上微調整個模型，可能導致災難性遺忘——退化模型原有的生成能力。現有方法如 HyperNetworks、Adapters 和 LoRA 提供了部分解決方案，但在學習複雜空間條件時可能無法完全保留預訓練骨幹的品質。我們提出 ControlNet 以專門的架構來應對此挑戰——透過零初始化連接從根本上防止退化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義技術挑戰——資料規模不對稱與災難性遺忘的兩難。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在肯定現有微調方法後指出其不足，為 ControlNet 的「零初始化」設計建立差異化定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「從根本上防止退化」是強烈的措辭。LoRA 等方法在實務上已相當有效地緩解災難性遺忘。ControlNet 的優勢更在於能學習複雜的空間映射，而非單純的遺忘防護。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Finetuning large neural networks</span> has been studied through various paradigms. <span class="hl-concept">HyperNetworks</span> train small networks to influence larger ones; <span class="hl-concept">Adapters</span> embed new modules without modifying original weights; <span class="hl-concept">LoRA</span> prevents forgetting through <span class="hl-method">low-rank matrix learning</span>; and <span class="hl-concept">zero-initialized layers</span> prevent harmful noise during training initialization. In the domain of <span class="hl-concept">image diffusion</span>, text-to-image systems including <span class="hl-concept">GLIDE, Disco Diffusion, and Stable Diffusion</span> have achieved remarkable quality. Prior conditional generation works — from <span class="hl-concept">conditional GANs</span> to <span class="hl-concept">PITI</span> — address image-to-image translation but <span class="hl-rebuttal">typically require training from scratch or do not leverage the full capacity of pretrained diffusion backbones</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大型神經網路的微調已透過各種範式進行研究。HyperNetworks 訓練小型網路以影響大型網路；Adapters 嵌入新模組而不修改原始權重；LoRA 透過低秩矩陣學習防止遺忘；零初始化層則防止訓練初始化時的有害雜訊。在影像擴散領域，文生圖系統（包括 GLIDE、Disco Diffusion 和 Stable Diffusion）已達到卓越品質。先前的條件式生成工作——從條件式 GAN 到 PITI——處理影像到影像的轉譯，但通常需要從頭訓練或未能充分利用預訓練擴散骨幹的完整能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——將微調技術與條件式生成兩個脈絡交匯呈現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立 ControlNet 的學術定位：融合「微調策略」與「條件式擴散」兩個研究線，指出現有方法未能同時達成「保留骨幹品質」與「學習空間條件」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡明的列舉方式覆蓋大量相關工作，效率極高。但對 LoRA 的描述略顯不公——LoRA 配合適當的 rank 也能學習相當複雜的條件映射。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 ControlNet Architecture — ControlNet 架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core innovation of ControlNet involves creating a <span class="hl-method">trainable copy of neural network blocks while keeping the originals frozen</span>. Given a trained block with function F(x; Theta) that transforms input x to output y, ControlNet adds a trainable copy with parameters Theta_c. These connect via <span class="hl-concept">zero convolution layers</span> Z(.; .) — <span class="hl-method">1x1 convolutions initialized entirely to zero</span>. The complete ControlNet computes: <span class="hl-method">y_c = F(x; Theta) + Z(F(x + Z(c; Theta_z1); Theta_c); Theta_z2)</span>. This initialization ensures that <span class="hl-thesis">initially, both zero terms evaluate to zero, preserving original outputs while preventing harmful noise from corrupting the backbone during early training</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ControlNet 的核心創新在於建立神經網路區塊的可訓練副本，同時保持原始區塊凍結。給定一個以函數 F(x; Theta) 將輸入 x 轉換為輸出 y 的已訓練區塊，ControlNet 添加一個具有參數 Theta_c 的可訓練副本。它們透過零摺積層 Z(.; .)——完全以零初始化的 1x1 摺積——進行連接。完整的 ControlNet 計算為：y_c = F(x; Theta) + Z(F(x + Z(c; Theta_z1); Theta_c); Theta_z2)。此初始化確保在初始階段，兩個零項都計算為零，保留原始輸出的同時防止有害雜訊在訓練早期破壞骨幹網路。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法推導——以數學形式定義 ControlNet 的運算邏輯。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整個架構的數學基礎。「凍結+可訓練副本+零摺積」三位一體的設計，直接回應「防止災難性遺忘」的核心挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    零摺積的設計極其優雅——訓練起點等同於原始模型，之後逐步「生長」出條件控制能力。但此設計意味著需要複製編碼器的全部參數，記憶體開銷約為原模型的 1.5 倍（GPU 記憶體增加 23%），在資源受限環境下可能是瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Applied to <span class="hl-concept">Stable Diffusion's U-Net architecture</span>, ControlNet creates <span class="hl-method">trainable copies of 12 encoding blocks plus 1 middle block</span> across four resolutions (64x64, 32x32, 16x16, 8x8). Outputs are added to corresponding skip connections in the decoder. Input conditioning images are first encoded from <span class="hl-method">512x512 pixel space to 64x64 feature space</span> using a small four-layer convolutional encoder with 4x4 kernels, 2x2 strides, and channels [16, 32, 64, 128]. The training overhead is minimal: approximately <span class="hl-evidence">23% more GPU memory and 34% more time per iteration</span> compared to standard Stable Diffusion optimization on a single NVIDIA A100.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                應用到 Stable Diffusion 的 U-Net 架構時，ControlNet 在四個解析度（64x64、32x32、16x16、8x8）上建立 12 個編碼區塊加 1 個中間區塊的可訓練副本。輸出被加至解碼器中對應的跳接連接。輸入條件影像首先透過一個小型四層摺積編碼器（4x4 核、2x2 步距、通道數 [16, 32, 64, 128]）從 512x512 像素空間編碼至 64x64 特徵空間。訓練開銷極小：在單張 NVIDIA A100 上，相比標準 Stable Diffusion 最佳化，僅增加約 23% 的 GPU 記憶體與 34% 的每次迭代時間。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    工程實現——將抽象架構映射到具體的 Stable Diffusion U-Net。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將理論架構落地：明確的區塊數量、解析度層級與計算開銷數字，使方法從概念走向可復現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「23% 記憶體、34% 時間」的具體數字增強了實用性論述。但作者僅報告了 A100 上的數據——在消費級 GPU 上，這些額外開銷可能更具實質影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 訓練 -->
+    <h3 class="subsection-heading" id="sec-training">3.3 Training — 訓練</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                ControlNet uses the standard diffusion objective. A key technique involves <span class="hl-method">randomly replacing 50% of text prompts with empty strings during training</span>, forcing the model to <span class="hl-thesis">recognize semantic content directly from the conditioning inputs</span>. A notable phenomenon emerges: the model does not gradually learn the control conditions but <span class="hl-evidence">"abruptly succeeds in following the input conditioning image; usually in less than 10K optimization steps."</span> This <span class="hl-concept">"sudden convergence"</span> occurs because <span class="hl-method">zero convolutions prevent noise accumulation, maintaining constant output quality throughout training</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ControlNet 使用標準的擴散目標函數。一項關鍵技巧是在訓練時隨機將 50% 的文字提示替換為空字串，迫使模型直接從條件輸入中辨識語義內容。一個值得注意的現象浮現：模型並非逐漸學會控制條件，而是「突然成功地跟隨輸入條件影像；通常在不到一萬次最佳化步驟內」。這種「突然收斂」現象的發生，是因為零摺積防止了雜訊累積，在整個訓練過程中維持恆定的輸出品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略與發現——揭示「突然收斂」這一經驗性發現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供了零摺積設計的經驗性驗證：「突然收斂」現象既是令人驚喜的發現，也反向證實了零初始化的理論動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「突然收斂」的描述極具吸引力且易於記憶。但「突然」的具體定義模糊——是損失函數的陡降還是生成品質的質變？此現象是否在所有條件類型上都成立，還是僅限於某些結構化條件？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We demonstrate results across <span class="hl-evidence">eight conditioning types: Canny edges, depth maps, normal maps, M-LSD lines, HED edges, ADE20K segmentation, OpenPose, and user sketches</span>. ControlNet robustly interprets content semantics in diverse input conditioning images, even <span class="hl-evidence">without text prompts</span>. In ablative studies, <span class="hl-evidence">standard convolutions with Gaussian initialization perform poorly</span>, and <span class="hl-evidence">removal of zero convolutions destroys the pretrained backbone</span>. In user studies, ControlNet achieved <span class="hl-evidence">4.22/5 for result quality and 4.28/5 for condition fidelity</span>. Remarkably, ControlNet <span class="hl-evidence">trained on only 200k depth samples with one RTX 3090Ti over 5 days achieved results indistinguishable from Stable Diffusion V2 Depth-to-Image trained on 12M images across A100 clusters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們展示了八種條件類型的結果：Canny 邊緣、深度圖、法線圖、M-LSD 線段、HED 邊緣、ADE20K 語義分割、OpenPose 和使用者手繪草圖。ControlNet 穩健地解讀多樣條件影像中的內容語義，甚至在無文字提示的情況下亦然。消融研究中，以高斯初始化的標準摺積表現不佳，移除零摺積會摧毀預訓練骨幹。使用者研究中，ControlNet 在結果品質與條件忠實度上分別獲得 4.22/5 與 4.28/5 的評分。值得注意的是，ControlNet 僅以 20 萬張深度樣本在一張 RTX 3090Ti 上訓練五天，即達到與在 A100 叢集上以 1200 萬張影像訓練的 Stable Diffusion V2 Depth-to-Image 難以區分的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——覆蓋多條件、消融、使用者研究與工業級比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是實證支柱，多維度驗證：(1) 條件類型的廣度；(2) 消融確認零摺積的必要性；(3) 使用者研究的主觀品質；(4) 與工業方案的效率比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「200k vs. 12M、RTX 3090Ti vs. A100 叢集」的對比極具衝擊力，完美展示了架構設計帶來的資料與計算效率。但「不可區分」的判定基於使用者研究精度（0.52），接近隨機猜測，這本身就是成功的定義。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                An important finding is the <span class="hl-thesis">transfer learning capability</span> of trained ControlNets. Models trained on standard Stable Diffusion can be <span class="hl-evidence">directly applied to community-finetuned models like Comic Diffusion and Protogen without retraining</span>. This demonstrates that ControlNet learns <span class="hl-thesis">condition-to-feature mappings that generalize across model variants sharing the same architecture</span>. Additionally, <span class="hl-method">multiple ControlNets can be composed by simply adding their outputs</span>, enabling multi-condition generation without additional weighting or interpolation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項重要發現是已訓練 ControlNet 的遷移學習能力。在標準 Stable Diffusion 上訓練的模型可直接應用於社群微調模型（如 Comic Diffusion 和 Protogen），無需重新訓練。這證明了 ControlNet 學到的條件到特徵映射能夠泛化至共享相同架構的模型變體。此外，多個 ControlNet 可透過簡單地加總其輸出進行組合，實現多條件生成而無需額外的加權或內插。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示泛化能力——跨模型遷移與多條件組合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    超越基本驗證的額外價值：ControlNet 不僅解決了當前問題，更展示了作為通用「控制外掛」的潛力，大幅擴展了實用影響力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    跨模型遷移的實用價值巨大，是推動 ControlNet 在開源社群爆發式採用的關鍵因素。但「直接應用」的前提是模型共享相同架構——對於 SDXL 等架構變化的版本則需重新訓練。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">ControlNet</span> establishes an efficient architecture for <span class="hl-thesis">adding spatial controls to pretrained diffusion models</span>. By <span class="hl-method">freezing the original backbone and connecting trainable copies through zero convolutions</span>, the method <span class="hl-thesis">"reuses the large-scale pretrained layers of source models to build a deep and strong encoder to learn specific conditions."</span> The approach enables practical applications across <span class="hl-evidence">diverse conditioning types with varied dataset sizes and computational budgets</span>, demonstrating that <span class="hl-thesis">pretrained diffusion models can be effectively repurposed as powerful backbones for spatial-conditional image generation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ControlNet 建立了一套為預訓練擴散模型新增空間控制的高效架構。透過凍結原始骨幹並以零摺積連接可訓練副本，該方法「重用源模型的大規模預訓練層，建構深層且強大的編碼器以學習特定條件」。此方法在多樣的條件類型、不同的資料集規模與計算預算下均能實際應用，證明了預訓練擴散模型可被有效地再利用為空間條件式影像生成的強大骨幹。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻與實用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應摘要，從架構設計回到實用啟示：預訓練模型是可重用的強大骨幹。形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論恰當地將 ControlNet 定位為通用性架構而非特定應用工具。但未討論零摺積策略在更大模型（如 SDXL、DiT 架構）上的適用性，也未探討條件衝突（如矛盾的深度和邊緣）時的行為。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                文字提示缺乏<br>空間構圖控制力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                凍結骨幹+零摺積副本<br>實現條件控制學習
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                八類條件、使用者研究<br>200k vs. 12M 效率比較
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                零初始化防止遺忘<br>消融研究確認必要性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                預訓練擴散模型可作為<br>空間控制的通用骨幹
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過凍結預訓練擴散模型骨幹並以零初始化摺積連接可訓練副本，ControlNet 能在有限資料與計算資源下有效學習多樣的空間條件控制，同時完全保留原始模型的生成品質。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>資料效率的實證對比：</strong>以 200k 樣本在單張消費級 GPU 上訓練五天，即達到與工業級方案（12M 樣本、A100 叢集）不可區分的結果。這不僅證明了架構的優越性，更展示了將大型模型知識遷移至特定任務的高效路徑。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>記憶體效率與架構泛化性：</strong>ControlNet 需複製完整的編碼器區塊，在記憶體受限場景中不如 LoRA 等輕量方法。此外，論文僅驗證了在 Stable Diffusion 1.x 架構上的效果，對於 DiT 等新興擴散架構的適用性尚未探討。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

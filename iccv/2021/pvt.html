@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pyramid Vision Transformer: A Versatile Backbone for Dense Prediction without Convolutions — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Pyramid Vision Transformer: A Versatile Backbone for Dense Prediction without Convolutions
+                <span class="course-tag">ICCV 2021</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2102.12122" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-sra">3.2 空間縮減注意力</a>
+        <a href="#sec-progressive">3.3 漸進式縮減</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Although <span class="hl-concept">Transformer</span> has recently demonstrated encouraging results in <span class="hl-evidence">computer vision</span>, it still has limitations when used as a backbone for <span class="hl-concept">dense prediction tasks</span> such as object detection and segmentation. Unlike <span class="hl-concept">Vision Transformer (ViT)</span>, which produces <span class="hl-rebuttal">single-scale, low-resolution outputs</span>, the authors introduce <span class="hl-concept">Pyramid Vision Transformer (PVT)</span>, which <span class="hl-thesis">overcomes these difficulties by generating multi-scale feature maps through a progressive shrinking pyramid</span> while maintaining computational efficiency via <span class="hl-method">Spatial-Reduction Attention (SRA)</span>. PVT can be plugged into many representative <span class="hl-evidence">dense prediction pipelines</span>, achieving significant improvements over ResNet on COCO detection and ADE20K segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管 Transformer 近來在電腦視覺中展現了令人鼓舞的成果，但作為密集預測任務（如物件偵測與分割）的骨幹時仍有局限。不同於 Vision Transformer (ViT) 僅能產生單一尺度、低解析度的輸出，作者引入了金字塔視覺 Transformer (PVT)，透過漸進式縮減金字塔生成多尺度特徵圖，同時藉由空間縮減注意力 (SRA) 維持計算效率。PVT 可插入多種代表性的密集預測管線中，在 COCO 偵測與 ADE20K 分割上相較 ResNet 實現顯著提升。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從 ViT 的局限出發，引出 PVT 的金字塔設計作為解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題識別與方案預告」雙重功能：先界定 ViT 在密集預測上的結構性缺陷（單尺度、低解析度），再以一句話概述 PVT 的核心創新（金字塔結構 + SRA）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者將 ViT 框定為「有局限的」，但 ViT 本身的設計目標是分類而非密集預測。此處的問題建構略帶策略性——實際上是在一個 ViT 未針對的領域中指出其不足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Convolutional Neural Networks (CNNs)</span> have dominated <span class="hl-evidence">computer vision</span> for years, with architectures like <span class="hl-concept">ResNet</span> and <span class="hl-concept">ResNeXt</span> serving as standard backbones for both <span class="hl-evidence">image classification and dense prediction tasks</span>. Recently, <span class="hl-concept">Vision Transformer (ViT)</span> demonstrated that a <span class="hl-thesis">pure transformer architecture can achieve competitive classification performance</span>. However, <span class="hl-rebuttal">exploring convolution-free transformer backbones for dense prediction remains rarely studied</span>. ViT produces only <span class="hl-rebuttal">single-scale, low-resolution feature maps</span>, making it unsuitable as a direct replacement for CNN backbones in detection and segmentation frameworks that require <span class="hl-concept">multi-scale feature pyramids</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                摺積神經網路 (CNN) 多年來主導了電腦視覺領域，ResNet 與 ResNeXt 等架構作為影像分類與密集預測任務的標準骨幹。近期 Vision Transformer (ViT) 證明了純 Transformer 架構可達到具競爭力的分類效能。然而，探索無摺積的 Transformer 骨幹用於密集預測的研究仍屬罕見。ViT 僅產生單一尺度、低解析度的特徵圖，使其難以直接取代需要多尺度特徵金字塔的偵測與分割框架中的 CNN 骨幹。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從 CNN 的主導地位到 ViT 的突破，再指出密集預測領域的空白。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：肯定 ViT 在分類上的成功，同時指出其在密集預測中的結構性不足，為 PVT 的必要性建立論據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者巧妙地將研究缺口定義為「無摺積 Transformer 骨幹用於密集預測」，這個狹窄的定位確保了新穎性。但實際上，在 PVT 發表前後已有多項類似工作（如 Swin Transformer），此處的「罕見」描述可能過度渲染了新穎性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To address this gap, the authors introduce <span class="hl-concept">Pyramid Vision Transformer (PVT)</span>, a <span class="hl-thesis">pure transformer backbone that generates multi-scale feature maps for dense prediction</span>. PVT inherits the advantages of both CNN and Transformer: like <span class="hl-concept">CNNs</span>, it produces <span class="hl-method">hierarchical feature maps at four stages with progressively decreasing resolutions</span> (stride 4, 8, 16, 32); like <span class="hl-concept">Transformers</span>, it captures <span class="hl-method">long-range dependencies through self-attention</span>. The key innovation is the <span class="hl-method">Spatial-Reduction Attention (SRA)</span> mechanism, which <span class="hl-thesis">reduces the spatial dimensions of keys and values before computing attention</span>, achieving significant computational savings without sacrificing performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為填補此缺口，作者引入金字塔視覺 Transformer (PVT)——一個純 Transformer 骨幹，能為密集預測生成多尺度特徵圖。PVT 同時繼承了 CNN 與 Transformer 的優勢：如同 CNN，它在四個階段產生層級式特徵圖，解析度漸進降低（步幅 4、8、16、32）；如同 Transformer，它透過自注意力捕捉長距離相依性。關鍵創新在於空間縮減注意力 (SRA) 機制，在計算注意力之前縮減鍵與值的空間維度，在不犧牲效能的情況下實現顯著的計算節省。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——完整概述 PVT 的架構設計與核心創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演關鍵的「轉折」角色：PVT 被定位為「CNN 金字塔結構」與「Transformer 注意力機制」的最佳融合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「繼承兩者優勢」的修辭極具說服力，但也帶來隱含的質疑：既然結合了兩者特點，是否也繼承了兩者的弱點？例如，Transformer 的高記憶體需求在多尺度設定下是否會加劇？SRA 是否真的「不犧牲效能」需要實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">CNN backbones</span> for dense prediction have evolved from <span class="hl-concept">VGGNet</span> to <span class="hl-concept">ResNet</span>, <span class="hl-concept">ResNeXt</span>, and <span class="hl-concept">EfficientNet</span>, all sharing a common <span class="hl-method">pyramidal design</span> that produces multi-scale features. For <span class="hl-concept">dense prediction</span>, frameworks such as <span class="hl-concept">Feature Pyramid Network (FPN)</span>, <span class="hl-concept">RetinaNet</span>, and <span class="hl-concept">Mask R-CNN</span> rely heavily on these multi-scale features. In the Transformer domain, <span class="hl-concept">ViT</span> and <span class="hl-concept">DeiT</span> have demonstrated strong classification performance but <span class="hl-rebuttal">maintain a columnar, single-resolution architecture throughout all layers</span>, making them incompatible with multi-scale detection and segmentation pipelines.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                用於密集預測的 CNN 骨幹從 VGGNet 演進至 ResNet、ResNeXt 與 EfficientNet，皆共享一種產生多尺度特徵的金字塔式設計。在密集預測方面，特徵金字塔網路 (FPN)、RetinaNet 與 Mask R-CNN 等框架高度依賴這些多尺度特徵。在 Transformer 領域，ViT 與 DeiT 已展現強大的分類效能，但在所有層級中維持柱狀、單一解析度的架構，使其與多尺度偵測和分割管線不相容。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性地串聯 CNN 金字塔設計的演進與 Transformer 的結構限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了兩條平行的學術脈絡（CNN 金字塔 vs. Transformer 柱狀），暗示 PVT 將是兩條脈絡的交匯點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 ViT 描述為「柱狀架構」突出了其結構弱點，但 ViT 的設計初衷是分類任務，柱狀架構並非缺陷而是設計選擇。作者在此隱含地將分類架構的特徵重新框架為密集預測的缺陷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Overall Architecture — 整體架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                PVT consists of <span class="hl-method">four stages</span>, each producing feature maps at different scales. In Stage 1, the input image is divided into <span class="hl-method">4x4 patches</span>, which are linearly embedded into tokens. These tokens are processed by a <span class="hl-concept">Transformer encoder</span>, and the output is reshaped to form a feature map at <span class="hl-evidence">1/4 resolution</span>. Subsequent stages <span class="hl-method">further reduce the spatial resolution by a factor of 2</span> through patch embedding layers, yielding feature maps at <span class="hl-evidence">1/8, 1/16, and 1/32</span> of the input resolution. This <span class="hl-thesis">progressive shrinking pyramid mirrors the multi-scale design of CNN backbones</span> while operating entirely through attention mechanisms.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                PVT 由四個階段組成，每個階段產生不同尺度的特徵圖。在第一階段，輸入影像被切分為 4x4 的圖塊，並線性嵌入為標記。這些標記經由 Transformer 編碼器處理，輸出重塑為 1/4 解析度的特徵圖。後續各階段透過圖塊嵌入層進一步將空間解析度縮減為 2 倍，分別產生 1/8、1/16 與 1/32 解析度的特徵圖。此漸進式縮減金字塔映射了 CNN 骨幹的多尺度設計，同時完全透過注意力機制運作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構總覽——描述四階段金字塔的整體設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法的根基：透過四階段的逐步縮減，建立了與 CNN 相同的多尺度特徵層級，使 PVT 可直接嵌入現有的密集預測框架（如 FPN）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「映射 CNN 骨幹」的措辭暗示 PVT 是 CNN 的直接替代品，降低了讀者理解的門檻。但此對應關係在細節上並不完美——例如 CNN 的局部感受野逐層擴大，而 Transformer 從第一層就具有全域感受野，兩者的特徵性質可能本質上不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 空間縮減注意力 ====== -->
+    <h3 class="subsection-heading" id="sec-sra">3.2 Spatial-Reduction Attention — 空間縮減注意力</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Standard <span class="hl-concept">Multi-Head Attention (MHA)</span> has <span class="hl-rebuttal">computational complexity of O(n^2)</span> where n is the number of tokens, making it prohibitively expensive for high-resolution feature maps. To address this, the authors propose <span class="hl-concept">Spatial-Reduction Attention (SRA)</span>, which <span class="hl-method">applies a spatial reduction operation to keys and values before computing attention</span>. Specifically, the key and value sequences are <span class="hl-method">reshaped into 2D feature maps and downsampled by a factor R_i using a linear layer</span>, reducing the sequence length from n to n/R_i^2. This achieves <span class="hl-thesis">R_i^2 times lower computational and memory costs</span> compared to standard MHA, making it feasible to process <span class="hl-evidence">high-resolution feature maps in early stages</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                標準的多頭注意力 (MHA) 具有 O(n^2) 的計算複雜度（n 為標記數量），對高解析度特徵圖而言成本過高。為此，作者提出空間縮減注意力 (SRA)，在計算注意力之前對鍵與值施加空間縮減操作。具體而言，鍵與值序列被重塑為二維特徵圖，並透過線性層以因子 R_i 進行降取樣，將序列長度從 n 縮減至 n/R_i^2。這實現了相比標準 MHA 降低 R_i^2 倍的計算與記憶體成本，使得在早期階段處理高解析度特徵圖成為可行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術創新——詳述 SRA 的運作機制與效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    SRA 是 PVT 相較於 ViT 的關鍵差異化因素。此段建立了 O(n^2) 問題 -> SRA 解決方案 的因果鏈，直接回應了「Transformer 計算成本過高」的常見質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    SRA 的設計優雅且直觀——對鍵和值進行空間縮減在數學上等價於對特徵圖進行下取樣後再計算注意力。但潛在問題在於：空間縮減是否會丟失細粒度的空間資訊？特別是在需要像素級精確度的分割任務中，這種資訊損失可能影響最終效能。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 漸進式縮減 ====== -->
+    <h3 class="subsection-heading" id="sec-progressive">3.3 Progressive Shrinking — 漸進式縮減策略</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Unlike CNNs that use <span class="hl-concept">convolutional strides</span> to reduce spatial resolution, PVT employs <span class="hl-method">patch embedding layers at the beginning of each stage</span> to progressively shrink the feature map. At stage i, the feature map from the previous stage is <span class="hl-method">divided into patches of size P_i x P_i and linearly projected</span> to form new token sequences. This <span class="hl-thesis">enables flexible control over the resolution and channel dimensions at each stage</span>, allowing the model to allocate more computational resources to early, high-resolution stages where fine-grained spatial information is critical. The <span class="hl-method">reduction ratios R_i are set inversely to the stage depth</span> — larger reductions in early stages (R_1=8) and smaller in later stages (R_4=1) — balancing computation across stages.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                不同於 CNN 使用摺積步幅來縮減空間解析度，PVT 在每個階段的開頭採用圖塊嵌入層來漸進式地縮減特徵圖。在第 i 階段，前一階段的特徵圖被切分為 P_i x P_i 大小的圖塊並線性投影，形成新的標記序列。這使得每個階段的解析度與通道維度可以靈活控制，允許模型在早期高解析度階段（細粒度空間資訊至關重要之處）分配更多計算資源。縮減比率 R_i 與階段深度成反比設定——早期階段較大的縮減（R_1=8）、後期階段較小（R_4=1）——在各階段之間平衡計算量。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計細節——解釋跨階段的解析度縮減策略與計算資源分配。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接 SRA 的效率設計，此段進一步說明如何在不同階段之間平衡計算——高解析度用大縮減率，低解析度用小縮減率，形成一套系統性的效率策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    反比縮減策略是精心設計的工程選擇，但其最優性僅靠經驗確認。作者未探討是否存在更優的縮減排程（如學習式的自適應縮減比率）。此外，以圖塊嵌入取代摺積步幅的做法在概念上非常接近摺積——是否真正「無摺積」值得商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                PVT is evaluated across three major benchmarks. On <span class="hl-evidence">ImageNet classification, PVT-Large achieves 81.7% top-1 accuracy</span>, competitive with ResNeXt-101. For <span class="hl-evidence">COCO object detection</span>, replacing ResNet-50 with PVT-Small in <span class="hl-concept">RetinaNet</span> yields <span class="hl-evidence">+4.1 AP improvement (36.7 to 40.4)</span>; in <span class="hl-concept">Mask R-CNN</span>, PVT-Small achieves <span class="hl-evidence">+3.9 AP_box and +3.4 AP_mask improvements</span> over ResNet-50. On <span class="hl-evidence">ADE20K semantic segmentation</span> with <span class="hl-concept">Semantic FPN</span>, PVT-Large achieves <span class="hl-evidence">42.1 mIoU, surpassing ResNet-101 (38.8 mIoU) by 3.3 points</span>. These results demonstrate that <span class="hl-thesis">PVT can serve as a versatile, convolution-free backbone competitive with well-established CNN architectures</span> across diverse dense prediction tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                PVT 在三項主要基準上進行評估。在 ImageNet 分類上，PVT-Large 達到 81.7% 的 top-1 準確率，與 ResNeXt-101 具有競爭力。在 COCO 物件偵測上，將 RetinaNet 中的 ResNet-50 替換為 PVT-Small 可提升 +4.1 AP（36.7 至 40.4）；在 Mask R-CNN 中，PVT-Small 相較 ResNet-50 達到 +3.9 AP_box 與 +3.4 AP_mask 的提升。在使用 Semantic FPN 的 ADE20K 語意分割上，PVT-Large 達到 42.1 mIoU，超越 ResNet-101（38.8 mIoU）3.3 個百分點。這些結果證明 PVT 可作為一個通用的、無摺積骨幹，在多種密集預測任務上與成熟的 CNN 架構競爭。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面的實驗驗證——在分類、偵測、分割三大任務上提供定量比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的實證支柱：三個基準測試覆蓋了分類（ImageNet）、偵測（COCO）、分割（ADE20K）的完整生態系統，全面證明 PVT 作為通用骨幹的可行性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    實驗設計精心選擇了多個下游框架（RetinaNet、Mask R-CNN、Semantic FPN），展現 PVT 的通用性。但比較基準主要是 ResNet/ResNeXt，未與同期的 Swin Transformer 等層級式 Transformer 比較。此外，在計算效率（FLOPs）對等的條件下，PVT 的優勢是否仍然明顯？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents <span class="hl-concept">PVT</span>, demonstrating that <span class="hl-thesis">a pure transformer architecture with pyramid structure can effectively replace CNN backbones for dense prediction tasks</span>. Through <span class="hl-method">progressive shrinking</span> and <span class="hl-method">Spatial-Reduction Attention</span>, PVT generates multi-scale features efficiently while capturing long-range dependencies. Extensive experiments on classification, detection, and segmentation validate its versatility. The authors note that <span class="hl-rebuttal">transformer-based models remain in early development compared to mature CNN designs</span>, and anticipate further improvements as the community develops better training strategies, data augmentation techniques, and architectural innovations for vision transformers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 PVT，證明了具有金字塔結構的純 Transformer 架構能有效地取代 CNN 骨幹用於密集預測任務。透過漸進式縮減與空間縮減注意力，PVT 高效地生成多尺度特徵，同時捕捉長距離相依性。在分類、偵測與分割上的廣泛實驗驗證了其通用性。作者指出 Transformer 模型相較於成熟的 CNN 設計仍處於早期發展階段，並預期隨著社群開發更好的訓練策略、資料增強技術與視覺 Transformer 的架構創新，將會有進一步的提升。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要結構，形成完整的論證閉環：問題（ViT 不適合密集預測） -> 方案（PVT 金字塔 + SRA） -> 驗證（三大基準） -> 展望（早期階段，未來可期）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論中承認「仍處於早期發展」是謙遜而誠實的立場，但也暗示了 PVT 本身可能很快被更成熟的設計所取代——事實上 PVTv2 與 Swin Transformer 等後續工作確實在短時間內超越了 PVT，驗證了此預言。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                ViT 缺乏多尺度輸出<br>不適用密集預測
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                金字塔 Transformer<br>可替代 CNN 骨幹
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                COCO/ADE20K 多任務<br>顯著超越 ResNet
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                SRA 機制解決<br>O(n^2) 計算瓶頸
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                純 Transformer 骨幹<br>是密集預測的可行方向
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過金字塔結構與空間縮減注意力，純 Transformer 架構可生成多尺度特徵圖，有效替代 CNN 骨幹用於偵測、分割等密集預測任務。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>跨任務一致性驗證：</strong>PVT 在分類、偵測、分割三大任務上均展現競爭力，且可直接嵌入 RetinaNet、Mask R-CNN、Semantic FPN 等現有框架中，證明了其作為通用骨幹的實用性，而非僅在單一任務上表現突出。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>效率與精度的取捨不透明：</strong>SRA 的空間縮減是否導致細粒度空間資訊的損失，論文缺乏系統性分析。此外，在 FLOPs 對等的條件下與同期層級式 Transformer（如 Swin）的比較不足，難以判斷 PVT 的設計選擇是否為當前最優。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

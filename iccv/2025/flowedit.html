@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowEdit: Inversion-Free Text-Based Editing Using Pre-Trained Flow Models — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                FlowEdit: Inversion-Free Text-Based Editing Using Pre-Trained Flow Models
+                <span class="course-tag">ICCV 2025</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2412.08629" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-reinterpret">3. 反轉重新詮釋</a>
+        <a href="#sec-method">4. FlowEdit</a>
+        <a href="#sec-experiments">5. 實驗</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Editing real images using a pre-trained <span class="hl-concept">text-to-image (T2I) diffusion/flow model</span> often involves <span class="hl-rebuttal">inverting the image into its corresponding noise map</span>. The authors introduce <span class="hl-concept">FlowEdit</span>, which is <span class="hl-thesis">inversion-free, optimization-free and model agnostic</span>. The method <span class="hl-method">constructs an ODE that directly maps between the source and target distributions</span> and achieves <span class="hl-evidence">lower transport cost</span> than inversion approaches, demonstrating <span class="hl-evidence">state-of-the-art results</span> with <span class="hl-concept">Stable Diffusion 3</span> and <span class="hl-concept">FLUX</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用預訓練的文字到影像擴散/流模型編輯真實影像，通常涉及將影像反轉至其對應的雜訊映射。作者提出 FlowEdit，一種無需反轉、無需最佳化且與模型無關的方法。該方法建構一個直接在來源與目標分布之間映射的常微分方程（ODE），達到比反轉方法更低的傳輸成本，並以 Stable Diffusion 3 與 FLUX 展示了最先進的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以三個「免」（免反轉、免最佳化、免模型綁定）建立 FlowEdit 的核心賣點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「現有範式的限制 -> 本文突破」的經典結構組織，「傳輸成本」概念的引入為後文的理論分析埋下伏筆。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「模型無關」的宣稱極具吸引力，但需在實驗中以不同模型驗證。「傳輸成本更低」的數學宣稱需在理論段中嚴格證明。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Diffusion and flow models</span> enable editing real signals through pre-trained models. Traditional approaches rely on <span class="hl-concept">"inversion"</span> — extracting the initial noise vector to generate edited signals with modified conditions like text prompts. However, the <span class="hl-rebuttal">editing-by-inversion paradigm often leads to insufficient fidelity to the source image</span>. The authors present FlowEdit, which <span class="hl-thesis">breaks away from the editing-by-inversion paradigm</span>. Rather than mapping images to noise and back, it <span class="hl-method">constructs a direct path between the source and target distributions</span>. This path is <span class="hl-thesis">"shorter than that achieved in inversion, and thus maintains better fidelity to the source image"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                擴散與流模型能透過預訓練模型編輯真實訊號。傳統方法依賴「反轉」——提取初始雜訊向量，以修改後的條件（如文字提示）生成編輯後的訊號。然而，「反轉式編輯」範式往往導致對來源影像的保真度不足。作者提出 FlowEdit，突破了反轉式編輯的範式。此方法不將影像映射至雜訊再映射回來，而是建構來源與目標分布之間的直接路徑。此路徑「比反轉所達成的路徑更短，因此能維持對來源影像更好的保真度」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出反轉式編輯的根本弱點，引出直接路徑的核心概念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：「反轉導致保真度不足」是全文要解決的核心問題。「更短路徑」的直覺提供了方法論的概念基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「更短路徑 = 更好保真度」的類比直觀但需數學支撐。路徑的「長度」在高維空間中的定義與視覺品質的對應關係並非不言自明。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Most zero-shot editing methods employ <span class="hl-concept">image-to-noise inversion</span> as a first step. However, the <span class="hl-rebuttal">noise map obtained through naive inversion is generally unsuitable for effective editing</span>. Many methods focus on improving inversion accuracy or extracting <span class="hl-method">"structural information implicitly encoded within the model architecture"</span> and injecting it during sampling. These are <span class="hl-rebuttal">typically tailored for specific model architectures</span>, limiting transferability. Some methods use <span class="hl-method">optimization over the image itself</span> utilizing generative priors as loss terms. The authors' approach <span class="hl-thesis">does not rely on inversion, maps from source to target distributions without traversing through the Gaussian distribution, avoids optimization, and does not intervene in the model internals</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大多數零樣本編輯方法以影像到雜訊的反轉作為第一步。然而，天真反轉所得的雜訊映射通常不適合有效編輯。許多方法著重於提升反轉精確度，或提取「隱式編碼於模型架構中的結構資訊」並在取樣過程中注入。這些方法通常針對特定模型架構而設計，限制了可移植性。部分方法則利用生成先驗作為損失項，對影像本身進行最佳化。本文方法不依賴反轉，在不經過高斯分布的情況下從來源映射到目標分布，避免最佳化，且不介入模型內部。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性分類現有編輯方法並指出各自的架構依賴問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「架構綁定」作為統一的批判角度，使 FlowEdit 的「模型無關」特性顯得格外突出。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將多種方法統一歸類為「反轉依賴」或「架構綁定」是有效的簡化，但可能過度概括——部分方法（如 SDEdit）實際上已部分跳脫嚴格反轉。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 反轉重新詮釋 ====== -->
+    <h2 class="section-heading" id="sec-reinterpret">3. Reinterpretation of Editing by Inversion — 反轉式編輯的重新詮釋</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors reframe inversion-based editing as <span class="hl-method">a direct path between the source and target distributions</span>. Given forward and reverse trajectories, they define: <em>Z<sup>inv</sup><sub>t</sub> = Z<sup>src</sup><sub>0</sub> + Z<sup>tar</sup><sub>t</sub> - Z<sup>src</sup><sub>t</sub></em>. Expressing this as an ODE: <em>dZ<sup>inv</sup><sub>t</sub> = V<sup>&Delta;</sup><sub>t</sub> dt</em>, where <span class="hl-method">V<sup>&Delta;</sup> = V<sup>tar</sup> - V<sup>src</sup></span>. Crucially, <span class="hl-thesis">"images along this path are noise-free"</span> because <span class="hl-method">noisy images contain roughly the same noise constituent, so the difference vector encompasses the difference only between the clean image predictions</span>. The path constitutes <span class="hl-thesis">"a sort of autoregressive coarse-to-fine evolution"</span> — early timesteps modify coarse image structures, while the last features to get updated are the fine textures.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者將反轉式編輯重新框架為來源與目標分布之間的直接路徑。給定正向與反向軌跡，定義：Z_t^inv = Z_0^src + Z_t^tar - Z_t^src。將此表述為常微分方程：dZ_t^inv = V_t^Delta dt，其中 V^Delta = V^tar - V^src。關鍵地，「此路徑上的影像是無雜訊的」，因為含雜訊的影像包含大致相同的雜訊成分，因此差異向量僅涵蓋乾淨影像預測之間的差異。此路徑構成「一種自迴歸式的由粗到細演化」——早期時間步修改粗略的影像結構，而最後更新的是精細紋理。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論基礎——將反轉式編輯重新詮釋為速度場差異驅動的直接路徑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文理論推導的核心轉折：透過數學重新詮釋，揭示反轉式編輯本質上是速度場差異的積分。「由粗到細」的發現為 FlowEdit 的設計提供了直覺支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「雜訊成分大致相同」的論述在數學上依賴於特定的正則化流（rectified flow）性質，需要嚴格的條件才能成立。在離散化步數較少時，此近似可能不夠準確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. FlowEdit ====== -->
+    <h2 class="section-heading" id="sec-method">4. FlowEdit — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Traditional inversion induces <span class="hl-rebuttal">undesirable sample pairings between source and target distributions</span>. FlowEdit introduces <span class="hl-method">"many different random pairings, and averages the velocity fields corresponding to each"</span>. Rather than relying on the inversion-derived path, it employs an <span class="hl-method">alternative forward process: Z&#770;<sup>src</sup><sub>t</sub> = (1-t)Z<sup>src</sup><sub>0</sub> + tN<sub>t</sub></span>, where N<sub>t</sub> is Gaussian noise. The method constructs the FlowEdit path by solving an ODE where the <span class="hl-method">velocity field is an expectation over multiple noise realizations</span>, creating <span class="hl-thesis">"separated" modes rather than "intermixed" ones, reducing transport cost</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統反轉在來源與目標分布之間引發不理想的樣本配對。FlowEdit 引入「多種不同的隨機配對，並對每種配對對應的速度場取平均」。此方法不依賴反轉衍生的路徑，而是採用替代的正向過程：Z_hat_t^src = (1-t)Z_0^src + tN_t，其中 N_t 為高斯雜訊。方法透過求解一個常微分方程來建構 FlowEdit 路徑，其中速度場為多個雜訊實現的期望值，創造「分離」的模式而非「混合」的模式，降低傳輸成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——描述 FlowEdit 如何透過隨機配對平均化降低傳輸成本。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了 FlowEdit 相對於反轉式方法的根本優勢：透過多重隨機化避免特定雜訊映射引起的模式混合，在最佳傳輸意義上更為高效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「模式分離 vs. 模式混合」的視覺化類比非常直觀。但多個雜訊實現的期望在實作中以有限樣本近似（n_avg），樣本數不足時可能引入方差。作者使用 n_avg=1 的設定暗示此近似在實務中穩健。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">4.1 Practical Considerations — 實作考量</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Practically, discrete timesteps are used, and the expectation is <span class="hl-method">approximated by averaging n_avg model predictions at each timestep</span>. An integer <span class="hl-method">n_max determines the starting timestep for the process</span>: when n_max equals the total steps, the full edit path is traversed and the strongest edit is obtained; when n_max is smaller, <span class="hl-method">the first timesteps are skipped, weakening edits</span>. The covariance function of the noise is chosen so noise becomes <span class="hl-method">independent across timesteps</span>. Rather than sampling source and target noisy images independently, they are <span class="hl-method">"constructed with the same noise instance, which further improves robustness to small values of n_avg"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在實作中使用離散時間步，期望值以在每個時間步對 n_avg 個模型預測取平均來近似。整數 n_max 決定過程的起始時間步：當 n_max 等於總步數時，完整的編輯路徑被走完，獲得最強的編輯效果；當 n_max 較小時，前面的時間步被跳過，編輯效果減弱。雜訊的共變異數函數被選擇為使雜訊在不同時間步之間獨立。來源與目標的含雜訊影像不是獨立取樣，而是「以相同的雜訊實例建構，進一步提升對小 n_avg 值的穩健性」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實作細節——描述離散化策略與關鍵超參數的作用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將理論公式化為可實施的演算法，n_max 參數提供了編輯強度的直覺控制，共享雜訊實例則展現了工程層面的精巧設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    n_max 提供了編輯強度的清晰旋鈕，使用者體驗佳。共享雜訊的設計減少了方差，但也可能在某些極端編輯中限制了多樣性。n_avg=1 在大多數情況下即足夠的發現大幅降低了計算成本。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">5. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                FlowEdit is evaluated using <span class="hl-evidence">official weights of SD3 medium and FLUX.1 dev</span> on a dataset of <span class="hl-evidence">over 70 real 1024x1024 images with over 250 text-image pairs</span>. Compared to <span class="hl-concept">ODE inversion, SDEdit, iRFDS, and RF-Inversion</span>, FlowEdit demonstrates <span class="hl-evidence">good structural preservation of the source image while simultaneously maintaining good adherence to the target text</span>. Quantitatively, using <span class="hl-evidence">LPIPS (structure preservation) and CLIP (text adherence)</span>, FlowEdit achieves a <span class="hl-evidence">favorable balance in this tradeoff</span>. A controlled experiment on <span class="hl-evidence">1000 model-generated images with ground-truth noise maps</span> confirms <span class="hl-evidence">lower transport cost (1376 vs. 2239 MSE; 0.15 vs. 0.25 LPIPS) and lower FID (51.14 vs. 55.88)</span> compared to exact inversion.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                FlowEdit 使用 SD3 medium 與 FLUX.1 dev 的官方權重進行評估，資料集包含超過 70 張 1024x1024 的真實影像與超過 250 個文字-影像對。相比 ODE 反轉、SDEdit、iRFDS 與 RF-Inversion，FlowEdit 展現了良好的來源影像結構保留，同時維持對目標文字的良好遵循。定量上，使用 LPIPS（結構保留）與 CLIP（文字遵循），FlowEdit 在此取捨中達到有利的平衡。在 1000 張具有真實雜訊映射的模型生成影像上的控制實驗確認了更低的傳輸成本（1376 vs. 2239 MSE；0.15 vs. 0.25 LPIPS）與更低的 FID（51.14 vs. 55.88）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供多維度的實驗證據——定性比較、定量指標與控制實驗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以控制實驗（已知真實雜訊映射）為核心，提供了理論宣稱（傳輸成本更低）的嚴格實證。多基線比較則驗證了方法的實際效用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    控制實驗設計嚴謹——使用已知雜訊映射消除了反轉近似誤差的干擾。但 250 個文字-影像對的規模偏小，在更大規模、更多樣化的編輯任務上的穩健性值得進一步驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">FlowEdit</span> provides <span class="hl-thesis">an inversion-free, optimization-free and model agnostic method for text-based image editing using pre-trained flow models</span>. The approach <span class="hl-method">constructs a direct ODE between the source and target distributions</span> without traversing standard Gaussian distributions. Evaluations show <span class="hl-evidence">lower transport costs and thus stronger structure preservation</span>, with <span class="hl-evidence">state-of-the-art performance across various editing tasks</span>. The authors acknowledge that FlowEdit relies on adding random noise, potentially producing <span class="hl-rebuttal">diverse results depending on the random seed</span>, which <span class="hl-rebuttal">"can lead to suboptimal results that include artifacts" in some cases</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                FlowEdit 提供了一種使用預訓練流模型進行文字式影像編輯的方法，無需反轉、無需最佳化且與模型無關。該方法建構來源與目標分布之間的直接常微分方程，無需經過標準高斯分布。評估顯示更低的傳輸成本因而更強的結構保留，在各種編輯任務上達到最先進的性能。作者承認 FlowEdit 依賴添加隨機雜訊，可能依隨機種子產生不同結果，在某些情況下「可能導致包含偽影的次優結果」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並坦承限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段以三個「免」回扣摘要的核心宣稱，同時坦率地提及隨機性導致的不穩定性，增強學術誠信。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對限制的坦承（隨機種子敏感性）是值得肯定的，但此問題在實用場景中可能相當嚴重——使用者可能需要多次嘗試才能獲得滿意的結果，降低了方法的可預測性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                反轉式編輯導致<br>來源影像保真度不足
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                建構來源到目標的<br>直接 ODE 路徑
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                傳輸成本更低<br>FID/LPIPS 全面領先
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                隨機配對平均化<br>分離模式降低成本
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                免反轉、免最佳化<br>模型無關的編輯方法
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過建構來源與目標分布之間的直接常微分方程路徑，並以多重隨機配對的速度場平均化降低傳輸成本，可實現比反轉式方法更佳的結構保留與編輯品質。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論與實踐的緊密對應：</strong>「傳輸成本更低」的數學宣稱在控制實驗中得到精確驗證（MSE、LPIPS、FID 全面領先），理論預測與實證結果的一致性極為說服力。方法的三重「免」特性（免反轉、免最佳化、免架構綁定）賦予了極高的實用價值。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>隨機種子敏感性與可控性不足：</strong>方法依賴隨機雜訊，不同種子可能產生品質差異顯著的結果，降低了使用者體驗的可預測性。此外，n_max 與 n_avg 等超參數在不同編輯任務間需要調整，「模型無關」的宣稱在實務中可能需要針對每個模型微調超參數。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

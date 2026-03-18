@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holistic Scene Understanding for 3D Object Detection with RGBD Cameras — 雙欄批注</title>
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        /* ===== 主體容器 ===== */
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        /* 批注卡片 */
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Holistic Scene Understanding for 3D Object Detection with RGBD Cameras
+                <span class="course-tag">ICCV 2013</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_iccv_2013/html/Lin_Holistic_Scene_Understanding_2013_ICCV_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-3dcpmc">3.1 3D CPMC</a>
+        <a href="#sec-crf">3.2 CRF 推論</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper addresses the problem of <span class="hl-concept">3D object detection</span> in indoor environments using <span class="hl-concept">RGBD cameras</span>. Unlike prior approaches that treat object detection in isolation, we propose a <span class="hl-thesis">holistic approach that jointly reasons about the 3D scene layout, 3D object hypotheses, and their mutual interactions</span>. We <span class="hl-method">extend the Constrained Parametric Min-Cuts (CPMC) framework to 3D</span> in order to generate candidate 3D object cuboids from depth data. We then formulate the problem as <span class="hl-method">inference in a conditional random field (CRF)</span> that couples <span class="hl-method">scene classification with 3D object recognition</span>, leveraging both <span class="hl-evidence">2D appearance features and 3D geometric cues</span>. Experiments on the <span class="hl-evidence">NYU Depth V2 dataset</span> demonstrate that our holistic model achieves <span class="hl-evidence">substantial improvements over state-of-the-art methods</span> that reason about objects independently.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文探討使用 RGBD 相機在室內環境中進行三維物件偵測的問題。有別於先前將物件偵測獨立處理的方法，我們提出一種整體式方法，聯合推理三維場景佈局、三維物件假設及其相互互動。我們將受限參數化最小切割（CPMC）框架擴展至三維空間，以從深度資料生成候選三維物件長方體。接著，我們將問題公式化為條件隨機場（CRF）中的推論，結合場景分類與三維物件辨識，同時利用二維外觀特徵與三維幾何線索。在 NYU Depth V2 資料集上的實驗證明，我們的整體式模型相較於獨立推理物件的最先進方法達到了顯著的改進。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從「獨立偵測的侷限」到「整體式聯合推理」，預告三大技術貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立了「孤立 vs. 整體」的核心對比框架，一句話概述 CPMC-3D + CRF 的技術管線，並以 NYU V2 的實證結果作為說服力的錨點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「整體式」一詞具有強烈的正面暗示——暗示先前方法「不完整」。但整體推理的計算成本與可擴展性是否被合理控制，需在方法章節驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The recent availability of <span class="hl-concept">consumer-grade RGBD sensors</span> such as the <span class="hl-concept">Microsoft Kinect</span> has opened new possibilities for <span class="hl-concept">indoor scene understanding</span>. Depth information provides strong cues about the <span class="hl-evidence">3D geometry of a scene</span>, complementing the <span class="hl-evidence">appearance information in RGB images</span>. However, most existing methods for <span class="hl-concept">3D object detection from RGBD data</span> follow a <span class="hl-rebuttal">pipeline approach</span>: they first detect objects independently and then optionally apply contextual reasoning as a <span class="hl-rebuttal">post-processing step</span>. This sequential design <span class="hl-rebuttal">fails to capture the rich mutual dependencies</span> between scene layout, object categories, and spatial relationships.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消費級 RGBD 感測器（如 Microsoft Kinect）的普及為室內場景理解開啟了新的可能性。深度資訊提供了關於場景三維幾何的強力線索，補充了 RGB 影像中的外觀資訊。然而，大多數現有的 RGBD 三維物件偵測方法採用管線式方法：先獨立偵測物件，再選擇性地將脈絡推理作為後處理步驟。此循序設計未能捕捉場景佈局、物件類別與空間關係之間豐富的相互依賴性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——以 Kinect 的普及為時代背景，指出管線式方法的結構性缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定 RGBD 的資料優勢，再揭示現有方法未能充分利用此優勢的原因——缺乏整體推理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「管線式」vs.「整體式」的二分法建立論點，修辭清晰。但某些管線式方法透過迭代精煉也能捕獲跨任務依賴性，此處的批評略有過度簡化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We argue that <span class="hl-thesis">scene understanding and object detection should be addressed jointly</span>. Knowing the <span class="hl-evidence">scene type (e.g., kitchen vs. bedroom) provides strong priors on which objects are likely to be present</span>, and conversely, <span class="hl-evidence">detected objects inform the scene type</span>. Moreover, <span class="hl-evidence">spatial relationships between objects</span> (e.g., a monitor typically sits on a desk) provide additional constraints. Our model captures all these dependencies through a <span class="hl-method">unified CRF framework</span> that performs <span class="hl-thesis">joint inference over scene class, object categories, and 3D layouts</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們主張場景理解與物件偵測應當被聯合處理。了解場景類型（例如廚房與臥室的差異）能提供關於哪些物件可能存在的強先驗，反之，偵測到的物件亦能回饋場景類型資訊。此外，物件間的空間關係（例如螢幕通常放在桌上）提供額外的約束條件。我們的模型透過統一的 CRF 框架捕捉所有這些依賴性，對場景類別、物件類別與三維佈局進行聯合推論。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心論點——以具體範例說明聯合推理的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段用「廚房 vs. 臥室」與「螢幕在桌上」等直覺範例，將抽象的「整體式推理」概念具體化，增強說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    日常生活的範例降低了理解門檻。但這些脈絡關係的強度在不同場景中差異很大——在非典型場景（如混用空間）中，脈絡先驗可能誤導偵測。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">RGBD-based scene understanding</span> has attracted increasing attention with the availability of depth sensors. <span class="hl-concept">Silberman et al.</span> introduced the <span class="hl-evidence">NYU Depth dataset</span> and proposed methods for <span class="hl-method">semantic segmentation from RGBD data</span>. <span class="hl-concept">Gupta et al.</span> focused on <span class="hl-method">contour detection and hierarchical segmentation</span> in RGBD images. For <span class="hl-concept">3D object detection</span>, <span class="hl-concept">Song and Xiao</span> proposed <span class="hl-method">sliding shapes</span> that search for objects in 3D space. However, these approaches <span class="hl-rebuttal">treat detection as an isolated task without leveraging holistic scene context</span>. Our work is also related to <span class="hl-concept">contextual models</span> in 2D detection, such as <span class="hl-concept">Desai et al.</span>'s work on <span class="hl-method">modeling object co-occurrence and spatial layouts</span>, which we extend to the 3D domain.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於 RGBD 的場景理解隨著深度感測器的普及而受到越來越多的關注。Silberman 等人引入了 NYU Depth 資料集並提出從 RGBD 資料進行語意分割的方法。Gupta 等人聚焦於 RGBD 影像中的輪廓偵測與階層式分割。在三維物件偵測方面，Song 與 Xiao 提出在三維空間中搜尋物件的滑動形狀方法。然而，這些方法將偵測視為獨立任務，未利用整體場景脈絡。我們的工作亦與二維偵測中的脈絡模型相關，如 Desai 等人建模物件共現與空間佈局的工作，我們將其擴展至三維領域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理 RGBD 場景理解的三條主線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術譜系：分割方法 + 偵測方法 + 脈絡模型，指出三者尚未整合的缺口，為本文的統一框架定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將現有方法分為三條平行線，暗示整合是自然的下一步。但 2D 脈絡模型的 3D 擴展並非trivial——三維空間的物件關係遠比二維複雜。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-3dcpmc">3.1 3D CPMC — 三維 CPMC</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We extend the <span class="hl-concept">Constrained Parametric Min-Cuts (CPMC)</span> framework from 2D to 3D. Given an RGBD image, we first compute a <span class="hl-method">3D point cloud from the depth map</span> and extract <span class="hl-method">planar surfaces using RANSAC-based plane fitting</span>. We then generate <span class="hl-concept">3D cuboid proposals</span> by <span class="hl-method">placing axis-aligned bounding boxes at multiple locations and scales</span> in the 3D space. Each cuboid is scored based on <span class="hl-method">how well it encloses a coherent group of 3D points</span>, using features such as <span class="hl-evidence">point density, surface normal consistency, and color homogeneity</span>. This generates a manageable set of <span class="hl-evidence">high-quality 3D object candidates</span> that cover the scene.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將受限參數化最小切割（CPMC）框架從二維擴展至三維。給定一幅 RGBD 影像，我們首先從深度圖計算三維點雲，並使用基於 RANSAC 的平面擬合提取平面表面。接著，我們透過在三維空間中的多個位置與尺度放置軸對齊包圍盒來生成三維長方體提案。每個長方體根據其包圍一致性三維點群組的程度來評分，使用的特徵包括點密度、表面法線一致性與色彩均質性。此過程生成一組規模可控的高品質三維物件候選，覆蓋整個場景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義三維物件提案的生成機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此為整體框架的輸入端。CPMC 的 3D 擴展為後續的 CRF 推論提供候選物件集合，是「由粗到精」管線的第一階段。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    軸對齊包圍盒的假設大幅簡化了搜尋空間，但對於傾斜擺放的物件（如斜靠的書本）可能產生不良擬合。RANSAC 平面擬合在曲面物件較多的場景中效果亦可能下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-crf">3.2 Joint CRF Inference — 聯合 CRF 推論</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We formulate the joint reasoning as <span class="hl-method">inference in a Conditional Random Field</span>. The CRF includes three types of variables: a <span class="hl-method">scene class variable</span> (kitchen, bedroom, etc.), <span class="hl-method">object detection variables</span> for each cuboid proposal, and <span class="hl-method">support relationship variables</span> encoding which objects support others. The <span class="hl-method">unary potentials</span> capture individual evidence: scene type is predicted from <span class="hl-evidence">global features (GIST, spatial pyramid)</span>, and each object cuboid is classified using <span class="hl-evidence">3D shape descriptors and 2D appearance features</span>. The <span class="hl-method">pairwise potentials</span> encode <span class="hl-thesis">contextual interactions: scene-object compatibility, object-object co-occurrence statistics, and spatial support relationships</span>. Inference is performed via <span class="hl-method">message passing</span>, iterating until convergence.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將聯合推理公式化為條件隨機場中的推論。CRF 包含三類變數：場景類別變數（廚房、臥室等）、每個長方體提案的物件偵測變數，以及編碼哪些物件支撐其他物件的支撐關係變數。一元勢能捕捉個別證據：場景類型由全域特徵（GIST、空間金字塔）預測，每個物件長方體使用三維形狀描述子與二維外觀特徵進行分類。二元勢能編碼脈絡互動：場景-物件相容性、物件-物件共現統計，以及空間支撐關係。推論透過訊息傳遞執行，迭代至收斂。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——描述 CRF 的完整結構與推論機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的支柱：三類變數（場景/物件/支撐）的設計精確對應了緒論中提出的「三重依賴性」。CRF 的圖結構將直覺性的脈絡關係形式化為可計算的能量函數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    CRF 的結構設計優雅地統一了多種脈絡線索。但訊息傳遞推論在大量候選物件時可能面臨效率問題，且收斂性並非總能保證。此外，共現統計依賴訓練資料分布，可能在罕見場景配置中失效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate our approach on the <span class="hl-evidence">NYU Depth V2 dataset</span>, which contains <span class="hl-evidence">1449 RGBD images of indoor scenes with dense per-pixel labels</span>. We follow the standard split with <span class="hl-evidence">795 training and 654 testing images</span>. For 3D object detection, we evaluate using <span class="hl-evidence">average precision (AP) at IoU threshold of 0.25 in 3D space</span>. Our holistic model achieves <span class="hl-evidence">significant improvements across most object categories</span> compared to baselines that detect objects independently. Specifically, the joint model improves AP by <span class="hl-evidence">an average of 4.2 points</span> over the strongest baseline. Scene classification accuracy also improves when jointly optimized, reaching <span class="hl-evidence">72.1% compared to 67.8% for the independent classifier</span>. <span class="hl-rebuttal">Ablation studies</span> confirm that both the scene-object coupling and the support relationship modeling contribute to the overall performance gain.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 NYU Depth V2 資料集上評估我們的方法，該資料集包含 1449 幅具有逐像素密集標注的室內場景 RGBD 影像。我們依循標準劃分，使用 795 幅訓練影像與 654 幅測試影像。對於三維物件偵測，我們使用三維空間中 IoU 閾值為 0.25 的平均精確率（AP）進行評估。相較於獨立偵測物件的基線方法，我們的整體式模型在大多數物件類別上達到顯著改進。具體而言，聯合模型相比最強基線平均提升 4.2 個 AP 點。場景分類準確率在聯合最佳化時亦獲提升，達到 72.1%（獨立分類器為 67.8%）。消融研究確認場景-物件耦合與支撐關係建模均對整體效能提升有所貢獻。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實驗證據——以定量數據驗證整體式方法的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱，覆蓋三個維度：(1) 3D 偵測 AP 的改進；(2) 場景分類的連帶提升；(3) 消融研究確認各組件的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    同時報告偵測與場景分類的雙向提升是有力的——證明整體推理確實產生互利。但 IoU=0.25 的閾值相當寬鬆，在更嚴格的閾值下改進幅度是否持續有待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-thesis">holistic approach to 3D scene understanding from RGBD data</span> that <span class="hl-thesis">jointly reasons about scene layout, object detection, and support relationships</span>. By extending <span class="hl-concept">CPMC to 3D</span> for proposal generation and formulating the joint reasoning as <span class="hl-method">CRF inference</span>, our method effectively leverages the <span class="hl-thesis">mutual dependencies between scene-level and object-level understanding</span>. Experiments on the <span class="hl-evidence">NYU Depth V2 dataset</span> demonstrate <span class="hl-evidence">substantial improvements over methods that treat detection in isolation</span>. Our work suggests that <span class="hl-thesis">holistic scene reasoning is a fruitful direction for indoor 3D understanding</span>, and future work could incorporate richer relationships such as functional affordances and temporal consistency.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一個從 RGBD 資料進行三維場景理解的整體式方法，聯合推理場景佈局、物件偵測與支撐關係。透過將 CPMC 擴展至三維以生成提案，並將聯合推理公式化為 CRF 推論，我們的方法有效利用了場景層級與物件層級理解之間的相互依賴性。在 NYU Depth V2 資料集上的實驗證明，相比獨立處理偵測的方法有顯著改進。我們的工作顯示，整體式場景推理是室內三維理解的豐碩方向，未來的工作可納入更豐富的關係，如功能性可供性與時序一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的「整體式」主題，並以「功能性可供性」與「時序一致性」兩個具體方向指引後續研究，形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論簡潔有力，但未討論方法的計算成本與即時性限制——對於需要即時互動的 RGBD 應用（如機器人導航），推論效率可能是關鍵瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                管線式 3D 偵測<br>忽略場景脈絡
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                CRF 聯合推論<br>場景/物件/支撐
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                NYU V2 上 AP<br>平均提升 4.2 點
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                消融研究確認<br>各組件皆有貢獻
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                整體式推理是<br>室內 3D 理解方向
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過條件隨機場聯合推論場景類型、物件類別與支撐關係，能顯著提升基於 RGBD 的室內三維物件偵測效能。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>雙向互利的實證：</strong>聯合模型不僅提升物件偵測的 AP，同時也改善場景分類的準確率，證明場景與物件層級的推理確實相互增益，而非單向的資訊流動。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>軸對齊假設與計算成本：</strong>3D CPMC 的軸對齊包圍盒假設限制了對任意姿態物件的偵測能力。CRF 訊息傳遞的收斂速度與大場景下的可擴展性未被充分討論，可能限制實際部署。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

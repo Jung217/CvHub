@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic-DINO: Fine-Grained Mixture of Experts Tuning for Real-time Open-Vocabulary Object Detection — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Dynamic-DINO: Fine-Grained Mixture of Experts Tuning for Real-time Open-Vocabulary Object Detection
+                <span class="course-tag">ICCV 2025</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2507.17436" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-moe-decoder">3.2 跨模態 MoE 解碼器</a>
+        <a href="#sec-moe-tuning">3.3 MoE 微調</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper investigates the <span class="hl-concept">Mixture of Experts (MoE)</span> architecture in <span class="hl-concept">real-time open-vocabulary object detection</span>. The authors observe that in the shallow layers, <span class="hl-evidence">experts tend to cooperate with diverse peers to expand the search space</span>, while <span class="hl-evidence">deeper layers develop stable expert collaboration, with specialized combinations for specific token patterns</span>. Based on these findings, they propose <span class="hl-concept">Dynamic-DINO</span>, which <span class="hl-thesis">converts Grounding DINO 1.5 Edge into a dynamic inference framework through efficient MoE-Tuning</span>. A <span class="hl-method">granularity decomposition mechanism</span> splits the Feed-Forward Network into finer expert networks, and a <span class="hl-method">pre-trained weight allocation strategy</span> ensures stable initialization. Trained on only <span class="hl-evidence">1.56M open-source data</span>, Dynamic-DINO <span class="hl-thesis">surpasses the baseline pretrained on a private 20M dataset with comparable inference speed</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文探討<span class="hl-concept">混合專家（MoE）</span>架構在<span class="hl-concept">即時開放詞彙物件偵測</span>中的應用。作者觀察到在淺層中，<span class="hl-evidence">專家傾向與多元的夥伴合作以擴展搜尋空間</span>，而<span class="hl-evidence">深層則發展出穩定的專家協作模式，以特定的組合處理特定的權杖模式</span>。基於這些發現，他們提出 <span class="hl-concept">Dynamic-DINO</span>，<span class="hl-thesis">透過高效的 MoE 微調將 Grounding DINO 1.5 Edge 轉換為動態推論框架</span>。<span class="hl-method">粒度分解機制</span>將前饋網路拆分為更精細的專家網路，<span class="hl-method">預訓練權重分配策略</span>確保穩定的初始化。僅以 <span class="hl-evidence">156 萬筆開源資料</span>訓練，Dynamic-DINO <span class="hl-thesis">即超越以私有 2000 萬資料集預訓練的基線模型，且推論速度相當</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以觀察現象為起點，引出方法設計，並以資料效率的數據對比收尾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要兼具「經驗觀察」與「方案預告」：先以淺層/深層的專家行為差異建立理論依據，再以此推導出粒度分解策略，最終以資料量級的懸殊對比凸顯方法的實用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 1.56M vs. 20M 的資料量對比極具衝擊力，但需注意基線是官方私有資料訓練結果，兩者的資料品質與分布可能差異顯著，並非純粹的數量比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Open-vocabulary object detection</span> enables flexible localization of arbitrary objects by integrating language modality, advancing beyond fixed-category detection systems. <span class="hl-concept">Real-time detectors</span> have gained emphasis due to practical applications in <span class="hl-evidence">anomaly detection, robotics, and autonomous driving</span>. Current approaches employ dense models with fixed inference architectures, where <span class="hl-rebuttal">a single FFN in each layer is required to process all tokens, encompassing extensive patterns in open scenarios</span>, including visual patterns such as category and attribute, and contextual patterns like relative position and relationship. This causes <span class="hl-rebuttal">gradient conflicts and long-tail issues</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                開放詞彙物件偵測透過整合語言模態，實現對任意物件的彈性定位，突破了固定類別偵測系統的限制。即時偵測器因在異常偵測、機器人學與自動駕駛等實際應用中的需求而備受重視。現有方法採用固定推論架構的密集模型，其中每一層的單一前饋網路需處理所有權杖，涵蓋開放場景中的大量模式——包括類別與屬性等視覺模式，以及相對位置與關係等上下文模式。這導致了梯度衝突與長尾問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義開放詞彙偵測的重要性，並指出密集模型的根本瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：從「開放場景需求」出發，推導至「單一 FFN 無法應對多樣模式」的結構性問題，為引入 MoE 的動態分派建立必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「梯度衝突」與「長尾問題」的診斷精準切入了 dense model 的痛點，但並未提供量化證據。讀者需信任作者對問題的經驗性判斷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The search space for MoE with N experts and <span class="hl-method">top-k activation across L layers is (C_N^k)^L</span>. Two straightforward expansion strategies exist: <span class="hl-rebuttal">increasing k raises computational costs</span>; <span class="hl-rebuttal">increasing N increases memory and training overhead</span>. The authors propose Dynamic-DINO, implementing <span class="hl-method">efficient MoE-Tuning based on Grounding DINO 1.5 Edge</span>. They employ <span class="hl-method">a granularity decomposition strategy, which splits a single FFN into multiple expert networks</span>. Crucially, <span class="hl-thesis">activated parameters remain equivalent to a single FFN</span>, maintaining inference efficiency.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                具有 N 個專家與 top-k 啟動的 MoE 在 L 層上的搜尋空間為 (C_N^k)^L。兩種直接的擴展策略：增加 k 會提高計算成本；增加 N 會增加記憶體與訓練開銷。作者提出 Dynamic-DINO，基於 Grounding DINO 1.5 Edge 實現高效的 MoE 微調。他們採用粒度分解策略，將單一前饋網路拆分為多個專家網路。關鍵在於，啟動的參數量等同於單一 FFN，維持了推論效率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心創新——以數學分析說明搜尋空間擴展的兩難，並引出粒度分解的解法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接問題陳述，此段以搜尋空間的組合數學公式作為理性基礎，將「擴展 MoE」的兩難量化，再提出粒度分解作為跳出此兩難的第三條路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「啟動參數等同單一 FFN」是極具吸引力的工程承諾，但實際推論中路由器的計算開銷與專家的循序執行可能導致延遲增加，作者在實驗中也承認了這一點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Representative works in <span class="hl-concept">open-vocabulary object detection</span> include GLIP, OpenSeeD, OWL-ViT, <span class="hl-concept">Grounding DINO</span>, and DetCLIP variants. Real-time detectors like <span class="hl-concept">YOLO-World</span> inherit efficiency from the YOLO series. <span class="hl-concept">Grounding DINO 1.5 Edge</span> focuses on computational efficiency, with subsequent versions expanding pre-training datasets. Dynamic-DINO uniquely <span class="hl-thesis">incorporates MoE-driven dynamic inference to achieve significant improvements in accuracy without compromising efficiency</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                開放詞彙物件偵測的代表性工作包括 GLIP、OpenSeeD、OWL-ViT、Grounding DINO 及 DetCLIP 系列變體。即時偵測器如 YOLO-World 繼承了 YOLO 系列的效率優勢。Grounding DINO 1.5 Edge 專注於計算效率，後續版本不斷擴展預訓練資料集。Dynamic-DINO 的獨特之處在於引入 MoE 驅動的動態推論，在不犧牲效率的前提下顯著提升準確度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理開放詞彙偵測的發展脈絡，定位 Dynamic-DINO 的學術位置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「效率 vs. 準確度」的雙軸座標系：現有方法在此二者之間取捨，Dynamic-DINO 聲稱透過 MoE 同時改善兩端。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 Dynamic-DINO 定位為唯一結合 MoE 與即時偵測的方案，但 MoE 在大型語言模型中已廣泛使用，此處的創新主要在遷移至偵測任務的特定設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Mixture of Experts (MoE)</span> enables conditional computation, scaling model capacity while ensuring efficient computation through selective expert activation. Early works adopted hard routing; recent LLM and LVLM work employs <span class="hl-method">soft routers enabling dynamic token allocation</span>. <span class="hl-concept">DeepSeekMoE</span> and <span class="hl-concept">QwenMoE</span> segment experts by splitting FFN intermediate dimensions. Dynamic-DINO differs by <span class="hl-thesis">segmenting pre-trained FFN parameters for incremental fine-tuning</span> rather than random initialization for full pre-training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                混合專家（MoE）透過選擇性專家啟動實現條件式計算，在擴展模型容量的同時確保計算效率。早期研究採用硬路由；近期的大型語言模型與大型視覺語言模型研究則使用軟路由器，實現動態的權杖分配。DeepSeekMoE 與 QwenMoE 透過拆分 FFN 中間維度來切分專家。Dynamic-DINO 的不同之處在於對預訓練 FFN 參數進行切分以進行增量微調，而非從隨機初始化開始完整預訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術背景——回顧 MoE 的演進，從硬路由到軟路由再到維度切分。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    關鍵區別在於「微調 vs. 從頭訓練」：DeepSeekMoE 等方法需從隨機初始化完整預訓練，而 Dynamic-DINO 繼承已有的密集模型權重，大幅降低訓練成本。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「增量微調」的定位巧妙地將 Dynamic-DINO 框架化為「輕量升級」而非「全新訓練」，但切分預訓練權重是否能保留原模型的表示品質，需在消融研究中驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Overview — 概覽</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Dynamic-DINO extends <span class="hl-concept">Grounding DINO 1.5 Edge</span> into a dynamic framework via <span class="hl-method">MoE-Tuning</span>. MoE application targets the <span class="hl-method">decoder</span> because: (1) <span class="hl-evidence">Language-guided Query Selection retains only 900 tokens</span>, minimizing router computational costs; (2) <span class="hl-evidence">decoder output directly influences bounding box regression</span>, improving fine-tuning efficiency. Training allows <span class="hl-method">Cross-Attention in Feature Enhancer, MoE Layer in Cross-Modality MoE Decoder, and Detection Head</span> to participate while freezing other parameters.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Dynamic-DINO 透過 MoE 微調將 Grounding DINO 1.5 Edge 擴展為動態框架。MoE 應用目標鎖定在解碼器，原因有二：(1) 語言引導的查詢選擇僅保留 900 個權杖，將路由器計算成本降至最低；(2) 解碼器輸出直接影響邊界框迴歸，提升微調效率。訓練時僅開放特徵增強器中的交叉注意力、跨模態 MoE 解碼器中的 MoE 層及偵測頭參與更新，其餘參數凍結。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構定位——說明為何選擇在解碼器而非編碼器端引入 MoE。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    提供兩個合理化論據支撐設計決策：權杖數量控制與輸出直接性。這為後續的粒度分解提供了計算可行性的前提。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    900 權杖的限制讓路由器開銷可忽略不計，但也意味著 MoE 的多樣性受限於查詢選擇的品質。若查詢選擇本身偏差，MoE 的專家分派也可能偏差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 跨模態 MoE 解碼器 ====== -->
+    <h3 class="subsection-heading" id="sec-moe-decoder">3.2 Cross-Modality MoE Decoder — 跨模態 MoE 解碼器</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The FFN in each decoder layer expands into <span class="hl-method">N identical FFNs via Supernet Expansion</span>. Each FFN's intermediate hidden dimension divides evenly into <span class="hl-method">k partitions, constructing k x N fine-grained experts</span>. This creates a larger subnet search space through finer granularity. During <span class="hl-method">Subnet Inference</span>, a router R(x) selects experts using softmax normalization. <span class="hl-method">Top-k experts activate via gating mechanism</span>, ensuring <span class="hl-thesis">activated parameters equal a single FFN</span>: h(x) = sum of g_i multiplied by E_i(x), where g_i indicates whether expert i is selected.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                每個解碼器層中的 FFN 透過超網路擴展複製為 N 個相同的 FFN。每個 FFN 的中間隱藏維度均勻分割為 k 個區塊，建構出 k x N 個精細專家。這透過更精細的粒度創造了更大的子網路搜尋空間。在子網路推論階段，路由器 R(x) 使用 softmax 正規化來選擇專家。Top-k 專家透過閘控機制啟動，確保啟動的參數量等同於單一 FFN：h(x) = g_i 乘以 E_i(x) 的總和，其中 g_i 指示專家 i 是否被選中。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心機制——描述粒度分解如何同時擴大搜尋空間與維持推論成本。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文技術論證的核心：k x N 的雙維度擴展策略巧妙地將搜尋空間的指數增長與線性的參數成本脫鉤。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數學上確保「啟動參數 = 單一 FFN」是優雅的設計，但精細分割後每個專家的表達容量降低。若某些模式需要大容量的單一專家，粒度分解反而可能造成瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 MoE 微調 ====== -->
+    <h3 class="subsection-heading" id="sec-moe-tuning">3.3 MoE-Tuning — MoE 微調</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Expert Initialization</span> segments parameters from the pre-trained FFN. The first layer weight W1 divides horizontally into k blocks, and the second layer W2 divides vertically. Bias is adjusted as b2* = b2/k. This ensures <span class="hl-thesis">"the sum of the outputs from the k fine-grained experts matches the output of the original FFN"</span>. For <span class="hl-method">Router Initialization</span>, random weights replicate each centroid k times, ensuring <span class="hl-thesis">the router invariably selects the k experts derived from the same FFN at the start of fine-tuning</span>. The total loss combines detection loss L_det (L1, GIOU, and Focal losses) with an auxiliary <span class="hl-method">load balancing loss</span> L_aux to prevent expert collapse.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                專家初始化從預訓練 FFN 中切分參數。第一層權重 W1 水平分割為 k 個區塊，第二層 W2 垂直分割。偏置調整為 b2* = b2/k。這確保了 k 個精細專家的輸出總和等同於原始 FFN 的輸出。路由器初始化方面，隨機權重將每個質心複製 k 次，確保微調開始時路由器必然選擇源自同一 FFN 的 k 個專家。總損失函數結合偵測損失（L1、GIOU 與 Focal 損失）與輔助負載平衡損失，以防止專家坍塌。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    穩定性保障——說明如何確保微調起始點不劣於原模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決了 MoE 微調的核心風險：從預訓練模型轉換到 MoE 架構時可能產生的效能崩潰。「輸出和等於原始 FFN」的數學保證提供了安全的起跑線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    初始化策略的設計極為精巧：路由器初始狀態等效於密集模型，因此微調只能「改善或維持」而非「劣化」。但這也意味著若路由器訓練不足，模型可能退化為原始密集模型而未獲得 MoE 的優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments use <span class="hl-evidence">Objects365 (V1), GoldG, and V3Det datasets totaling approximately 1.56M images</span>, excluding COCO images from GoldG. Zero-shot evaluation is conducted on <span class="hl-evidence">COCO, LVIS, and ODinW</span> using standard Average Precision metrics. The model uses <span class="hl-method">EfficientViT-L1 image backbone and BERT-base text backbone</span> with 900 queries and 6 decoder layers. Dynamic-DINO achieves <span class="hl-evidence">comparable performance with official Grounding DINO 1.5 Edge across resolutions</span>. Notably, <span class="hl-evidence">performance on rare classes significantly improves</span>, indicating MoE-Tuning <span class="hl-thesis">effectively alleviates the long-tail problem</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗使用 Objects365（V1）、GoldG 與 V3Det 資料集，共約 156 萬張影像，排除 GoldG 中的 COCO 影像。在 COCO、LVIS 與 ODinW 上進行零樣本評估，採用標準的平均精確度指標。模型使用 EfficientViT-L1 影像主幹與 BERT-base 文字主幹，900 個查詢與 6 個解碼器層。Dynamic-DINO 在各解析度上達到與官方 Grounding DINO 1.5 Edge 相當的表現。值得注意的是，稀有類別的效能顯著提升，表明 MoE 微調有效緩解了長尾問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗驗證——以多基準、零樣本設定展示方法的泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供關鍵的實證支撐，特別是「稀有類別改善」直接對應緒論中提出的「長尾問題」，形成完整的問題-解決方案閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「comparable performance」一詞模糊——如果僅是追平而非超越，則 MoE 的額外複雜度是否值得？但作者在稀有類別上的明確改善提供了差異化價值。消融研究中也承認推論速度略有下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Statistical analysis of routing distributions</span> reveals that expert loading varies notably across layers, showing <span class="hl-evidence">experts learned task-specific division mechanisms</span>. In shallow layers, experts <span class="hl-evidence">cooperate with a diverse range of peers to explore a wider search space</span>. Deeper layers <span class="hl-evidence">focus on consistent collaborations with 2-3 specific partners to process distinct patterns</span>. Token routing examples confirm that <span class="hl-thesis">distinct expert combinations are specialized in processing specific patterns</span>: refrigerator tokens select experts 0,3 while clothing tokens select 1,7.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                路由分布的統計分析揭示，專家負載在各層之間顯著不同，顯示專家學會了特定於任務的分工機制。在淺層中，專家與多元的夥伴合作以探索更廣的搜尋空間。深層則聚焦於與 2-3 個特定夥伴的穩定合作來處理特定模式。權杖路由範例確認了不同的專家組合專門處理特定模式：冰箱權杖選擇專家 0、3，而服飾權杖選擇專家 1、7。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    機制分析——以實證數據解釋 MoE 學到的內部行為模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    提供可解釋性證據：不僅證明方法「有效」，更解釋「為何有效」。淺層探索/深層特化的行為模式為 MoE 的動態推論提供了直覺性理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    冰箱 vs. 服飾的具體範例極具說服力，但僅為個案。系統性的模式分析（如跨資料集的專家分派一致性）將更具說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Dynamic-DINO</span> explores <span class="hl-concept">MoE</span> integration in <span class="hl-concept">real-time open-vocabulary detection</span>. The framework demonstrates that <span class="hl-thesis">diverse expert combinations can adaptively process specific patterns</span>, activating only relevant experts during inference. Building on a reproduced Grounding DINO 1.5 Edge, Dynamic-DINO extends it into a dynamic framework via <span class="hl-method">MoE-Tuning with granularity decomposition</span>, <span class="hl-thesis">expanding the subnet search space while maintaining activated parameters</span>. A novel <span class="hl-method">weight allocation and router initialization strategy</span> prevents performance degradation at the start of fine-tuning. Extensive validation on multiple benchmarks confirms the effectiveness of the approach.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Dynamic-DINO 探索了混合專家在即時開放詞彙偵測中的整合。該框架展示了多元的專家組合能自適應地處理特定模式，在推論時僅啟動相關的專家。基於復現的 Grounding DINO 1.5 Edge，Dynamic-DINO 透過粒度分解的 MoE 微調將其擴展為動態框架，在維持啟動參數量的前提下擴展子網路搜尋空間。新穎的權重分配與路由器初始化策略防止了微調起始時的效能退化。在多個基準上的廣泛驗證確認了方法的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻與設計哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段完整呼應摘要的三項貢獻：MoE 在偵測中的探索、粒度分解策略、權重保留的初始化。形成嚴密的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論未充分討論局限性，包括：推論延遲的實際影響、專家循序執行的瓶頸、以及在更大規模模型上的可擴展性。作者在局限性章節中承認了計算資源限制，但結論中未予以強調。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                密集模型的單一 FFN<br>無法處理開放場景中<br>的多樣模式
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                粒度分解 MoE<br>擴展搜尋空間<br>維持推論成本
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                1.56M 開源資料<br>超越 20M 私有資料<br>基線效能
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                權重繼承確保<br>初始效能不退化<br>負載平衡防坍塌
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                MoE 驅動的動態推論<br>是即時偵測的<br>高效升級路徑
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過粒度分解將預訓練的密集偵測模型轉換為混合專家架構，能在維持推論效率的同時，以極少的開源資料實現超越大規模私有資料預訓練基線的開放詞彙偵測效能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>權重繼承的初始化設計：</strong>確保 MoE 微調的起始輸出等同於原始密集模型，在數學上保證了效能的單調遞增。搭配負載平衡損失與路由器初始化，形成了嚴密的穩定性保障體系，使 MoE 微調成為低風險、高回報的升級路徑。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>推論延遲的誠實揭露：</strong>作者承認目前的實作中專家是循序執行而非平行化，導致推論速度略有下降。這削弱了「維持推論效率」的核心承諾。此外，實驗僅在 8 張 NVIDIA 3090 上進行，未驗證更大模型與資料集上的可擴展性。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

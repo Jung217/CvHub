@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segment Anything (SAM) — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #c0c0c0, #8a8a8a); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Segment Anything (SAM)
+                <span class="course-tag">ICCV 2023</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2304.02643" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-task">2. 任務定義</a>
+        <a href="#sec-model">3. 模型架構</a>
+        <a href="#sec-data">4. 資料引擎</a>
+        <a href="#sec-experiments">5. 實驗</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce the <span class="hl-concept">Segment Anything (SA) project</span>: a new task, model, and dataset for <span class="hl-thesis">image segmentation</span>. Using our efficient model in a <span class="hl-method">data collection loop</span>, we built the <span class="hl-evidence">largest segmentation dataset to date, with over 1 billion masks on 11 million licensed and privacy-respecting images</span>. The model is designed and trained to be <span class="hl-concept">promptable</span>, so it can <span class="hl-thesis">transfer zero-shot to new image distributions and tasks</span>. We evaluate its capabilities on <span class="hl-evidence">numerous tasks</span> and find that its <span class="hl-evidence">zero-shot performance is impressive — often competitive with or even superior to prior fully supervised results</span>. We release the <span class="hl-concept">Segment Anything Model (SAM)</span> and corresponding dataset <span class="hl-concept">(SA-1B)</span> to foster research in foundation models for computer vision.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 Segment Anything（SA）計畫：一套用於影像分割的全新任務、模型與資料集。透過在資料收集迴圈中使用我們的高效模型，我們建構了迄今最大的分割資料集，包含超過一千一百萬張經授權且尊重隱私的影像上的十億個遮罩。該模型被設計並訓練為可提示式，因此能以零樣本方式遷移至新的影像分布與任務。我們在眾多任務上評估其能力，發現其零樣本表現令人印象深刻——經常與先前的全監督結果具競爭力，甚至更優。我們釋出 Segment Anything Model（SAM）及對應資料集（SA-1B），以促進電腦視覺基礎模型的研究。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「任務+模型+資料集」三位一體的框架預覽整個 SA 計畫。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承載「願景宣言」的功能：從特定的分割任務出發，指向「電腦視覺基礎模型」的宏大目標。三個組成部分互相增強——模型驅動資料收集，資料反哺模型訓練。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「十億個遮罩」與「零樣本」的並置極具說服力——前者展示規模，後者展示泛化。但「零樣本」的定義在分割語境中較為寬鬆：模型仍需接受點或框等提示，這與語言模型的零樣本有質的不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In natural language processing, <span class="hl-concept">foundation models</span> pretrained on broad web-scale data can be <span class="hl-evidence">adapted to a wide range of downstream tasks via prompting</span>. Can we build a similar <span class="hl-concept">foundation model for image segmentation</span>? Such a model would need to solve a <span class="hl-concept">promptable segmentation task</span>: given any prompt — a point, a box, a mask, or text — it must <span class="hl-thesis">return a valid segmentation mask</span>. This task is general enough to serve as a <span class="hl-thesis">pretraining objective and enables zero-shot transfer to downstream segmentation problems</span> through appropriate prompt engineering.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在自然語言處理領域，基於大規模網路資料預訓練的基礎模型可透過提示適配至廣泛的下游任務。我們能否為影像分割建構類似的基礎模型？這樣的模型需要解決一項可提示式分割任務：給定任何提示——一個點、一個框、一個遮罩或文字——它必須回傳有效的分割遮罩。此任務足夠通用，可作為預訓練目標，並透過適當的提示工程實現零樣本遷移至下游分割問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立願景——以 NLP 基礎模型為類比，提出視覺分割的基礎模型構想。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以 NLP 的成功模式為論據，類推至視覺分割，建立「可提示式分割」的必要性與合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    NLP 基礎模型的類比非常有力，但存在本質差異：語言是離散符號系統，而影像是連續的；NLP 的「提示」與分割的「提示」（點、框）在資訊密度上截然不同。此類比的說服力可能掩蓋這些差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 任務定義 ====== -->
+    <h2 class="section-heading" id="sec-task">2. Segment Anything Task — 可提示式分割任務</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We define a <span class="hl-concept">promptable segmentation task</span> where the goal is to <span class="hl-thesis">return a valid segmentation mask given any segmentation prompt</span>. A prompt can be <span class="hl-method">spatial (points, boxes, masks) or semantic (free-form text)</span>. The requirement of a "valid" mask means that <span class="hl-thesis">even when a prompt is ambiguous — for instance, a single point on a shirt could refer to the shirt itself or the person wearing it — the output should be a reasonable mask for at least one of the possible objects</span>. This task generalizes naturally to several existing segmentation tasks (interactive segmentation, edge detection, object proposal generation) and can serve as a <span class="hl-thesis">unifying pretraining objective</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們定義一項可提示式分割任務，其目標是在給定任何分割提示的情況下回傳有效的分割遮罩。提示可以是空間性的（點、框、遮罩）或語義性的（自由格式文字）。「有效」遮罩的要求意味著，即使當提示具有歧義性——例如，襯衫上的單一個點可能指稱襯衫本身或穿著它的人——輸出也應是至少一個可能物件的合理遮罩。此任務自然地泛化至多種既有分割任務（互動式分割、邊緣偵測、物件提案生成），並可作為統一的預訓練目標。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心定義——精確界定「可提示式分割任務」的範疇與約束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整個計畫的理論基礎：以一個足夠通用的任務定義統攝所有下游分割應用。「歧義性」的處理方式（輸出多個候選遮罩）是設計上的關鍵決策。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「襯衫vs.人」的具體例子解釋歧義性處理非常直觀。但「有效遮罩」的判定標準在語義上仍有模糊空間——任何封閉區域都可能是「有效的」，問題在於是否符合使用者意圖。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 模型架構 ====== -->
+    <h2 class="section-heading" id="sec-model">3. Model Architecture — 模型架構</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                SAM consists of three components. The <span class="hl-concept">image encoder</span> employs an <span class="hl-method">MAE-pretrained Vision Transformer (ViT)</span> adapted for high-resolution input processing, generating <span class="hl-evidence">64x64 embeddings from 1024x1024 images</span>. The <span class="hl-concept">prompt encoder</span> represents sparse prompts (points, boxes) through <span class="hl-method">positional encodings summed with learned embeddings</span>, while dense prompts (masks) use <span class="hl-method">convolutional processing with element-wise addition to image embeddings</span>. The <span class="hl-concept">mask decoder</span> features a <span class="hl-method">lightweight two-layer transformer decoder</span> utilizing cross-attention mechanisms, enabling <span class="hl-evidence">real-time mask generation in approximately 50ms in a web browser</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SAM 由三個組件構成。影像編碼器採用經 MAE 預訓練的 Vision Transformer（ViT），適配於高解析度輸入處理，從 1024x1024 影像生成 64x64 嵌入。提示編碼器以位置編碼與學習嵌入的加總表示稀疏提示（點、框），而稠密提示（遮罩）使用摺積處理並與影像嵌入進行逐元素相加。遮罩解碼器採用輕量級兩層轉換器解碼器，利用交叉注意力機制，能在約 50 毫秒內於網頁瀏覽器中實現即時遮罩生成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構概述——以模組化方式描述 SAM 的三個核心組件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展現了精妙的架構設計：重型影像編碼器（ViT-H）只需計算一次，輕量級的提示編碼器與遮罩解碼器實現即時互動——這是「可提示式」設計的工程前提。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「50ms」的響應時間直接呼應實用性需求。但 ViT-H 的前置計算成本（約 600ms）被隱藏在「影像編碼器」的描述中——對於需要逐幀處理的影片場景，這可能成為瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To handle <span class="hl-concept">prompt ambiguity</span>, SAM predicts <span class="hl-method">multiple output masks (three by default) for each prompt</span>, each with an associated <span class="hl-method">confidence score (IoU prediction)</span>. This design directly addresses the one-to-many nature of the task: a single point on an object may correspond to the part, the whole object, or a larger group. During training, the loss is computed only against the <span class="hl-method">minimum-loss mask</span>, encouraging each output slot to specialize in a different granularity level. This <span class="hl-thesis">multi-mask output with automatic ambiguity resolution</span> is essential for the promptable interface.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為處理提示歧義性，SAM 針對每個提示預測多個輸出遮罩（預設三個），每個配有相關的信心分數（IoU 預測）。此設計直接回應了任務的一對多特性：物件上的單一個點可能對應部件、完整物件或更大的群組。訓練時，損失僅計算於最小損失遮罩，鼓勵每個輸出槽位專精於不同的粒度層級。此多遮罩輸出與自動歧義解消對於可提示式介面至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解決歧義——描述多遮罩輸出策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    直接回應任務定義中提出的「歧義性」挑戰。多粒度遮罩設計使模型從「選擇唯一答案」轉為「呈現多種合理解釋」，這是與傳統分割模型的根本差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三個固定的輸出槽位是簡潔的工程決策，但物件層級可能遠多於三層（如紐扣→口袋→襯衫→上半身→人→群組）。此外，IoU 預測的準確性直接影響自動選擇的品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 資料引擎 ====== -->
+    <h2 class="section-heading" id="sec-data">4. Data Engine — 資料引擎</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The SA-1B dataset was built through a <span class="hl-method">three-stage data engine</span>. In the <span class="hl-concept">assisted-manual stage</span>, professional annotators used SAM interactively, producing <span class="hl-evidence">4.3 million masks</span>. In the <span class="hl-concept">semi-automatic stage</span>, SAM generated candidate masks that annotators refined, yielding <span class="hl-evidence">5.9 million masks</span> and increasing mask diversity. In the <span class="hl-concept">fully automatic stage</span>, SAM generated masks using a <span class="hl-method">32x32 grid of point prompts</span> per image, followed by <span class="hl-method">non-maximum suppression and confidence filtering</span>, producing the vast majority of the final <span class="hl-evidence">1.1 billion masks across 11 million images</span>. Human quality ratings consistently scored mask quality <span class="hl-evidence">between 7 and 9 on a 10-point scale</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SA-1B 資料集透過三階段資料引擎建構。在輔助手動階段，專業標註員以互動方式使用 SAM，產生 430 萬個遮罩。在半自動階段，SAM 生成候選遮罩供標註員精修，產出 590 萬個遮罩並增加了遮罩多樣性。在全自動階段，SAM 對每張影像使用 32x32 的點提示網格生成遮罩，再經非極大值抑制與信心過濾，產生了最終十一億個遮罩（分布在一千一百萬張影像上）的絕大部分。人類品質評分一致地將遮罩品質評為 10 分制中的 7 至 9 分。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料建構策略——展示從人工到全自動的漸進式資料擴展。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了 SAM 成功的「飛輪效應」：模型改善標註品質與效率 -> 更多更好的資料 -> 模型進一步改善。三階段設計使資料規模從百萬級跳躍至十億級。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三階段漸進的敘事極具說服力。但「十億個遮罩」主要由全自動階段生成——其品質上限受限於當時的模型能力。此外，32x32 網格的均勻取樣可能在複雜場景中遺漏小型或密集物件。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">5. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate SAM across <span class="hl-evidence">23 diverse segmentation datasets</span> in a zero-shot setting. On <span class="hl-concept">single-point segmentation</span>, SAM <span class="hl-evidence">outperforms the baseline RITM model on 16 of 23 datasets</span>. Additional evaluations demonstrate zero-shot capability on <span class="hl-evidence">edge detection (comparable to learned approaches on BSDS500), object proposals (competitive on LVIS), and instance segmentation</span>. Preliminary experiments with <span class="hl-concept">text-to-mask</span> functionality show promising but less refined results. Critically, the model achieves these results <span class="hl-thesis">without any task-specific finetuning</span>, purely through prompt engineering — supporting our thesis that SAM functions as a <span class="hl-thesis">foundation model for segmentation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在零樣本設定下跨 23 個多樣化分割資料集評估 SAM。在單點分割上，SAM 在 23 個資料集中的 16 個上超越基線 RITM 模型。額外評估展示了在邊緣偵測（在 BSDS500 上與學習式方法相當）、物件提案（在 LVIS 上具競爭力）及實例分割上的零樣本能力。文字到遮罩功能的初步實驗顯示出有希望但仍需精進的結果。關鍵的是，模型在完全不進行任何特定任務微調的情況下取得這些結果，純粹透過提示工程——支持我們關於 SAM 作為分割基礎模型的命題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面實驗驗證——在多任務多資料集上展示零樣本泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱：23 個資料集的廣度直接支撐「基礎模型」的定位。16/23 的勝率加上跨任務能力（邊緣偵測、物件提案），強化了通用性論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者坦誠地報告了文字到遮罩的「仍需精進」結果，增強了整體可信度。但「16/23 超越 RITM」需要細看——在哪 7 個資料集上落後？這些可能是語義分割或特定領域（如醫學影像）的場景，恰好暴露了通用模型的弱點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Segment Anything project</span> demonstrates that a <span class="hl-thesis">promptable foundation model for image segmentation is both feasible and effective</span>. Through the synergy of the <span class="hl-concept">SA task</span>, <span class="hl-concept">SAM model</span>, and <span class="hl-concept">SA-1B dataset</span>, we show that <span class="hl-thesis">large-scale self-training with human-in-the-loop data curation can produce a model with strong zero-shot generalization</span>. SAM's ability to segment any object with a simple prompt opens new possibilities for <span class="hl-evidence">interactive annotation, downstream task adaptation, and compositional AI systems</span>. We believe this work represents a step toward building <span class="hl-thesis">foundation models for computer vision</span> analogous to those that have transformed NLP.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Segment Anything 計畫展示了可提示式影像分割基礎模型既可行又有效。透過 SA 任務、SAM 模型與 SA-1B 資料集的協同作用，我們證明了以人在迴圈中的資料策展進行大規模自訓練，可產出具有強大零樣本泛化能力的模型。SAM 以簡單提示分割任何物件的能力，為互動式標註、下游任務適配以及組合式 AI 系統開啟了新的可能性。我們相信此研究代表了邁向建構電腦視覺基礎模型的一步——類似於那些已經變革了自然語言處理的模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申三位一體的貢獻並展望基礎模型的未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將具體的技術成就提升至「範式轉移」的高度：從分割工具到視覺基礎模型。回應緒論的 NLP 類比，形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「基礎模型」的定位雄心勃勃但需謹慎——SAM 主要處理物體級分割，對於語義理解（如區分「坐著的貓」vs.「站著的貓」）的能力有限。此外，模型對醫學影像、衛星影像等專業領域的泛化能力仍有待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺分割缺乏<br>通用基礎模型
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                可提示式分割任務<br>統攝所有分割需求
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                23 資料集零樣本評估<br>SA-1B 十億遮罩規模
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                多遮罩輸出解決歧義<br>三階段引擎確保品質
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                SAM 是視覺分割<br>基礎模型的可行路徑
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過定義可提示式分割任務、建構十億規模資料集，並訓練高效的 SAM 模型，可實現與 NLP 基礎模型類似的視覺分割零樣本泛化能力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>資料飛輪效應的實證：</strong>三階段資料引擎從 430 萬遮罩擴展至十億遮罩，同時維持 7-9/10 的人類品質評分。模型與資料的正向循環不僅是工程成就，更驗證了「以模型驅動資料策展」的範式可行性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>「基礎模型」定位的過度延伸：</strong>SAM 主要處理類別無關的物體級分割，缺乏語義理解能力。在需要區分物件類別或理解場景語義的任務（如語義分割、場景理解）上，零樣本表現與專門模型仍有差距。此外，對醫學、遙感等專業領域的泛化能力尚未系統性驗證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

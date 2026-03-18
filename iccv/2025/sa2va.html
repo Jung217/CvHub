@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sa2VA: Marrying SAM2 with LLaVA for Dense Grounded Understanding — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Sa2VA: Marrying SAM2 with LLaVA for Dense Grounded Understanding of Images and Videos
+                <span class="course-tag">ICCV 2025</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2501.04001" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-dataset">3.3 Ref-SAV 資料集</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work presents <span class="hl-concept">Sa2VA</span>, <span class="hl-thesis">the first unified model for dense grounded understanding of both images and videos</span>. Unlike existing <span class="hl-concept">multi-modal large language models (MLLMs)</span>, which are often <span class="hl-rebuttal">limited to specific modalities and tasks</span>, Sa2VA supports <span class="hl-thesis">a wide range of image and video tasks, including referring segmentation and conversation, with minimal one-shot instruction tuning</span>. The model combines <span class="hl-concept">SAM-2</span> with <span class="hl-concept">LLaVA</span> and <span class="hl-method">unifies text, image, and video in a shared LLM token space</span>. The authors introduce the <span class="hl-evidence">Ref-SAV dataset with 72k+ object expressions</span> and achieve <span class="hl-evidence">state-of-the-art results across multiple benchmarks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 Sa2VA，首個統一的影像與影片稠密接地理解模型。不同於現有多模態大型語言模型通常受限於特定模態與任務，Sa2VA 支援廣泛的影像與影片任務，包括指涉分割與對話，僅需極少的單樣本指令微調。模型結合 SAM-2 與 LLaVA，在共享的 LLM 詞元空間中統一文字、影像與影片。作者引入含 72k 以上物件表述的 Ref-SAV 資料集，並在多個基準測試上達到最先進的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「首個統一模型」的定位建立新穎性，概述架構、資料集與成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要聚焦於「統一性」這一核心賣點：從模態統一（影像+影片）到任務統一（分割+對話），展現方法的泛用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首個」的宣稱需要對現有方法進行嚴格的邊界定義——「統一」的範圍如何劃定？若僅限於「指涉分割+對話」的特定組合，則新穎性的基礎需更精確地闡述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Multi-modal Large Language Models (MLLMs)</span> have made significant progress with visual question answering, narrative generation, and interactive editing. However, there exists a fundamental gap: <span class="hl-rebuttal">video perception models like SAM-2 lack open-ended understanding abilities, while video MLLMs cannot perform pixel-level perception tasks like segmentation</span>. The authors observe that <span class="hl-thesis">"no work can leverage the benefits from both sides."</span> Three key challenges emerge: (1) <span class="hl-rebuttal">task formulation for multimodal inputs</span>; (2) <span class="hl-rebuttal">balancing performance across diverse tasks</span>; and (3) <span class="hl-rebuttal">effective knowledge sharing from pretrained models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多模態大型語言模型已在視覺問答、敘事生成與互動編輯方面取得顯著進展。然而，存在一個根本落差：SAM-2 等影片感知模型缺乏開放式理解能力，而影片 MLLM 則無法執行像素級感知任務（如分割）。作者觀察到「沒有任何工作能同時利用兩方的優勢。」三個關鍵挑戰浮現：(1) 多模態輸入的任務建構；(2) 在多樣化任務間平衡性能；(3) 從預訓練模型有效地共享知識。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——揭示感知模型與理解模型之間的根本鴻溝。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以「兩個世界的隔閡」建立問題意識，三個挑戰則為方法設計提供了清晰的路線圖。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題框架為「兩個世界的橋接」是強力的敘事策略。但 SAM-2 與 LLaVA 的架構差異巨大，如何在不犧牲各自優勢的情況下整合，是一個非顯然的工程挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Sa2VA addresses these challenges with a <span class="hl-method">decoupled design</span>. Rather than deeply integrating SAM-2 into the LLM, the framework uses <span class="hl-method">special [SEG] tokens as bridges</span>: the <span class="hl-method">hidden states of the [SEG] token generated by the LLM are used as spatial-temporal prompts and fed into SAM-2's decoder</span>. This design maintains the <span class="hl-thesis">plug-and-play compatibility</span> — SAM-2 and LLaVA operate as independent modules connected through a lightweight interface. For video tasks, <span class="hl-method">key frames generate masks via [SEG] tokens while remaining frames use SAM-2's memory mechanisms for tracking</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Sa2VA 以解耦設計解決這些挑戰。框架不將 SAM-2 深度整合進 LLM，而是使用特殊的 [SEG] 詞元作為橋樑：LLM 生成的 [SEG] 詞元隱藏狀態作為時空提示，餵入 SAM-2 的解碼器。此設計維持了隨插即用的相容性——SAM-2 與 LLaVA 作為獨立模組運作，透過輕量化介面連接。對於影片任務，關鍵幀透過 [SEG] 詞元生成遮罩，其餘幀則使用 SAM-2 的記憶機制進行追蹤。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——描述 [SEG] 詞元驅動的解耦架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了架構設計的核心哲學：「解耦而非融合」。[SEG] 詞元作為兩個模型之間的最小介面，既傳遞了語義資訊，又避免了深度耦合的複雜性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    解耦設計的優點是簡潔性與可維護性，但缺點是兩個模型之間的資訊傳遞受限於 [SEG] 詞元的表達能力。單一詞元能否攜帶足夠的空間-時間資訊以指導精確分割，是設計的關鍵假設。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Multi-modal LLMs</span> have evolved from image-level understanding (LLaVA, InternVL) to video handling (LLaVA-OneVision), but <span class="hl-rebuttal">lack pixel-level grounding capabilities</span>. <span class="hl-concept">Referring segmentation</span> methods have progressed from fusion modules to transformer-based approaches to LLM-equipped architectures, yet <span class="hl-rebuttal">the conceptual vocabulary remains limited compared with the knowledge space of LLMs</span>. <span class="hl-concept">Video segmentation and grounding</span> methods focus on closed-set pixel segmentation with predefined categories. Existing approaches either <span class="hl-rebuttal">sacrifice language understanding for segmentation precision or vice versa</span>. Sa2VA is the first to <span class="hl-thesis">unify both capabilities without such tradeoffs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多模態大型語言模型已從影像級理解（LLaVA、InternVL）演化至影片處理（LLaVA-OneVision），但缺乏像素級接地能力。指涉分割方法從融合模組進展到基於 Transformer 的方法再到配備 LLM 的架構，然而其概念詞彙相比 LLM 的知識空間仍然有限。影片分割與接地方法聚焦於預定義類別的封閉集像素分割。現有方法要麼犧牲語言理解以換取分割精度，要麼反之。Sa2VA 首次統一了兩種能力而無需此類取捨。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——涵蓋 MLLM、指涉分割與影片分割三條研究線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「理解 vs. 感知」的二分法組織文獻，使 Sa2VA 的「統一」定位顯得自然而必要。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需取捨」的宣稱需要定量驗證——在共同訓練中，兩項能力是否真的不會互相干擾？消融研究中需展示共同訓練 vs. 各自訓練的性能比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Sa2VA reformulates diverse tasks under a <span class="hl-method">unified representation</span>. <span class="hl-concept">Referring image/video object segmentation</span> takes text tokens and images/videos as input, outputting binary masks or spatio-temporal masklets. <span class="hl-concept">Image/video chat and grounded caption generation</span> outputs answer text with aligned masks. <span class="hl-concept">Visual prompt understanding</span> accepts additional visual prompts (boxes/points). All tasks are unified as: <span class="hl-method">T<sub>o</sub>, M<sub>o</sub> = LLM({I<sub>i</sub>, V<sub>i</sub>, VP<sub>i</sub>}, T<sub>i</sub>)</span>, where outputs are text and/or masks depending on task type. The LLM generates <span class="hl-method">[SEG] tokens whose hidden states serve as spatial-temporal prompts for SAM-2's decoder</span>. The training loss combines <span class="hl-method">text regression loss with pixel-wise cross-entropy and Dice loss for segmentation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Sa2VA 在統一表示下重新建構多樣化任務。指涉影像/影片物件分割以文字詞元與影像/影片作為輸入，輸出二值遮罩或時空遮罩序列。影像/影片對話與接地式描述生成輸出附帶對齊遮罩的回答文字。視覺提示理解接受額外的視覺提示（框/點）。所有任務統一為：T_o, M_o = LLM({I_i, V_i, VP_i}, T_i)，其中輸出根據任務類型為文字及/或遮罩。LLM 生成 [SEG] 詞元，其隱藏狀態作為 SAM-2 解碼器的時空提示。訓練損失結合文字迴歸損失與用於分割的像素級交叉熵與 Dice 損失。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    統一建構——描述如何將多種任務映射到單一模型框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展現了架構設計的簡潔性：所有任務共享同一個輸入-輸出介面，差異僅在於輸出的組成（文字、遮罩、或兩者）。[SEG] 詞元是連接語言世界與視覺世界的唯一橋樑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    統一公式化的美感在於簡潔，但「一個模型解決所有問題」的策略可能導致在特定任務上的性能不如專用模型。多任務訓練中的任務權重平衡是一個微妙的工程問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-dataset">3.3 Ref-SAV Dataset and Benchmark — 資料集與基準</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors introduce <span class="hl-concept">Ref-SAV</span>, a dataset built from <span class="hl-evidence">37,311 videos with 72,509 object expressions from the SA-V dataset</span>. The annotation pipeline has three stages: (1) <span class="hl-method">object/part-level annotation</span> using InternVL2-76B with consistency checking; (2) <span class="hl-method">scene-level annotation</span> with object relationships; and (3) <span class="hl-method">video-level annotation</span> capturing motion and actions across 8 uniformly sampled frames. The benchmark subset contains <span class="hl-evidence">1,147 videos with 1,945 object expressions (1,694 long, 251 short)</span>, manually validated. Ref-SAV features <span class="hl-evidence">long text descriptions, heavy occlusion, and large motion</span> — challenges absent from existing benchmarks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者引入 Ref-SAV，一個從 SA-V 資料集中 37,311 支影片與 72,509 個物件表述建構的資料集。標註流程分為三個階段：(1) 使用 InternVL2-76B 進行物件/部件級標註並進行一致性檢查；(2) 場景級標註，包含物件關係；(3) 影片級標註，在 8 個均勻取樣幀上捕捉動作。基準測試子集包含 1,147 支影片與 1,945 個物件表述（1,694 個長描述、251 個短描述），經人工驗證。Ref-SAV 具有長文字描述、嚴重遮擋與大幅度運動等特徵——這些挑戰在現有基準中缺席。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料貢獻——詳述 Ref-SAV 的建構流程與獨特價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    Ref-SAV 不僅是 Sa2VA 的訓練資料來源，更是一個社群貢獻——填補了現有指涉影片物件分割基準在複雜場景方面的空白。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三階段標註流程的設計周全，但使用 VLM（InternVL2-76B）生成標註可能引入系統性偏差。手動驗證僅覆蓋基準子集（1,147 支），訓練集的品質依賴於自動化流程的可靠性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">image referring segmentation</span>, <span class="hl-evidence">Sa2VA-8B achieves 81.6, 76.2, and 78.7 cIoU on RefCOCO, RefCOCO+, and RefCOCOg respectively, surpassing prior state-of-the-art</span>. On <span class="hl-concept">video referring segmentation</span>, Sa2VA achieves <span class="hl-evidence">57.0, 75.2, and 57.6 J&amp;F on MeVIS, Ref-DAVIS17, and ReVOS, surpassing the previous SOTA VISA-13B by 12.5, 4.8, and 6.7 J&amp;F</span>. For <span class="hl-concept">chat performance</span>, Sa2VA maintains <span class="hl-evidence">strong results on MME (1651/578), MMBench (82.4), and SEED-Bench (75.5)</span> while retaining grounding capabilities. On the new <span class="hl-concept">Ref-SAV benchmark</span>, Sa2VA-8B achieves <span class="hl-evidence">49.3 J&amp;F zero-shot vs. 14.1 for prior methods</span>, improving to 58.7 with training data. <span class="hl-evidence">Ablation studies</span> confirm that <span class="hl-evidence">co-training across all tasks benefits each individual task</span>, and that the <span class="hl-method">single [SEG] token design outperforms multi-token variants</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在影像指涉分割上，Sa2VA-8B 在 RefCOCO、RefCOCO+ 與 RefCOCOg 上分別達到 81.6、76.2 與 78.7 cIoU，超越先前最先進方法。在影片指涉分割上，Sa2VA 在 MeVIS、Ref-DAVIS17 與 ReVOS 上分別達到 57.0、75.2 與 57.6 J&F，超越先前最先進的 VISA-13B 達 12.5、4.8 與 6.7 J&F。在對話性能方面，Sa2VA 在 MME (1651/578)、MMBench (82.4) 與 SEED-Bench (75.5) 上維持強勁結果，同時保留接地能力。在新的 Ref-SAV 基準上，Sa2VA-8B 在零樣本下達到 49.3 J&F（先前方法為 14.1），使用訓練資料後提升至 58.7。消融研究確認跨所有任務的共同訓練有益於每個個別任務，且單一 [SEG] 詞元設計優於多詞元變體。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——涵蓋影像分割、影片分割、對話、新基準與消融研究。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗結果驗證了「統一不犧牲性能」的核心宣稱：在分割與對話兩個維度上均超越或持平專用模型。Ref-SAV 上的巨大零樣本優勢（49.3 vs. 14.1）尤其引人注目。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數據全面且令人信服，但 Ref-SAV 基準由作者自行建構，在其上的優勢可能部分歸因於對資料分布的熟悉度。消融研究確認「共同訓練互利」是回應多任務訓練可能互相干擾之質疑的關鍵證據。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Sa2VA</span> presents a <span class="hl-thesis">versatile framework that integrates SAM-2 with LLaVA-like MLLMs to achieve dense, grounded understanding of both images and video</span>. The <span class="hl-method">decoupled design with [SEG] tokens</span> enables plug-and-play integration while maintaining state-of-the-art performance across segmentation, conversation, and grounded captioning tasks. The <span class="hl-evidence">Ref-SAV benchmark</span> provides a challenging evaluation platform for future research. The model handles <span class="hl-thesis">multiple tasks with a single instruction-tuning process</span>, demonstrating that <span class="hl-thesis">perception and understanding need not be separate capabilities in multi-modal AI</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Sa2VA 提出了一個多功能框架，整合 SAM-2 與類 LLaVA 的 MLLM，實現對影像與影片的稠密接地理解。以 [SEG] 詞元為基礎的解耦設計實現了隨插即用的整合，同時在分割、對話與接地式描述生成任務上維持最先進的性能。Ref-SAV 基準為未來研究提供了具挑戰性的評估平台。模型以單一指令微調流程處理多種任務，證明了在多模態人工智慧中，感知與理解無需作為分離的能力存在。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以「感知與理解的統一」作為核心啟示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論提煉出超越方法本身的洞察：多模態 AI 的發展方向應是感知與理解的融合而非分離。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「感知與理解無需分離」的宣稱具啟發性，但當前方法仍依賴兩個分離的預訓練模型（SAM-2 與 LLaVA）。真正的端到端統一——從頭訓練一個同時具備兩種能力的模型——仍是未來的目標。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                感知模型與理解模型<br>各自孤立
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                [SEG] 詞元解耦整合<br>SAM-2 + LLaVA
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                影像/影片分割<br>全面超越 SOTA
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                共同訓練互利<br>單詞元設計最優
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                感知與理解<br>無需分離
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過以 [SEG] 詞元為橋樑的解耦設計將 SAM-2 與 LLaVA 整合，可在單一模型中統一影像/影片的稠密感知與開放式語言理解，在兩類任務上均達到最先進性能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>解耦設計的工程智慧：</strong>[SEG] 詞元作為最小化介面的設計，既保留了兩個預訓練模型的完整能力，又實現了有效的跨模型資訊傳遞。消融研究確認「共同訓練互利」，打消了多任務學習可能導致負遷移的疑慮。在影片指涉分割上超越 VISA-13B 達 12.5 J&F 的結果尤其引人注目。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>長影片與複雜場景的侷限：</strong>作者在附錄中坦承在長影片上存在失敗案例，以及 VQA 與分割任務之間的規模張力。此外，[SEG] 詞元的單一詞元設計雖在消融中表現最佳，但其資訊瓶頸可能在需要極精細空間指引的場景中顯現。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

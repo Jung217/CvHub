@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLaVA-CoT: Let Vision Language Models Reason Step-by-Step — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                LLaVA-CoT: Let Vision Language Models Reason Step-by-Step
+                <span class="course-tag">ICCV 2025</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2411.10440" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-dataset">3.2 資料集</a>
+        <a href="#sec-inference">3.3 推論</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Large language models</span> have demonstrated substantial advancements in <span class="hl-concept">reasoning capabilities</span>, particularly through <span class="hl-concept">inference-time scaling</span>, as illustrated by models such as OpenAI's o1. However, current <span class="hl-concept">Vision-Language Models (VLMs)</span> often <span class="hl-rebuttal">struggle to perform systematic and structured reasoning, especially when handling complex visual question-answering tasks</span>. In this work, we introduce <span class="hl-concept">LLaVA-CoT</span>, a novel VLM designed to conduct <span class="hl-thesis">autonomous multistage reasoning</span>. Unlike chain-of-thought prompting, LLaVA-CoT <span class="hl-thesis">independently engages in sequential stages of summarization, visual interpretation, logical reasoning, and conclusion generation</span>. We compile the <span class="hl-evidence">LLaVA-CoT-100k dataset</span> with structured reasoning annotations and propose an <span class="hl-method">inference-time stage-level beam search method</span>. Remarkably, with only <span class="hl-evidence">100k training samples</span>, LLaVA-CoT <span class="hl-evidence">outperforms its base model by 8.9%</span> on multimodal reasoning benchmarks, and <span class="hl-evidence">surpasses larger models including Gemini-1.5-pro, GPT-4o-mini, and Llama-3.2-90B-Vision-Instruct</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大型語言模型已在推理能力方面展現出顯著進展，特別是透過推論時期縮放，如 OpenAI 的 o1 模型所示。然而，當前的視覺語言模型在進行系統性與結構化推理時常面臨困難，尤其是在處理複雜的視覺問答任務。本文提出 LLaVA-CoT，一種設計用於進行自主多階段推理的新型視覺語言模型。與思維鏈提示不同，LLaVA-CoT 獨立執行摘要、視覺詮釋、邏輯推理與結論生成的序列階段。我們編纂了 LLaVA-CoT-100k 資料集（含結構化推理標註），並提出推論時期的階段級波束搜尋方法。值得注意的是，僅以 100k 訓練樣本，LLaVA-CoT 在多模態推理基準測試上便超越其基礎模型 8.9%，並超越更大的模型，包括 Gemini-1.5-pro、GPT-4o-mini 與 Llama-3.2-90B-Vision-Instruct。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以 LLM 推理能力的成功對比 VLM 的不足，引出 LLaVA-CoT 的多階段推理方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的論證結構為「跨領域類比 + 缺口識別 + 方案 + 數據」：從 LLM 的成功到 VLM 的推理困境，再到 LLaVA-CoT 的解方。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 8.9% 的提升與超越 Gemini/GPT-4o-mini 的結果構成強力佐證。但「100k 樣本即足夠」的宣稱需確認這些樣本是否以更強模型（如 GPT-4o）生成，若是，則成本隱含在資料集建構中而非訓練中。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent advances in <span class="hl-concept">inference-time scaling</span> have shown that allowing models more "thinking time" leads to better reasoning. OpenAI's <span class="hl-concept">o1 model</span> exemplifies this by performing extended <span class="hl-concept">chain-of-thought (CoT)</span> reasoning before answering. However, <span class="hl-rebuttal">simply applying CoT prompting to existing VLMs yields inconsistent improvements</span> — the models often produce <span class="hl-rebuttal">unstructured or hallucinated reasoning chains</span>. The key insight is that <span class="hl-thesis">effective visual reasoning requires not just more tokens, but structured reasoning organized into distinct cognitive stages</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                推論時期縮放的近期進展顯示，允許模型更多「思考時間」能帶來更好的推理品質。OpenAI 的 o1 模型透過在回答前執行延伸的思維鏈推理來例證此點。然而，單純將思維鏈提示應用於現有視覺語言模型所獲得的改善不一致——模型常產生缺乏結構或幻覺式的推理鏈。關鍵洞察在於：有效的視覺推理不僅需要更多詞元，更需要組織成不同認知階段的結構化推理。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從推論時期縮放的趨勢切入，指出 CoT 在 VLM 中的失效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先認可 CoT 在 LLM 的成功，再揭示其在 VLM 中的不足，為「結構化推理」的必要性建立論據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「CoT 在 VLM 中不一致」的觀察切中要害，但作者需提供具體的失敗案例或數據。「不同認知階段」的概念源自認知科學，但在 VLM 中的對應是否恰當有待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">LLaVA-CoT</span>, which structures the reasoning process into <span class="hl-method">four explicit stages</span>: (1) <span class="hl-method">Summary</span> — outlining the problem and determining the approach; (2) <span class="hl-method">Caption</span> — extracting and interpreting relevant visual information from images; (3) <span class="hl-method">Reasoning</span> — proceeding step-by-step through logical problem-solving; (4) <span class="hl-method">Conclusion</span> — delivering the final answer with supporting evidence. Each stage is <span class="hl-method">demarcated by special tokens</span> in the training data, enabling the model to <span class="hl-thesis">autonomously transition between stages without external prompting</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 LLaVA-CoT，將推理過程結構化為四個顯式階段：(1) 摘要——概述問題並決定方法；(2) 描述——從影像中提取與詮釋相關視覺資訊；(3) 推理——逐步進行邏輯問題求解；(4) 結論——提出附有支持證據的最終答案。每個階段在訓練資料中以特殊詞元標記，使模型能在無需外部提示的情況下自主地在各階段之間轉換。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——描述四階段結構化推理的設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的核心：將「更多思考」具體化為「四個認知階段」，每個階段都有明確的功能定位。特殊詞元的設計使結構化推理成為模型的內在能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    四階段的劃分直觀且易於理解，但其固定順序可能不適合所有類型的推理任務——某些任務可能需要先推理再描述，或在各階段間反覆迭代。此外，「自主轉換」的宣稱取決於特殊詞元的學習品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Chain-of-thought reasoning</span> has proven effective in <span class="hl-concept">large language models</span>, with approaches ranging from few-shot CoT prompting to zero-shot "Let's think step by step." <span class="hl-concept">Vision-Language Models</span> like <span class="hl-concept">LLaVA</span>, <span class="hl-concept">InternVL</span>, and <span class="hl-concept">Qwen-VL</span> have shown strong performance on visual understanding tasks. However, <span class="hl-rebuttal">attempts to integrate CoT into VLMs have been limited to prompting-based approaches that do not fundamentally change the model's reasoning behavior</span>. <span class="hl-concept">Inference-time scaling</span> methods like beam search and self-consistency have shown promise, but <span class="hl-rebuttal">applying them uniformly across all tokens is computationally wasteful</span>. Our <span class="hl-method">stage-level beam search (SWIRES)</span> method addresses this by <span class="hl-thesis">allocating more search budget to reasoning-critical stages</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                思維鏈推理在大型語言模型中已被證實有效，方法從少樣本 CoT 提示到零樣本「讓我們逐步思考」皆有。LLaVA、InternVL 與 Qwen-VL 等視覺語言模型在視覺理解任務上已展現強勁性能。然而，將 CoT 整合進 VLM 的嘗試僅限於基於提示的方法，並未根本改變模型的推理行為。推論時期縮放方法如波束搜尋與自一致性已展現潛力，但將其均勻應用於所有詞元在計算上是浪費的。本文的階段級波束搜尋（SWIRES）方法透過將更多搜尋預算分配給推理關鍵階段來解決此問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——涵蓋 CoT、VLM 與推論時期縮放，為 SWIRES 建立脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    批判現有方法的「全詞元均勻搜尋」策略，為階段級搜尋的資源效率優勢建立論據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「提示式 CoT 不改變模型行為」的批判精準——提示僅影響輸出格式而非內在能力。但 SWIRES 的「階段級」搜尋是否真的能被模型所產出的階段標記準確引導，取決於這些標記在推論時的可靠性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                LLaVA-CoT is built on the <span class="hl-concept">Llama-3.2-11B-Vision-Instruct</span> backbone. The model is fine-tuned on the <span class="hl-evidence">LLaVA-CoT-100k dataset</span> with <span class="hl-method">structured reasoning annotations organized into four stages using special delimiter tokens</span>: &lt;SUMMARY&gt;, &lt;CAPTION&gt;, &lt;REASONING&gt;, and &lt;CONCLUSION&gt;. During training, the model learns to <span class="hl-method">generate these stage transitions autonomously</span>, so at inference time it naturally produces structured multi-stage reasoning without any special prompting. The training data is compiled from <span class="hl-evidence">various visual question answering sources</span>, with structured reasoning annotations <span class="hl-method">generated by distilling reasoning traces from GPT-4o</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LLaVA-CoT 建構於 Llama-3.2-11B-Vision-Instruct 骨幹架構之上。模型在 LLaVA-CoT-100k 資料集上進行微調，使用組織為四個階段的結構化推理標註與特殊分隔詞元：&lt;SUMMARY&gt;、&lt;CAPTION&gt;、&lt;REASONING&gt; 與 &lt;CONCLUSION&gt;。在訓練過程中，模型學習自主生成這些階段轉換，因此在推論時自然產生結構化的多階段推理，無需任何特殊提示。訓練資料從各種視覺問答來源編纂而成，結構化推理標註透過從 GPT-4o 蒸餾推理軌跡而生成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練方法——描述模型骨幹、訓練資料與階段標記的學習方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了方法的核心機制：透過在訓練資料中嵌入結構化標記，使 11B 模型「內化」了四階段推理流程。從 GPT-4o 蒸餾則說明了資料品質的來源。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從 GPT-4o 蒸餾推理軌跡是高效的資料建構策略，但引入了對教師模型的依賴——LLaVA-CoT 的推理品質上限可能受限於 GPT-4o 的能力。此外，100k 樣本的多樣性是否足以涵蓋所有推理模式值得關注。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-dataset">3.2 LLaVA-CoT-100k Dataset — 資料集</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">LLaVA-CoT-100k</span> dataset contains <span class="hl-evidence">100,000 samples sourced from diverse visual question answering benchmarks</span>. Each sample includes an image, a question, and a <span class="hl-method">structured reasoning annotation with four explicitly delineated stages</span>. The annotations are generated by prompting <span class="hl-method">GPT-4o to produce step-by-step reasoning organized into the summary, caption, reasoning, and conclusion format</span>. Quality filtering ensures that only samples where the <span class="hl-method">GPT-4o reasoning leads to the correct final answer</span> are retained. This curation process ensures <span class="hl-thesis">high-quality structured reasoning supervision that captures the deliberate cognitive process rather than just the final answer</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LLaVA-CoT-100k 資料集包含 100,000 個樣本，源自多種視覺問答基準測試。每個樣本包含一張影像、一個問題，以及具有四個顯式階段的結構化推理標註。標註透過提示 GPT-4o 產生以摘要、描述、推理與結論格式組織的逐步推理而生成。品質過濾確保僅保留 GPT-4o 推理能導向正確最終答案的樣本。此策劃流程確保了高品質的結構化推理監督，捕捉審慎的認知過程而非僅是最終答案。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料基礎——詳述資料集的建構流程與品質控制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    資料集是整個方法的基石——結構化推理能力的學習品質直接取決於標註的品質。品質過濾步驟是確保資料可靠性的關鍵環節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    僅保留「正確答案」的過濾可能導致樣本偏差——難題可能被過濾掉，使模型在簡單任務上過度自信。此外，GPT-4o 的推理風格可能被模型完整繼承，限制了推理多樣性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-inference">3.3 Stage-Wise Beam Search (SWIRES) — 階段級波束搜尋</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">SWIRES (Stage-Wise Retracing Search)</span>, an <span class="hl-method">inference-time scaling method that operates at the stage level rather than the token level</span>. Instead of generating multiple complete reasoning chains and selecting the best, SWIRES <span class="hl-method">generates multiple candidates at each reasoning stage, evaluates them, and selects the best candidate before proceeding to the next stage</span>. This approach is more efficient than token-level beam search because <span class="hl-thesis">it concentrates search budget on the stages where reasoning quality matters most (typically the Reasoning stage)</span>, while spending fewer resources on stages where the output is more deterministic (like Conclusion).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 SWIRES（階段級回溯搜尋），一種在階段層級而非詞元層級運作的推論時期縮放方法。SWIRES 不生成多條完整推理鏈再選擇最佳者，而是在每個推理階段生成多個候選，進行評估，並在進入下一階段前選擇最佳候選。此方法比詞元級波束搜尋更高效，因為它將搜尋預算集中在推理品質最為關鍵的階段（通常是推理階段），同時在輸出較為確定性的階段（如結論）花費較少資源。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推論創新——描述階段級搜尋的效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將四階段結構的優勢延伸到推論時期：結構化不僅改善了訓練品質，也使推論時期的計算資源能更智慧地分配。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    階段級搜尋的效率論證在直覺上成立，但實際效果取決於「階段邊界的準確偵測」與「候選評估指標的品質」。若模型在某些輸入上無法產生清晰的階段邊界，SWIRES 可能退化為隨機選擇。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                LLaVA-CoT is evaluated across <span class="hl-evidence">six challenging multimodal reasoning benchmarks</span>. The model <span class="hl-evidence">outperforms its base model Llama-3.2-11B-Vision-Instruct by 8.9% on average</span>. Remarkably, the 11B-parameter LLaVA-CoT <span class="hl-evidence">surpasses Gemini-1.5-pro, GPT-4o-mini, and Llama-3.2-90B-Vision-Instruct</span> — models that are significantly larger or proprietary. The <span class="hl-method">SWIRES inference method</span> provides <span class="hl-evidence">additional gains beyond standard greedy decoding</span>, demonstrating effective inference-time scaling. Ablation studies show that <span class="hl-evidence">all four stages contribute to performance</span>, with the Reasoning stage being most critical, and that <span class="hl-evidence">structured annotations outperform unstructured CoT annotations</span> on the same base data.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LLaVA-CoT 在六個具挑戰性的多模態推理基準測試上進行評估。模型平均超越其基礎模型 Llama-3.2-11B-Vision-Instruct 達 8.9%。值得注意的是，僅 11B 參數的 LLaVA-CoT 超越了 Gemini-1.5-pro、GPT-4o-mini 與 Llama-3.2-90B-Vision-Instruct——這些模型要麼規模顯著更大，要麼為商業閉源模型。SWIRES 推論方法在標準貪婪解碼之上提供了額外的增益，展現了有效的推論時期縮放。消融研究顯示四個階段均對性能有所貢獻，其中推理階段最為關鍵，且結構化標註在相同基礎資料上優於非結構化 CoT 標註。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——覆蓋多基準比較、推論時期縮放效果與消融研究。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗結果的三個亮點（超越基礎模型、超越更大/閉源模型、結構化優於非結構化）分別驗證了方法的有效性、效率與設計選擇的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    超越 90B 模型的結果令人印象深刻，但需注意推理任務的選擇——在需要廣泛世界知識而非結構化推理的任務上，模型規模的優勢可能重新顯現。SWIRES 的額外增益幅度未被明確量化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">LLaVA-CoT</span> demonstrates that <span class="hl-thesis">structured multistage reasoning can dramatically improve the reasoning capabilities of vision-language models</span> without increasing model size. By organizing reasoning into <span class="hl-method">summary, caption, reasoning, and conclusion stages</span> and training on <span class="hl-evidence">only 100k carefully curated samples</span>, a relatively small 11B model can rival or exceed much larger systems. The <span class="hl-method">SWIRES inference strategy</span> further leverages this structure for <span class="hl-thesis">efficient inference-time scaling</span>. This work suggests that <span class="hl-thesis">how models think matters as much as how large they are</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LLaVA-CoT 證明了結構化多階段推理能在不增加模型規模的情況下，大幅提升視覺語言模型的推理能力。透過將推理組織為摘要、描述、推理與結論四個階段，並僅以 100k 經精心策劃的樣本訓練，一個相對小型的 11B 模型便能匹敵甚至超越規模大得多的系統。SWIRES 推論策略進一步利用此結構實現高效的推論時期縮放。本研究暗示：模型如何思考，與模型有多大同等重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以精煉的一句話（「如何思考 vs. 多大」）概括核心洞察。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論提煉出超越方法本身的哲學啟示：推理結構的重要性可能不亞於模型規模，這對 VLM 社群的研究方向具有引導意義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「如何思考 vs. 多大」的收尾修辭有力，但可能過度簡化——在足夠複雜的任務上，規模與結構可能是互補而非替代的關係。未來工作需探索兩者的最佳組合。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                VLM 缺乏結構化<br>推理能力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                四階段自主推理<br>+ 階段級搜尋
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                11B 模型超越<br>90B 與閉源模型
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                100k 樣本即足夠<br>結構優於規模
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                如何思考<br>與多大同等重要
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將視覺語言模型的推理組織為摘要、描述、推理與結論四個顯式階段，並以 100k 結構化標註訓練，11B 模型即可在多模態推理基準上超越規模大數倍的模型。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>以少勝多的實證力量：</strong>11B 模型超越 90B 與閉源模型的結果，有力地論證了「結構化推理」的價值超越「單純規模擴展」。消融研究進一步確認了結構化標註相對於非結構化 CoT 的優勢，排除了「更多資料」解釋。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>對教師模型的隱性依賴：</strong>訓練資料的推理軌跡從 GPT-4o 蒸餾而來，意味著 LLaVA-CoT 的推理品質上限受限於教師模型。此外，固定的四階段順序可能不適合所有推理任務類型，在需要反覆驗證或非線性推理的場景中可能力不從心。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

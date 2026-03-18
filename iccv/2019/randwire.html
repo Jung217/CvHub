@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploring Randomly Wired Neural Networks for Image Recognition — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Exploring Randomly Wired Neural Networks for Image Recognition
+                <span class="course-tag">ICCV 2019</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1904.01569" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-graphs">3.3 隨機圖模型</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract -- 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Neural networks for image recognition</span> have evolved through extensive manual design from simple chain-like models to structures with <span class="hl-concept">multiple wiring paths</span>. This paper investigates <span class="hl-thesis">randomly wired neural networks</span> using <span class="hl-method">stochastic network generators based on three classical random graph models</span>: <span class="hl-concept">Erdos-Renyi, Barabasi-Albert, and Watts-Strogatz</span>. Rather than constraining architecture searches through hand-designed network generators, the authors explore broader connectivity patterns. Their key finding: <span class="hl-thesis">"several variants of these random generators yield network instances that have competitive accuracy on the ImageNet benchmark,"</span> suggesting that <span class="hl-thesis">network generator design may be more important than previously recognized</span> in neural architecture search.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                用於影像辨識的神經網路已從簡單的鏈式模型，透過大量人工設計演進至具有多重接線路徑的結構。本文研究隨機接線神經網路，使用基於三種經典隨機圖模型的隨機網路生成器：Erdos-Renyi、Barabasi-Albert 與 Watts-Strogatz。作者不受限於手工設計的網路生成器，而是探索更廣泛的連接模式。其關鍵發現：這些隨機生成器的多個變體所產生的網路實例，在 ImageNet 基準上達到了具競爭力的準確率，暗示網路生成器設計的重要性可能被低估了。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「隨機接線」挑戰「精心設計」的傳統觀念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以反直覺的發現（隨機 = 有競爭力）作為核心賣點，引發讀者好奇心，同時將問題從「搜尋最佳架構」重新框架為「設計更好的生成器」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以三個經典圖論模型的名字增添學術深度感。但「隨機」一詞可能引發誤解——這些圖模型並非完全無結構，而是具有特定統計特性的隨機過程。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction -- 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors frame neural network design as fundamentally about <span class="hl-thesis">"how computational networks are wired."</span> Recent advances moved from sequential architectures to designs like <span class="hl-concept">ResNets and DenseNets</span> with sophisticated connectivity patterns. While <span class="hl-concept">neural architecture search (NAS)</span> methods jointly optimize wiring and operations, their <span class="hl-rebuttal">search spaces remain constrained by hand-designed network generators</span>. The paper poses a critical question: <span class="hl-thesis">"What happens if we loosen this constraint and design novel network generators?"</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者將神經網路設計的根本問題框架為「計算網路如何接線」。近年進展從序列式架構發展到如 ResNet 與 DenseNet 等具有精密連接模式的設計。儘管神經架構搜尋（NAS）方法同時最佳化接線與操作，其搜尋空間仍受限於手工設計的網路生成器。本文提出一個關鍵問題：「如果我們放鬆這個限制，設計全新的網路生成器，會發生什麼？」
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——重新定義 NAS 的核心瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定 NAS 的進展，再指出其「隱藏的限制」（手工設計的搜尋空間），為引入隨機圖作為替代方案鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以問句形式提出研究問題極具修辭效果，激發讀者的探索欲。但將 NAS 的搜尋空間描述為「受限的」可能過於簡化——搜尋空間的約束在很多情況下是有意為之，以降低計算成本。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than manually designing wiring patterns, the authors propose using <span class="hl-method">classical random graph models from graph theory</span> to generate diverse connectivity patterns. Notably, networks generated by the <span class="hl-concept">Watts-Strogatz model</span> achieved approximately <span class="hl-evidence">79% ImageNet accuracy</span>, comparable to or exceeding <span class="hl-evidence">ResNet-50's 77.1% accuracy</span> under similar computational budgets. The authors argue this represents <span class="hl-thesis">a conceptual shift: "from designing an individual network to designing a network generator,"</span> paralleling the transition from hand-engineered features to learned representations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者不再手工設計接線模式，而是提議使用圖論中的經典隨機圖模型來生成多樣的連接模式。值得注意的是，由 Watts-Strogatz 模型生成的網路在 ImageNet 上達到約 79% 的準確率，在相似計算預算下可比擬甚至超越 ResNet-50 的 77.1%。作者認為這代表了一個概念性的轉移：從「設計個別網路」到「設計網路生成器」，類似於從手工特徵工程到學習式表示的轉變。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心成果——以具體數字展現隨機網路的競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將抽象的研究問題錨定到具體的數字上（79% vs 77.1%），為後續章節的技術細節建立信心。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「隨機」到「設計好的」的類比與「手工特徵」到「學習式」的歷史類比並列，暗示這是一場範式轉移。但類比論證的說服力取決於兩者的結構相似性，而這一點尚需更嚴格的論證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work -- 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper traces <span class="hl-concept">randomly wired systems</span> to early AI pioneers: <span class="hl-concept">Turing's "unorganized machines,"</span> <span class="hl-concept">Minsky's randomly wired perceptron hardware</span>, and <span class="hl-concept">Rosenblatt's Mark I Perceptron</span> with randomly connected photocells. The work connects to <span class="hl-concept">neuroscience observations</span> that <span class="hl-evidence">biological neural networks exhibit small-world properties and substantial random connectivity patterns</span>. In the NAS literature, the authors identify that <span class="hl-rebuttal">NAS cells contain exactly 5 nodes with precisely 2 input edges and 1 output edge</span>, highlighting the <span class="hl-rebuttal">"hand-designed prior that fundamentally limits the search space despite being largely overlooked."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文追溯隨機接線系統至早期人工智慧先驅：Turing 的「非組織化機器」、Minsky 的隨機接線感知器硬體，以及 Rosenblatt 具有隨機連接光電池的 Mark I 感知器。此研究亦與神經科學的觀察相連——生物神經網路展現出小世界特性與大量隨機連接模式。在 NAS 文獻中，作者指出 NAS 單元恰好包含 5 個節點、精確的 2 條輸入邊與 1 條輸出邊，凸顯了這一「根本限制搜尋空間卻被大量忽視的手工設計先驗」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    歷史脈絡與文獻批判——將研究置於跨越 AI 歷史的宏大框架中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 Turing 和 Minsky 的先例為「隨機接線」正名，同時以生物學證據強化其合理性。NAS 的具體數字（5 節點、2 輸入邊）則以精確的觀察揭露了搜尋空間的人為限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    引用 AI 之父的名字作為論據極具權威效應。但早期的隨機接線實驗大多以失敗告終，作者有選擇性地引用了歷史先例中的正面案例。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method -- 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors formally define a <span class="hl-concept">network generator</span> as a mapping function from parameter space to neural network architectures. <span class="hl-method">Stochastic network generators</span> accept a random seed s, creating families of networks where <span class="hl-method">multiple calls with fixed parameters but varying s produce a probability distribution over network instances</span>. Edge operations represent <span class="hl-method">data flow (directed tensor transmission)</span>; node operations perform <span class="hl-method">aggregation (weighted sum with learnable positive weights), transformation (ReLU-convolution-batch normalization triplet), and distribution</span>. This design ensures <span class="hl-evidence">"FLOPs and parameter count remain nearly independent of network wiring,"</span> with typical deviations of <span class="hl-evidence">plus or minus 2%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者形式化地定義網路生成器為從參數空間到神經網路架構的映射函數。隨機網路生成器接受隨機種子 s，產生網路家族——固定參數但改變 s 的多次呼叫會產生網路實例上的機率分布。邊操作代表資料流（有向張量傳輸）；節點操作執行聚合（以可學習正權重的加權和）、轉換（ReLU-摺積-批次正規化三元組）與分發。此設計確保「FLOPs 與參數量幾乎獨立於網路接線」，典型偏差僅為正負 2%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法框架——定義隨機網路的形式化語言與基本操作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了公平比較的基礎：FLOPs 獨立於接線意味著不同隨機圖之間的性能差異可以歸因於接線本身，而非計算量差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    控制 FLOPs 變異在正負 2% 以內是嚴謹的實驗設計，使接線效果的隔離成為可能。但節點操作的固定（ReLU-Conv-BN）可能掩蓋了接線與操作之間的交互作用。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-graphs">3.3 Random Graph Models -- 隨機圖模型</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Three classical models are employed. <span class="hl-concept">Erdos-Renyi (ER)</span>: each node pair connects with <span class="hl-method">independent probability P</span>; graphs remain likely connected when P > ln(N)/N. <span class="hl-concept">Barabasi-Albert (BA)</span>: sequential node addition using <span class="hl-method">preferential attachment</span> (nodes connect with probability proportional to existing degree). <span class="hl-concept">Watts-Strogatz (WS)</span>: starts with <span class="hl-method">ring topology where nodes connect to K/2 neighbors, then rewires edges with probability P</span>, producing <span class="hl-evidence">small-world properties with high clustering</span>. Testing shows <span class="hl-evidence">non-random WS variants (P=0) performed worse than randomized counterparts</span>, suggesting <span class="hl-thesis">"randomness benefits generator design."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用三種經典模型。Erdos-Renyi (ER)：每對節點以獨立機率 P 連接；當 P > ln(N)/N 時圖大致保持連通。Barabasi-Albert (BA)：以優先連接方式依序新增節點（連接機率正比於既有度數）。Watts-Strogatz (WS)：從環形拓撲開始，每個節點連接 K/2 個鄰居，再以機率 P 重新接線，產生具有高群聚係數的小世界特性。測試顯示非隨機的 WS 變體（P=0）表現不如隨機化版本，暗示「隨機性有益於生成器設計」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心工具——描述三種隨機圖模型的生成規則。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三種模型各捕捉不同的圖統計特性（均勻隨機、尺度無關、小世界），使實驗能探索接線特性對性能的影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「隨機性有益」的發現是論文最具啟發性的結論之一。但此觀察基於有限的圖模型集合，不排除存在更優的確定性接線模式尚未被測試。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments -- 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In the <span class="hl-evidence">small computation regime (~580M FLOPs)</span>, all generators achieved <span class="hl-evidence">&gt;73% ImageNet accuracy</span> with remarkably low standard deviation (<span class="hl-evidence">0.2-0.4%</span>) across 5 instances. <span class="hl-evidence">WS(4, 0.75) achieved 73.8% mean accuracy</span>. In the <span class="hl-evidence">regular computation regime</span>, RandWire-WS achieved <span class="hl-evidence">79.0% accuracy versus ResNet-50's 77.1%</span> (1.9% improvement) and <span class="hl-evidence">80.1% versus ResNet-101's 78.8%</span>. On <span class="hl-evidence">COCO object detection transfer</span>, the WS variant achieved <span class="hl-evidence">39.9 AP versus ResNet-50's 37.1 AP</span>. <span class="hl-evidence">Node operation variants</span> showed generator accuracy rankings remained stable with <span class="hl-evidence">Pearson correlation of 0.91-0.98</span>, suggesting <span class="hl-thesis">"network wiring plays a role somewhat orthogonal"</span> to operation choice.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在小計算量體制（約 580M FLOPs）下，所有生成器均達到超過 73% 的 ImageNet 準確率，且跨 5 個實例的標準差極低（0.2-0.4%）。WS(4, 0.75) 達到 73.8% 平均準確率。在常規計算量體制下，RandWire-WS 達到 79.0%（對比 ResNet-50 的 77.1%，提升 1.9%）與 80.1%（對比 ResNet-101 的 78.8%）。在 COCO 物件偵測遷移上，WS 變體達到 39.9 AP（對比 ResNet-50 的 37.1 AP）。節點操作變體實驗顯示生成器準確率排名保持穩定，Pearson 相關為 0.91-0.98，暗示「網路接線與操作選擇扮演相當正交的角色」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——跨多個維度驗證隨機接線的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗覆蓋三個層面：(1) 隨機網路的絕對性能；(2) 與手工設計架構的比較；(3) 接線與操作的正交性驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    低標準差（0.2-0.4%）是最令人印象深刻的數字——它表明隨機接線的性能不是運氣，而是統計上穩健的。但與最頂尖的 NAS 方法（如 AmoebaNet 的 82.9%）相比仍有差距。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion -- 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors demonstrated that <span class="hl-thesis">classical random graph models can generate competitive neural network architectures for image recognition</span>. Mean accuracies achieved through randomly wired networks rival both <span class="hl-evidence">hand-designed architectures and NAS-discovered models</span>. These findings highlight that <span class="hl-thesis">"network generator design" deserves greater research attention</span>, as <span class="hl-thesis">"the generator design determines a probabilistic distribution over networks."</span> Rather than focusing solely on search algorithms with fixed generators, the community should <span class="hl-thesis">explore novel generator designs producing new architecture families</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者證明了經典隨機圖模型能夠為影像辨識生成具有競爭力的神經網路架構。隨機接線網路所達到的平均準確率可與手工設計架構及 NAS 發現的模型抗衡。這些發現凸顯了「網路生成器設計」值得更多研究關注，因為「生成器設計決定了網路上的機率分布」。研究社群不應僅聚焦於使用固定生成器的搜尋演算法，而應探索能產生新架構家族的新穎生成器設計。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——將具體發現提升至方法論層面的啟示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將「隨機圖有效」的具體發現昇華為「生成器設計 > 搜尋演算法」的廣泛主張，為 NAS 研究指出新方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以呼籲研究方向轉移的方式結尾極具影響力。但論文未充分討論為何特定隨機圖模型（如 WS）優於其他模型，缺乏對「什麼樣的圖統計特性導致好的網路」的深入分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                NAS 搜尋空間<br>受限於手工生成器
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                經典隨機圖模型<br>可生成競爭力架構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ImageNet 79% / COCO 39.9 AP<br>低變異度
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                接線與操作正交<br>隨機性有益
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                生成器設計<br>比搜尋演算法更重要
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    使用經典隨機圖模型生成的神經網路架構在 ImageNet 上能達到與手工設計及 NAS 搜尋結果相當的準確率，暗示網路生成器設計比搜尋演算法本身更值得研究。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>統計穩健性的展示：</strong>五個隨機種子的標準差僅 0.2-0.4%，遠小於不同架構之間的性能差異，有力地證明了隨機接線的性能不是偶然。接線與操作的正交性分析（Pearson 0.91-0.98）更確立了接線本身作為獨立設計維度的合法性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>缺乏因果解釋：</strong>論文展示了隨機網路「有效」但未充分解釋「為何有效」。Watts-Strogatz 模型的小世界特性與高群聚係數如何轉化為更好的梯度流或特徵提取能力，缺乏理論分析。此外，與最頂尖 NAS 方法的性能差距（約 3-4%）暗示隨機性雖有益，但仍不及精心搜尋。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

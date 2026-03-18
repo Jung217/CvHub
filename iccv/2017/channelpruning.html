@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channel Pruning for Accelerating Very Deep Neural Networks — ICCV 2017 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Channel Pruning for Accelerating Very Deep Neural Networks
+                <span class="course-tag">ICCV 2017</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1707.06168" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-lasso">3.1 LASSO 通道選擇</a>
+        <a href="#sec-multibranch">3.3 多分支剪枝</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, we introduce a new <span class="hl-concept">channel pruning</span> method to accelerate very deep <span class="hl-concept">convolutional neural networks</span>. Given a trained CNN model, we propose an <span class="hl-method">iterative two-step algorithm to effectively prune each layer, by a LASSO regression based channel selection and least square reconstruction</span>. We <span class="hl-thesis">reduce the feature map width — obtaining thinner networks that are both compact and directly deployable</span> on conventional hardware without requiring <span class="hl-rebuttal">sparse matrix libraries or any special implementations</span>. Experiments demonstrate the effectiveness of our approach: we achieve <span class="hl-evidence">5x speedup on VGG-16 with only 0.3% increase in top-5 error</span>, and <span class="hl-evidence">2x speedup on ResNet-56 with 1.0% accuracy loss</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種新的通道剪枝方法以加速非常深的摺積神經網路。給定一個已訓練的 CNN 模型，我們提出一個迭代式兩步驟演算法來有效剪枝每一層，透過基於 LASSO 迴歸的通道選擇與最小平方重建。我們縮減特徵圖的寬度——取得更精簡的網路，既緊湊又可直接部署於傳統硬體上，無需稀疏矩陣函式庫或任何特殊實作。實驗驗證了我們方法的有效性：在 VGG-16 上達到 5 倍加速且 top-5 錯誤率僅增加 0.3%，在 ResNet-56 上達到 2 倍加速且精度損失 1.0%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義通道剪枝方法並以量化數據預告成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要強調兩大賣點：(1) 方法的簡潔性（兩步驟迭代）；(2) 實用性（無需特殊硬體或函式庫）。VGG-16 的 5 倍加速僅損失 0.3% 作為強力引子。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需特殊實作」的強調直接針對稀疏剪枝方法的部署困難。但 5 倍加速的數據需注意是否包含微調時間，以及是在 CPU 還是 GPU 上量測。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                CNN acceleration approaches can be categorized into three types: <span class="hl-concept">optimized implementation</span> (e.g., FFT-based convolution), <span class="hl-concept">quantization</span> (e.g., BinaryNet), and <span class="hl-concept">structured simplification</span>. Channel pruning belongs to the third category and offers distinct advantages: unlike <span class="hl-concept">tensor factorization</span> methods that decompose filters, channel pruning <span class="hl-thesis">"directly reduces feature map width, which shrinks a network into thinner one"</span>. Unlike <span class="hl-rebuttal">sparse connection methods that produce irregular layers requiring specialized libraries</span>, channel pruning yields <span class="hl-thesis">regular, dense convolutions that work efficiently on both CPU and GPU with standard libraries</span>. Our key insight is to <span class="hl-thesis">minimize reconstruction error on output feature maps rather than analyzing filter weights directly</span>, which better preserves the network's functional behavior.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                CNN 加速方法可分為三類：最佳化實作（如基於 FFT 的摺積）、量化（如 BinaryNet）與結構化簡化。通道剪枝屬於第三類且具有明顯優勢：不同於分解濾波器的張量分解方法，通道剪枝直接縮減特徵圖寬度，將網路壓縮為更精簡的版本。不同於產生不規則層且需要專用函式庫的稀疏連接方法，通道剪枝產生規則的密集摺積，能以標準函式庫在 CPU 與 GPU 上高效運行。我們的關鍵洞見是最小化輸出特徵圖上的重建誤差，而非直接分析濾波器權重，這能更好地保留網路的功能行為。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    分類定位——在三類加速方法中為通道剪枝找到精確位置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過與張量分解與稀疏方法的對比，建立通道剪枝的獨特優勢：結構化、規則性、部署友好。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三分類框架使讀者快速理解研究定位。「最小化重建誤差」的洞見是方法論的核心——直接對應功能保留的目標。但此方法假設特徵圖的重建近似等同於最終精度的保持，這在深層網路中可能因誤差累積而不完全成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Weight pruning</span> methods (Han et al.) achieve high compression ratios but produce <span class="hl-rebuttal">sparse, irregular networks that require dedicated hardware or software for efficient execution</span>. <span class="hl-concept">Filter-level pruning</span> methods (Li et al.) remove entire filters based on magnitude but <span class="hl-rebuttal">use simple heuristics (e.g., L1-norm of weights) that may not optimally preserve network accuracy</span>. <span class="hl-concept">Tensor factorization</span> approaches decompose weight tensors but <span class="hl-rebuttal">encounter "performance decadence" on GPU when applied to 1x1 convolutions common in modern architectures</span>. Our method differs in that it <span class="hl-thesis">"fully exploits redundancy inter feature maps"</span> by directly optimizing the reconstruction of output feature maps rather than analyzing individual filter properties.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                權重剪枝方法（Han 等人）達到高壓縮率，但產生稀疏、不規則的網路，需要專用硬體或軟體才能高效執行。濾波器級剪枝方法（Li 等人）基於幅度移除整個濾波器，但使用簡單的啟發式方法（如權重的 L1 範數），可能無法最優地保留網路精度。張量分解方法分解權重張量，但在應用於現代架構中常見的 1x1 摺積時，會在 GPU 上遭遇「效能衰退」。我們的方法不同之處在於，它透過直接最佳化輸出特徵圖的重建來「充分利用特徵圖間的冗餘性」，而非分析個別濾波器的屬性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻批判——系統性指出三類方法的各自缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    每類方法恰好對應一個缺陷：稀疏性（部署困難）、啟發式（次優選擇）、效能衰退（GPU 不友好）。本方法被定位為同時避免這三個問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「效能衰退」一詞直接打擊張量分解在現代架構上的實用性。但不同的 GPU 架構與優化水準可能改變此結論——此批判的時效性有限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Approach — 方法</h2>
+    <h3 class="subsection-heading" id="sec-lasso">3.1 LASSO-based Channel Selection and Reconstruction — 基於 LASSO 的通道選擇與重建</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given a trained CNN, we formulate channel pruning as <span class="hl-method">minimizing the reconstruction error on output feature maps</span>. For each layer, we solve: <span class="hl-method">minimize ||Y - sum(beta_i * X_i * W_i^T)||_F^2 subject to ||beta||_0 &lt;= c'</span>, where beta is the channel selection vector, X_i are input channels, W_i are filter weights, and c' is the target number of channels. Since <span class="hl-rebuttal">L0 minimization is NP-hard</span>, we relax it to <span class="hl-method">L1 regularization (LASSO)</span>. The algorithm alternates between two steps: <span class="hl-method">Step (i) — Channel Selection via LASSO</span>: solve for beta using LASSO regression, identifying which channels contribute most information (setting redundant channels' beta to zero). <span class="hl-method">Step (ii) — Feature Map Reconstruction</span>: with selected channels fixed, solve for optimal filter weights W via least squares, minimizing ||Y - X'(W')^T||_F^2. The penalty coefficient lambda is gradually increased until the desired sparsity is achieved.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                給定已訓練的 CNN，我們將通道剪枝公式化為最小化輸出特徵圖的重建誤差。對每一層求解：最小化 ||Y - sum(beta_i * X_i * W_i^T)||_F^2，約束 ||beta||_0 &lt;= c'，其中 beta 為通道選擇向量，X_i 為輸入通道，W_i 為濾波器權重，c' 為目標通道數。由於 L0 最小化為 NP 困難問題，我們將其鬆弛為 L1 正則化（LASSO）。演算法在兩步驟間交替：步驟 (i)——透過 LASSO 進行通道選擇：使用 LASSO 迴歸求解 beta，辨識貢獻最多資訊的通道（將冗餘通道的 beta 設為零）。步驟 (ii)——特徵圖重建：固定選定的通道後，透過最小平方法求解最優濾波器權重 W，最小化 ||Y - X'(W')^T||_F^2。懲罰係數 lambda 逐步增大，直至達到期望的稀疏度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心演算法——定義兩步驟迭代的通道剪枝流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術核心。L0 到 L1 的鬆弛是標準的最佳化技巧，但應用於通道選擇的脈絡中是新穎的。兩步驟的交替優化確保選擇與重建相互配合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題公式化為 LASSO 迴歸使得演算法有堅實的統計理論基礎。但逐層獨立剪枝可能忽略跨層的資訊依賴——前一層的剪枝決策可能影響後一層的最優選擇。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-multibranch">3.3 Pruning Multi-Branch Networks — 多分支網路剪枝</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">residual networks</span>, two key modifications are needed. For the <span class="hl-method">last layer of the residual branch</span>: rather than approximating only the residual output Y_2, we <span class="hl-method">"approximate Y_1 + Y_2" (shortcut + residual combined)</span> to compensate for the parameter-free shortcut connection. For the <span class="hl-method">first layer of the residual branch</span>: since input channels cannot be pruned (shared with shortcut), we perform <span class="hl-method">"feature map sampling before the first convolution to save computation"</span>, selecting representative input channels without altering the regular convolutional structure. This <span class="hl-evidence">multi-branch enhancement provides 4.0% improvement</span> in error reduction compared to naive application of the single-branch algorithm.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於殘差網路，需要兩項關鍵修改。對於殘差分支的最後一層：不僅近似殘差輸出 Y_2，而是「近似 Y_1 + Y_2」（捷徑 + 殘差的組合），以補償無參數的捷徑連接。對於殘差分支的第一層：由於輸入通道不能被剪枝（與捷徑共享），我們在第一層摺積前執行「特徵圖取樣以節省計算」，選擇具代表性的輸入通道而不改變規則的摺積結構。此多分支增強相比單分支演算法的簡單套用，提供了 4.0% 的錯誤率改善。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構擴展——將通道剪枝方法適配至殘差網路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    殘差連接的特殊處理展現了方法的工程深度。4.0% 的改善量化了此適配的價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對殘差結構的兩項修改均有清晰的技術動機。但「特徵圖取樣」的策略可能在更複雜的殘差變體（如 DenseNet）中不適用，方法的可擴展性有待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>VGG-16 Results:</strong> At <span class="hl-evidence">2x speedup, the method achieves 0% accuracy loss after fine-tuning</span>. At <span class="hl-evidence">4x speedup, top-5 error increases by only 1.0%</span>. Combined with tensor factorization, <span class="hl-evidence">5x speedup with only 0.3% error increase</span> is achieved, <span class="hl-evidence">outperforming all previous state-of-the-art methods</span>. GPU benchmarks show <span class="hl-evidence">2.5x actual GPU speedup</span>, substantially better than tensor factorization approaches which encountered "performance decadence." Comparison with training from scratch shows that <span class="hl-thesis">"the same model is difficult to be obtained from scratch"</span> — fine-tuned pruned models outperform networks trained from scratch at equivalent computational budgets.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>VGG-16 結果：</strong>在 2 倍加速下，微調後精度損失為 0%。在 4 倍加速下，top-5 錯誤率僅增加 1.0%。結合張量分解，達到 5 倍加速且錯誤率僅增加 0.3%，超越所有先前最先進的方法。GPU 基準測試顯示 2.5 倍的實際 GPU 加速，大幅優於遭遇「效能衰退」的張量分解方法。與從頭訓練的比較顯示「相同模型難以從頭獲得」——微調後的剪枝模型在相同計算預算下優於從頭訓練的網路。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    VGG-16 實驗結果——以多種加速比展示方法在過度參數化網路上的效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    VGG-16 作為高度冗餘的網路，是展示剪枝方法的理想標的。5 倍加速 / 0.3% 損失的結果極具說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「從頭訓練難以獲得相同模型」的發現暗示剪枝保留了某種有價值的「知識結構」。但 VGG-16 在 2017 年已非主流架構，在更現代的高效網路（如 MobileNet）上的效果可能不如預期。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>ResNet and Xception Results:</strong> On <span class="hl-evidence">ResNet-50 at 2x speedup, the method achieves 1.4% top-5 error increase after fine-tuning</span> (from 8.0% without enhancement and 4.0% with multi-branch enhancement). On <span class="hl-evidence">Xception at 2x speedup, only 1.0% error increase</span> is observed. The authors note that modern networks <span class="hl-rebuttal">"tend to have less redundancy by design"</span>, explaining the smaller gains compared to VGG-16. For <span class="hl-evidence">object detection transfer (Faster R-CNN on PASCAL VOC), 4x speedup results in only 1.8% mAP loss</span> (actual runtime: 94ms vs. 220ms baseline), demonstrating the <span class="hl-thesis">transferability of pruned features to downstream tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <strong>ResNet 與 Xception 結果：</strong>在 ResNet-50 的 2 倍加速下，微調後 top-5 錯誤率增加 1.4%（未增強為 8.0%，多分支增強為 4.0%）。在 Xception 的 2 倍加速下，錯誤率僅增加 1.0%。作者指出現代網路「在設計上傾向有較少冗餘」，解釋了相比 VGG-16 較小的收益。在物件偵測轉移（PASCAL VOC 上的 Faster R-CNN）中，4 倍加速僅導致 1.8% 的 mAP 損失（實際運行時間：94ms 對 220ms 基線），展示了剪枝特徵對下游任務的可轉移性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    現代架構與遷移實驗——驗證方法在更高效網路與下游任務上的效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從冗餘的 VGG-16 擴展至精簡的 ResNet/Xception，展現方法的通用性。物件偵測的遷移實驗進一步證明剪枝不損害特徵的語意品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦承現代網路「冗餘較少」是誠實的分析。但這也暗示隨著網路設計的進步，通道剪枝的效益可能逐漸降低——這是所有剪枝方法面臨的長期挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We demonstrated that very deep CNNs possess <span class="hl-thesis">substantial channel-level redundancy exploitable through structured pruning</span>. Our combination of <span class="hl-method">LASSO-based channel selection and least-squares reconstruction</span> achieves competitive speedups while maintaining accuracy, and <span class="hl-thesis">"only requires off-the-shelf libraries"</span> for implementation. The method successfully accelerates <span class="hl-evidence">modern architectures like ResNet and Xception</span> where tensor factorization struggles with 1x1 convolutions. Channel pruning offers a practical path to <span class="hl-thesis">deploying deep networks in resource-constrained environments</span> without specialized hardware support.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們展示了非常深的 CNN 具有可透過結構化剪枝利用的大量通道級冗餘。我們的 LASSO 通道選擇與最小平方重建的組合在維持精度的同時達到具競爭力的加速，且實作僅需現成的函式庫。該方法成功加速了 ResNet 與 Xception 等現代架構——張量分解在這些架構的 1x1 摺積上表現不佳。通道剪枝為在資源受限環境中部署深度網路提供了實用的途徑，無需專用硬體支援。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻與實用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論圍繞「實用性」收束：現成函式庫、傳統硬體、資源受限環境。這與學術界的加速研究常被批評為「僅理論加速」形成對比。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「實際部署」作為核心價值主張是強有力的差異化策略。但論文未討論剪枝後的模型是否適合進一步量化或蒸餾等組合加速策略，以及方法在更複雜的任務（如分割、生成）中的效果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                深度 CNN 計算量大<br>部署困難
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                LASSO 通道選擇 +<br>特徵圖重建
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                VGG-16 5x 加速<br>僅 0.3% 損失
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                無需特殊函式庫<br>GPU 實際加速顯著
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                資源受限環境的<br>實用部署方案
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過基於 LASSO 迴歸的通道選擇與最小平方特徵圖重建的迭代演算法，可以在幾乎不損失精度的情況下大幅縮減 CNN 的通道寬度，產生可直接部署於傳統硬體的精簡模型。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>實際部署的可行性：</strong>不同於許多加速方法僅報告理論 FLOPs 降低，本文展示了 GPU 上的實際加速（2.5 倍），並直接與張量分解的「效能衰退」形成對比。LASSO 的統計理論基礎賦予通道選擇嚴謹的最佳化架構，而非依賴啟發式的 L1 範數排序。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>逐層獨立剪枝的全域性缺失：</strong>演算法逐層進行通道選擇與重建，未考慮跨層的全域最佳化。在深度網路中，某些通道雖在當前層看似冗餘，但可能對深層的特徵組合至關重要。此外，VGG-16 的出色結果部分歸因於其已知的高度冗餘，在更高效的架構上效益縮減（作者也坦承此點）。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

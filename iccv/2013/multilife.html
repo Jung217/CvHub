@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robust Object Tracking with Online Multi-lifespan Dictionary Learning — 雙欄批注</title>
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        /* ===== 章節導航條 ===== */
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        /* ===== 主體容器 ===== */
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        /* 批注卡片 */
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Robust Object Tracking with Online Multi-lifespan Dictionary Learning
+                <span class="course-tag">ICCV 2013</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_iccv_2013/html/Xing_Robust_Object_Tracking_2013_ICCV_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-dictlearn">3.1 字典學習</a>
+        <a href="#sec-multilife">3.2 多壽命策略</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Sparse representation-based tracking methods</span> have shown promising results, but <span class="hl-rebuttal">a critical challenge remains in how to effectively manage and update the template dictionary</span> during tracking. In this paper, we treat <span class="hl-thesis">template updating as an online incremental dictionary learning problem</span> and propose a <span class="hl-concept">multi-lifespan dictionary learning</span> framework. The key idea is to maintain <span class="hl-method">dictionary atoms with different lifespans — short-lived atoms that capture recent appearance changes, and long-lived atoms that preserve stable features</span>. This strategy <span class="hl-thesis">balances adaptability to appearance variations with robustness against drift</span>. We develop both <span class="hl-method">generative and discriminative observation models</span> within a <span class="hl-method">Bayesian particle filter framework</span>. Experiments on <span class="hl-evidence">ten challenging sequences</span> demonstrate that our approach achieves <span class="hl-evidence">state-of-the-art tracking performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於稀疏表示的追蹤方法已展現出前景性的結果，但在追蹤過程中如何有效管理與更新範本字典仍是一個關鍵挑戰。本文將範本更新視為一個線上增量字典學習問題，並提出多壽命字典學習框架。核心概念在於維護具有不同壽命的字典原子——短壽命原子捕捉近期的外觀變化，長壽命原子保留穩定的特徵。此策略在適應外觀變異的靈活性與抵抗漂移的穩健性之間取得平衡。我們在貝氏粒子濾波器框架中發展生成式與辨別式兩種觀測模型。在十個具挑戰性的序列上的實驗證明，我們的方法達到了最先進的追蹤效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從「範本管理挑戰」到「多壽命字典學習」，預告在粒子濾波框架中的雙模型設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要精確定義了問題（範本更新）與解答（多壽命策略），以「適應性 vs. 穩健性」的對立統一作為核心論證框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「短壽命 vs. 長壽命」的隱喻直覺上極具吸引力，易於理解。但壽命長短的具體設定（幾幀？如何衰退？）需在方法章節中嚴格定義。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Visual object tracking</span> is a fundamental problem with broad applications in <span class="hl-evidence">surveillance, autonomous driving, human-computer interaction, and activity recognition</span>. A tracker must handle <span class="hl-rebuttal">appearance changes due to illumination variation, pose change, partial occlusion, and background clutter</span>. <span class="hl-concept">Sparse representation-based methods</span> have gained popularity by representing the target as a <span class="hl-method">sparse linear combination of dictionary templates</span>. However, the effectiveness of these methods hinges on the <span class="hl-thesis">quality of the template dictionary</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺物件追蹤是一個具有廣泛應用的基礎問題，涵蓋監控、自駕車、人機互動與活動辨識。追蹤器必須處理因光照變化、姿態改變、部分遮擋與背景雜亂所造成的外觀變化。基於稀疏表示的方法透過將目標表示為字典範本的稀疏線性組合而獲得普及。然而，這些方法的有效性取決於範本字典的品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義視覺追蹤的重要性並指出稀疏表示方法的核心依賴。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以四類挑戰建立問題的困難度，再將焦點收窄至稀疏方法的特定瓶頸——字典品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將所有追蹤挑戰歸因為「外觀變化」是合理的統一視角。但稀疏表示本身可能不是最優的表示——例如，全域範本（PCA 子空間）在某些場景中可能更穩健。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing template update strategies fall into two extremes: <span class="hl-rebuttal">static dictionaries that never update</span> and <span class="hl-rebuttal">fully adaptive dictionaries that update every frame</span>. Static dictionaries <span class="hl-rebuttal">fail to capture appearance variations</span> over time, while fully adaptive ones are <span class="hl-rebuttal">prone to drift</span> — gradually incorporating tracking errors into the template set. We propose a <span class="hl-thesis">principled middle ground through multi-lifespan dictionary learning</span>, where dictionary atoms are assigned different lifespans reflecting their <span class="hl-method">temporal relevance and reliability</span>. This enables the tracker to <span class="hl-thesis">adapt to genuine appearance changes while maintaining a stable reference from the initial frames</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有的範本更新策略落入兩個極端：從不更新的靜態字典與每幀都更新的完全自適應字典。靜態字典無法捕捉隨時間的外觀變異，而完全自適應字典則容易漂移——逐漸將追蹤錯誤納入範本集。我們提出透過多壽命字典學習的原則性中間方案，其中字典原子被賦予反映其時間相關性與可靠性的不同壽命。這使得追蹤器能夠適應真正的外觀變化，同時維持來自初始幀的穩定參考。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    指出現有策略的兩難困境——為多壽命方案建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「兩極之間的中間方案」定位方法，是經典的「辯證法」論證結構：正題（靜態）-> 反題（全適應）-> 合題（多壽命）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    二分法的呈現清晰有力。但「中間方案」的說法可能過於簡化——壽命設計的具體機制遠比「折衷」複雜，需要精確的數學建模。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Sparse representation</span> was first applied to tracking by <span class="hl-concept">Mei and Ling</span>, who formulated target appearance as a <span class="hl-method">sparse linear combination of template patches with trivial templates for occlusion handling</span>. <span class="hl-concept">Incremental visual tracking (IVT)</span> by <span class="hl-concept">Ross et al.</span> maintains a <span class="hl-method">PCA subspace representation</span> that is incrementally updated. <span class="hl-concept">Online dictionary learning</span> has been explored by <span class="hl-concept">Mairal et al.</span> for general tasks but not specifically adapted for tracking with <span class="hl-rebuttal">temporal coherence and drift prevention</span>. Our approach combines the <span class="hl-thesis">representational flexibility of sparse coding with a principled temporal management strategy</span> that has no direct precedent in the tracking literature.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                稀疏表示首先由 Mei 與 Ling 應用於追蹤，將目標外觀公式化為範本區塊的稀疏線性組合，搭配瑣碎範本處理遮擋。Ross 等人的增量視覺追蹤（IVT）維護一個增量更新的 PCA 子空間表示。Mairal 等人探索了線上字典學習用於一般任務，但未針對具有時間連貫性與漂移預防的追蹤做出調適。我們的方法結合了稀疏編碼的表示靈活性與一種有原則的時間管理策略，在追蹤文獻中尚無直接先例。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——定位方法在稀疏追蹤與字典學習的交匯處。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立三條平行路線（稀疏追蹤、增量子空間、線上字典學習），並指出三者尚未在「時間管理」維度上整合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「尚無直接先例」的主張建立了方法的原創性。但 IVT 的增量 PCA 更新本質上也是一種時間管理策略——以遺忘因子控制舊資訊的衰退。此處的差異化可能需要更精確的表述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-dictlearn">3.1 Online Dictionary Learning — 線上字典學習</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We formulate the template management problem as <span class="hl-method">online dictionary learning</span>. Given a sequence of observed target patches <span class="hl-method">{y_1, y_2, ..., y_t}</span>, we seek a dictionary <span class="hl-method">D = [d_1, ..., d_K]</span> such that each observation can be well approximated by a <span class="hl-method">sparse combination: y_t ≈ D * alpha_t with ||alpha_t||_0 small</span>. The dictionary is updated incrementally using <span class="hl-method">block coordinate descent</span>: at each frame, we fix the dictionary and solve for sparse codes, then update the dictionary atoms to minimize reconstruction error. This avoids <span class="hl-rebuttal">the computational cost of retraining from scratch at each frame</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將範本管理問題公式化為線上字典學習。給定一系列觀測到的目標區塊 {y_1, y_2, ..., y_t}，我們尋求一個字典 D = [d_1, ..., d_K]，使每個觀測可被良好地近似為稀疏組合：y_t ≈ D * alpha_t 且 ||alpha_t||_0 較小。字典使用區塊座標下降法進行增量更新：在每一幀，我們固定字典並求解稀疏編碼，然後更新字典原子以最小化重建誤差。這避免了在每一幀從頭重新訓練的計算成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義線上字典學習的最佳化框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此為方法的數學基礎。L0 稀疏性約束確保了表示的簡潔性，區塊座標下降法則確保了計算的即時性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數學公式化清晰標準。但 L0 約束在實務中通常以 L1 鬆弛取代，稀疏度的選擇（多少個非零係數？）對追蹤品質的影響需要討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-multilife">3.2 Multi-lifespan Strategy — 多壽命策略</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core innovation is the <span class="hl-concept">multi-lifespan management</span> of dictionary atoms. We partition the dictionary into three groups: (1) <span class="hl-method">permanent atoms</span> initialized from the first frame that are <span class="hl-method">never replaced</span>, preserving the original target appearance; (2) <span class="hl-method">long-lifespan atoms</span> that are <span class="hl-method">updated slowly with a large decay factor</span>, capturing gradual appearance changes such as illumination drift; and (3) <span class="hl-method">short-lifespan atoms</span> that are <span class="hl-method">frequently replaced with recent observations</span>, handling rapid appearance changes such as pose variation. The <span class="hl-thesis">combination of these three temporal scales ensures that the dictionary retains memory of the original target while remaining adaptive to both slow and fast appearance changes</span>. The replacement strategy for short-lived atoms prioritizes <span class="hl-method">atoms with the lowest activation frequency</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                核心創新在於字典原子的多壽命管理。我們將字典劃分為三組：(1) 永久原子——從第一幀初始化且永不替換，保留原始目標外觀；(2) 長壽命原子——以大衰退因子緩慢更新，捕捉如光照漂移等漸進的外觀變化；(3) 短壽命原子——頻繁以近期觀測替換，處理如姿態變化等快速的外觀變化。這三種時間尺度的結合確保字典保留對原始目標的記憶，同時對緩慢與快速的外觀變化均保持自適應性。短壽命原子的替換策略優先替換啟動頻率最低的原子。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——描述三級壽命的字典管理機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的支柱：三級壽命（永久/長期/短期）精確對應了三種外觀變化類型（無變化/漸變/劇變）。這種設計將直覺性的「穩定 vs. 靈活」對立，轉化為可操作的技術方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三級分區設計的邏輯清晰且有直覺合理性。但三組之間的大小比例如何設定（各幾個原子？）、衰退因子的具體數值如何選擇——這些超參數可能需要針對不同場景進行調整。啟動頻率作為替換標準假設低頻原子不重要，但在遮擋恢復時，低頻但有價值的原子可能被錯誤替換。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on <span class="hl-evidence">ten challenging video sequences</span> widely used in the tracking community, covering scenarios with <span class="hl-evidence">heavy occlusion (FaceOcc, Girl), illumination change (Car4, David), fast motion (Deer, Jumping), and background clutter (Singer, Football)</span>. We compare against <span class="hl-evidence">eight state-of-the-art trackers</span> including <span class="hl-concept">IVT, L1-tracker, MIL, OAB, SemiBoost, FragTrack, TLD, and VTD</span>. Using both <span class="hl-evidence">center location error (CLE) and overlap rate</span> as metrics, our method achieves the <span class="hl-evidence">best average performance</span> across all sequences. On the occlusion-heavy sequences, our method shows <span class="hl-evidence">particularly strong robustness</span> — the permanent atoms prevent catastrophic drift after occlusion recovery. <span class="hl-rebuttal">Ablation studies</span> confirm that removing any lifespan group (permanent, long, or short) degrades performance, validating the necessity of the <span class="hl-evidence">three-level temporal hierarchy</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在追蹤社群中廣泛使用的十個具挑戰性影片序列上進行評估，涵蓋嚴重遮擋（FaceOcc、Girl）、光照變化（Car4、David）、快速運動（Deer、Jumping）與背景雜亂（Singer、Football）等場景。我們與八個最先進的追蹤器比較，包括 IVT、L1-tracker、MIL、OAB、SemiBoost、FragTrack、TLD 與 VTD。使用中心位置誤差（CLE）與重疊率作為指標，我們的方法在所有序列上達到最佳平均效能。在遮擋嚴重的序列上，我們的方法展現出尤為強勁的穩健性——永久原子防止了遮擋恢復後的災難性漂移。消融研究確認移除任一壽命組（永久、長期或短期）均會降低效能，驗證了三級時間層次結構的必要性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在多種挑戰場景中驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱：(1) 整體排名第一；(2) 遮擋場景的特殊優勢（呼應永久原子的設計動機）；(3) 消融研究的三重確認。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    遮擋場景的特殊優勢是強有力的佐證——它直接驗證了「永久原子防漂移」的設計意圖。但十個序列的評估規模在當時雖屬標準，但統計穩健性有限。此外，某些序列上的領先幅度值得關注——若僅在部分序列上顯著領先而在其他序列上持平，整體優勢的普遍性需要商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-thesis">multi-lifespan dictionary learning framework for robust visual object tracking</span>. By partitioning the dictionary into <span class="hl-method">permanent, long-lifespan, and short-lifespan atoms</span>, our method effectively <span class="hl-thesis">balances the stability-adaptability trade-off</span> that plagues sparse representation-based trackers. The <span class="hl-method">online incremental learning procedure</span> ensures real-time feasibility, and the <span class="hl-method">multi-lifespan strategy</span> provides principled protection against <span class="hl-rebuttal">model drift</span>. Experimental results on challenging sequences validate the approach. Future directions include <span class="hl-rebuttal">extending the framework to deep feature representations</span> and <span class="hl-rebuttal">developing adaptive lifespan allocation</span> that automatically determines the optimal temporal scale for each atom.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一個用於穩健視覺物件追蹤的多壽命字典學習框架。透過將字典劃分為永久、長壽命與短壽命原子，我們的方法有效地平衡了困擾基於稀疏表示之追蹤器的穩定性-適應性取捨。線上增量學習程序確保了即時可行性，多壽命策略提供了對模型漂移的有原則保護。在具挑戰性序列上的實驗結果驗證了此方法。未來方向包括將框架擴展至深度特徵表示，以及開發自動決定每個原子最佳時間尺度的自適應壽命分配機制。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以「穩定-適應平衡」為主軸重申貢獻，並展望兩個具體的未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的「平衡」主題。「自適應壽命分配」的展望承認了手動設定壽命的侷限，是對方法弱點的建設性回應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論簡潔有力。但未討論方法在深度學習追蹤器（如 2014 年後的 CNN 追蹤器）面前的長期競爭力。「自適應壽命分配」的展望本身暗示了固定壽命設定的侷限——不同序列可能需要完全不同的壽命配置。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                靜態字典不適應<br>全適應字典易漂移
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                三級壽命字典<br>平衡穩定與適應
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                十個序列上<br>最佳平均效能
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                消融確認三級<br>均不可或缺
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                多壽命策略有效<br>抵禦模型漂移
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過將字典原子劃分為永久、長壽命與短壽命三組並分別管理，能在線上追蹤中同時維持對原始目標的穩定記憶與對外觀變化的靈活適應。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>遮擋恢復的穩健性：</strong>永久原子的設計在遮擋恢復場景中展現出明顯優勢——當短壽命原子在遮擋期間被汙染時，永久原子仍保留原始目標外觀，有效防止災難性漂移。消融實驗對三級結構的必要性提供了嚴格驗證。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>超參數敏感性與評估規模：</strong>三級壽命的大小比例、衰退因子與替換頻率均為手動設定，跨場景的泛化性未被充分驗證。十個測試序列的評估規模在統計上較薄弱，且與同期更大規模的 OTB 基準的比較缺失。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

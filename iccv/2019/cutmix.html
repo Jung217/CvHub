@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CutMix: Regularization Strategy to Train Strong Classifiers — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                CutMix: Regularization Strategy to Train Strong Classifiers with Localizable Features
+                <span class="course-tag">ICCV 2019</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1905.04899" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Regional dropout strategies</span> have been proposed to enhance the performance of convolutional neural network classifiers. They have proved to be effective for <span class="hl-thesis">guiding the model to attend on less discriminative parts of objects</span>, thereby letting the network generalize better and have better object localization capabilities. However, the <span class="hl-rebuttal">deleted regions are usually zeroed-out or filled with random noise, greatly reducing the proportion of informative pixels</span> on training images. We propose <span class="hl-concept">CutMix</span>, where <span class="hl-method">patches are cut and pasted among training images where the ground truth labels are also mixed proportionally to the area of the patches</span>. CutMix <span class="hl-thesis">makes efficient use of training pixels and retains the regularization effect of regional dropout</span>, achieving state-of-the-art results on <span class="hl-evidence">CIFAR and ImageNet classification, weakly-supervised localization, and transfer learning</span> tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                區域丟棄策略已被提出用於增強摺積神經網路分類器的效能。它們已被證明能有效引導模型關注物件中較不具鑑別力的部分，使網路具有更好的泛化能力與物件定位能力。然而，被刪除的區域通常以零值填充或隨機雜訊填充，大幅降低了訓練影像中有效像素的比例。我們提出 CutMix，其中區塊在訓練影像之間被剪切與貼上，同時真實標籤也按照區塊面積比例進行混合。CutMix 有效利用了訓練像素並保留了區域丟棄的正則化效果，在 CIFAR 與 ImageNet 分類、弱監督定位及遷移學習等任務上達到最先進成果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從區域丟棄的既有效果出發，指出其資訊浪費問題，再引出 CutMix 的解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「肯定-批判-提出」的三段式結構清晰地定位 CutMix：它不是全新的範式，而是對既有正則化策略的精煉改良。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「大幅降低有效像素比例」的批評切中 Cutout 的核心弱點。但 CutMix 混合標籤的做法與 Mixup 相似，需在方法章節清楚區分兩者的本質差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Deep convolutional neural networks (CNNs)</span> have shown promising performances on various computer vision problems such as <span class="hl-evidence">image classification, object detection, semantic segmentation, and video analysis</span>. To prevent overfitting, <span class="hl-concept">"random feature removal regularizations"</span> have been proposed, including <span class="hl-concept">dropout</span> and <span class="hl-concept">regional dropout</span> methods like <span class="hl-concept">Cutout</span>. While effective for regularization, <span class="hl-rebuttal">deleted regions are usually zeroed-out or filled with random noise, greatly reducing the proportion of informative pixels on training images</span>. This means the model is trained with <span class="hl-rebuttal">"no uninformative pixel" being addressed</span> — wasting valuable training signal.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度摺積神經網路在影像分類、物件偵測、語意分割與影片分析等多種電腦視覺問題上展現了優異的效能。為防止過擬合，隨機特徵移除正則化方法被提出，包括 Dropout 與 Cutout 等區域丟棄方法。雖然在正則化上有效，但被刪除的區域通常以零值或隨機雜訊填充，大幅降低了訓練影像中有效像素的比例。這意味著模型在訓練時浪費了寶貴的訓練訊號。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題——從 CNN 的過擬合問題出發，指出既有正則化的效率問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：先肯定正則化的必要性，再精準指出「像素浪費」這一被忽略的效率問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題聚焦在「像素使用效率」上是巧妙的切入角度，使得解決方案（用有意義的區塊替代零值）顯得自然而然。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">CutMix</span> addresses this limitation by <span class="hl-thesis">replacing removed regions with patches from other training images</span>, ensuring <span class="hl-thesis">"no uninformative pixel during training"</span> while maintaining the regularization benefits of regional dropout. The ground truth labels are <span class="hl-method">mixed proportionally to the area of the combined patches</span>. This simple yet effective strategy <span class="hl-thesis">simultaneously improves classification accuracy, localization ability, model robustness, and uncertainty estimation</span>, demonstrating that <span class="hl-thesis">efficient use of every training pixel matters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                CutMix 透過將移除的區域替換為其他訓練影像的區塊來解決此限制，確保訓練過程中「沒有無效像素」，同時維持區域丟棄的正則化效益。真實標籤按照合併區塊的面積比例進行混合。這個簡單卻有效的策略同時提升了分類準確度、定位能力、模型穩健性與不確定性估計，證明了有效利用每個訓練像素的重要性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出方案——概述 CutMix 的核心操作與多面向效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應上段的問題：以「替代」取代「刪除」，實現正則化與資訊保留的雙贏。四項效益的列舉預告了實驗章節的驗證維度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「同時提升四項指標」的主張極具吸引力，但需警惕是否在所有設定下均成立。若 CutMix 在某些任務上的提升不顯著，全面性的宣稱可能被質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Regional Dropout:</span> Methods removing random regions in images have been proposed to enhance generalization. <span class="hl-concept">Cutout</span> randomly masks out square regions, while <span class="hl-concept">Random Erasing</span> fills them with random values. CutMix differs fundamentally by <span class="hl-thesis">"filling with patches from another training image"</span> rather than zeroing or noise-filling. <span class="hl-concept">Mixup:</span> CutMix shares similarity with Mixup in that <span class="hl-method">both combine two samples with linearly interpolated labels</span>. However, <span class="hl-rebuttal">Mixup blends entire images, producing locally ambiguous and unnatural samples</span>. <span class="hl-thesis">"CutMix overcomes the problem by replacing the image region with a patch from another training image,"</span> producing more <span class="hl-thesis">locally natural results</span>. CutMix is also <span class="hl-rebuttal">"complementary to the above methods because it operates on the data level, without changing internal representations or architecture."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                區域丟棄方面，移除影像中隨機區域的方法已被提出用於增強泛化能力。Cutout 隨機遮罩方形區域，Random Erasing 以隨機值填充。CutMix 的根本差異在於以「其他訓練影像的區塊填充」取代零值或雜訊填充。Mixup 方面，CutMix 與 Mixup 的相似之處在於兩者皆結合兩個樣本並使用線性插值標籤。然而，Mixup 混合整張影像，產生局部模糊且不自然的樣本。CutMix 透過以另一張訓練影像的區塊替換影像區域來克服此問題，產出更為局部自然的結果。CutMix 也與上述方法互補，因為它在資料層級運作，不改變內部表示或架構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻比較——系統性地區分 CutMix 與 Cutout、Mixup 的本質差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三方比較精確定位 CutMix：它結合了 Cutout 的區域性操作與 Mixup 的標籤混合，同時避免了兩者各自的缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「局部自然性」作為優於 Mixup 的關鍵論點很有說服力。但「局部自然」在語意上仍是拼接影像，是否真正「自然」可被質疑。此外，Mixup 的「不自然」在某些情境下可能反而提供更強的正則化效果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. CutMix Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Algorithm — 演算法</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The CutMix combining operation generates new training samples as: <span class="hl-method">x_tilde = M * x_A + (1 - M) * x_B</span> and <span class="hl-method">y_tilde = lambda * y_A + (1 - lambda) * y_B</span>, where <span class="hl-method">M is a binary mask</span> indicating the cut region, and <span class="hl-method">lambda is sampled from Beta(alpha, alpha)</span>. The rectangular mask dimensions follow: <span class="hl-method">r_w = W * sqrt(1 - lambda)</span> and <span class="hl-method">r_h = H * sqrt(1 - lambda)</span>, making the <span class="hl-method">cropped area ratio r_w * r_h / (W * H) = 1 - lambda</span>. This ensures that <span class="hl-thesis">the label mixing ratio exactly corresponds to the pixel area ratio</span>. Implementation is straightforward: <span class="hl-evidence">"CutMix is simple and incurs a negligible computational overhead"</span> compared to existing data augmentation techniques.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                CutMix 的合併操作生成新的訓練樣本：x_tilde = M * x_A + (1 - M) * x_B 且 y_tilde = lambda * y_A + (1 - lambda) * y_B，其中 M 為指示剪切區域的二元遮罩，lambda 從 Beta(alpha, alpha) 分布取樣。矩形遮罩的維度為：r_w = W * sqrt(1 - lambda) 且 r_h = H * sqrt(1 - lambda)，使得剪切面積比 r_w * r_h / (W * H) = 1 - lambda。這確保了標籤混合比例恰好對應像素面積比例。實作簡明直接：CutMix 相較於現有資料增強技術，幾乎不產生額外的計算開銷。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心演算法——以數學公式完整定義 CutMix 操作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了方法的數學基礎。面積比例與標籤比例的精確對應是設計的核心原則，使得混合標籤具有幾何意義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    演算法的簡潔性是其最大優勢——易於實作與復現。但矩形遮罩的限制意味著物件形狀資訊被忽略；若以物件感知的非矩形遮罩替代，效果可能更佳。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 2 -->
+    <h3 class="subsection-heading">3.2 Discussion — 討論</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors verify that CutMix effectively forces the model to <span class="hl-thesis">learn object recognition from partial views</span>. <span class="hl-method">Class Activation Mapping (CAM)</span> visualizations reveal that <span class="hl-evidence">"CutMix can take advantage of the mixed region on image, but Cutout cannot"</span> — because CutMix provides meaningful content in the replaced region, the model learns to recognize objects from their visible parts while also extracting information from the pasted region. The method achieves three desirable properties simultaneously: <span class="hl-thesis">"usage of full image region," "regional dropout" effect, and "mixed image &amp; label"</span> correspondence.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者驗證了 CutMix 有效迫使模型從部分視角學習物件辨識。類別啟動圖（CAM）視覺化顯示 CutMix 能利用影像中的混合區域，但 Cutout 無法——因為 CutMix 在替換區域提供了有意義的內容，模型學習從可見部分辨識物件，同時也從貼入的區域萃取資訊。該方法同時達成三項理想特性：完整影像區域的利用、區域丟棄效果，以及混合影像與標籤的對應。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    機制驗證——以 CAM 視覺化解釋 CutMix 的作用機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將直覺性的設計動機（有效利用像素）與可觀察的學習行為（CAM 分布）連結，為方法提供了超越定量指標的解釋性證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    CAM 視覺化是直觀且有說服力的佐證。但 CAM 本身的可靠性受到學界質疑——其啟動區域不必然精確對應模型的決策依據。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">ImageNet Classification:</span> CutMix achieves <span class="hl-evidence">21.40% top-1 error, representing a +2.28% improvement</span> over the ResNet-50 baseline, outperforming all considered augmentation strategies. Notably, <span class="hl-evidence">"CutMix improves the performance by +2.28% while increased depth (ResNet-50 to ResNet-152) boosts +1.99%,"</span> demonstrating that <span class="hl-thesis">augmentation benefits can exceed architectural improvements</span>. On <span class="hl-concept">CIFAR-100</span> with PyramidNet-200, CutMix achieves <span class="hl-evidence">14.47% top-1 error, +1.98% higher than the baseline</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ImageNet 分類方面：CutMix 達到 21.40% 的 top-1 錯誤率，相對於 ResNet-50 基線改善了 +2.28%，超越所有考量的增強策略。值得注意的是，CutMix 帶來的效能提升（+2.28%）超過了增加網路深度（ResNet-50 至 ResNet-152）所帶來的提升（+1.99%），證明了資料增強的效益可以超越架構改進。在 CIFAR-100 使用 PyramidNet-200 的設定下，CutMix 達到 14.47% 的 top-1 錯誤率，較基線改善 +1.98%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗——在標準基準上展示分類效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供了最直接的效能證據。將增強效益與架構改進的比較尤為精彩——這暗示資料增強是被低估的效能提升途徑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「增強效益超越架構改進」的比較極具衝擊力，但兩者的計算成本差異巨大（CutMix 幾乎免費 vs. 更深網路需要更多計算），使此比較在公平性上略有瑕疵。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Weakly Supervised Object Localization:</span> <span class="hl-evidence">CutMix outperforms Mixup on localization accuracies by +5.51% and +1.41% on CUB200-2011 and ImageNet</span>, respectively. CutMix also achieves <span class="hl-evidence">comparable localization accuracies to dedicated state-of-the-art WSOL methods</span>. <span class="hl-concept">Robustness and Uncertainty:</span> <span class="hl-evidence">"CutMix significantly improves the robustness to adversarial attacks"</span> compared to other augmentation methods, and <span class="hl-evidence">"significantly alleviates the over-confidence of the model"</span> on out-of-distribution detection. <span class="hl-concept">Transfer Learning:</span> CutMix <span class="hl-evidence">outperforms Mixup and Cutout</span> on Pascal VOC detection and image captioning benchmarks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                弱監督物件定位方面：CutMix 在 CUB200-2011 與 ImageNet 上的定位準確度分別超越 Mixup +5.51% 與 +1.41%。CutMix 也達到了與專門的最先進弱監督物件定位方法相當的定位準確度。穩健性與不確定性方面：CutMix 相較於其他增強方法顯著提升了對抗性攻擊的穩健性，並顯著緩解了模型在分布外偵測上的過度自信。遷移學習方面：CutMix 在 Pascal VOC 偵測與影像描述基準上超越 Mixup 與 Cutout。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    廣度驗證——在定位、穩健性、不確定性與遷移學習上全面展示效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段延伸分類以外的驗證，支撐「四項同時改善」的核心主張。定位效果的顯著提升與方法設計（部分遮擋迫使模型學習更廣泛的特徵）直接相關。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    跨任務的一致性改善是強而有力的論據。但穩健性的提升機制未被深入分析——CutMix 為何能改善對抗穩健性？與對抗訓練相比效果如何？這些問題值得進一步探究。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">CutMix</span> provides a simple and effective training strategy for <span class="hl-thesis">training CNNs with strong classification and localization ability</span>. By <span class="hl-method">replacing removed regions with informative patches from other images and mixing labels proportionally</span>, the method achieves <span class="hl-thesis">"no extra cost"</span> while delivering consistent improvements across <span class="hl-evidence">classification, localization, transfer learning, robustness, and uncertainty quantification</span> tasks. The approach is <span class="hl-thesis">complementary to architectural advances and other training strategies</span>, making it a practical and broadly applicable tool for improving deep learning models.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                CutMix 提供了一種簡單且有效的訓練策略，能訓練出兼具強大分類與定位能力的 CNN。透過以其他影像的有效區塊替換移除的區域並按比例混合標籤，該方法在不產生額外成本的情況下，在分類、定位、遷移學習、穩健性與不確定性量化等任務上持續帶來改善。此方法與架構改進及其他訓練策略互補，使其成為改善深度學習模型的實用且廣泛適用的工具。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——強調方法的簡潔性、免費性與廣泛效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以「免費的午餐」為隱含訊息：CutMix 幾乎不增加成本卻帶來多面向改善，使其成為應被預設採用的訓練技巧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「互補性」定位避免了過度宣稱。但結論未討論失敗案例或不適用場景——在何種條件下 CutMix 可能無效或有害？此類討論將增強論文的完整性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                區域丟棄浪費<br>有效訓練像素
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                以有意義區塊替代<br>零值填充
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ImageNet/CIFAR 分類<br>定位/穩健性均改善
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                與 Mixup 差異在於<br>局部自然性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                簡單有效的<br>通用增強策略
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以其他訓練影像的區塊替換被遮罩的區域並按面積比例混合標籤，即可同時獲得正則化效果與完整的像素利用率，在分類、定位、穩健性等多任務上帶來一致的免費改善。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>跨任務的一致性改善：</strong>CutMix 不僅在分類任務上有效，在弱監督定位、對抗穩健性、不確定性估計與遷移學習上均展現改善，證明其作用機制具有基礎性。與架構改進的直接數值比較（+2.28% vs. +1.99%）尤為引人注目。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>作用機制的深層解釋不足：</strong>CutMix 為何能同時改善如此多面向的指標？論文以 CAM 視覺化提供了部分解釋，但未建立更深層的理論框架。矩形遮罩的設計也未經充分消融——不同形狀、大小分布的遮罩效果如何？這些問題的回答將增強方法的理論基礎。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

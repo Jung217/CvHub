@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>From Image to Video: An Empirical Study of Diffusion Representations — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                From Image to Video: An Empirical Study of Diffusion Representations
+                <span class="course-tag">ICCV 2025</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2502.07001" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-qualitative">4.1 定性分析</a>
+        <a href="#sec-quantitative">4.2 定量比較</a>
+        <a href="#sec-factors">4.3 影響因素</a>
+        <a href="#sec-conclusion">5. 討論與結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Diffusion models</span> have revolutionized generative modeling, enabling unprecedented realism in <span class="hl-concept">image and video synthesis</span>. This research systematically compares <span class="hl-concept">video versus image diffusion models</span> using <span class="hl-method">identical architectures</span>. The study evaluates representations on downstream tasks including <span class="hl-evidence">image classification, action recognition, depth estimation, and tracking</span>. Key findings show <span class="hl-thesis">video diffusion models consistently outperform image counterparts</span>, with particularly large gains on <span class="hl-evidence">motion-dependent tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                擴散模型革新了生成式建模，在影像與視訊合成方面實現了前所未有的真實感。本研究使用相同的架構系統性地比較視訊擴散模型與影像擴散模型。研究在多個下游任務上評估表示品質，包括影像分類、動作識別、深度估計與追蹤。關鍵發現指出視訊擴散模型持續優於影像對應模型，尤其在與運動相關的任務上優勢顯著。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「相同架構、不同訓練目標」的實驗設計建立公平比較基礎，並預告核心發現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為實證性研究，摘要直接陳述實驗設計與核心發現，不提出新方法或模型。「相同架構」是整篇論文可信度的基石。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「持續優於」是強力宣稱，但需檢視不同任務間的改善幅度差異。若語意分類的改善僅 0.6% 而追蹤改善 68%，則「持續」一詞掩蓋了巨大的異質性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While <span class="hl-concept">image diffusion models</span> have demonstrated effectiveness for visual understanding tasks, <span class="hl-rebuttal">"the representational power of video diffusion models remains largely unexplored"</span>. The research uses the <span class="hl-concept">WALT architecture</span>, which permits <span class="hl-method">fair comparison between image and video training objectives</span> through its hybrid design allowing both image and video generation modes. This is <span class="hl-thesis">the first direct comparison of image versus video diffusion objectives for visual understanding tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                雖然影像擴散模型已展現了在視覺理解任務上的有效性，但「視訊擴散模型的表示能力在很大程度上仍未被探索」。本研究使用 WALT 架構，其混合設計允許影像與視訊生成模式，使影像與視訊訓練目標之間的公平比較成為可能。這是首次直接比較影像與視訊擴散目標在視覺理解任務上的表現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義研究缺口——視訊擴散表示的理解價值尚未被系統性研究。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    WALT 架構的選擇是整個實驗設計的關鍵：它允許在同一架構下切換影像/視訊模式，消除了架構差異帶來的混淆因素。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首次直接比較」的宣稱增強了論文的新穎性，但使用單一架構（WALT）限制了結論的普適性——不同架構可能產生不同的影像/視訊比較結果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper surveys three main areas: <span class="hl-concept">image diffusion for visual understanding</span>, <span class="hl-concept">video representation learning</span>, and concurrent work on video diffusion models. Existing literature documents that diffusion models excel at <span class="hl-evidence">semantic segmentation, depth estimation, and correspondence tasks</span>. However, <span class="hl-rebuttal">few studies directly compare video and image diffusion representations using identical architectures</span>. The representational gap between generative and discriminative objectives remains an active research question.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                論文回顧三個主要領域：用於視覺理解的影像擴散、視訊表示學習、以及視訊擴散模型的同期工作。現有文獻記載擴散模型在語意分割、深度估計與對應任務上表現出色。然而，少有研究使用相同架構直接比較視訊與影像擴散表示。生成式與判別式目標之間的表示差距仍是活躍的研究問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——建立擴散模型作為表示學習器的學術脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「已知影像擴散的表示價值 + 未知視訊擴散的表示價值」建立研究的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將文獻缺口定義為「缺乏公平比較」而非「缺乏視訊擴散表示研究」，精準地定位了本文的差異化貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors employ <span class="hl-method">latent diffusion models</span> operating in compressed latent space using a <span class="hl-method">VQ-VAE encoder</span> and denoiser network. The <span class="hl-concept">WALT architecture</span> is selected for its hybrid design: <span class="hl-method">I-WALT</span> processes individual frames independently, while <span class="hl-method">V-WALT</span> (video variant) includes <span class="hl-method">spatio-temporal attention blocks</span> capturing motion dynamics across 17 frames. The <span class="hl-method">probing framework</span> extracts frozen features at various noise levels and network depths, evaluating eight downstream tasks spanning semantic understanding to spatio-temporal reasoning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者採用在壓縮潛在空間中運作的潛在擴散模型，使用 VQ-VAE 編碼器與去噪網路。選擇 WALT 架構是因其混合設計：I-WALT 獨立處理個別幀，而 V-WALT（視訊變體）包含時空注意力區塊，捕捉跨 17 幀的運動動態。探針框架在各種噪聲水平與網路深度提取凍結特徵，評估從語意理解到時空推理的八個下游任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗方法論——描述確保公平比較的架構設計與評估框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    I-WALT vs. V-WALT 的唯一差異是時空注意力，這精確隔離了「視訊訓練目標」的效果。八個下游任務的廣度確保結論不侷限於特定任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    凍結特徵+線性探針是標準的表示評估方法，但可能低估了微調設定下的表現差異。17 幀的窗口限制了對長期時序依賴的評估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-qualitative">4. Experiments — 實驗</h2>
+    <h3 class="subsection-heading" id="sec-qualitative">4.1 Qualitative Analysis — 定性分析</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Feature visualizations via <span class="hl-method">PCA</span> reveal that <span class="hl-evidence">V-WALT activations concentrate on moving regions</span>, while <span class="hl-evidence">I-WALT highlights semantically important areas regardless of motion</span>. A <span class="hl-method">brick wall experiment</span> confirms V-WALT's motion sensitivity: when the camera pans across a uniform texture, <span class="hl-evidence">V-WALT activations track the motion while I-WALT shows uniform responses</span>. This demonstrates that <span class="hl-thesis">video training fundamentally alters the model's attention patterns toward temporal dynamics</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                透過 PCA 的特徵視覺化揭示 V-WALT 的啟動集中在運動區域，而 I-WALT 則不論運動與否都突顯語意重要的區域。磚牆實驗確認了 V-WALT 的運動敏感性：當攝影機橫移通過均勻紋理時，V-WALT 的啟動追蹤運動，而 I-WALT 展示均勻的響應。這展示了視訊訓練從根本上改變了模型對時序動態的注意力模式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    直覺性證據——以視覺化與控制實驗展示影像/視訊模型的本質差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    磚牆實驗是精巧的控制實驗：均勻紋理消除了語意差異，隔離出純粹的運動敏感性。這為後續的定量優勢提供了可解釋的機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    PCA 視覺化極具說服力但具有選擇性——作者可能展示了最能支持論點的特徵圖。磚牆實驗的設計巧妙但極端，真實場景中語意與運動通常混合存在。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-quantitative">4.2 Quantitative Comparisons — 定量比較</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">V-WALT outperforms I-WALT across all tasks</span>, with performance gains ranging from <span class="hl-evidence">modest improvements (0.6% on Places365)</span> to <span class="hl-evidence">substantial gains (68% on point tracking, 60% on camera pose estimation)</span>. <span class="hl-thesis">Motion-sensitive tasks show larger improvements than semantic classification</span>, suggesting video training primarily enhances temporal and geometric understanding rather than object-level semantics. Optimal performance occurs at <span class="hl-evidence">intermediate network depths (approximately 2/3 through the model) and moderate noise levels (timestep 200)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                V-WALT 在所有任務上超越 I-WALT，效能增益從微幅改善（Places365 上 0.6%）到大幅進步（點追蹤上 68%、攝影機姿態估計上 60%）。與運動相關的任務展現比語意分類更大的改善，暗示視訊訓練主要增強的是時序與幾何理解而非物件級語意。最佳效能出現在中間網路深度（約模型的三分之二處）與適中的噪聲水平（時間步 200）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心定量結果——以任務區分的增益模式揭示視訊訓練的本質效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    0.6% vs. 68% 的增益差異是論文最深刻的發現：視訊訓練主要改善時空理解而非語意理解，這為「何時應使用視訊擴散表示」提供了實用指引。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    增益的巨大異質性（0.6% 到 68%）使「持續優於」的摘要宣稱顯得過度簡化。語意分類上的微小差異在統計顯著性上可能不穩定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-factors">4.3 Factors Affecting Representations — 影響因素分析</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Training budget effects</span> reveal that recognition tasks show <span class="hl-evidence">consistent improvement with longer training</span>, while tracking and depth estimation <span class="hl-evidence">peak at earlier training stages</span>. <span class="hl-evidence">Camera pose estimation demonstrates performance decline after 26% training completion</span>, suggesting potential overfitting. For <span class="hl-evidence">scaling behavior</span>, increasing model size from <span class="hl-evidence">284M to 1.9B parameters substantially improves V-WALT on semantic tasks but provides marginal gains on point tracking</span>. Compared with other models, <span class="hl-evidence">V-WALT demonstrates competitiveness with DINOv2 on motion understanding but semantic classification favors models like SigLIP and DINOv2</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練預算效果揭示識別任務隨更長訓練持續改善，而追蹤與深度估計在較早的訓練階段即達到峰值。攝影機姿態估計在訓練完成 26% 後展現效能下降，暗示潛在的過擬合。在規模效應方面，模型大小從 2.84 億增至 19 億參數在語意任務上大幅改善 V-WALT，但在點追蹤上僅帶來邊際增益。與其他模型相比，V-WALT 在運動理解上與 DINOv2 具競爭力，但語意分類則由 SigLIP 和 DINOv2 等模型占優。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深入分析——以訓練預算、模型規模與跨模型比較三個維度剖析表示品質的影響因素。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供了實用指引：不同下游任務應使用不同深度的特徵、不同的噪聲水平、不同的訓練階段。26% 過擬合的發現對實務中的檢查點選擇極具價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    跨模型比較（DINOv2、SigLIP）揭示了擴散表示的定位：擅長時空理解但語意能力不如專門的判別式模型。這是誠實且有價值的結論，但也限制了擴散表示的通用性主張。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Discussion and Conclusion — 討論與結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The study establishes that <span class="hl-thesis">video diffusion models consistently outperform their image counterparts as visual representations</span>, with <span class="hl-thesis">particularly large gains on motion-dependent tasks</span>. The authors acknowledge limitations: <span class="hl-rebuttal">studying a single architecture (WALT)</span> limits generalizability. Future work should <span class="hl-rebuttal">explore additional unified model architectures</span>, investigate relationships between <span class="hl-rebuttal">generation quality and representation learning</span>, and examine the <span class="hl-rebuttal">intersection of generative and perceptual capabilities</span> in diffusion models.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究確立了視訊擴散模型作為視覺表示持續優於影像對應模型，尤其在與運動相關的任務上優勢顯著。作者承認局限性：僅研究單一架構（WALT）限制了可泛化性。未來工作應探索更多統一模型架構、研究生成品質與表示學習之間的關係、以及探討擴散模型中生成與感知能力的交集。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與展望——重申核心發現並誠實揭露局限性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的謙遜程度適當：明確指出單一架構的局限，為後續研究保留了充分的探索空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「生成品質 vs. 表示品質」的未來方向特別有趣——若兩者正相關，則更好的生成器自然帶來更好的表示；若負相關，則存在根本性的目標衝突。此關係的釐清對整個領域至關重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>視訊擴散模型的<br>表示品質<br>尚未被探索</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>以相同架構<br>公平比較<br>影像 vs. 視訊</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>視訊一致優於影像<br>追蹤 +68%<br>語意僅 +0.6%</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>僅一種架構<br>結論普適性<br>需更多驗證</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>視訊擴散表示<br>特別擅長<br>時空理解任務</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>在相同架構下，以視訊目標訓練的擴散模型在所有視覺理解任務上持續優於影像目標訓練的模型，尤其在與運動相關的任務上展現出高達 68% 的改善。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>嚴格的實驗控制與深入的多維分析：</strong>WALT 架構的選擇精確隔離了訓練目標的效果。磚牆實驗提供了直覺性的機制解釋。訓練預算、模型規模、特徵深度、噪聲水平四個維度的系統性分析，為實務應用提供了豐富的操作指引。0.6% 到 68% 的增益分布揭示了視訊訓練的本質效果：增強時空而非語意理解。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>單一架構的普適性限制：</strong>所有結論均基於 WALT 架構，而不同的擴散架構（如 DiT、U-Net、UViT）可能產生不同的影像/視訊表示比較結果。此外，語意分類上的微小改善（0.6%）在統計上可能不顯著，使「所有任務上持續優於」的宣稱在嚴格意義上存疑。與 DINOv2 等判別式模型的比較揭示擴散表示在語意任務上仍有差距。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

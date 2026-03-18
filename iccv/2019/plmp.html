@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMP: Point-Line Minimal Problems in Complete Multi-View Visibility — 雙欄批注</title>
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        /* ===== 主體容器 ===== */
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        /* 批注卡片 */
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                PLMP -- Point-Line Minimal Problems in Complete Multi-View Visibility
+                <span class="course-tag">ICCV 2019</span>
+                <span class="best-paper-badge">Best Student Paper</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1903.10008" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-formulation">2. 問題定義</a>
+        <a href="#sec-method">3. 最小性檢驗</a>
+        <a href="#sec-results">4. 結果</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-thesis">a complete classification of all minimal problems for generic arrangements of points and lines completely observed by calibrated perspective cameras</span>. We show that there are <span class="hl-evidence">exactly 30 minimal problems</span> in total, with constraints that <span class="hl-evidence">no problems exist for more than 6 cameras, for more than 5 points, and for more than 6 lines</span>. We determine the <span class="hl-method">algebraic degrees</span> of each of these problems — indicating the number of solutions and the intrinsic difficulty of the problem. We demonstrate that <span class="hl-thesis">several new minimal problems have small degrees that might be practical in image matching and 3D reconstruction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出校準透視相機完全觀測下，點與線之一般排列的所有最小問題的完整分類。我們證明總共恰好存在 30 個最小問題，其約束條件為：不存在超過 6 台相機、超過 5 個點或超過 6 條線的問題。我們計算了每個問題的代數次數——指出解的數量與問題的內在難度。我們展示了數個新發現的最小問題具有較小的代數次數，可能在影像匹配與三維重建中具備實用價值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精練的數學語言陳述完整分類結果與其實用意涵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「成果宣告」的功能：30 個問題的完整列舉是封閉性結果，代數次數的計算則連結至實際應用的可行性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「完整分類」的措辭具有強烈的確定性——數學證明的封閉性使此主張不同於實驗科學中的統計結論。但「完全觀測」的前提在實際場景中較難滿足，限制了直接應用性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Minimal problems</span> play fundamental roles in computer vision applications. They are essential for <span class="hl-evidence">3D reconstruction, image matching, visual odometry and visual localization</span>. Over the years, <span class="hl-evidence">"many minimal problems have been described and solved and new minimal problems are constantly appearing."</span> Despite this, a <span class="hl-rebuttal">systematic and complete enumeration has not been achieved</span>. This paper provides <span class="hl-thesis">"a complete classification of minimal problems for generic arrangements of points and lines, including their incidences, completely observed by any number of calibrated perspective cameras."</span> Notably, <span class="hl-evidence">26 of the 30 minimal problems identified are new</span>, previously undiscovered.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最小問題在電腦視覺應用中扮演基礎性角色，對三維重建、影像匹配、視覺測距與視覺定位至關重要。多年來，許多最小問題已被描述與求解，新的最小問題也不斷出現。儘管如此，系統性的完整列舉尚未實現。本文提供了校準透視相機在任意數量下完全觀測時，點與線（含其關聯性）之一般排列的所有最小問題的完整分類。值得注意的是，所辨識出的 30 個最小問題中有 26 個是先前未被發現的新問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——強調最小問題的重要性與系統分類的缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：先建立最小問題的應用價值，再指出「完整列舉」的缺失，為本文的分類工作提供動機。「26 個新問題」的數據強化了研究的重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體數字（26/30 為新問題）量化研究貢獻，極具說服力。但讀者可能質疑：為何這些問題長期未被發現？作者需在方法章節說明其系統化搜索的嚴謹性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We <span class="hl-method">"consider calibrated scenarios since it avoids many degeneracies"</span> inherent in uncalibrated setups. Our focus is on <span class="hl-method">"complete visibility"</span> — meaning <span class="hl-method">"all points and lines are observed in all images and all observed information is used."</span> This assumption, while restrictive, enables a <span class="hl-thesis">mathematically rigorous and exhaustive classification</span>. We employ <span class="hl-method">a sequence of tests for detecting minimality starting with counting degrees of freedom and ending with full symbolic and numeric verification</span>. The result is a definitive catalogue of all possible minimal configurations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們考慮校準場景，因為這避免了未校準設定中固有的許多退化情況。我們聚焦於「完全可見性」——意味著所有點與線在所有影像中均被觀測，且所有觀測資訊均被使用。此假設雖有限制性，但能實現數學上嚴謹且窮舉的分類。我們採用一系列最小性檢測流程，從自由度計數開始，以完整的符號與數值驗證結束。最終結果是所有可能最小配置的確定性目錄。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    界定範圍與方法概述——明確研究的前提假設與驗證策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續數學推導奠定基礎：校準與完全可見性的假設使問題在數學上可處理，而多層驗證流程確保結果的可靠性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動承認「限制性假設」展現學術誠實，但「完全可見性」在實際應用中（如遮擋場景）幾乎不可能滿足。作者在結論中應討論如何放寬此假設。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 問題定義 ====== -->
+    <h2 class="section-heading" id="sec-formulation">2. Problem Formulation — 問題定義</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-concept">"point-line problem"</span> is formally defined as <span class="hl-method">a tuple (p, l, I, m) specifying that p points and l lines in space are projected to m views</span>, where I encodes the incidence relations among points and lines. The authors establish two key mathematical objects: the <span class="hl-concept">"variety of point-line arrangements"</span> X_{p,l,I} and the <span class="hl-concept">"image variety"</span> Y_{p,l,I,m}. A point-line problem is <span class="hl-concept">minimal</span> when <span class="hl-method">"a generic image tuple in Y_{p,l,I,m} has a nonzero finite number of solutions."</span> This requires the joint camera map to be <span class="hl-method">dominant and to produce finite preimages</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                「點線問題」被正式定義為一個元組 (p, l, I, m)，指定空間中 p 個點與 l 條線被投影至 m 個視角，其中 I 編碼點與線之間的關聯關係。作者建立了兩個關鍵數學物件：「點線排列的簇」X_{p,l,I} 與「影像簇」Y_{p,l,I,m}。當 Y_{p,l,I,m} 中的一般影像元組具有非零有限數量的解時，該點線問題即為最小問題。這要求聯合相機映射為主映射且產生有限的原像。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學基礎——建立最小問題的嚴格代數幾何定義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將直覺性的「最少測量即可求解」概念精確化為代數幾何語言，是後續分類定理的必要前提。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用代數簇的語言雖精確但門檻較高，可能疏遠偏工程導向的電腦視覺讀者。作者需在符號嚴謹性與可讀性之間取得平衡。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 問題定義段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A necessary condition for minimality is the <span class="hl-concept">"balance condition"</span>: <span class="hl-method">dim(X_{p,l,I} x C^m) = dim(Y_{p,l,I,m})</span>. For balanced problems, this translates to the equation: <span class="hl-method">3p_f + p_d + 4l_f + 2l_a + 6m - 7 = m(2p_f + p_d + 2l_f + l_a)</span>, where p_f denotes free points, p_d dependent points, l_f free lines, and l_a adjacent lines. This dimension-counting formula serves as the <span class="hl-thesis">first filter in the systematic search</span> — any candidate problem must satisfy this arithmetic constraint before further verification.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最小性的必要條件是「平衡條件」：dim(X_{p,l,I} x C^m) = dim(Y_{p,l,I,m})。對平衡問題而言，此條件轉化為方程式：3p_f + p_d + 4l_f + 2l_a + 6m - 7 = m(2p_f + p_d + 2l_f + l_a)，其中 p_f 表示自由點、p_d 相依點、l_f 自由線、l_a 鄰接線。此維度計數公式作為系統搜索的第一道篩選器——任何候選問題在進一步驗證前，必須滿足此算術約束。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    篩選機制——建立平衡條件作為系統搜索的第一步。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    維度計數是代數幾何中判斷映射有限性的標準工具。此公式將無窮的搜索空間縮減為有限的候選集，是整個分類方法的效率關鍵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將抽象的幾何條件轉化為具體的算術等式，使驗證變得機械化。但平衡條件僅為必要條件而非充分條件——通過此篩選的候選仍需進一步驗證，此區分至關重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 最小性檢驗 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Minimality Testing — 最小性檢驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The methodology uses <span class="hl-method">"direct geometrical determinantal constraints"</span> rather than multi-view tensors to eliminate world variables. Two types of constraints generate the equation systems. <span class="hl-concept">Line Correspondence (LC)</span>: if lines l_1, ..., l_m are images of the same world line, then <span class="hl-method">rank[P_1^T l_1 ... P_m^T l_m] &lt;= 2</span>. <span class="hl-concept">Common Point (CP)</span>: planes derived from line projections must share a common line, enforced through <span class="hl-method">rank constraints on associated matrices</span>. The authors then apply <span class="hl-method">Algorithm 1 (Jacobian rank computation)</span> to verify if the projection map is dominant, confirming minimality via the condition <span class="hl-method">rank J(C_0, Y_0) = 6m - 7</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                方法論使用「直接幾何行列式約束」而非多視圖張量來消除世界變數。兩類約束生成方程組。線對應（LC）：若 l_1, ..., l_m 為同一世界線的影像，則 rank[P_1^T l_1 ... P_m^T l_m] &lt;= 2。共同點（CP）：從線投影導出的平面必須共享一條線，透過關聯矩陣的秩約束來強制執行。作者接著應用演算法一（雅可比矩陣秩計算）來驗證投影映射是否為主映射，以條件 rank J(C_0, Y_0) = 6m - 7 確認最小性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——描述消除世界變數與驗證最小性的具體技術。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是技術核心：直接使用幾何約束而非多視圖張量是關鍵的方法選擇，能更直接地處理線特徵。雅可比矩陣秩的數值驗證則為理論結果提供計算確認。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇行列式約束而非張量方法的動機清楚——前者能直接處理點線混合場景。但數值秩計算的穩定性可能受浮點精度影響，作者以符號驗證作為補充是審慎的做法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For computing <span class="hl-concept">algebraic degrees</span> — the number of solutions to each minimal problem — the authors employ two complementary strategies. For problems with <span class="hl-evidence">2-3 views</span>, they compute <span class="hl-method">Groebner bases</span> to obtain exact solution counts. For <span class="hl-evidence">higher-dimensional problems</span>, they use <span class="hl-method">"the monodromy method, a technique based on numerical homotopy continuation"</span> from numerical algebraic geometry. This dual approach ensures that both <span class="hl-evidence">symbolic exactness and computational feasibility</span> are achieved across the full range of problems.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為計算代數次數——每個最小問題的解數量——作者採用兩種互補策略。對 2-3 個視角的問題，以 Groebner 基計算精確解數量。對更高維度的問題，使用「單值群方法，一種基於數值同倫延續的技術」，源自數值代數幾何。此雙重途徑確保在所有問題的完整範圍內，同時達到符號精確性與計算可行性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    計算工具——說明求解代數次數的雙重策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    Groebner 基提供符號精確解但計算成本隨維度急遽增長；同倫延續方法在高維度下仍可行但為數值近似。兩者的互補使用是務實的策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    明確區分符號與數值方法並解釋各自適用範圍，展現了計算代數幾何的成熟運用。但同倫延續的數值結果是否能保證精確的代數次數，需要額外的理論保證（如認證的數值路徑追蹤）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 結果 ====== -->
+    <h2 class="section-heading" id="sec-results">4. Results — 結果</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The complete classification yields <span class="hl-evidence">30 minimal problems</span> distributed across camera counts: <span class="hl-evidence">6 cameras: 1 problem; 5 cameras: 3 problems; 4 cameras: 6 problems; 3 cameras: 17 problems; 2 cameras: 3 problem classes</span>. Key theoretical results include <span class="hl-concept">Lemma 1</span>, establishing that <span class="hl-evidence">"every balanced point-line problem with at least five points has exactly two cameras"</span>; <span class="hl-concept">Theorem 1</span>, proving there is <span class="hl-evidence">"no balanced point-line problem with seven or more cameras"</span>; and <span class="hl-concept">Theorem 2</span>, demonstrating there are <span class="hl-evidence">"34 balanced point-line problems with 3, 4, 5 or 6 cameras"</span> (of which 30 pass all minimality tests).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                完整分類產出 30 個最小問題，按相機數量分布：6 台相機 1 個問題；5 台相機 3 個問題；4 台相機 6 個問題；3 台相機 17 個問題；2 台相機 3 類問題。關鍵理論結果包括：引理一確立「具有至少五個點的每個平衡點線問題恰有兩台相機」；定理一證明「不存在七台或更多相機的平衡點線問題」；定理二展示「具有 3、4、5 或 6 台相機的平衡點線問題共 34 個」（其中 30 個通過所有最小性檢驗）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    呈現核心結果——以定理形式陳述完整分類。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三個遞進式定理構成結果的骨架：引理一處理多點情況，定理一建立相機數上界，定理二完成窮舉。34 個候選中 4 個未通過最小性檢驗的事實也增強了方法的可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以定理-引理的階層結構組織結果，清晰且具說服力。但 30 個問題中各自的實用性差異巨大——低代數次數的問題可能導出實用求解器，高代數次數的問題則主要具理論價值。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">algebraic degrees</span> of the 30 problems span a wide range: the smallest degrees are <span class="hl-evidence">5, 12, 16, and 20 (two-view problems)</span>; moderate degrees include <span class="hl-evidence">32, 40, and 64 (potentially practical)</span>; while larger degrees reach <span class="hl-evidence">240 to 4512 and beyond (higher view counts)</span>. Notably, the <span class="hl-evidence">calibrated homography problem (3-point, 0-line, 2-view) has degree 5</span>, and the <span class="hl-evidence">classical 5-point problem (5-point, 0-line, 2-view) has degree 20</span>. The authors emphasize that <span class="hl-thesis">"several new minimal problems have small degrees,"</span> making them <span class="hl-thesis">"practical in image matching and 3D reconstruction."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                30 個問題的代數次數涵蓋廣泛範圍：最小次數為 5、12、16 與 20（雙視角問題）；中等次數包括 32、40 與 64（可能具實用性）；較大次數則達到 240 至 4512 以上（較多視角）。值得注意的是，校準單應矩陣問題（3 點 0 線 2 視角）的次數為 5，而經典的五點問題（5 點 0 線 2 視角）的次數為 20。作者強調數個新的最小問題具有較小的次數，使其在影像匹配與三維重建中具備實用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    量化分析——呈現代數次數的分布與實用意涵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    代數次數直接決定求解器的計算複雜度。低次數問題（5-20）可能產出即時求解器，中次數（32-64）需要高效演算法，高次數（240+）在目前技術下難以直接實用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將已知問題（如五點問題的次數 20）與新問題並列，讓讀者以熟悉的基準衡量新結果的困難度。但代數次數僅反映一般情況下的解數量，實際問題可能有更多或更少的實數解。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work represents <span class="hl-thesis">"a step towards a complete characterization of all minimal problems for points, lines and their incidences in calibrated multi-view geometry."</span> The discovery of <span class="hl-evidence">26 new minimal problems</span>, several with <span class="hl-evidence">computationally tractable solution counts</span>, opens the door to <span class="hl-thesis">"constructing efficient solvers"</span> for practical applications. The authors acknowledge that the <span class="hl-rebuttal">complete visibility constraint limits applicability</span>, noting that <span class="hl-rebuttal">"full account for partial visibility is a much harder task and will be addressed in the future."</span> Extending the classification to <span class="hl-rebuttal">uncalibrated cameras and partial observations</span> remains an important open direction.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究代表了「朝向校準多視角幾何中，點、線及其關聯之所有最小問題的完整刻畫」邁出的一步。26 個新最小問題的發現——其中數個具有計算上可處理的解數量——為實際應用的「高效求解器建構」開啟了大門。作者坦承完全可見性約束限制了適用性，並指出「完整考量部分可見性是更困難的任務，將於未來處理。」將分類擴展至未校準相機與部分觀測仍為重要的開放方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與展望——重申貢獻並指明未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以「一步」的措辭將本文定位於更大的研究議程中，既不過分宣稱也不低估貢獻。未來方向的明確陳述為後續研究鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    誠實承認限制並明確指出「部分可見性」為更困難的問題，展現學術嚴謹。但未提供任何關於如何處理部分可見性的初步思路，未來方向略顯模糊。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                多視角幾何中的最小<br>問題缺乏系統分類
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                透過代數幾何工具<br>可實現完整列舉
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                30 個最小問題<br>26 個為新發現
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                完全可見性假設<br>限制實際適用性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                為多視角幾何的<br>完整理論奠定基礎
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    在校準透視相機與完全可見性的條件下，點線排列的所有最小問題恰好有 30 個，其中 26 個為新發現，且數個具有可導出實用求解器的低代數次數。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>分類的完備性與嚴謹性：</strong>透過維度計數、雅可比矩陣秩計算、符號驗證與數值同倫延續的多層驗證流程，結果的可靠性得到充分保障。「不存在七台以上相機的最小問題」等封閉性定理，為整個領域提供了確定性的理論邊界。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>實用性的實際驗證不足：</strong>雖然指出數個低代數次數的新問題「可能具實用性」，但未實際建構求解器或在真實場景中測試。此外，完全可見性的假設在遮擋普遍的真實場景中很難滿足，從理論到應用的鴻溝仍然存在。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

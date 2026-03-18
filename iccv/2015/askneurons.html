@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ask Your Neurons: A Neural-Based Approach to Answering Questions About Images — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Ask Your Neurons: A Neural-Based Approach to Answering Questions About Images
+                <span class="course-tag">ICCV 2015</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1605.02697" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-evaluation">3.2 評估指標</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors propose a <span class="hl-concept">deep learning approach to visual question answering (VQA)</span> — the task where a machine must <span class="hl-thesis">answer natural language questions about images</span>. The method combines <span class="hl-method">CNN-based image representations with LSTM networks for language processing</span> in an <span class="hl-thesis">end-to-end formulation</span>. The approach handles the <span class="hl-concept">multi-modal challenge</span> where the answer depends on both <span class="hl-method">visual and textual inputs</span>. The authors introduce <span class="hl-method">new evaluation metrics sensitive to answer ambiguity</span>, extend the <span class="hl-concept">DAQUAR dataset</span> with consensus annotations, and provide systematic analysis on the <span class="hl-concept">VQA benchmark</span>. Results demonstrate the effectiveness of the unified CNN-LSTM architecture while revealing <span class="hl-rebuttal">substantial language bias in existing datasets</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提出一種視覺問答（VQA）的深度學習方法——機器必須回答關於影像的自然語言問題。該方法以端對端公式結合基於 CNN 的影像表示與 LSTM 語言處理網路。此方法應對答案同時取決於視覺與文字輸入的多模態挑戰。作者引入對答案模糊性敏感的新評估指標，以共識標註擴展 DAQUAR 資料集，並在 VQA 基準上提供系統性分析。結果展示了統一 CNN-LSTM 架構的有效性，同時揭露了現有資料集中的顯著語言偏差。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義 VQA 任務並預告方法、指標與分析三重貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要涵蓋三層：技術方法（CNN+LSTM）、評估創新（共識指標）、批判分析（語言偏差）。廣度比深度更為突出。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    揭露「語言偏差」既是對領域的貢獻，也可能暗示作者方法本身受限於此偏差。此自我批判的立場提升了論文可信度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Visual Question Answering</span> represents a frontier challenge at the intersection of <span class="hl-concept">computer vision and natural language processing</span>. Unlike <span class="hl-concept">image captioning</span>, which produces <span class="hl-rebuttal">generic descriptions without targeted reasoning</span>, VQA requires <span class="hl-thesis">focused understanding — the system must parse the question, identify relevant visual content, and generate a contextually appropriate answer</span>. Recent advances in <span class="hl-concept">CNNs for visual recognition</span> and <span class="hl-concept">RNNs/LSTMs for sequence modeling</span> make it possible to build <span class="hl-method">unified architectures that jointly process visual and linguistic information</span>. The authors frame VQA as a key step toward a <span class="hl-concept">Visual Turing Test</span> — a benchmark for machine intelligence that requires holistic scene understanding.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺問答代表了電腦視覺與自然語言處理交匯處的前沿挑戰。不同於產生通用描述而無針對性推理的影像描述，VQA 需要聚焦式理解——系統必須解析問題、辨識相關視覺內容，並生成適當的答案。CNN 在視覺辨識以及 RNN/LSTM 在序列建模方面的近期進展使建構聯合處理視覺與語言資訊的統一架構成為可能。作者將 VQA 框架為邁向視覺圖靈測試的關鍵步驟——一個需要全面場景理解的機器智慧基準。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    動機建立——將 VQA 定位為 CV 與 NLP 的交匯挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「視覺圖靈測試」的宏大願景吸引讀者，再以 CNN+LSTM 的技術成熟度論證可行性。由遠及近，從願景收窄至具體方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「視覺圖靈測試」的框架提升了研究的重要性，但也設定了過高的期望。實際結果（準確率 19%）與「圖靈測試」之間的巨大鴻溝可能削弱此框架的說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior approaches to <span class="hl-concept">image-based question answering</span> include <span class="hl-concept">symbolic reasoning systems</span> that <span class="hl-rebuttal">require structured knowledge bases and hand-crafted rules</span>, and <span class="hl-concept">retrieval-based methods</span> that <span class="hl-rebuttal">match questions to pre-existing answer databases</span>. In parallel, <span class="hl-concept">image captioning</span> models using <span class="hl-method">encoder-decoder architectures</span> (CNN encoder + LSTM decoder) have shown that <span class="hl-evidence">visual and linguistic information can be effectively fused in neural networks</span>. The <span class="hl-concept">DAQUAR dataset</span> by Malinowski and Fritz pioneered the VQA benchmark, while subsequent datasets like <span class="hl-concept">VQA</span> by Antol et al. provided larger-scale evaluation. <span class="hl-concept">Attention mechanisms</span> and <span class="hl-concept">memory networks</span> represent concurrent developments that address spatial reasoning and multi-hop inference respectively.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的影像問答方法包括：需要結構化知識庫與手工規則的符號推理系統，以及將問題匹配至現有答案資料庫的檢索式方法。同時，使用編碼器-解碼器架構（CNN 編碼器 + LSTM 解碼器）的影像描述模型展示了視覺與語言資訊能在神經網路中有效融合。Malinowski 與 Fritz 的 DAQUAR 資料集開創了 VQA 基準，隨後 Antol 等人的 VQA 資料集提供了更大規模的評估。注意力機制與記憶網路代表了分別針對空間推理與多跳推論的並行發展。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理從符號方法到神經方法的 VQA 演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「符號式 -> 檢索式 -> 神經式」的演進脈絡，將本文定位為神經式方法的系統化探索。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提及注意力機制與記憶網路但未深入比較，暗示本文方法相對這些並行發展可能較為基礎。作為系統性探索論文，此定位是適當的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Architecture</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The architecture consists of three modular components. The <span class="hl-concept">visual encoder</span> extracts image features using pre-trained CNNs (<span class="hl-method">AlexNet, VGG, GoogLeNet, or ResNet</span>). The <span class="hl-concept">question encoder</span> processes the natural language question through one of several variants: <span class="hl-method">Bag-of-Words, CNN, GRU, or LSTM</span>, optionally with <span class="hl-method">GloVe word embeddings</span>. The <span class="hl-concept">multimodal fusion</span> combines visual and textual representations through <span class="hl-method">concatenation, element-wise multiplication, or summation</span>. The <span class="hl-concept">answer decoder</span> generates responses either through <span class="hl-method">classification over a fixed vocabulary</span> or <span class="hl-method">generative LSTM decoding</span>. This modular design enables <span class="hl-thesis">systematic ablation of each component to understand their individual contributions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                架構由三個模組化組件構成。視覺編碼器使用預訓練 CNN（AlexNet、VGG、GoogLeNet 或 ResNet）擷取影像特徵。問題編碼器透過多種變體處理自然語言問題：詞袋模型、CNN、GRU 或 LSTM，可選用 GloVe 詞嵌入。多模態融合透過串接、逐元素乘法或加法結合視覺與文字表示。答案解碼器透過固定詞彙的分類或生成式 LSTM 解碼來產生回應。此模組化設計使系統性消融每個組件以理解其個別貢獻成為可能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構定義——描述模組化的 CNN-LSTM 系統。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    模組化設計是本文的核心策略：不追求單一最佳架構，而是建構可系統性比較的實驗框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉多種組件變體展現了研究的全面性，但也暗示作者尚未找到明確的最優組合。模組化降低了架構的深度整合可能帶來的性能提升。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 評估指標 ====== -->
+    <h3 class="subsection-heading" id="sec-evaluation">3.2 Evaluation Metrics — 評估指標</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A significant contribution is the introduction of <span class="hl-method">consensus-based evaluation metrics</span>. The authors extend DAQUAR with <span class="hl-evidence">multiple human answers per question (DAQUAR-Consensus)</span>, acknowledging that <span class="hl-thesis">many visual questions have legitimately ambiguous or multiple correct answers</span>. They propose the <span class="hl-concept">Average Consensus Metric (ACM)</span> — which compares the model's answer against all human responses and averages the scores — and the <span class="hl-concept">Min Consensus Metric (MCM)</span> — which takes the minimum score, providing a stricter bound. The standard <span class="hl-concept">WUPS metric</span> (Wu-Palmer Similarity) is used for soft matching that accounts for <span class="hl-method">semantic similarity between predicted and ground-truth answers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項重要貢獻是引入基於共識的評估指標。作者以每個問題的多個人類回答擴展 DAQUAR（DAQUAR-Consensus），承認許多視覺問題合理地具有模糊或多個正確答案。他們提出平均共識指標（ACM）——將模型答案與所有人類回應比較並平均分數——以及最小共識指標（MCM）——取最小分數以提供更嚴格的界限。標準 WUPS 指標（Wu-Palmer 相似度）用於考量預測與真實答案間語意相似性的軟匹配。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    評估創新——提出更公平的 VQA 評估框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決了 VQA 領域的基礎性問題：如何評估本質上具有多義性的視覺問答。共識指標的引入使結果比較更為公平。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    承認答案模糊性展現了問題意識的成熟度。但共識指標的構建依賴人類標註者的品質與多樣性，小規模資料集上的共識可能不具代表性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On the <span class="hl-evidence">DAQUAR dataset</span>, the method improves single-word accuracy from <span class="hl-evidence">7.86% (prior baseline) to 19.43%</span>, with <span class="hl-evidence">WUPS@0.9 improving from 11.86% to 25.28%</span>. However, a <span class="hl-rebuttal">30-point gap remains to human performance (50.20% accuracy)</span>. A critical finding is that <span class="hl-rebuttal">"question-only" models — which see no image at all — achieve approximately 17% accuracy</span>, revealing <span class="hl-thesis">substantial language bias in the dataset where the question text alone provides strong answer priors</span>. On the <span class="hl-evidence">VQA dataset</span>, systematic ablation shows that <span class="hl-evidence">LSTM with GloVe embeddings achieves the best question encoding (48.58% on question-only)</span>, and <span class="hl-evidence">ResNet-152 provides the strongest visual features</span>. Spatial reasoning questions remain <span class="hl-rebuttal">particularly challenging (21% WUPS@0.9)</span>, and performance degrades significantly for multi-word answers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 DAQUAR 資料集上，該方法將單詞準確率從 7.86%（先前基線）提升至 19.43%，WUPS@0.9 從 11.86% 提升至 25.28%。然而，與人類表現（50.20% 準確率）仍有 30 個百分點的差距。一項關鍵發現是：「純問題」模型——完全不看影像——達到約 17% 的準確率，揭露了資料集中的顯著語言偏差：問題文字本身即提供了強烈的答案先驗。在 VQA 資料集上，系統性消融顯示帶有 GloVe 嵌入的 LSTM 達到最佳問題編碼效果（純問題 48.58%），ResNet-152 提供最強視覺特徵。空間推理問題仍極具挑戰性（WUPS@0.9 僅 21%），多詞答案的表現顯著下降。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    多面向實驗分析——涵蓋效能提升、語言偏差與元件消融。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗章節的核心價值不在於絕對效能（仍遠低於人類），而在於系統性分析：語言偏差的揭露、各組件的量化貢獻、失敗模式的識別。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    自我揭露語言偏差是極具誠信的學術行為——17% 的純問題準確率暗示約 88% 的方法改進可能來自語言先驗而非視覺理解。此發現對整個 VQA 領域具有警示意義。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents a <span class="hl-concept">deep learning framework for visual question answering</span> that <span class="hl-method">combines CNN visual encoders with LSTM language models</span> in a <span class="hl-thesis">modular, end-to-end trainable architecture</span>. Beyond the technical contribution, the work provides <span class="hl-thesis">systematic analysis revealing critical insights</span>: the importance of <span class="hl-evidence">stronger visual encoders (ResNet over AlexNet)</span>, the effectiveness of <span class="hl-evidence">LSTM over simpler question encoders</span>, and most critically, the <span class="hl-rebuttal">significant language bias in VQA datasets</span>. The <span class="hl-method">consensus evaluation metrics</span> provide a more fair assessment framework. The <span class="hl-rebuttal">substantial gap to human performance (over 25 points)</span> underscores that VQA remains an open challenge requiring advances in <span class="hl-concept">spatial reasoning, compositional understanding, and grounded language processing</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一個視覺問答的深度學習框架，以模組化、端對端可訓練的架構結合 CNN 視覺編碼器與 LSTM 語言模型。除技術貢獻外，本研究提供了揭示關鍵洞見的系統性分析：更強視覺編碼器的重要性（ResNet 優於 AlexNet）、LSTM 優於較簡單問題編碼器的有效性，以及最關鍵的——VQA 資料集中的顯著語言偏差。共識評估指標提供了更公平的評估框架。與人類表現逾 25 個百分點的顯著差距強調 VQA 仍是一個開放挑戰，需要空間推理、組合式理解與接地語言處理等方面的進步。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申三重貢獻並坦承開放挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論同時承擔「成果總結」與「領域警示」的功能。語言偏差的強調確保後續研究者不會盲目追求數字而忽略評估的公平性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦承 25+ 百分點差距展現了學術謙遜。但未充分討論如何系統性消除語言偏差——這不僅是未來工作，更可能要求根本性的資料集重新設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                VQA 需要聯合視覺<br>與語言理解能力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                模組化 CNN+LSTM<br>架構可系統性探索
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                DAQUAR 準確率<br>7.86% 提升至 19.43%
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                語言偏差使純問題<br>模型達 17% 準確率
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                VQA 仍需空間推理<br>與接地理解的進步
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    模組化的 CNN-LSTM 架構為視覺問答提供了有效的基線，但系統性分析揭示了資料集語言偏差與空間推理不足等根本挑戰，指明了領域的關鍵改進方向。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>語言偏差的揭露與系統性消融：</strong>「純問題」基線達到 17% 準確率的發現，對整個 VQA 領域具有深遠影響——它迫使社群重新審視評估公平性。共識指標的引入同樣具有長期價值，為後續研究建立了更嚴謹的評估標準。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>絕對效能的不足：</strong>19.43% 的準確率與人類表現（50.20%）之間的巨大鴻溝，加上空間推理僅 21% 的 WUPS，表明該方法遠未達到「回答影像問題」的實用門檻。模組化設計雖利於分析，但可能犧牲了深度整合帶來的性能潛力。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

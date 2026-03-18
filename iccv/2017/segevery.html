@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning to Segment Every Thing — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Learning to Segment Every Thing
+                <span class="course-tag">ICCV 2017</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1711.10370" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-transfer">3.2 權重遷移</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Most methods for <span class="hl-concept">object instance segmentation</span> require <span class="hl-rebuttal">all training examples to be labeled with segmentation masks</span>. This paper proposes a <span class="hl-thesis">partially supervised training paradigm</span> that enables learning instance segmentation on categories that have <span class="hl-method">only bounding box annotations</span>, by leveraging <span class="hl-method">mask annotations available for a subset of categories</span>. The core idea is a <span class="hl-concept">weight transfer function</span> that <span class="hl-thesis">predicts mask prediction parameters from detection parameters</span>, enabling the model to generalise segmentation capability to novel categories. The authors train <span class="hl-concept">Mask R-CNN</span> with this approach on <span class="hl-evidence">3000 visual concepts from Visual Genome</span> using <span class="hl-evidence">COCO mask annotations for only 80 categories</span>, achieving significant improvements over baselines.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大多數物件實例分割方法要求所有訓練範例都標註有分割遮罩。本文提出一種部分監督訓練範式，透過利用類別子集的遮罩標註，在僅有邊界框標註的類別上學習實例分割。核心概念是一個權重遷移函數，從偵測參數預測遮罩預測參數，使模型能將分割能力泛化到新類別。作者以此方法在 Visual Genome 的 3000 個視覺概念上訓練 Mask R-CNN，僅使用 COCO 的 80 個類別的遮罩標註，達到顯著優於基線的改善。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從遮罩標註的瓶頸出發，引出部分監督與權重遷移的核心創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「標註瓶頸 -> 部分監督 -> 權重遷移 -> 大規模驗證」的四步推進，涵蓋了問題、方案與成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從 80 個類別遷移到 3000 個類別的規模對比極具衝擊力（37.5 倍放大）。但此類別放大倍率的品質衰減程度未在摘要中量化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Instance segmentation</span> — detecting objects and predicting their pixel-level masks — is a fundamental computer vision task. Current state-of-the-art methods like <span class="hl-concept">Mask R-CNN</span> require <span class="hl-evidence">densely annotated segmentation masks for all categories</span>. However, <span class="hl-rebuttal">obtaining mask annotations is significantly more expensive than bounding box annotations</span> — typically <span class="hl-evidence">5-10 times more costly per instance</span>. This limits instance segmentation systems to a small number of categories (typically about 100 in <span class="hl-evidence">COCO's 80 categories</span>).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實例分割——偵測物件並預測其像素級遮罩——是電腦視覺的基礎任務。目前最先進的方法如 Mask R-CNN 需要所有類別的密集標註分割遮罩。然而，取得遮罩標註的成本遠高於邊界框標註——每個實例通常貴 5 到 10 倍。這限制了實例分割系統只能涵蓋少量類別（通常約 COCO 的 80 個類別）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——以標註成本量化實例分割的可擴展性瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：以「5-10 倍成本」的具體數據使標註瓶頸可量化，為減少標註依賴的研究動機建立經濟學基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體的成本倍數量化問題非常有效。但 5-10 倍的數據來源未被引用，且隨著標註工具的進步，此比率可能已有變化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors ask: <span class="hl-thesis">"Is it possible to train high-quality instance segmentation models without complete instance segmentation annotations for all categories?"</span> They propose a <span class="hl-thesis">partially supervised setting</span> where the category set C splits into <span class="hl-method">set A (with both box and mask annotations) and set B (with only box annotations)</span>. The key hypothesis is that <span class="hl-thesis">detection weights encode visual appearance information that can be transferred to predict segmentation weights</span> for categories in set B, without ever seeing their masks during training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提問：「是否可能在沒有所有類別的完整實例分割標註的情況下，訓練高品質的實例分割模型？」他們提出一種部分監督設定，其中類別集合 C 分割為集合 A（具有邊界框和遮罩標註）與集合 B（僅有邊界框標註）。關鍵假說是偵測權重編碼了可遷移的視覺外觀資訊，能用來預測集合 B 中類別的分割權重，即使在訓練中從未見過它們的遮罩。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心假說提出——以問句形式引出部分監督的研究方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的概念轉折：從「需要完整標註」到「部分標註即可」。關鍵假說（偵測權重可遷移為分割權重）是全文的理論基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以問句開頭的修辭策略引導讀者自然地接受研究方向。「偵測權重編碼外觀資訊」的假說直覺上合理但缺乏理論依據——偵測權重為何包含足夠的形狀資訊來生成遮罩？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Instance segmentation methods</span>, particularly <span class="hl-concept">Mask R-CNN</span>, have achieved impressive results by extending <span class="hl-concept">Faster R-CNN</span> with a mask prediction branch. <span class="hl-concept">Weight prediction networks</span> (or hypernetworks) generate the parameters of one network from the output of another, enabling dynamic architectures. <span class="hl-concept">Transfer learning</span> approaches leverage knowledge from data-rich domains to improve performance in data-scarce settings. <span class="hl-concept">Weakly supervised segmentation</span> methods use image-level labels or bounding boxes as supervision but <span class="hl-rebuttal">typically lag behind fully supervised approaches in quality</span>. The <span class="hl-concept">class-agnostic mask prediction</span> approach provides a natural baseline — training a single mask predictor shared across all categories — but <span class="hl-rebuttal">ignores class-specific shape priors</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實例分割方法，特別是 Mask R-CNN，透過在 Faster R-CNN 上擴展遮罩預測分支取得了令人印象深刻的結果。權重預測網路（或超網路）從一個網路的輸出生成另一個網路的參數，實現動態架構。遷移學習方法利用資料豐富領域的知識來改善資料稀缺設定的效能。弱監督分割方法使用影像級標籤或邊界框作為監督，但通常在品質上落後於全監督方法。類別無關的遮罩預測方法提供了自然的基線——訓練一個跨所有類別共享的單一遮罩預測器——但忽略了類別特定的形狀先驗。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻匯集——將實例分割、超網路、遷移學習與弱監督四條脈絡交織。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立方法的學術譜系：Mask R-CNN 提供架構基礎、超網路提供權重預測的概念工具、遷移學習提供跨域泛化的理論支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將類別無關遮罩作為基線而非競爭者是巧妙的定位——它既是比較對象也是出發點。但弱監督方法作為替代路線的充分比較被省略了。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Architecture Overview — 架構概覽</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method builds on <span class="hl-concept">Mask R-CNN</span>, which predicts a <span class="hl-method">class-specific binary mask for each detected region of interest</span>. In standard Mask R-CNN, the mask head has <span class="hl-method">class-specific parameters w_seg^c for each category c</span>, which are <span class="hl-rebuttal">directly learned from mask annotations</span>. The authors propose replacing this direct learning with a <span class="hl-thesis">weight transfer function</span> that <span class="hl-method">computes w_seg^c = T(w_det^c; theta)</span>, where <span class="hl-method">w_det^c are the detection classification weights for category c</span> and <span class="hl-method">T is a learnable neural network parameterised by theta</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                方法建立在 Mask R-CNN 之上，為每個偵測到的感興趣區域預測類別特定的二元遮罩。在標準 Mask R-CNN 中，遮罩頭部對每個類別 c 具有類別特定的參數 w_seg^c，這些參數直接從遮罩標註學習。作者提出以權重遷移函數取代此直接學習，計算 w_seg^c = T(w_det^c; theta)，其中 w_det^c 是類別 c 的偵測分類權重，T 是由 theta 參數化的可學習神經網路。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心機制——定義權重遷移函數的數學形式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術支柱：T 函數將偵測知識映射到分割知識，其可學習性意味著遷移關係不需手工設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將偵測權重視為「類別嵌入」的隱含假設非常巧妙——如果偵測權重捕捉了類別的視覺本質，那麼形狀資訊確實可能被編碼其中。但此假設的理論基礎薄弱，主要依賴實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-transfer">3.2 Weight Transfer and Training — 權重遷移與訓練</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">weight transfer function T</span> is implemented as a <span class="hl-method">small fully-connected neural network</span>. During training, for categories in set A (with masks), <span class="hl-method">both the detection and segmentation losses are active</span>. For categories in set B (box-only), <span class="hl-method">only the detection loss is used</span>, but the detection weights w_det^c are still updated. At test time, <span class="hl-method">T generates mask parameters for all categories</span>, including those never seen with mask annotations. An important training detail is <span class="hl-method">gradient stopping on the detection weights</span> — preventing gradients from the mask loss from modifying w_det^c — to maintain <span class="hl-method">homogeneity of the class embedding space</span> between sets A and B.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                權重遷移函數 T 實現為一個小型全連接神經網路。訓練時，對集合 A（有遮罩）中的類別，偵測與分割損失均啟用。對集合 B（僅邊界框）中的類別，僅使用偵測損失，但偵測權重 w_det^c 仍會更新。測試時，T 為所有類別生成遮罩參數，包括從未見過遮罩標註的類別。一個重要的訓練細節是對偵測權重進行梯度停止——防止遮罩損失的梯度修改 w_det^c——以維持集合 A 與 B 之間類別嵌入空間的同質性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略——闡明梯度停止等關鍵技術細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    梯度停止是微妙但關鍵的設計：若不停止梯度，集合 A 的偵測權重會被遮罩損失「污染」，破壞其與集合 B 偵測權重的可比較性，導致遷移失敗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    梯度停止的必要性從「嵌入空間同質性」的角度論證，邏輯嚴密。但梯度停止也意味著遮罩資訊無法回饋以改善偵測，可能犧牲了端對端訓練的潛在優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors further propose <span class="hl-method">fusing FCN and MLP mask heads</span> to capture complementary information. The <span class="hl-method">MLP mask predictor captures the "gist" of an object's shape</span> (coarse outline), while the <span class="hl-method">FCN mask predictor captures fine details</span> (edges, concavities). This fusion improves segmentation quality for both seen and unseen categories. The complete model is termed <span class="hl-concept">MaskX R-CNN</span> — Mask R-CNN extended to handle partially supervised training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者進一步提出融合 FCN 與 MLP 遮罩頭部以捕捉互補資訊。MLP 遮罩預測器捕捉物件形狀的「要旨」（粗略輪廓），而 FCN 遮罩預測器捕捉精細細節（邊緣、凹陷）。此融合提升了已知與未知類別的分割品質。完整模型稱為 MaskX R-CNN——Mask R-CNN 擴展以處理部分監督訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構擴展——透過雙頭部融合進一步提升分割品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在權重遷移的核心創新之上疊加工程改良：FCN 的空間精確性與 MLP 的全域形狀理解互補，是務實的效能提升策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「要旨 vs. 細節」的互補性直覺上合理。但增加的模型複雜度（雙頭部）可能使消融分析更加困難——哪些改善來自權重遷移，哪些來自雙頭部融合？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Evaluation on <span class="hl-evidence">COCO 80 categories</span> split into <span class="hl-evidence">VOC (20 classes) and non-VOC (60 classes)</span> subsets demonstrates <span class="hl-evidence">40% relative improvement in mask AP for unseen categories</span> compared to the class-agnostic baseline. <span class="hl-evidence">Ablation studies</span> examine the impact of input embeddings, transfer function architecture, and training procedures. On the <span class="hl-evidence">large-scale Visual Genome experiment (3000 categories)</span>, the model produces reasonable segmentation masks using only 80 COCO mask annotations, with qualitative results showing coherent masks even for <span class="hl-evidence">abstract concepts like "shadows" and "paths"</span>. The <span class="hl-evidence">end-to-end training with gradient stopping</span> outperforms stage-wise training approaches.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 COCO 80 個類別上的評估，分為 VOC（20 類）與非 VOC（60 類）子集，展示了在未見類別上遮罩 AP 相對提升 40%（相較於類別無關基線）。消融研究檢驗了輸入嵌入、遷移函數架構與訓練程序的影響。在大規模 Visual Genome 實驗（3000 個類別）中，模型僅使用 80 個 COCO 遮罩標註即產生合理的分割遮罩，定性結果顯示即使對「陰影」和「路徑」等抽象概念也能生成一致的遮罩。端對端訓練搭配梯度停止優於階段式訓練方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面驗證——從 COCO 的精確消融到 Visual Genome 的大規模展示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱：COCO 實驗提供嚴謹的定量評估，Visual Genome 實驗展示令人印象深刻的規模化能力。40% 的改善令人信服。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「陰影」和「路徑」的分割展示極具視覺衝擊力，但這些抽象概念的遮罩品質如何定量評估？Visual Genome 的定性結果缺乏客觀的定量指標支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper addresses a fundamental bottleneck in instance segmentation: <span class="hl-rebuttal">the requirement for mask annotations for all categories</span>. The proposed <span class="hl-concept">weight transfer function</span> enables <span class="hl-thesis">partially supervised training where mask predictions can be made for categories seen only with bounding boxes</span>. By leveraging the insight that <span class="hl-thesis">detection weights serve as class embeddings encoding visual appearance</span>, the approach achieves <span class="hl-evidence">significant improvements over baselines</span> and scales to <span class="hl-evidence">thousands of categories</span>. The framework opens the door to practical large-vocabulary instance segmentation systems that can leverage the abundantly available bounding box datasets.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文處理實例分割中的根本瓶頸：要求所有類別都有遮罩標註。所提出的權重遷移函數實現了部分監督訓練，使得僅以邊界框見過的類別也能進行遮罩預測。透過利用偵測權重作為編碼視覺外觀的類別嵌入的洞見，此方法顯著優於基線，並可擴展到數千個類別。此框架為實用的大詞彙實例分割系統開啟了大門，使其能利用豐富的邊界框資料集。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申標註瓶頸、權重遷移解法與大規模驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將方法從「技術貢獻」昇華為「實用系統的基石」，以「大詞彙實例分割」的願景收尾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「開啟大門」的修辭具有前瞻性。但未討論權重遷移在視覺上差異極大的類別間（如從「貓」遷移到「椅子」）的效能下限，以及與後續更強的弱監督方法的比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                遮罩標註昂貴<br>限制類別規模
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                權重遷移函數<br>偵測 -> 分割
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                COCO +40% AP<br>Visual Genome 3000 類
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                梯度停止維持<br>嵌入空間同質性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                大詞彙實例分割<br>實用化基石
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過學習從偵測權重到分割權重的遷移函數，可在部分監督設定下將實例分割能力泛化到僅有邊界框標註的數千個類別。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>規模化驗證的說服力：</strong>從 80 個有遮罩的類別遷移到 3000 個類別的 Visual Genome 實驗，展示了方法在極端類別不平衡下的穩健性。40% 的 AP 改善在嚴謹的 COCO 評估下具有高度可信度。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>遷移假說的理論基礎薄弱：</strong>「偵測權重編碼形狀資訊」的核心假說主要依賴實驗驗證而非理論推導。對於形狀差異極大的類別（如從動物遷移到器具），遷移品質的下限未被系統性地探討。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

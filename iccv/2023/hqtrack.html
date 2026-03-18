@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Anything in High Quality — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Tracking Anything in High Quality
+                <span class="course-tag">ICCV 2023</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2307.13974" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-vmos">2.1 VMOS</a>
+        <a href="#sec-refiner">2.2 遮罩精煉</a>
+        <a href="#sec-impl">3. 實作細節</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper introduces <span class="hl-concept">HQTrack</span>, a framework combining <span class="hl-method">video multi-object segmentation (VMOS)</span> with <span class="hl-method">mask refinement (MR)</span>. The system addresses object tracking challenges by <span class="hl-method">propagating masks across frames</span> and applying <span class="hl-method">pre-trained models to enhance mask quality</span>. The authors achieved <span class="hl-evidence">second place in the VOTS2023 challenge</span> without using <span class="hl-thesis">test-time augmentations or model ensembles</span>, demonstrating the effectiveness of the two-component architecture in high-quality tracking and segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 HQTrack，一個結合影片多物件分割（VMOS）與遮罩精煉（MR）的框架。系統透過跨幀傳播遮罩並應用預訓練模型增強遮罩品質來解決物件追蹤挑戰。作者在未使用測試時間增強或模型集成的情況下，於 VOTS2023 挑戰賽中取得第二名，展示了雙組件架構在高品質追蹤與分割中的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以競賽成績（第二名）作為方法有效性的即時驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要強調「無增強無集成」的條件，暗示方法本身的強度而非工程技巧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    競賽第二名是有力的實證，但摘要未提及與第一名的差距。「無增強無集成」的聲明暗示若加入這些技巧可能達到更高排名，但也可能表示方法本身的上限有限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Visual object tracking</span> represents a foundational task in computer vision with applications spanning <span class="hl-evidence">robotics and autonomous driving</span>. The <span class="hl-concept">VOTS2023 challenge</span> broadens traditional tracking constraints by <span class="hl-thesis">merging short-term and long-term tracking, single and multi-target scenarios, using segmentation masks as the primary localization method</span>. This integration presents distinct challenges including <span class="hl-rebuttal">inter-object relationship understanding, multi-target trajectory maintenance, and accurate mask estimation</span>. Previous approaches divide into <span class="hl-concept">online-update trackers</span> and <span class="hl-concept">Siamese-based methods</span>, while recent <span class="hl-concept">Transformer-based architectures</span> offer superior long-range modeling but <span class="hl-rebuttal">primarily address single-object tracking with bounding box outputs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺物件追蹤是電腦視覺的基礎任務，應用涵蓋機器人學與自動駕駛。VOTS2023 挑戰賽擴大了傳統追蹤的範疇，融合短期與長期追蹤、單目標與多目標場景，以分割遮罩作為主要定位方式。此整合帶來了獨特挑戰，包括物件間關係理解、多目標軌跡維持以及精確的遮罩估測。先前的方法分為線上更新追蹤器與孿生網路方法，而近期的 Transformer 架構雖提供更優的長程建模，但主要處理以邊界框為輸出的單物件追蹤。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從追蹤的傳統範式到 VOTS2023 的新挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    VOTS2023 的多維度整合（短/長期、單/多目標、遮罩輸出）精確定義了問題的複雜性，為雙組件架構的必要性鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題框架與特定競賽綁定既是優勢（有明確的基準）也是限制（方法可能過度特化於此競賽設定）。Transformer 方法的「僅邊界框」限制已被後續工作部分克服。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                VOTS2023 presents three primary challenges: <span class="hl-rebuttal">(i) Extended video sequences exceeding 10,000 frames demand robust appearance discrimination and environmental adaptation</span>; <span class="hl-rebuttal">(ii) Objects disappearing and reappearing require specialized tracking mechanisms</span>; <span class="hl-rebuttal">(iii) Fast motion, occlusion, distractors, and tiny objects compound difficulties.</span> The authors propose <span class="hl-concept">HQTrack</span>, comprising a <span class="hl-method">video multi-object segmenter (VMOS)</span> built upon an improved <span class="hl-concept">DeAOT</span> variant with <span class="hl-method">cascaded gated propagation modules and InternImage-T feature extraction</span>, and a mask refiner using <span class="hl-concept">HQ-SAM</span> to address <span class="hl-rebuttal">SAM's limitations with complex object structures</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                VOTS2023 呈現三大主要挑戰：(i) 超過 10,000 幀的長影片序列需要穩健的外觀判別與環境適應能力；(ii) 物件的消失與重現需要特殊的追蹤機制；(iii) 快速運動、遮擋、干擾物與微小物件使困難加劇。作者提出 HQTrack，包含建構於改良 DeAOT 變體之上的影片多物件分割器（VMOS），使用串接式門控傳播模組與 InternImage-T 特徵提取；以及使用 HQ-SAM 的遮罩精煉器，以解決 SAM 在複雜物件結構上的限制。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    具體挑戰與方案對應——將三大困難映射至雙組件設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三項挑戰 -> VMOS 處理追蹤與分割 -> HQ-SAM 處理遮罩品質，形成清晰的問題-方案對應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選用 DeAOT 而非其他 VOS 方法（如 XMem）以及 HQ-SAM 而非原始 SAM 的決策，需消融研究支撐。InternImage-T 作為骨幹的選擇也應與 ResNet、Swin Transformer 等進行比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-vmos">2.1 Video Multi-Object Segmenter (VMOS) — 影片多物件分割器</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">DeAOT</span> incorporates <span class="hl-method">identification mechanisms for unified multi-object association within shared embedding spaces</span>. Its <span class="hl-method">hierarchical propagation through dual-branch gated propagation modules</span> decouples visual and identification embedding propagation, <span class="hl-thesis">mitigating object-agnostic visual information loss during deep propagation</span>. VMOS extends DeAOT by <span class="hl-method">cascading 1/8 scale gated propagation modules for improved tiny object perception</span>. <span class="hl-method">Multi-scale propagation features feed into FPN-based decoders alongside encoder features.</span> <span class="hl-concept">InternImage-T</span> replaces standard backbones, leveraging <span class="hl-method">deformable convolutions for enhanced object discrimination</span> across representative vision tasks. A <span class="hl-method">fixed-length long-term memory of 8 frames</span> addresses memory constraints in lengthy sequences.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DeAOT 引入在共享嵌入空間中進行統一多物件關聯的身份識別機制。其透過雙分支門控傳播模組的層級化傳播，解耦視覺與身份嵌入的傳播，減輕深層傳播中與物件無關的視覺資訊損失。VMOS 透過串接 1/8 尺度的門控傳播模組來改善微小物件的感知，擴展了 DeAOT。多尺度傳播特徵與編碼器特徵一同送入基於 FPN 的解碼器。InternImage-T 取代標準骨幹網路，利用可變形摺積增強物件判別能力。固定長度的 8 幀長期記憶體解決了長序列的記憶體約束。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心組件一——VMOS 的架構設計與對 DeAOT 的改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三項改進（1/8 尺度模組、InternImage-T、固定長度記憶體）各自回應一項挑戰：微小物件、判別力、長序列。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    固定 8 幀的長期記憶體設計簡單有效，但對記憶體更新策略（哪些幀被替換）的描述不夠詳細。1/8 尺度的額外模組增加了計算成本，對即時性要求高的應用可能是瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-refiner">2.2 Mask Refiner (MR) — 遮罩精煉器</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">SAM</span> demonstrates powerful <span class="hl-evidence">zero-shot capabilities through large-scale training on 1.1 billion masks</span> but <span class="hl-rebuttal">struggles with intricate object structures</span>. <span class="hl-concept">HQ-SAM</span> addresses this by <span class="hl-method">injecting learnable output tokens into SAM's mask decoder</span> while maintaining promptable design, efficiency, and zero-shot generalizability. HQTrack employs HQ-SAM as its mask refiner, <span class="hl-method">extracting bounding boxes from VMOS predictions as prompts for HQ-SAM</span>. An <span class="hl-method">IoU threshold selector</span> prevents harmful refinement: <span class="hl-thesis">when IoU between VMOS and HQ-SAM masks exceeds the threshold, refined masks replace originals; otherwise original masks persist</span>. This selective strategy ensures refinement only when beneficial.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SAM 透過在 11 億個遮罩上的大規模訓練展現強大的零樣本能力，但在處理精細物件結構時力有未逮。HQ-SAM 透過在 SAM 的遮罩解碼器中注入可學習的輸出標記來解決此問題，同時保持可提示設計、效率與零樣本泛化能力。HQTrack 採用 HQ-SAM 作為遮罩精煉器，從 VMOS 的預測中提取邊界框作為 HQ-SAM 的提示。IoU 閾值選擇器防止有害的精煉：當 VMOS 與 HQ-SAM 遮罩之間的 IoU 超過閾值時，精煉遮罩取代原始遮罩；否則保留原始遮罩。此選擇性策略確保精煉僅在有益時執行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心組件二——遮罩精煉的策略與安全機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    IoU 閾值選擇器是關鍵的安全閥——它認識到 HQ-SAM 並非總是優於 VMOS，避免了盲目精煉可能帶來的品質下降。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇性精煉是務實的工程設計。但 IoU 閾值的選擇（0.1）需要仔細調校——過低會讓太多低品質精煉通過，過高則失去精煉的效果。此外，以邊界框作為 HQ-SAM 提示可能不如遮罩提示精確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-impl">3. Implementation Details — 實作細節</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">InternImage-T</span> serves as the encoder backbone, balancing accuracy and efficiency. Training occurs in two stages: <span class="hl-method">first-stage pre-training uses synthetic sequences from static image datasets</span>; <span class="hl-method">second-stage fine-tuning employs multi-object segmentation datasets including DAVIS, YouTubeVOS, VIPSeg, BURST, MOTS, and OVIS</span> for robust multi-object understanding. Training utilized <span class="hl-evidence">two A100 GPUs with batch size 16</span>. The <span class="hl-method">long-term memory gap is set to 50 frames</span> (optimized for VOTS video lengths), and inference follows the pipeline <span class="hl-thesis">without test-time augmentation, multi-scale testing, or model ensembles</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                InternImage-T 作為編碼器骨幹，在準確度與效率間取得平衡。訓練分兩階段：第一階段使用靜態影像資料集生成的合成序列進行預訓練；第二階段在多物件分割資料集（包括 DAVIS、YouTubeVOS、VIPSeg、BURST、MOTS、OVIS）上微調以獲得穩健的多物件理解能力。訓練使用兩張 A100 GPU、批次大小 16。長期記憶體間隔設為 50 幀（針對 VOTS 影片長度最佳化），推論時不使用測試時間增強、多尺度測試或模型集成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實作規格——提供完整的訓練配置與超參數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    兩階段訓練（合成預訓練 + 真實微調）是 VOS 領域的成熟範式。6 個微調資料集的廣度確保了多場景泛化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    50 幀的記憶體間隔是為 VOTS 特化的——在其他場景（如監控影片）中可能需要不同的設定。僅使用兩張 A100 的訓練資源相對節制，展現了方法的效率。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Component-wise VMOS analysis demonstrated that <span class="hl-evidence">replacing ResNet50 with InternImage-T improved AUC to 0.611</span>. Adding multi-scale propagation mechanisms achieved <span class="hl-evidence">0.650 AUC, representing 3.9% improvement</span>. <span class="hl-evidence">Long-term memory gap analysis identified 50 frames as optimal</span> for VOTS video sequences. For mask refinement, <span class="hl-evidence">selective refinement using 0.1 IoU threshold optimally balanced benefits against degradation</span>. Final VOTS2023 test set results: InternImage-T replacement yielded <span class="hl-evidence">3.2% AUC increase</span>; SAM-H refinement added 1.4%; <span class="hl-evidence">HQ-SAM-H boosted final AUC to 0.615, ranking second</span>. Joint tracking paradigm showed <span class="hl-thesis">superiority over separate tracking, attributed to improved inter-target relationship understanding</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                組件分析顯示以 InternImage-T 取代 ResNet50 將 AUC 提升至 0.611。加入多尺度傳播機制達到 0.650 AUC，提升 3.9%。長期記憶體間隔分析確認 50 幀為 VOTS 影片序列的最佳值。遮罩精煉方面，使用 0.1 IoU 閾值的選擇性精煉最佳地平衡了效益與退化。VOTS2023 測試集最終結果：InternImage-T 替換帶來 3.2% AUC 提升；SAM-H 精煉增加 1.4%；HQ-SAM-H 將最終 AUC 推升至 0.615，排名第二。聯合追蹤範式展現了優於分離追蹤的表現，歸因於改善的物件間關係理解。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    逐組件消融與最終排名——以累積貢獻展示每個設計選擇的價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從 ResNet50 基線逐步添加改進的消融路徑，清晰量化了每個組件的貢獻：骨幹(3.2%) + 多尺度(3.9%) + 精煉(0.9%)。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    逐步累積的消融設計有效展示了組件價值。但各組件的改進可能並非獨立——交互效應未被探討。HQ-SAM 相比 SAM 僅額外貢獻少量提升（0.615 vs. 不含 HQ 的版本），暗示精煉的邊際效益遞減。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">HQTrack</span> demonstrates <span class="hl-thesis">powerful object tracking and segmentation capabilities through its two-component architecture</span>. <span class="hl-concept">VMOS</span> manages multi-target propagation across video frames while the <span class="hl-concept">mask refiner</span> enhances segmentation quality. The framework achieved <span class="hl-evidence">second place in VOTS2023 without auxiliary techniques</span>, validating its effectiveness for <span class="hl-thesis">high-quality tracking across diverse scenarios</span> including long-term sequences, object disappearance/reappearance, and challenging visual conditions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                HQTrack 透過其雙組件架構展示了強大的物件追蹤與分割能力。VMOS 管理跨影片幀的多目標傳播，而遮罩精煉器增強分割品質。該框架在未使用輔助技巧的情況下於 VOTS2023 中取得第二名，驗證了其在多樣場景下的高品質追蹤有效性，包括長期序列、物件消失/重現以及具挑戰性的視覺條件。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以競賽成績作為終極驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論簡潔地將雙組件各自的角色（VMOS=追蹤、MR=品質）與競賽成績連結，形成完整閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論未討論方法的計算效率（推論速度）以及在 VOTS2023 以外基準上的表現。此外，未提及未來改進方向——如更好的記憶體管理策略或端到端訓練的可能性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>VOTS2023 的多維度<br>追蹤挑戰</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>VMOS + HQ-SAM<br>雙組件分工架構</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>AUC 0.615<br>VOTS2023 第二名</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>IoU 選擇性精煉<br>防止品質退化</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>無需工程技巧<br>即達高品質追蹤</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過將改良的 DeAOT 多物件分割器（VMOS）與 HQ-SAM 遮罩精煉器以選擇性策略結合，可在不依賴測試時間增強或模型集成的情況下，實現長序列多目標的高品質追蹤與分割。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>選擇性精煉的安全機制：</strong>IoU 閾值選擇器認識到 HQ-SAM 並非萬能，在精煉可能降低品質時保留 VMOS 的原始遮罩。此「寧可不改也不錯改」的工程哲學，加上逐組件消融的完整實驗設計，使方法的每個設計選擇都有量化支撐。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>對特定競賽的過度特化：</strong>方法的多項超參數（50 幀記憶體間隔、0.1 IoU 閾值）均針對 VOTS2023 調校，在其他基準或實際應用場景中的泛化能力未經驗證。此外，雙組件的串接設計意味著推論延遲是兩者之和，對即時追蹤應用可能構成瓶頸，但作者未報告推論速度數據。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

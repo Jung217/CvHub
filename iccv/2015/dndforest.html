@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Neural Decision Forests — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Deep Neural Decision Forests
+                <span class="course-tag">ICCV 2015</span>
+                <span class="best-paper-badge">Marr Prize (Best Paper)</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-dndf">3.2 深度神經決策森林</a>
+        <a href="#sec-optimization">3.3 最佳化</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">Deep Neural Decision Forests</span> — a novel approach that unifies <span class="hl-concept">classification trees</span> with the representation learning functionality known from <span class="hl-concept">deep convolutional networks</span>. These two architectures are seamlessly combined by introducing <span class="hl-thesis">a stochastic and differentiable decision tree model, which steers the representation learning usually conducted in the initial layers of a (deep) convolutional network</span>. Our <span class="hl-method">principled, joint and global optimization of split and leaf node parameters</span> is made possible through <span class="hl-method">back-propagation</span>. We achieve <span class="hl-evidence">competitive results on benchmark datasets including MNIST and ImageNet</span>, with <span class="hl-evidence">Top-5 errors of only 7.84%/6.38% on ImageNet validation data</span> when integrating our forests in a single-crop, single/seven model GoogLeNet architecture.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出深度神經決策森林——一種將分類樹與深度摺積網路的表示學習能力統合的新穎方法。這兩種架構透過引入一種隨機且可微分的決策樹模型而無縫結合，該模型引導深度摺積網路初始層中的表示學習。透過反向傳播，我們得以對分裂節點與葉節點參數進行有原則的、聯合的、全域的最佳化。我們在 MNIST 與 ImageNet 等基準資料集上達到具競爭力的結果，將森林整合至單裁剪、單/七模型 GoogLeNet 架構時，在 ImageNet 驗證集上僅有 7.84%/6.38% 的 Top-5 錯誤率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精煉語言描述方法的核心創新與主要成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時承擔「問題引出」與「解決方案預告」的雙重功能：先點出決策樹與深度學習的整合需求，再以實驗數據佐證其有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「無縫結合」的措辭暗示兩種範式的融合是自然且優雅的，但決策樹的離散性與神經網路的連續性之間的張力是一個根本挑戰，需待方法章節說明如何克服。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Deep convolutional neural networks (CNNs)</span> have become the dominant paradigm in visual recognition, yet their <span class="hl-rebuttal">monolithic end-to-end architecture makes them difficult to interpret</span>. On the other hand, <span class="hl-concept">decision trees and random forests</span> offer <span class="hl-thesis">inherent interpretability through their hierarchical partitioning of feature space</span>, but they rely on <span class="hl-rebuttal">hand-crafted features that limit their representational power</span>. <span class="hl-thesis">Combining the representation learning capability of deep networks with the structured, interpretable decision-making of forests</span> promises to capture the best of both worlds.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度摺積神經網路已成為視覺辨識的主流範式，然而其單體式端對端架構使其難以解釋。另一方面，決策樹與隨機森林透過對特徵空間的階層式分割提供固有的可解釋性，但它們依賴手工設計的特徵，限制了表示能力。將深度網路的表示學習能力與森林的結構化、可解釋決策機制相結合，有望兼得兩者之長。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——對比兩種範式的優劣勢，引出整合動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：以「深度網路 vs. 決策森林」的對比鋪陳，兩者各有缺陷，自然導向整合方案的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「兼得兩者之長」的論述極具吸引力，但整合後是否真正保留了決策樹的可解釋性仍有疑問——若分裂函數由深度網路驅動，則分裂決策的語義可能不再直觀。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Previous attempts to combine neural networks and decision trees have been <span class="hl-rebuttal">limited to shallow architectures or disjoint training procedures</span>. Some approaches first train a CNN, then use its features to build a separate forest; others <span class="hl-rebuttal">alternate between optimizing tree parameters and network weights without true joint optimization</span>. Our key insight is that by <span class="hl-thesis">formulating the decision tree with stochastic routing functions based on sigmoid activations</span>, we can make the <span class="hl-method">entire forest differentiable</span> and thus amenable to <span class="hl-method">end-to-end training via stochastic gradient descent</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前結合神經網路與決策樹的嘗試僅限於淺層架構或分離式訓練程序。部分方法先訓練 CNN 再以其特徵建構獨立的森林；另一些則在最佳化樹參數與網路權重之間交替，缺乏真正的聯合最佳化。我們的關鍵洞察在於：透過以 sigmoid 激活函數為基礎的隨機路由函數來公式化決策樹，便可使整個森林可微分，從而適用於透過隨機梯度下降進行的端對端訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——指出先前整合嘗試的根本缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    問題深化：從「為何要整合」轉向「為何先前的整合不夠好」，最終引出「可微分決策樹」這一核心技術突破。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 sigmoid 路由描述為「關鍵洞察」是合理的——這確實解決了決策樹離散性的根本難題。但隨機路由也意味著測試時每個樣本的決策路徑不再唯一，這與傳統決策樹的確定性推論有所不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Random forests</span> have a long history in computer vision, from <span class="hl-concept">Breiman's original formulation</span> to specialized variants for <span class="hl-evidence">pose estimation, segmentation, and object detection</span>. Their strength lies in <span class="hl-thesis">efficient ensemble learning with built-in feature selection</span>. However, they traditionally rely on <span class="hl-rebuttal">pre-defined feature spaces (e.g., HOG, SIFT)</span>, limiting adaptation to task-specific representations. <span class="hl-concept">Deeply-supervised networks</span> and <span class="hl-concept">conditional computation</span> approaches share the spirit of hierarchical decision-making but lack the explicit tree structure that enables principled ensemble methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                隨機森林在電腦視覺領域有著悠久的歷史，從 Breiman 的原始定義到用於姿態估計、分割與物件偵測的特化變體。其優勢在於具備內建特徵選擇的高效集成學習。然而，隨機森林傳統上依賴預定義的特徵空間（如 HOG、SIFT），限制了對任務特定表示的適應能力。深度監督網路與條件計算方法雖然共享階層式決策的精神，但缺少能實現有原則集成方法的顯式樹狀結構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——定位本文在隨機森林與深度學習交匯處的學術脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術譜系：從經典隨機森林到深度監督網路，展示本文是這兩條研究脈絡的交匯點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    巧妙地將「深度監督」與「條件計算」歸為相關但不足的替代方案，突顯顯式樹結構的不可替代性。但 dropout 等正則化技術也能提供某種「路由」功能，此處的文獻覆蓋可能有選擇性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Stochastic Decision Trees</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A conventional decision tree routes each input <span class="hl-method">deterministically</span> to a single leaf node. In contrast, we introduce <span class="hl-concept">stochastic routing</span>: at each split node <em>n</em>, the input is sent to the left child with probability <span class="hl-method">d_n(x; &Theta;) = &sigma;(f_&Theta;(x))</span>, where <span class="hl-method">&sigma; is the sigmoid function</span> and <span class="hl-method">f_&Theta;(x) is the output of the CNN</span> at the corresponding split node. The probability of reaching a leaf <em>l</em> is the <span class="hl-method">product of routing probabilities along the path from root to l</span>. The tree's prediction is a <span class="hl-method">weighted combination of all leaf distributions &pi;_l</span>, where each weight equals the probability of reaching that leaf.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統決策樹以確定性方式將每個輸入路由至單一葉節點。相較之下，我們引入隨機路由：在每個分裂節點 n，輸入以機率 d_n(x; &Theta;) = &sigma;(f_&Theta;(x)) 被送往左子節點，其中 &sigma; 為 sigmoid 函數，f_&Theta;(x) 為 CNN 在對應分裂節點的輸出。到達葉節點 l 的機率為從根到 l 路徑上路由機率的乘積。樹的預測為所有葉分布 &pi;_l 的加權組合，每個權重等於到達該葉節點的機率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法的數學基礎——定義隨機決策樹的機率路由機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是整個方法的數學根基。sigmoid 路由函數是實現可微分決策的關鍵——它將離散的左/右選擇轉化為連續的機率分配。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 sigmoid 軟化決策邊界是優雅的設計，但在推論時所有葉節點皆對預測有貢獻，可能導致計算成本高於傳統決策樹的對數複雜度。作者需說明效率方面的取捨。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 深度神經決策森林 ====== -->
+    <h3 class="subsection-heading" id="sec-dndf">3.2 Deep Neural Decision Forests — 深度神經決策森林</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Deep Neural Decision Forest (dNDF)</span> integrates multiple stochastic decision trees into a forest, where all trees <span class="hl-method">share the same CNN feature extractor</span>. The CNN maps input images to a <span class="hl-method">high-dimensional feature representation</span>, and different subsets of these features are routed to different split nodes across trees. <span class="hl-thesis">This architecture allows the CNN's representation learning to be guided by the forest's decision-making structure</span> — the forest provides gradient signals that encourage the CNN to learn <span class="hl-method">features discriminative at each level of the hierarchical partition</span>. The final prediction averages over all trees: <span class="hl-method">P(y|x) = (1/T) &Sigma;_t P_t(y|x)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度神經決策森林（dNDF）將多棵隨機決策樹整合為森林，所有樹共享同一個 CNN 特徵擷取器。CNN 將輸入影像映射至高維特徵表示，而不同特徵子集被路由至不同樹的不同分裂節點。此架構允許 CNN 的表示學習受森林決策結構的引導——森林提供梯度訊號，鼓勵 CNN 學習在階層式分割的每一層級具有鑑別力的特徵。最終預測為所有樹的平均：P(y|x) = (1/T) &Sigma;_t P_t(y|x)。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心架構描述——展示 CNN 與森林如何整合為統一系統。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的單樹定義，此段將其擴展至森林層級，並闡明共享特徵擷取器的設計如何實現表示學習與決策結構的雙向互動。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「森林引導表示學習」是本文最有力的論點——它不僅是架構的堆疊，而是兩個組件的協同最佳化。但不同特徵子集路由至不同分裂節點的策略若為隨機分配，則可能未充分利用特徵間的相關性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 最佳化 ====== -->
+    <h3 class="subsection-heading" id="sec-optimization">3.3 Optimization — 最佳化</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training proceeds by <span class="hl-method">alternating between two steps</span>. In the first step, the <span class="hl-method">leaf node distributions &pi; are updated</span> by fixing the CNN parameters and solving a <span class="hl-method">convex optimization problem</span> per tree. In the second step, the <span class="hl-method">CNN parameters &Theta; are updated via back-propagation</span> with the leaf distributions held fixed. The loss function is the <span class="hl-method">negative log-likelihood of the data under the forest model</span>. Because the routing functions are <span class="hl-thesis">differentiable sigmoid functions, gradients flow seamlessly from the tree structure back into the CNN</span>, enabling true end-to-end learning. This <span class="hl-method">alternating optimization converges reliably</span> in practice.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練以兩步交替進行。第一步固定 CNN 參數，更新葉節點分布 &pi;，此為每棵樹的一個凸最佳化問題。第二步固定葉分布，透過反向傳播更新 CNN 參數 &Theta;。損失函數為資料在森林模型下的負對數似然。由於路由函數為可微分的 sigmoid 函數，梯度可從樹結構無縫地流回 CNN，實現真正的端對端學習。此交替最佳化在實務上可靠收斂。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練流程——描述交替最佳化策略的具體步驟。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應「如何訓練」的實踐問題：交替最佳化在葉節點的凸性與分裂節點的可微分性之間取得平衡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    交替最佳化是常見的策略，但其全域收斂性並無理論保證——僅稱「實務上可靠收斂」。此外，凸最佳化子問題的計算成本隨葉節點數與類別數增長，對大規模分類任務可能造成瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments are conducted on <span class="hl-evidence">MNIST and ImageNet (ILSVRC 2012)</span>. On MNIST, the dNDF achieves <span class="hl-evidence">state-of-the-art accuracy</span> with a compact model. On ImageNet, integrating the neural decision forest with <span class="hl-concept">GoogLeNet</span> as the feature backbone yields <span class="hl-evidence">Top-5 error rates of 7.84% (single model) and 6.38% (seven-model ensemble)</span> on the validation set, <span class="hl-evidence">improving upon the GoogLeNet baseline of 6.67%</span> in the ensemble setting. Notably, these results are obtained <span class="hl-evidence">without dataset augmentation beyond standard cropping and flipping</span>. <span class="hl-rebuttal">Ablation studies show that increasing the number of trees and tree depth both contribute to performance gains</span>, and that the learned representations differ meaningfully from those of a standard softmax classifier.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗在 MNIST 與 ImageNet（ILSVRC 2012）上進行。在 MNIST 上，dNDF 以精簡模型達到最先進精確度。在 ImageNet 上，將神經決策森林與 GoogLeNet 特徵骨幹整合，在驗證集上取得 7.84%（單模型）與 6.38%（七模型集成）的 Top-5 錯誤率，在集成設定下改善了 GoogLeNet 的 6.67% 基準。值得注意的是，這些結果僅使用標準裁剪與翻轉的資料增強。消融研究顯示，增加樹的數量與深度皆有助於效能提升，且學到的表示與標準 softmax 分類器的表示有本質差異。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證驗證——以多個基準展示方法的定量效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗段覆蓋三個面向：(1) 與 softmax 基準的直接對比；(2) 與集成方法的公平比較；(3) 消融研究確認各設計決策的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    6.38% vs. 6.67% 的改善雖然統計上有意義，但幅度不大。作者未報告計算成本的增加，而森林推論需遍歷所有葉節點可能導致額外開銷。此外，在更強的基準架構（如 ResNet）上的表現尚未驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Deep Neural Decision Forests</span>, a <span class="hl-thesis">principled approach for unifying deep representation learning with stochastic decision forests</span>. By making the decision tree <span class="hl-method">differentiable through sigmoid routing functions</span>, we enable <span class="hl-method">end-to-end joint optimization</span> of the CNN feature extractor and the forest's split and leaf parameters. The resulting model <span class="hl-thesis">benefits from the complementary strengths of both paradigms</span>: the CNN provides powerful learned features while the forest offers structured, ensemble-based prediction. Experiments on <span class="hl-evidence">MNIST and ImageNet demonstrate competitive performance</span>, validating the potential of this hybrid architecture for large-scale visual recognition tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出深度神經決策森林——一種將深度表示學習與隨機決策森林統合的有原則方法。透過 sigmoid 路由函數使決策樹可微分，我們實現了 CNN 特徵擷取器與森林分裂/葉參數的端對端聯合最佳化。所得模型受益於兩種範式的互補優勢：CNN 提供強大的學習特徵，而森林提供結構化的集成式預測。MNIST 與 ImageNet 上的實驗驗證了此混合架構在大規模視覺辨識任務上的潛力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望潛力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應緒論的「兼得兩者之長」承諾，以實驗結果驗證此承諾的達成，形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論維持適度謹慎（「具競爭力」而非「最佳」），但未充分討論局限性，例如模型在推論速度、記憶體占用方面的代價，以及隨機路由是否真正保留了決策樹的可解釋性優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                深度網路缺乏可解釋性<br>決策森林缺乏表示學習
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                可微分隨機決策樹<br>實現端對端聯合最佳化
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ImageNet Top-5 6.38%<br>改善 GoogLeNet 基準
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                交替最佳化可靠收斂<br>消融驗證各組件貢獻
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                CNN + 森林混合架構<br>具備大規模辨識潛力
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過 sigmoid 路由函數將決策樹可微分化，使深度摺積網路與隨機森林能以端對端方式聯合最佳化，在大規模視覺辨識上達到具競爭力的效能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>可微分決策樹的理論優雅性：</strong>sigmoid 路由函數同時解決了離散性難題並保留了樹結構的階層式分割語義，使梯度能無縫流回 CNN。交替最佳化中葉節點更新為凸問題的性質提供了堅實的理論基礎。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>實用性與可擴展性疑慮：</strong>相較於簡單的 softmax 分類器，dNDF 在 ImageNet 上的改善幅度有限（6.38% vs. 6.67%），而模型複雜度與推論成本的增加卻未被充分量化。此外，該方法未在更現代的骨幹（如 ResNet）上驗證，限制了其通用性論述的說服力。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Globally and Locally Consistent Image Completion — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Globally and Locally Consistent Image Completion
+                <span class="course-tag">ICCV 2017</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-disc">3.2 雙判別器</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents a <span class="hl-concept">neural network approach</span> for <span class="hl-concept">image completion</span> that maintains both <span class="hl-thesis">global and local consistency</span>. The method uses a <span class="hl-method">fully-convolutional neural network</span> to complete images of <span class="hl-method">arbitrary resolutions with missing regions of any shape</span>. To ensure coherence, the system employs <span class="hl-thesis">two discriminator networks</span> — a <span class="hl-concept">global discriminator</span> that evaluates overall image consistency and a <span class="hl-concept">local discriminator</span> that assesses the quality of small regions around completed areas. Unlike <span class="hl-concept">patch-based methods</span>, this approach can <span class="hl-thesis">synthesize novel image fragments not present elsewhere in the source image</span>, enabling natural completion of structured objects.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種用於影像補全的神經網路方法，能同時維持全域與區域的一致性。方法使用全摺積神經網路，補全任意解析度且具有任意形狀缺失區域的影像。為確保一致性，系統採用兩個判別器網路——一個全域判別器評估整體影像一致性，一個區域判別器評估補全區域周圍小範圍的品質。與基於修補塊的方法不同，此方法能合成來源影像中其他地方不存在的新穎影像片段，實現結構化物件的自然補全。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以全域與區域一致性的雙重要求引出雙判別器架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的核心張力是「全域一致性 vs. 區域品質」的平衡，雙判別器設計直接回應此雙重需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「合成新穎片段」的主張是與傳統方法的根本區別，極具說服力。但此能力的上限（能生成多複雜的新結構）未被量化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Image completion</span> (or inpainting) aims to fill missing regions in a way that is visually plausible. Traditional <span class="hl-concept">patch-based methods</span> like <span class="hl-concept">PatchMatch</span> search for similar patches within the image to fill holes. While effective for <span class="hl-rebuttal">texture synthesis and repetitive patterns</span>, they <span class="hl-rebuttal">cannot generate semantically meaningful content absent from the image</span> — for example, completing a face when the eye region is missing. <span class="hl-concept">Deep learning approaches</span> like <span class="hl-concept">Context Encoders</span> demonstrated that neural networks can learn to <span class="hl-method">hallucinate plausible content</span>, but results suffered from <span class="hl-rebuttal">blurriness and lacked local detail consistency</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像補全（或修補）旨在以視覺上合理的方式填補缺失區域。傳統基於修補塊的方法如 PatchMatch 在影像內搜尋相似修補塊來填補缺失。雖然對紋理合成與重複圖案有效，但無法生成影像中不存在的語意上有意義的內容——例如，當眼睛區域缺失時補全一張人臉。Context Encoders 等深度學習方法證明了神經網路能學會幻想合理的內容，但結果受到模糊與缺乏區域細節一致性的困擾。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——以傳統方法與早期深度方法的互補缺陷定義問題空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：傳統方法無法生成 + 深度方法缺乏一致性 = 需要兼具生成力與一致性的方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「眼睛補全」為例使問題具體可感。但 Context Encoders 的「模糊」部分歸因於 MSE 損失而非架構限制，此處的歸因可能不夠精確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key insight of this work is that <span class="hl-thesis">ensuring both global structure and local texture quality requires separate evaluation mechanisms</span>. A single discriminator struggles to balance these two aspects. The authors propose a <span class="hl-thesis">completion network trained with two adversarial discriminators</span>: one sees the <span class="hl-method">entire image to judge global coherence</span> (e.g., scene layout, object proportions), and the other focuses on a <span class="hl-method">small region centred on the completed area to judge local texture fidelity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究的關鍵洞見是，確保全域結構與區域紋理品質需要分離的評估機制。單一判別器難以平衡這兩個面向。作者提出以兩個對抗判別器訓練補全網路：一個觀看整張影像以判斷全域一致性（例如場景佈局、物件比例），另一個聚焦於以補全區域為中心的小範圍以判斷區域紋理的保真度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心洞見——揭示單一判別器的根本不足，為雙判別器提供理論動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的概念核心：將「品質」分解為「全域一致性」與「區域保真度」兩個可分離的維度，每個維度各需一個專門的評估機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「分離評估」的直覺非常強。但兩個判別器的梯度訊號可能在訓練中產生衝突——全域判別器可能鼓勵模糊但一致的結果，而區域判別器鼓勵銳利但可能全域不協調的結果。此權衡的處理未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Diffusion-based methods</span> propagate information from boundaries inward, working well for narrow missing regions but failing for large holes. <span class="hl-concept">Patch-based methods</span> (PatchMatch and variants) iteratively search and paste the best matching patches, excelling at <span class="hl-evidence">texture propagation but lacking semantic understanding</span>. <span class="hl-concept">Deep generative models</span>, particularly <span class="hl-concept">Generative Adversarial Networks (GANs)</span>, have opened new possibilities by learning to generate realistic image content. <span class="hl-concept">Context Encoders</span> combined an encoder-decoder architecture with adversarial training for inpainting, while <span class="hl-concept">semantic inpainting</span> methods optimise in the latent space of pre-trained generators. These approaches <span class="hl-rebuttal">typically use only a single discriminator</span> and produce results with noticeable artifacts at completion boundaries.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於擴散的方法從邊界向內傳播資訊，對窄小缺失區域效果良好但對大面積缺失則失敗。基於修補塊的方法（PatchMatch 及其變體）迭代搜尋與貼上最佳匹配修補塊，擅長紋理傳播但缺乏語意理解。深度生成模型，特別是生成對抗網路（GAN），透過學習生成逼真影像內容開啟了新的可能性。Context Encoders 結合編碼器-解碼器架構與對抗訓練進行修補，而語意修補方法在預訓練生成器的潛在空間中進行最佳化。這些方法通常僅使用單一判別器，且在補全邊界處產生明顯的偽影。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻全景——從擴散、修補塊到深度生成三個世代的演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立方法演進的歷史脈絡，以「單一判別器」作為既有深度方法的共同弱點，引出雙判別器的差異化定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將三個世代的方法線性排列暗示持續進步，但未充分承認基於修補塊的方法在某些場景下仍然優越的事實。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Completion Network — 補全網路</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">completion network</span> is a <span class="hl-method">fully convolutional architecture</span> consisting of <span class="hl-method">downsampling layers, dilated convolutional layers, and upsampling layers</span>. <span class="hl-method">Dilated convolutions</span> are used in the bottleneck to <span class="hl-method">increase the receptive field without reducing spatial resolution</span>, allowing the network to aggregate information from a larger context when filling holes. The network accepts an <span class="hl-method">input image with a binary mask indicating missing regions</span> and outputs the completed image. It is <span class="hl-method">fully convolutional</span>, meaning it can handle <span class="hl-thesis">arbitrary input resolutions and arbitrarily shaped missing regions</span> at test time.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                補全網路是一個全摺積架構，由下採樣層、空洞摺積層與上採樣層組成。瓶頸處使用空洞摺積以在不降低空間解析度的情況下增大感受野，使網路在填補缺失時能從更大的上下文彙整資訊。網路接受帶有指示缺失區域的二元遮罩的輸入影像，並輸出補全後的影像。由於完全摺積，在測試時可處理任意輸入解析度與任意形狀的缺失區域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構描述——補全網路的基礎設計與空洞摺積的角色。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立方法的生成端：空洞摺積增大感受野直接回應「長距離上下文」的需求。全摺積的設計保證了測試時的靈活性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    空洞摺積的引入是實用的工程選擇，但其固定的擴張率可能無法自適應地處理不同大小的缺失區域。多尺度策略的缺失可能限制方法的通用性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-disc">3.2 Global and Local Discriminators — 全域與區域判別器</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The training framework employs <span class="hl-thesis">two adversarial discriminator networks</span>. The <span class="hl-concept">global discriminator</span> receives the <span class="hl-method">entire completed image as input</span> and evaluates whether the overall scene is coherent — checking for <span class="hl-method">consistent lighting, perspective, and semantic layout</span>. The <span class="hl-concept">local discriminator</span> receives a <span class="hl-method">small crop centred on the completed region</span> and evaluates whether the local texture and structure are realistic. The total adversarial loss is a <span class="hl-method">weighted combination of both discriminators' outputs</span>. These discriminators serve as <span class="hl-method">auxiliary training networks</span> — they guide the completion network during training but are discarded at inference time.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練框架採用兩個對抗判別器網路。全域判別器接收整張補全影像作為輸入，評估整體場景是否一致——檢查光照、透視與語意佈局的一致性。區域判別器接收以補全區域為中心的小型裁切，評估區域紋理與結構是否逼真。總對抗損失為兩個判別器輸出的加權組合。這些判別器作為輔助訓練網路——在訓練期間引導補全網路，但在推論時被棄用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——詳述雙判別器的分工與協作機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術支柱：雙判別器直接實現「全域+區域一致性」的核心承諾。推論時棄用判別器確保了效率不受影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「輔助訓練網路」的定位清晰——推論時無額外計算成本。但兩個判別器的權重比例選擇是敏感的超參數，不當的權衡可能導致全域一致但區域模糊、或區域銳利但全域不協調。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method is evaluated on <span class="hl-evidence">Places2 for scene completion and CelebA for face inpainting</span>. Compared to <span class="hl-evidence">PatchMatch and Context Encoders</span>, the proposed method produces <span class="hl-evidence">significantly more natural completions</span>, especially for large missing regions and structured content like faces. The <span class="hl-evidence">global discriminator prevents inconsistencies in scene layout</span>, while the <span class="hl-evidence">local discriminator improves texture sharpness</span>. Ablation studies demonstrate that <span class="hl-evidence">removing either discriminator degrades quality</span>: without the global discriminator, completions have good local texture but inconsistent global structure; without the local discriminator, results are globally coherent but locally blurry. The method handles <span class="hl-evidence">object removal, scene completion, and arbitrary-shaped holes</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                方法在場景補全的 Places2 與人臉修補的 CelebA 上評估。與 PatchMatch 和 Context Encoders 相比，所提方法產生明顯更自然的補全結果，尤其對於大面積缺失區域和人臉等結構化內容。全域判別器防止場景佈局的不一致，而區域判別器改善紋理的銳利度。消融研究證明移除任一判別器都會降低品質：沒有全域判別器，補全具有良好的區域紋理但全域結構不一致；沒有區域判別器，結果全域一致但區域模糊。方法能處理物件移除、場景補全與任意形狀的缺失。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面驗證——以對比實驗與消融研究雙重支撐方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融結果完美對應理論預測：全域判別器負責結構、區域判別器負責紋理，兩者缺一不可。這是論證中最強的實證支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究的結果與理論預測的高度一致性極具說服力。但缺乏與當時最先進 GAN 方法的定量指標比較（如 FID、PSNR），定性比較的主觀性較強。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper proposes a <span class="hl-concept">deep image completion</span> method that ensures both <span class="hl-thesis">global and local consistency through a dual-discriminator training framework</span>. The <span class="hl-method">fully-convolutional completion network</span> can process arbitrary resolutions and hole shapes, while the <span class="hl-method">global and local discriminators</span> guide it to produce completions that are both semantically coherent and texturally detailed. The approach <span class="hl-thesis">significantly outperforms patch-based methods and prior deep learning approaches</span>, particularly for <span class="hl-evidence">structured content and large missing regions</span>. The dual-discriminator design is general and could benefit other image generation tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種深度影像補全方法，透過雙判別器訓練框架確保全域與區域的一致性。全摺積補全網路能處理任意解析度與缺失形狀，而全域與區域判別器引導其產生語意一致且紋理細緻的補全結果。此方法顯著優於基於修補塊的方法與先前的深度學習方法，特別是在結構化內容與大面積缺失區域方面。雙判別器設計具有通用性，可惠及其他影像生成任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申雙判別器的核心設計與方法的通用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將雙判別器從「影像補全的技巧」昇華為「通用的影像生成設計原則」，擴大了貢獻的影響範圍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「通用性」的主張具前瞻性但未被實驗驗證——需要在其他生成任務上的測試才能支持此推論。結論未討論方法在高解析度影像上的限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                單一判別器無法<br>兼顧全域與區域
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                全域+區域<br>雙判別器架構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                Places2 / CelebA<br>消融驗證各判別器
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                推論時棄用判別器<br>無額外計算成本
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                雙判別器為通用<br>影像生成設計原則
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以全域判別器確保語意佈局一致性、區域判別器確保紋理保真度的雙判別器訓練框架，能使深度影像補全同時達到全域與區域的品質要求。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>消融實驗的對稱性：</strong>移除全域判別器導致全域不一致、移除區域判別器導致區域模糊，此對稱的消融結果完美驗證了雙判別器各自分工的設計直覺，是論文中最具說服力的實證。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>缺乏定量評估指標：</strong>主要依賴定性比較，缺乏 FID、PSNR 等客觀指標的系統性報告。且兩個判別器的損失權重平衡可能需要針對不同場景調整，方法的泛化穩健性未被充分驗證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

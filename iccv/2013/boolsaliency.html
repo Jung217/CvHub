@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saliency Detection: A Boolean Map Approach — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Saliency Detection: A Boolean Map Approach
+                <span class="course-tag">ICCV 2013</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_iccv_2013/html/Zhang_Saliency_Detection_A_2013_ICCV_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-boolean">3.1 布林映射</a>
+        <a href="#sec-attention">3.2 注意力計算</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose a simple yet powerful <span class="hl-concept">Boolean Map based Saliency (BMS)</span> model for computing <span class="hl-thesis">saliency maps</span> that highlight visually salient regions in images. The method is inspired by the <span class="hl-concept">Gestalt principle of figure-ground segregation</span>: it generates a set of <span class="hl-method">Boolean maps by randomly thresholding the feature maps</span> of an input image, and then computes the <span class="hl-method">saliency map by analyzing the topological structure</span> of these Boolean maps. Unlike most existing bottom-up saliency models that rely on <span class="hl-rebuttal">center-surround contrast computation</span>, our approach exploits <span class="hl-thesis">global properties of the image to detect salient regions</span>. Experimental results on <span class="hl-evidence">five eye tracking benchmark datasets</span> demonstrate that the proposed method <span class="hl-evidence">consistently outperforms ten state-of-the-art saliency models</span>. In addition, we show that BMS also performs well in <span class="hl-evidence">salient object detection tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一個簡潔卻強大的布林映射顯著性（BMS）模型，用以計算能凸顯影像中視覺顯著區域的顯著性圖。該方法受到完形心理學圖地分離原則的啟發：透過對輸入影像的特徵圖進行隨機閾值化以產生一組布林映射，接著藉由分析這些布林映射的拓撲結構來計算顯著性圖。有別於多數依賴中心-環繞對比計算的由下而上顯著性模型，我們的方法利用影像的全域屬性來偵測顯著區域。在五個眼動追蹤基準資料集上的實驗結果證明，所提方法穩定地優於十個最先進的顯著性模型。此外，我們亦展示 BMS 在顯著物件偵測任務上表現出色。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從「顯著性偵測」到「完形心理學動機」再到「布林映射方法」，預告實驗成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題界定與解決方案預告」的雙重功能：先指出現有方法依賴局部對比的侷限，再以完形心理學的全域觀點作為理論基礎提出 BMS。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「簡潔卻強大」開頭，預先建立讀者對方法簡潔性的期待。將方法根植於完形心理學原則增加了理論深度，但「隨機閾值化」的隨機性是否會導致結果不穩定，需在方法章節中進一步釐清。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Visual saliency detection</span> has been a fundamental problem in computer vision and neuroscience. A <span class="hl-concept">saliency map</span> is a topographic representation that highlights <span class="hl-thesis">conspicuous regions</span> in an image, and it plays an important role in many applications such as <span class="hl-evidence">image retargeting, object recognition, and image quality assessment</span>. Most existing <span class="hl-concept">bottom-up saliency models</span> are based on the <span class="hl-concept">center-surround contrast</span> hypothesis, which computes saliency by measuring the <span class="hl-rebuttal">local contrast between a region and its surrounding context</span>. While effective in many cases, this paradigm has inherent limitations in handling <span class="hl-rebuttal">large salient objects or cluttered backgrounds</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺顯著性偵測一直是電腦視覺與神經科學的基礎問題。顯著性圖是一種拓撲表示法，用以凸顯影像中的醒目區域，在影像重定位、物件辨識及影像品質評估等眾多應用中扮演重要角色。大多數現有的由下而上顯著性模型建立在中心-環繞對比假說之上，透過衡量一個區域與其周圍脈絡之間的局部對比來計算顯著性。儘管在許多情況下有效，此範式在處理大型顯著物件或雜亂背景時存在固有的侷限性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義顯著性偵測的重要性並指出現有方法的主流範式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定顯著性偵測的廣泛應用價值，再聚焦於「中心-環繞」範式的侷限，為引入全域方法鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以應用場景列舉（影像重定位、物件辨識等）建立問題的實務重要性。將現有方法統歸為「中心-環繞」範式有所簡化，忽略了如頻域方法、資訊理論方法等其他路線。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, we draw inspiration from the <span class="hl-concept">Gestalt principle of figure-ground segregation</span>. According to this principle, the human visual system tends to <span class="hl-thesis">perceive enclosed regions as figures against the surrounding ground</span>. We operationalize this idea through <span class="hl-method">Boolean maps</span>: binary images obtained by thresholding color channels of the input. Each Boolean map partitions the image into <span class="hl-method">foreground (figure) and background (ground) regions</span>. The saliency of a region is then related to <span class="hl-thesis">its surroundedness — how much it is enclosed by other regions</span>. By computing the <span class="hl-method">mean of the attention maps derived from all Boolean maps</span>, we obtain a robust saliency map that captures global figure-ground structure.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文從完形心理學的圖地分離原則中汲取靈感。根據此原則，人類視覺系統傾向於將被包圍的區域感知為相對於周圍背景的前景圖形。我們透過布林映射將此概念操作化：對輸入影像的色彩通道進行閾值化所得的二值影像。每幅布林映射將影像劃分為前景（圖形）與背景（地面）區域。區域的顯著性與其「被包圍程度」相關——即它被其他區域包圍的程度。透過計算所有布林映射衍生之注意力圖的平均值，我們獲得一幅能捕捉全域圖地結構的穩健顯著性圖。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心思想——將完形心理學原則轉化為計算方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「局部對比的缺陷」轉向「全域圖地分離的優勢」。「被包圍程度」的概念建立了從心理學到計算的橋梁。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以認知心理學原則作為理論支撐是有力的修辭策略，為方法提供了「人類感知合理性」。但完形原則本身具有一定的模糊性，「被包圍程度」在計算上的具體定義需要嚴謹的數學形式化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The seminal <span class="hl-concept">Itti-Koch model</span> computes saliency using <span class="hl-method">multi-scale center-surround differences</span> across color, intensity, and orientation channels. Subsequent models such as <span class="hl-concept">GBVS (Graph-Based Visual Saliency)</span> and <span class="hl-concept">AIM (Attention based on Information Maximization)</span> improve upon this framework but remain fundamentally <span class="hl-rebuttal">local in nature</span>. <span class="hl-concept">Frequency domain approaches</span> like the <span class="hl-concept">Spectral Residual</span> model offer an alternative perspective by analyzing the <span class="hl-method">log-spectrum of an image</span>, yet they <span class="hl-rebuttal">lack explicit connection to perceptual principles</span>. More recent methods incorporate <span class="hl-concept">global context</span> through techniques like <span class="hl-concept">Bayesian surprise</span> or <span class="hl-concept">information-theoretic measures</span>, but they often come with <span class="hl-rebuttal">high computational costs</span>. Our approach uniquely combines <span class="hl-thesis">global structure analysis with computational simplicity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                開創性的 Itti-Koch 模型使用跨越色彩、亮度與方位通道的多尺度中心-環繞差異來計算顯著性。後續模型如 GBVS（基於圖的視覺顯著性）與 AIM（基於資訊最大化的注意力）改進了此框架，但本質上仍屬於局部方法。頻域方法如頻譜殘差模型透過分析影像的對數頻譜提供了替代觀點，然而缺乏與感知原則的明確連結。較近期的方法透過貝氏驚奇或資訊理論度量引入全域脈絡，但往往伴隨高計算成本。我們的方法獨特地結合了全域結構分析與計算簡潔性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性整理顯著性偵測的三大路線及各自侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過三類方法（局部對比、頻域、全域統計）的分類與批判，逐步收窄至 BMS 所佔據的獨特定位：全域性與簡潔性的交集。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    分類清晰且每類均指出不同缺陷，暗示 BMS 是唯一兼具所有優點的方法。但此處的分類有些粗略——例如 GBVS 實際上已透過馬可夫鏈引入了部分全域資訊，並非純粹局部的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-boolean">3.1 Boolean Map Generation — 布林映射生成</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given an input image, we first decompose it into a set of <span class="hl-method">feature channels</span> including the <span class="hl-method">L, a, b channels in CIELAB color space</span>. For each feature channel, we generate multiple <span class="hl-concept">Boolean maps</span> by applying a series of <span class="hl-method">uniformly sampled thresholds</span>. Specifically, for a feature channel with values normalized to [0, 1], we threshold at values <span class="hl-method">t_1, t_2, ..., t_N</span> where these thresholds are evenly spaced. Each threshold produces a <span class="hl-concept">binary image</span> (Boolean map) where pixels above the threshold are set to 1 (foreground) and the rest to 0 (background). This process generates a <span class="hl-evidence">comprehensive set of figure-ground hypotheses</span> that collectively explore different possible segmentations of the image.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                給定一幅輸入影像，我們首先將其分解為一組特徵通道，包括 CIELAB 色彩空間中的 L、a、b 通道。對每個特徵通道，我們透過一系列均勻取樣的閾值生成多幅布林映射。具體而言，對於值正規化至 [0, 1] 的特徵通道，在 t_1, t_2, ..., t_N 等均勻間隔的閾值處進行閾值化。每個閾值產生一幅二值影像（布林映射），高於閾值的像素設為 1（前景），其餘設為 0（背景）。此過程生成一組完整的圖地假設集合，集體地探索影像的不同可能分割。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義布林映射的生成機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此為整個方法的基礎構件。CIELAB 色彩空間的選擇具有感知均勻性的理論依據，均勻閾值確保了對色彩空間的系統性探索。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將複雜的顯著性問題簡化為一系列簡單的閾值化操作，體現了「化繁為簡」的工程哲學。但閾值的數量 N 與間距的選擇可能顯著影響結果品質，作者需說明此超參數的敏感性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-attention">3.2 Attention Computation — 注意力計算</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For each Boolean map, we compute an <span class="hl-concept">attention map</span> based on the <span class="hl-thesis">surroundedness</span> of the foreground regions. The key insight is that <span class="hl-thesis">a connected foreground region that is fully surrounded by background is more likely to be salient</span> than one touching the image border. We implement this using <span class="hl-method">morphological operations</span>: specifically, we apply a <span class="hl-method">flood fill operation from the image borders</span> to identify background-connected regions, then the remaining foreground pixels constitute the <span class="hl-concept">"surrounded" regions</span>. The attention value of each surrounded region is set proportional to its <span class="hl-method">area</span>. The final saliency map is obtained by <span class="hl-method">averaging the attention maps across all Boolean maps and all feature channels</span>, followed by <span class="hl-method">Gaussian smoothing and post-processing normalization</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對每幅布林映射，我們基於前景區域的被包圍程度計算注意力圖。關鍵洞察在於：完全被背景包圍的連通前景區域比接觸影像邊界的區域更可能具有顯著性。我們使用形態學運算來實現此概念：具體而言，從影像邊界執行氾濫填充操作以辨識與背景相連的區域，剩餘的前景像素即構成「被包圍」區域。每個被包圍區域的注意力值與其面積成正比。最終的顯著性圖透過對所有布林映射與所有特徵通道的注意力圖取平均，再經高斯平滑及後處理正規化而獲得。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心演算法——將「被包圍程度」概念轉化為可計算的注意力值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的支柱：氾濫填充操作是對完形心理學「封閉性」原則的精確計算實現。面積加權與跨通道平均則確保了對多重圖地假設的穩健整合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    氾濫填充是一個極其高效的操作（接近線性時間複雜度），這使得方法在保持理論深度的同時具備實用性。但假設「接觸邊界即為背景」的啟發式有可能在顯著物件位於影像邊緣時失效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate BMS on <span class="hl-evidence">five widely-used eye tracking benchmark datasets: MIT, Toronto, NUSEF, Kootstra, and SUN</span>. The method is compared against <span class="hl-evidence">ten state-of-the-art saliency models</span> including <span class="hl-concept">Itti-Koch, GBVS, AIM, SUN, DVA, SIG, AWS, Murray, HouCVPR, and Judd</span>. We use standard evaluation metrics including <span class="hl-evidence">AUC (Area Under the ROC Curve), sAUC (shuffled AUC), and CC (Correlation Coefficient)</span>. Results show that <span class="hl-evidence">BMS achieves the best or second-best performance across all five datasets under all three metrics</span>. Notably, BMS achieves <span class="hl-evidence">an average AUC of 0.933 on the MIT dataset</span>, significantly outperforming the Itti-Koch baseline (0.879). Furthermore, we evaluate BMS on the <span class="hl-evidence">MSRA-B salient object detection dataset</span>, where it also demonstrates <span class="hl-evidence">competitive performance</span> against dedicated salient object detectors, confirming the generality of the approach.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在五個廣泛使用的眼動追蹤基準資料集上評估 BMS：MIT、Toronto、NUSEF、Kootstra 與 SUN。該方法與十個最先進的顯著性模型進行比較，包括 Itti-Koch、GBVS、AIM、SUN、DVA、SIG、AWS、Murray、HouCVPR 及 Judd。我們使用標準評估指標，包括 AUC（ROC 曲線下面積）、sAUC（洗牌 AUC）與 CC（相關係數）。結果顯示，BMS 在所有五個資料集、所有三個指標下均達到最佳或次佳表現。值得注意的是，BMS 在 MIT 資料集上達到 0.933 的平均 AUC，顯著優於 Itti-Koch 基線（0.879）。此外，我們在 MSRA-B 顯著物件偵測資料集上評估 BMS，亦展現出與專用顯著物件偵測器相當的競爭力，確認了該方法的通用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在多個基準與指標下驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是實證支柱，覆蓋兩個維度：(1) 眼動追蹤預測的主要任務表現；(2) 顯著物件偵測的遷移能力。五個資料集×三個指標的組合提供了統計上的穩健性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    大量的資料集與基線比較建立了強大的實證基礎。但作者未報告計算時間的詳細比較——考慮到方法強調「簡潔性」，速度對比將是重要的補充證據。此外，sAUC 作為較嚴格的指標，其結果值得特別關注。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">BMS</span>, a <span class="hl-thesis">Boolean Map based Saliency model</span> that detects visually salient regions by exploiting the <span class="hl-concept">topological structure of Boolean maps</span>. Inspired by the <span class="hl-concept">Gestalt principle of figure-ground segregation</span>, our method computes saliency based on the <span class="hl-thesis">surroundedness of regions</span>, offering a <span class="hl-thesis">fundamentally different perspective from the dominant center-surround contrast paradigm</span>. The method is <span class="hl-evidence">straightforward to implement, computationally efficient, and achieves state-of-the-art performance</span> across multiple benchmark datasets. We believe that the Boolean map representation provides a <span class="hl-thesis">rich and underexplored framework for visual attention modeling</span>, and future work could extend this approach to incorporate temporal information for video saliency detection.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 BMS——一個基於布林映射的顯著性模型，透過利用布林映射的拓撲結構來偵測視覺顯著區域。受完形心理學圖地分離原則啟發，我們的方法基於區域的被包圍程度計算顯著性，提供了有別於主流中心-環繞對比範式的根本性不同視角。該方法實作簡單、計算高效，且在多個基準資料集上達到最先進的表現。我們相信布林映射表示法為視覺注意力建模提供了一個豐富而尚未充分探索的框架，未來的工作可將此方法擴展至納入時間資訊以進行影片顯著性偵測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的結構，從方法回到啟示：布林映射是注意力建模的新框架。影片擴展的展望為後續研究指明了方向，形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論簡潔有力，三重優勢（簡單、快速、準確）的列舉極具說服力。但未充分討論方法的侷限——例如在深度學習快速發展的背景下，手工設計特徵（色彩通道閾值化）的持續競爭力存疑。影片擴展的展望略顯籠統。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                局部對比方法難以處理<br>大型顯著物件
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                布林映射拓撲分析<br>捕捉全域圖地結構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                五個資料集穩定優於<br>十個最先進模型
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                計算簡潔高效<br>非高成本全域方法
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                布林映射是注意力<br>建模的新框架
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過隨機閾值化產生的布林映射之拓撲分析，能以極低的計算成本實現優於中心-環繞對比範式的全域顯著性偵測。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論基礎與實用性的完美結合：</strong>以完形心理學的圖地分離原則為理論根基，透過氾濫填充等簡單影像處理操作加以實現，兼具認知科學的合理性與工程上的高效性。五個資料集的全面優勢進一步鞏固了論證。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>邊界物件的處理假設：</strong>方法的核心假設——接觸影像邊界的區域為背景——在裁切不當的影像或顯著物件部分超出畫面時會失效。此外，基於手工色彩通道的特徵表示在面對深度學習方法時的長期競爭力尚待驗證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

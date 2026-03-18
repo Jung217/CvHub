@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action Recognition with Improved Trajectories — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .topic-badge { display: inline-block; background: linear-gradient(135deg, #5b9bd5, #3a7cc0); color: #fff; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .topic-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Action Recognition with Improved Trajectories
+                <span class="course-tag">ICCV 2013</span>
+                <span class="topic-badge">動作辨識</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://openaccess.thecvf.com/content_iccv_2013/html/Wang_Action_Recognition_with_2013_ICCV_paper.html" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-camera">3.2 攝影機運動估計</a>
+        <a href="#sec-descriptors">3.3 特徵描述子</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Dense trajectories</span> have been shown to be an <span class="hl-evidence">efficient video representation for action recognition</span>. In this paper, we improve the <span class="hl-concept">dense trajectory approach</span> by <span class="hl-thesis">explicitly estimating camera motion and removing it from the optical flow</span>. We use <span class="hl-method">human detection and feature point matching to robustly estimate homographies</span> between consecutive frames. The estimated camera motion is used to <span class="hl-method">cancel out background motion in the optical flow and trajectory shape descriptors</span>. We also propose to remove <span class="hl-method">trajectories consistent with camera motion</span> rather than including them as features. Our <span class="hl-concept">improved trajectories</span> yield <span class="hl-evidence">significant improvements over the original dense trajectories</span> on <span class="hl-evidence">Hollywood2 (64.3%), HMDB51 (57.2%), and UCF50 (91.2%)</span>, achieving <span class="hl-evidence">state-of-the-art results</span> across these benchmarks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                稠密軌跡已被證明是動作辨識中有效的視訊表示。本文透過顯式估計攝影機運動並將其從光流中移除，來改進稠密軌跡方法。我們使用人體偵測與特徵點匹配，在連續影格之間穩健地估計單應矩陣。估計的攝影機運動被用於消除光流與軌跡形狀描述子中的背景運動。我們也提出移除與攝影機運動一致的軌跡，而非將它們納入特徵。改進的軌跡在 Hollywood2（64.3%）、HMDB51（57.2%）與 UCF50（91.2%）上比原始稠密軌跡產生顯著改進，在這些基準上達到最先進的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以攝影機運動補償作為核心改進，預告三個基準上的最先進結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「稠密軌跡的成功→攝影機運動的問題→補償方案→結果改進」的四步遞進清晰展示了研究邏輯。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    直接在摘要中報告三個基準的具體數值是自信的展示方式。但攝影機運動補償的想法並非全新——作者的貢獻在於「如何穩健地做到」而非「概念本身」，這一點在摘要中未被充分區分。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Action recognition</span> in video has received considerable attention due to its applications in <span class="hl-evidence">video surveillance, human-computer interaction, and video retrieval</span>. The <span class="hl-concept">dense trajectory</span> framework proposed by Wang et al. (2011) achieves strong performance by <span class="hl-method">densely sampling feature points and tracking them using optical flow</span>, then computing local descriptors along the trajectories. However, a key limitation is that <span class="hl-rebuttal">dense trajectories do not distinguish between camera-induced motion and object motion</span>. When the camera moves (pan, tilt, zoom), all trajectories are affected, and <span class="hl-rebuttal">background trajectories carry no information about the action but dominate the representation</span>. This motivates our approach: <span class="hl-thesis">by explicitly estimating and compensating for camera motion, we can extract trajectories that truly reflect human actions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視訊中的動作辨識因其在視訊監控、人機互動與視訊檢索等方面的應用而受到大量關注。Wang 等人（2011）提出的稠密軌跡框架透過稠密取樣特徵點並使用光流追蹤它們，再沿軌跡計算局部描述子，達到強勁的表現。然而，一個關鍵限制是稠密軌跡無法區分攝影機引起的運動與物件運動。當攝影機移動（平移、俯仰、變焦）時，所有軌跡都受影響，而背景軌跡不攜帶動作資訊卻主導了表示。這驅動了我們的方法：透過顯式估計並補償攝影機運動，我們能擷取真正反映人類動作的軌跡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——精確指出稠密軌跡的攝影機運動混淆問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「背景軌跡主導表示」的具體缺陷，為攝影機運動補償建立必要性。問題界定非常精確且可操作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題聚焦於「攝影機運動 vs. 物件運動」的分離，使研究動機清晰可懂。但在某些情況下（如追蹤拍攝），攝影機運動本身攜帶了動作的重要語境資訊——完全移除它可能丟失有用信號。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Local spatio-temporal features</span> such as <span class="hl-concept">STIP (Space-Time Interest Points)</span> and <span class="hl-concept">cuboid features</span> have been widely used for action recognition. The <span class="hl-concept">bag-of-visual-words</span> pipeline with <span class="hl-method">HOG, HOF, and MBH descriptors</span> remains the dominant paradigm. <span class="hl-concept">Dense trajectories</span> outperform interest-point-based approaches by providing <span class="hl-evidence">denser coverage and motion-aware sampling</span>. Attempts to handle camera motion include <span class="hl-concept">motion stabilization</span> and <span class="hl-concept">background subtraction</span>, but these are either <span class="hl-rebuttal">too aggressive (removing useful motion)</span> or <span class="hl-rebuttal">require static cameras</span>. Our approach is more principled: we <span class="hl-thesis">estimate a parametric camera motion model and use it to selectively compensate trajectories and descriptors</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                局部時空特徵如 STIP（時空興趣點）與長方體特徵已被廣泛用於動作辨識。基於視覺詞袋的管線搭配 HOG、HOF 與 MBH 描述子仍是主流範式。稠密軌跡透過提供更密集的覆蓋與運動感知的取樣，超越了基於興趣點的方法。處理攝影機運動的嘗試包括運動穩定化與背景相減，但這些方法要麼過於激進（移除有用的運動）要麼需要靜態攝影機。我們的方法更為有原則：估計參數化的攝影機運動模型，並使用它選擇性地補償軌跡與描述子。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——從時空特徵到稠密軌跡的演進，並批判現有的攝影機補償方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「過於激進 vs. 過於限制」的兩難，為本方法「有原則的選擇性補償」創造定位空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將競爭方法的缺陷分為兩類（太激進/太限制）是有效的對比策略。但「更有原則」的宣稱需要實驗證明——是否存在本方法也「太激進」或「不夠充分」的情況？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Dense Trajectories Recap — 稠密軌跡回顧</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">dense trajectory</span> framework <span class="hl-method">densely samples feature points on a regular grid at multiple spatial scales</span>. Points are tracked for <span class="hl-method">L = 15 frames using median filtering of optical flow</span>. Along each trajectory, <span class="hl-method">four types of descriptors</span> are computed within a spatio-temporal volume: <span class="hl-method">trajectory shape (displacement vectors)</span>, <span class="hl-method">HOG (Histogram of Oriented Gradients)</span>, <span class="hl-method">HOF (Histogram of Optical Flow)</span>, and <span class="hl-method">MBH (Motion Boundary Histograms)</span>. Descriptors are encoded using <span class="hl-method">Fisher vectors</span> with <span class="hl-method">GMM vocabularies</span> of 256 Gaussians, and classification is performed with <span class="hl-method">linear SVMs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                稠密軌跡框架在多個空間尺度上以規則網格稠密取樣特徵點。使用光流的中值濾波追蹤點達 L = 15 個影格。沿每條軌跡，在時空體積內計算四種描述子：軌跡形狀（位移向量）、HOG（方向梯度直方圖）、HOF（光流直方圖）與 MBH（運動邊界直方圖）。描述子使用含 256 個高斯分量的 GMM 詞彙進行 Fisher 向量編碼，並以線性 SVM 進行分類。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法基礎——回顧原始稠密軌跡管線的完整流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立改進的基線：讀者需要理解原始方法的每個組件，才能理解改進作用於哪些環節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對基線方法的詳細回顧確保了可重現性。Fisher 向量 + 線性 SVM 的選擇在 2013 年是最先進的編碼方式，但此管線的每個環節都有相當多的超參數（網格密度、軌跡長度、GMM 大小等），改進可能部分來自超參數調整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-camera">3.2 Camera Motion Estimation — 攝影機運動估計</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We estimate camera motion between consecutive frames by computing a <span class="hl-method">homography using RANSAC on matched feature points</span>. To make the estimation robust to <span class="hl-rebuttal">foreground motion (humans performing actions)</span>, we employ two strategies: (1) we use a <span class="hl-method">human detector to identify and exclude foreground regions</span> from the feature matching, and (2) we rely on <span class="hl-method">RANSAC's outlier rejection</span> to handle remaining foreground points. The estimated homography <em>H</em> captures the <span class="hl-method">dominant planar camera motion (pan, tilt, rotation)</span>. We then <span class="hl-method">warp each frame by the inverse homography</span> to obtain a <span class="hl-concept">camera-motion-compensated optical flow</span>. This compensated flow ideally captures <span class="hl-thesis">only the independent motion of objects in the scene</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們透過在匹配特徵點上使用 RANSAC 計算單應矩陣來估計連續影格間的攝影機運動。為使估計對前景運動（人類執行動作）具穩健性，我們採用兩種策略：(1) 使用人體偵測器辨識並排除前景區域的特徵匹配；(2) 依賴 RANSAC 的離群值拒絕機制來處理殘餘的前景點。估計的單應矩陣 H 捕捉主導性的平面攝影機運動（平移、俯仰、旋轉）。我們接著以逆向單應矩陣對每個影格進行變形，以取得攝影機運動補償後的光流。此補償後的光流在理想情況下僅捕捉場景中物件的獨立運動。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——詳述攝影機運動估計的穩健方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術核心：「人體偵測排除 + RANSAC 離群值拒絕」的雙重穩健策略直接解決了前景運動對攝影機估計的干擾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    雙重穩健策略的設計合理，但單應矩陣假設場景為平面或攝影機做純旋轉——在有顯著深度變化的場景中，此模型可能不夠精確。此外，人體偵測器的失敗（如遮擋或不尋常姿態）會直接影響攝影機運動的估計品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-descriptors">3.3 Improved Descriptors — 改進的描述子</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                With the estimated camera motion, we make three improvements to the descriptors: (1) <span class="hl-method">Trajectory shape descriptors are computed from the compensated optical flow</span>, so they encode only object motion; (2) <span class="hl-method">HOF descriptors are computed from the compensated flow</span> rather than the raw flow; (3) <span class="hl-method">Trajectories that are consistent with the estimated camera motion (background trajectories) are removed</span> entirely. The MBH descriptor, which already computes <span class="hl-method">derivatives of optical flow</span>, is <span class="hl-rebuttal">relatively insensitive to global translational camera motion</span> and thus benefits less from compensation. However, <span class="hl-evidence">even MBH shows improvement when camera rotation is significant</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                利用估計的攝影機運動，我們對描述子做了三項改進：(1) 軌跡形狀描述子從補償後的光流計算，因此僅編碼物件運動；(2) HOF 描述子從補償後的光流而非原始光流計算；(3) 與估計攝影機運動一致的軌跡（背景軌跡）被完全移除。MBH 描述子本身計算光流的導數，對全域平移式攝影機運動相對不敏感，因此從補償中獲益較少。然而，當攝影機旋轉顯著時，即使 MBH 也展現改進。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    改進細節——說明攝影機補償如何融入各描述子。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將攝影機補償的效益具體落實到每個描述子上，展現改進的系統性。MBH 的特殊情況討論顯示了對方法的深入理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 MBH 的坦誠分析（受益較少但旋轉時仍有改進）展現了學術誠實，也暗示了補償的效益因描述子類型而異。但未討論補償引入的誤差——不完美的攝影機估計可能反而汙染某些描述子。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on three challenging benchmarks: <span class="hl-evidence">Hollywood2 (12 action classes from movies)</span>, <span class="hl-evidence">HMDB51 (51 action classes from diverse sources)</span>, and <span class="hl-evidence">UCF50 (50 action classes from YouTube)</span>. Our improved trajectories achieve <span class="hl-evidence">64.3% on Hollywood2</span> (vs. 58.2% for original dense trajectories), <span class="hl-evidence">57.2% on HMDB51</span> (vs. 48.3%), and <span class="hl-evidence">91.2% on UCF50</span> (vs. 85.6%). The improvements are <span class="hl-evidence">largest on datasets with significant camera motion</span> (Hollywood2 movies involve extensive camera movement). <span class="hl-evidence">Ablation studies</span> confirm that (1) camera motion compensation in trajectory shape and HOF descriptors provides the most benefit, (2) removing background trajectories further improves performance, and (3) <span class="hl-evidence">combining all improved descriptors with Fisher vectors achieves the best results</span>. Our method achieves <span class="hl-evidence">state-of-the-art on all three benchmarks</span> at the time of publication.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在三個具挑戰性的基準上進行評估：Hollywood2（12 個來自電影的動作類別）、HMDB51（51 個來自多種來源的動作類別）與 UCF50（50 個來自 YouTube 的動作類別）。改進的軌跡在 Hollywood2 上達到 64.3%（原始稠密軌跡為 58.2%），HMDB51 上 57.2%（原為 48.3%），UCF50 上 91.2%（原為 85.6%）。改進在攝影機運動顯著的資料集上最大（Hollywood2 電影涉及大量攝影機運動）。消融研究確認：(1) 軌跡形狀與 HOF 描述子的攝影機運動補償提供最大效益；(2) 移除背景軌跡進一步改善表現；(3) 結合所有改進描述子與 Fisher 向量達到最佳結果。本方法在發表時達到三個基準上的最先進結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——三個基準的定量結果與系統性消融研究。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證核心：6-9% 的一致性提升、消融研究的系統驗證，以及改進與攝影機運動量的正相關，共同構成強力的證據鏈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究的設計嚴謹，逐項驗證了每個改進組件的貢獻。但 HMDB51 的 57.2% 準確率雖為最先進，絕對值仍不高，顯示動作辨識任務本身的挑戰性。UCF50 的 91.2% 則可能受限於資料集的飽和效應。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">improved trajectories</span> for action recognition by <span class="hl-thesis">explicitly estimating and compensating for camera motion</span>. Our approach consistently improves upon the original <span class="hl-concept">dense trajectory</span> framework across <span class="hl-evidence">multiple challenging benchmarks</span>, with the largest gains on videos with significant camera motion. The key insight is that <span class="hl-thesis">separating camera-induced motion from true object motion leads to more discriminative representations</span>. The approach is simple, effective, and compatible with the standard bag-of-words pipeline. Future directions include incorporating <span class="hl-rebuttal">depth information</span> for more accurate camera estimation and exploring <span class="hl-rebuttal">deep learning approaches</span> for learning motion-compensated representations end-to-end.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了透過顯式估計並補償攝影機運動而改進的動作辨識軌跡。我們的方法在多個具挑戰性的基準上一致地改進了原始稠密軌跡框架，在攝影機運動顯著的視訊上獲得最大增益。關鍵洞見在於：將攝影機引起的運動與真正的物件運動分離，能帶來更具辨別力的表示。此方法簡單、有效，且與標準的視覺詞袋管線相容。未來方向包括結合深度資訊以獲得更準確的攝影機估計，以及探索深度學習方法以端對端地學習運動補償表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心洞見並展望深度學習方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將技術貢獻提煉為一個簡潔的洞見（「分離攝影機運動與物件運動」），並以「簡單、有效」為方法的實用性背書。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提及「深度學習方法」作為未來方向頗具先見之明（2013 年深度學習在動作辨識中尚未成為主流）。但這也暗示了手工特徵管線的長期局限性——後續確實被端對端的深度學習方法所取代。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                稠密軌跡混淆<br>攝影機與物件運動
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                顯式攝影機運動補償<br>提升軌跡辨別力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                三基準最先進<br>6-9% 一致性提升
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                單應矩陣假設<br>深度場景的限制
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                運動分離是有效<br>且通用的改進策略
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過穩健地估計攝影機運動並從稠密軌跡的光流與描述子中將其移除，可以顯著提升動作辨識的表現，尤其在攝影機運動明顯的場景中。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>一致且顯著的改進：</strong>在三個不同特性的基準（電影、多源、YouTube）上均取得 6-9% 的提升，且改進幅度與攝影機運動量正相關——這直接驗證了方法的動機。消融研究系統性地拆解了每個改進組件的貢獻，邏輯完整。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>攝影機運動模型的簡化：</strong>單應矩陣假設場景為平面或攝影機做純旋轉，在具有顯著視差的場景中不成立。此外，完全移除背景軌跡可能丟失有用的場景語境資訊——例如「在操場上跑步」與「在室內跑步」的區分可能依賴背景。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

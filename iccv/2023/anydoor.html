@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnyDoor: Zero-shot Object-level Image Customization — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                AnyDoor: Zero-shot Object-level Image Customization
+                <span class="course-tag">ICCV 2023</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2307.09481" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-id-feature">3.1 身份特徵</a>
+        <a href="#sec-detail-feature">3.2 細節特徵</a>
+        <a href="#sec-injection">3.3 特徵注入</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work presents <span class="hl-concept">AnyDoor</span>, a <span class="hl-method">diffusion-based image generator</span> with the power to <span class="hl-thesis">teleport target objects to new scenes at user-specified locations in a harmonious way</span>. The model trains once and <span class="hl-thesis">generalizes to diverse object-scene combinations without tuning parameters</span>. It uses <span class="hl-method">identity features complemented by detail features</span> that maintain texture while allowing local variations. The approach leverages <span class="hl-method">video datasets to observe object variations</span>, enhancing generalizability. <span class="hl-evidence">Experiments demonstrate superiority over existing methods</span> with applications in virtual try-on and object moving.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究提出 AnyDoor，一種基於擴散模型的影像生成器，能夠將目標物件以和諧的方式傳送至新場景中使用者指定的位置。模型只需訓練一次，即可泛化到各種物件與場景的組合而無須調整參數。該方法使用身份特徵搭配細節特徵，在保持紋理的同時允許局部變異。此外，透過利用影片資料集觀察物件的多樣變化來增強泛化能力。實驗結果顯示其優於現有方法，並可應用於虛擬試穿與物件移動等任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「傳送（teleport）」的隱喻精準傳達 AnyDoor 的核心能力：將任意物件零樣本地植入新場景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時承擔問題定義（物件級影像客製化）與方案預告（身份+細節雙特徵、影片資料訓練策略）的雙重功能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「訓練一次即可泛化」的宣稱極具吸引力，但實際的泛化範圍（物件類型、場景複雜度）需待實驗章節驗證。「和諧方式」的定義也較為主觀。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Image generation has advanced significantly through <span class="hl-concept">diffusion models</span>. While existing work explores editing posture, style, and content through instructions, <span class="hl-concept">AnyDoor</span> specifically addresses <span class="hl-thesis">"object teleportation" — accurately placing target objects into desired scene locations</span> by re-generating box-marked regions. <span class="hl-rebuttal">Paint-by-Example and ObjectStitch take a target image as template to edit scene regions, but could not generate ID-consistent contents, especially for untrained categories.</span> AnyDoor overcomes this by enabling <span class="hl-thesis">zero-shot, high-quality ID-consistent compositions without fine-tuning</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像生成透過擴散模型取得了長足進展。儘管現有研究探索透過指令編輯姿態、風格與內容，AnyDoor 專門解決「物件傳送」問題——藉由重新生成框選區域，將目標物件精確放置到期望的場景位置。Paint-by-Example 與 ObjectStitch 雖以目標影像為範本編輯場景區域，但無法生成身份一致的內容，尤其是對未訓練的類別。AnyDoor 透過實現零樣本、高品質且身份一致的合成來克服這一問題，且無需微調。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從擴散模型的廣泛進展收窄到「物件級客製化」的具體問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：先肯定擴散模型的成就，再指出既有方法（Paint-by-Example、ObjectStitch）在身份一致性上的缺陷，為 AnyDoor 的必要性鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者以「尤其是對未訓練的類別」精確指出競爭方法的弱點，暗示其泛化能力不足。但此處未提及 DreamBooth 等微調方法的優勢場景，可能略顯片面。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core contribution involves representing objects through <span class="hl-method">identity and detail-related features</span>, <span class="hl-method">composite interaction with background scenes</span>, and <span class="hl-method">injecting these features into pre-trained diffusion models</span>. Training leverages both <span class="hl-method">video and image data</span> with an <span class="hl-method">adaptive timestep sampler</span>. The identity features are extracted using <span class="hl-concept">DINO-V2</span> backbone which encodes images as <span class="hl-evidence">global tokens (1x1536) and patch tokens (256x1536)</span>, concatenated and projected into the embedding space of the pre-trained UNet via a single linear layer.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                核心貢獻在於透過身份與細節相關特徵來表示物件、與背景場景進行複合互動，以及將這些特徵注入預訓練的擴散模型。訓練同時利用影片與影像資料，搭配自適應時間步取樣器。身份特徵使用 DINO-V2 骨幹網路提取，將影像編碼為全域標記（1x1536）與區塊標記（256x1536），串接後透過單一線性層投影至預訓練 UNet 的嵌入空間。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方案架構預覽——列舉三大技術支柱（身份特徵、細節特徵、特徵注入）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在論證鏈中扮演「解決方案概述」的角色，為後續方法章節的深入展開提供路線圖。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選用 DINO-V2 而非 CLIP 作為身份編碼器是關鍵設計決策——DINO-V2 更擅長捕捉局部視覺特徵而非語義級資訊。但依賴單一線性層進行空間對齊可能限制了表示的豐富度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Local image editing</span> methods focused on text-guided local region editing. <span class="hl-concept">Blended Diffusion</span> conducts multi-step blending; <span class="hl-concept">InpaintAnything</span> combines SAM and Stable Diffusion; <span class="hl-concept">Paint-by-Example</span> uses CLIP image encoders; <span class="hl-concept">ObjectStitch</span> proposes content adaptors. However, <span class="hl-rebuttal">"those methods could only give coarse guidance for generations and often fail to synthesize ID-consistent results."</span> <span class="hl-concept">Customized image generation</span> methods like <span class="hl-concept">Textual Inversion</span> and <span class="hl-concept">DreamBooth</span> fine-tune models for specific objects, achieving high fidelity but <span class="hl-rebuttal">lacking scenario/location specification</span> and requiring extensive per-object tuning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                局部影像編輯方法著重於文字引導的區域編輯。Blended Diffusion 進行多步融合；InpaintAnything 結合 SAM 與 Stable Diffusion；Paint-by-Example 使用 CLIP 影像編碼器；ObjectStitch 提出內容適配器。然而，這些方法只能為生成提供粗略引導，且往往無法合成身份一致的結果。客製化影像生成方法如 Textual Inversion 與 DreamBooth 針對特定物件微調模型，雖可達到高保真度，但缺乏場景與位置的指定能力，且需要針對每個物件進行大量微調。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統分類既有方法（局部編輯 vs. 客製化生成），並逐一指出不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「無人能兼顧身份一致性與場景指定」的研究缺口，為 AnyDoor 的雙特徵設計提供動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將競爭方法歸類為「粗略引導」略顯簡化——Paint-by-Example 在同類別物件上的表現其實相當不錯。分類方式（編輯 vs. 客製化）有效凸顯 AnyDoor 的跨類定位。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-id-feature">3.1 Identity Feature Extraction — 身份特徵提取</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method employs pre-trained visual encoders for identity extraction. <span class="hl-method">"Before feeding the target image into the ID extractor, we remove the background with a segmentor and align the object to the image center."</span> The <span class="hl-concept">DINO-V2</span> backbone encodes images as <span class="hl-evidence">global tokens (1x1536) and patch tokens (256x1536)</span>, concatenated for preservation. <span class="hl-method">"A single linear layer as a projector aligns these tokens to the embedding space of the pre-trained text-to-image UNet,"</span> producing <span class="hl-evidence">ID tokens of 257x1024 dimensions</span>. Unlike <span class="hl-concept">CLIP</span>'s semantic-level information, <span class="hl-thesis">DINO-V2 captures discriminative visual features crucial for identity preservation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                該方法採用預訓練的視覺編碼器進行身份提取。在將目標影像送入身份提取器之前，先以分割器移除背景並將物件對齊至影像中心。DINO-V2 骨幹網路將影像編碼為全域標記（1x1536）與區塊標記（256x1536），串接以完整保留資訊。一個線性層作為投影器，將這些標記對齊至預訓練文生圖 UNet 的嵌入空間，產生 257x1024 維度的身份標記。有別於 CLIP 的語義級資訊，DINO-V2 捕捉了對身份保持至關重要的判別性視覺特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法核心第一步——定義身份特徵的提取方式與編碼架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「背景移除 + 中心對齊」的前處理消除了干擾因素，使 DINO-V2 專注於物件本體。全域+區塊標記的設計兼顧全局語義與局部細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選用 DINO-V2 而非 CLIP 的決策經消融研究驗證，但投影器僅用單一線性層，可能在跨域遷移時表示力不足。區塊標記的固定數量（256）也可能限制對極大或極小物件的適應性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-detail-feature">3.2 Detail Feature Extraction — 細節特徵提取</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recognizing that ID tokens lose spatial resolution for fine details, the method adds <span class="hl-method">detail guidance through a high-frequency map</span>. <span class="hl-method">"Using collage as controls could provide strong priors,"</span> however collages risk over-constraining results. An <span class="hl-concept">information bottleneck</span> addresses this through <span class="hl-method">high-frequency mapping using Sobel kernels</span> (horizontal and vertical), applies <span class="hl-method">Hadamard products for RGB color extraction</span>, and filters contour information with eroded masks. This <span class="hl-thesis">"maintains the fine details yet allows versatile local variants like gesture, lighting, orientation."</span> A <span class="hl-concept">ControlNet-style UNet encoder</span> processes the stitched collage to produce hierarchical resolution detail maps.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                鑑於身份標記在精細細節上會喪失空間解析度，該方法透過高頻圖添加細節引導。雖然以拼貼作為控制條件可提供強先驗，但拼貼有過度約束結果的風險。資訊瓶頸透過使用 Sobel 核（水平與垂直方向）的高頻映射來解決此問題，應用 Hadamard 乘積提取 RGB 色彩，並以侵蝕遮罩過濾輪廓資訊。這「在保持精細細節的同時允許姿態、光照、方向等多樣的局部變異」。ControlNet 風格的 UNet 編碼器處理拼接後的拼貼，產生層級化的解析度細節圖。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法核心第二步——解決身份標記無法保留的精細紋理問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    與 3.1 形成互補：身份特徵負責「是什麼物件」，細節特徵負責「物件長什麼樣」。資訊瓶頸設計是關鍵平衡點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    Sobel 核提取高頻資訊的設計精妙——保留邊緣與紋理但丟棄低頻結構，使模型能自由調整姿態。但 Sobel 核對噪聲敏感，在低品質輸入影像上可能產生不穩定的細節引導。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-injection">3.3 Feature Injection — 特徵注入</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">"ID tokens replace text embedding and inject into each UNet layer via cross-attention. Detail maps concatenate with UNet decoder features at each resolution."</span> Training freezes <span class="hl-method">pre-trained UNet encoder parameters</span> while tuning the decoder for task adaptation. The training strategy collects image pairs from <span class="hl-evidence">video datasets (YouTubeVOS, YouTubeVIS, UVO, MOSE, VIPSeg, BURST)</span> and <span class="hl-evidence">image sources (MVImgNet, VitonHD, FashionTryon, MSRA-10K, DUT, HFlickr, LVIS, SAM subset)</span>. An <span class="hl-method">adaptive timestep sampler</span> adjusts denoising focus: <span class="hl-thesis">"early denoising steps focus on overall structure, pose, and view; later steps cover fine details like texture and colors."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                身份標記取代文字嵌入，透過交叉注意力機制注入 UNet 的每一層。細節圖則在各解析度層級與 UNet 解碼器的特徵進行串接。訓練時凍結預訓練 UNet 編碼器的參數，僅微調解碼器以適應任務。訓練策略從影片資料集（YouTubeVOS、YouTubeVIS、UVO、MOSE、VIPSeg、BURST）和影像來源（MVImgNet、VitonHD、FashionTryon 等）收集影像對。自適應時間步取樣器調整去噪重心：早期去噪步驟聚焦於整體結構、姿態和視角；後期步驟處理紋理和色彩等精細細節。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法整合——描述雙特徵如何注入擴散模型以及訓練策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將前兩節定義的特徵（身份+細節）與預訓練擴散模型串接，完成從「特徵提取」到「影像生成」的完整管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    影片資料的使用是巧妙的訓練策略——同一物件在不同幀中自然呈現姿態與光照變化，提供了免費的配對訓練資料。自適應時間步取樣器的設計也展現了對擴散模型去噪過程的深入理解。但大量資料來源的混合訓練可能引入分布不一致問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method uses <span class="hl-evidence">Stable Diffusion V2.1</span> with <span class="hl-evidence">512x512 image processing</span>. Evaluation uses <span class="hl-evidence">30 new concepts from DreamBooth with 80 COCO-Val scene images, generating 2,400 combinations</span>. Metrics include <span class="hl-evidence">CLIP-Score, DINO-Score, and user studies with 15 annotators</span>. Compared against reference-based methods (Paint-by-Example, Graphit, SD inpainting), AnyDoor maintains <span class="hl-evidence">"highly-faithful details" where competitors maintain only semantic consistency</span>. Against tuning-based methods (DreamBooth, Custom Diffusion), AnyDoor achieves <span class="hl-thesis">"high-fidelity results for multi-subject composition without parameter tuning"</span> while tuning-based methods require approximately one hour of fine-tuning per object. User study scores: <span class="hl-evidence">AnyDoor — quality 3.04, fidelity 3.06, diversity 2.88</span>, outperforming Paint-by-Example (2.71, 2.10, 3.04) and Graphit (2.65, 2.11, 2.84).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                該方法以 Stable Diffusion V2.1 為基礎，處理 512x512 的影像。評估使用 DreamBooth 的 30 個新概念搭配 80 張 COCO-Val 場景影像，生成 2,400 種組合。度量指標包括 CLIP 分數、DINO 分數以及 15 位標註者的使用者研究。與參考式方法（Paint-by-Example、Graphit、SD 修復）相比，AnyDoor 保持了高度忠實的細節，而競爭者僅能維持語義一致性。與微調式方法（DreamBooth、Custom Diffusion）相比，AnyDoor 在無需參數微調的情況下達到多主體合成的高保真結果，而微調方法每個物件約需一小時的微調時間。使用者研究分數：AnyDoor 的品質 3.04、保真度 3.06、多樣性 2.88，優於 Paint-by-Example（2.71、2.10、3.04）與 Graphit（2.65、2.11、2.84）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實證支撐——以定量與使用者研究雙重驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗覆蓋三個維度：(1) 與參考式方法比較身份保持能力；(2) 與微調式方法比較效率；(3) 使用者研究提供主觀品質評估。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    2,400 種組合的評估規模相當充分。但 AnyDoor 在多樣性（2.88）上略低於 Paint-by-Example（3.04），暗示身份保持可能以犧牲部分生成多樣性為代價。此外，512x512 的解析度在當今標準下偏低。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">AnyDoor</span> provides <span class="hl-thesis">"a universal solution for general region-to-region mapping tasks"</span> through <span class="hl-method">discriminative ID extraction</span> and <span class="hl-method">frequency-aware detail extraction</span>. Training on combined video and image data enables <span class="hl-thesis">zero-shot object teleportation</span> with applications across image editing, composition, and synthesis tasks. The approach demonstrates that <span class="hl-thesis">a single trained model can handle diverse object-scene combinations</span> without per-object fine-tuning, opening possibilities for <span class="hl-evidence">virtual try-on, object moving, and flexible scene composition</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                AnyDoor 透過判別性身份提取與頻率感知的細節提取，提供了通用的區域對區域映射任務解決方案。在影片與影像資料的聯合訓練下，實現了零樣本物件傳送，可應用於影像編輯、合成等任務。該方法證明單一訓練過的模型即可處理多樣的物件-場景組合而無需逐物件微調，為虛擬試穿、物件移動與靈活場景合成開啟了可能性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望應用場景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的「傳送」隱喻，將技術貢獻（雙特徵架構）與實際價值（零樣本泛化）連結，形成完整論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「通用解決方案」的措辭或許過於自信。結論未討論失敗案例與局限性，如對高度遮擋場景或極端視角變化的處理能力，以及 512x512 解析度對下游應用的限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                物件級影像客製化<br>缺乏身份一致性與泛化能力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                身份+細節雙特徵<br>實現零樣本物件傳送
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                2,400 組合評估<br>使用者研究優於競爭者
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                影片資料訓練策略<br>克服姿態/視角變異
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                通用區域對區域映射<br>無需逐物件微調
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過 DINO-V2 身份特徵與高頻細節特徵的雙軌設計，搭配影片資料的自適應訓練策略，實現了無需微調即可將任意物件零樣本植入新場景的擴散式影像生成。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>身份與細節的解耦設計：</strong>以 DINO-V2 捕捉全域身份、Sobel 核提取高頻細節，兩者注入路徑分離（交叉注意力 vs. 特徵串接），巧妙平衡了身份保持與姿態靈活性。影片資料的引入更是免費獲取了自然物件變異的訓練信號。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>泛化邊界未充分探索：</strong>論文未系統性地分析失敗案例——如極端遮擋、透明物件、反光材質或複雜光照條件下的表現。此外，512x512 的解析度限制以及多樣性得分略低於競爭方法，暗示保真度與多樣性之間的取捨尚有改善空間。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

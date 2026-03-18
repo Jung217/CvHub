@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nerfstudio: A Modular Framework for Neural Radiance Field Development — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Nerfstudio: A Modular Framework for Neural Radiance Field Development
+                <span class="course-tag">ICCV 2023</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2302.04264" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-design">3. 框架設計</a>
+        <a href="#sec-components">4. 核心組件</a>
+        <a href="#sec-nerfacto">5. Nerfacto</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">"Neural Radiance Fields (NeRF) are a rapidly growing area of research with wide-ranging applications in computer vision, graphics, robotics, and more."</span> The paper presents <span class="hl-concept">Nerfstudio</span>, described as <span class="hl-thesis">"a modular PyTorch framework"</span> that includes <span class="hl-method">"plug-and-play components for implementing NeRF-based methods."</span> The framework features <span class="hl-method">real-time visualization tools, streamlined pipelines for importing captured in-the-wild data</span>, and export capabilities. The authors developed <span class="hl-concept">Nerfacto</span>, their method combining <span class="hl-thesis">"components from recent papers to achieve a balance between speed and quality,"</span> while maintaining flexibility for future modifications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                神經輻射場（NeRF）是一個快速成長的研究領域，在電腦視覺、圖學、機器人學等方面有廣泛應用。本文提出 Nerfstudio，一個模組化的 PyTorch 框架，包含用於實作 NeRF 方法的即插即用組件。該框架具備即時視覺化工具、簡化的野外擷取資料匯入管線以及匯出功能。作者開發了 Nerfacto，一個結合近期論文組件以在速度與品質間取得平衡的方法，同時保持未來修改的靈活性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定位 Nerfstudio 為 NeRF 生態系的基礎建設（framework），而非單一演算法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時傳達兩層貢獻：(1) 框架層面（模組化、視覺化、易用性）；(2) 方法層面（Nerfacto 作為框架的展示案例）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將論文定位為「框架」而非「方法」是策略性的——避免了在特定基準上與最先進方法直接比較的壓力。但「即插即用」的宣稱需以實際的模組替換案例來驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since NeRF's introduction in 2020, research has advanced through <span class="hl-evidence">"few-image training," "explicit features for editing," "surface representations for high-quality 3D mesh exports," and "speed improvements for real-time rendering and training."</span> The core problem is that <span class="hl-rebuttal">"despite the growing use of NeRFs, support for development is still rudimentary"</span> because <span class="hl-rebuttal">"many papers implement features in their own siloed repository,"</span> complicating feature transfer across implementations. Additionally, <span class="hl-rebuttal">"while NeRFs solve an inherently visual task, there is a lack of comprehensive and extensible tools for visualizing and interacting with NeRFs."</span> Three design goals guide Nerfstudio: <span class="hl-thesis">(1) consolidating various NeRF techniques into reusable, modular components; (2) enabling real-time visualization; and (3) providing an end-to-end, easy-to-use workflow for creating NeRFs from user-captured data.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自 NeRF 於 2020 年問世以來，研究已在少量影像訓練、顯式特徵編輯、高品質 3D 網格匯出的表面表示以及即時渲染與訓練的速度提升等方面取得進展。核心問題在於：儘管 NeRF 的使用日益增長，開發支援仍十分初級，因為許多論文在各自孤立的程式庫中實作功能，使得跨實作的功能轉移困難重重。此外，雖然 NeRF 本質上解決的是視覺任務，卻缺乏全面且可擴展的視覺化與互動工具。Nerfstudio 的三個設計目標為：(1) 將各種 NeRF 技術整合為可重用的模組化組件；(2) 實現即時視覺化；(3) 提供從使用者擷取資料建立 NeRF 的端到端易用工作流程。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題陳述——以「孤立程式庫」為核心痛點，建立框架的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三大設計目標直接回應三個問題：孤立化 -> 模組化；缺乏視覺化 -> 即時檢視器；易用性不足 -> 端到端工作流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「孤立程式庫」的批評精準但可能引發社群反感。此外，Instant-NGP 已提供即時視覺化，但作者指出其「依賴自訂 CUDA 核心，難以快速原型開發」，巧妙地將競爭者的優勢轉化為自身的差異化定位。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Multiple existing implementations exist, including <span class="hl-concept">"the original NeRF codebase, nerf-pytorch, Instant NGP, torch-ngp, and MultiNeRF."</span> The fundamental problem remains: <span class="hl-rebuttal">"Due to the lack of consolidation, there exists a significant number of NeRF repositories that focus on improving specific components of specific algorithms."</span> Concurrent efforts include <span class="hl-concept">"NeRF-Factory, NerfAcc, MultiNeRF, and Kaolin-Wisp."</span> The critical distinction is that <span class="hl-thesis">"none of these repositories are as comprehensive as Nerfstudio in delivering our three design goals: modularity, real-time visualization, and end-to-end usability."</span> Nerfstudio is released under an <span class="hl-evidence">Apache2 license</span>, allowing use by both researchers and companies.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有多種實作包括原始 NeRF 程式庫、nerf-pytorch、Instant NGP、torch-ngp 與 MultiNeRF。根本問題依然存在：由於缺乏整合，大量 NeRF 程式庫各自專注於特定演算法的特定組件改進。同期的整合努力包括 NeRF-Factory、NerfAcc、MultiNeRF 與 Kaolin-Wisp。關鍵區別在於：這些程式庫在同時實現模組化、即時視覺化與端到端易用性三大設計目標方面，均不如 Nerfstudio 全面。Nerfstudio 以 Apache2 授權釋出，允許研究者與企業使用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 Nerfstudio 與並行的框架整合努力進行系統性比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    逐一分析競爭框架的範圍限制，確立 Nerfstudio 的三目標全覆蓋優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    Apache2 授權的強調是對產業界的明確邀請。但「最全面」的自我評價較為主觀，NerfAcc 等工具在特定層面（如渲染效率）可能更優。差異化更多在於生態系層面而非技術層面。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-design">3. Framework Design — 框架設計</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The framework's philosophy reflects specific priorities: <span class="hl-thesis">"we prefer an implementation that allows for a modularized pythonic non-CUDA method over one that supports a faster, non-modularized CUDA method."</span> This enables <span class="hl-method">simpler interfacing with an extensive visualization ecosystem</span> supporting real-time rendering during test and train with custom camera paths. The framework <span class="hl-method">"focuses on delivering results for real-world data rather than synthetic scenes"</span> to address audiences outside research including those in industry and non-technical users. The design promotes collaboration by <span class="hl-thesis">"providing a consolidated platform on which people can request for or contribute to new features."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                框架的設計哲學反映了特定的優先順序：偏好可模組化的 Python 式非 CUDA 實作，而非更快但不可模組化的 CUDA 方法。這使得與廣泛的視覺化生態系的介接更為簡單，支援訓練與測試期間的即時渲染及自訂攝影機路徑。框架專注於為真實世界資料而非合成場景提供結果，以服務研究以外的受眾，包括產業界與非技術使用者。此設計透過提供整合平台促進協作，讓人們可以在其上請求或貢獻新功能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計哲學——闡明「模組化優先於效能」的核心取捨。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續所有技術決策提供理論基礎：Python 優先 -> 易於原型開發 -> 促進社群協作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「模組化優先於速度」的取捨坦誠且合理，但也承認了在效能關鍵場景（如產品部署）中的劣勢。聚焦「真實世界資料」的定位精準避開了在合成基準上被 Mip-NeRF 360 等方法壓制的風險。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-components">4. Core Components — 核心組件</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Nerfstudio</span> takes a set of posed images and optimizes for a 3D representation defined by <span class="hl-method">radiance (color), density (structure), and possibly other quantities (semantics, normals, features)</span>. The pipeline comprises a <span class="hl-concept">DataManager</span> and a <span class="hl-concept">Model</span>, where the DataManager handles <span class="hl-method">(1) parsing image formats via a DataParser and (2) generating rays as RayBundles</span>. These rays are passed into a Model which queries <span class="hl-concept">Fields</span> and renders quantities. The <span class="hl-concept">DataParser</span> is designed for compatibility with arbitrary data formats, supporting <span class="hl-evidence">mobile apps (Record3D, Polycam, KIRI Engine) and 3D tools (Metashape, Reality Capture)</span> beyond traditional COLMAP, making the framework <span class="hl-thesis">accessible to scientists, artists, photographers, hobbyists and journalists</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Nerfstudio 接收一組已知姿態的影像，最佳化以輻射（顏色）、密度（結構）及其他可能量值（語義、法線、特徵）定義的 3D 表示。管線由 DataManager 和 Model 組成，DataManager 負責透過 DataParser 解析影像格式並生成 RayBundles（射線束）。這些射線傳入 Model，查詢 Fields 並渲染量值。DataParser 設計為相容任意資料格式，除傳統 COLMAP 外還支援行動應用（Record3D、Polycam、KIRI Engine）與 3D 工具（Metashape、Reality Capture），使框架對科學家、藝術家、攝影師、愛好者與記者等都可親近。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構描述——拆解框架的管線結構與資料流。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從抽象設計目標具體化為 DataManager -> RayBundles -> Model -> Fields 的組件層級，展現模組化的實際實現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉多種資料來源（手機 App、商業軟體）有效展現了易用性承諾。但抽象層級過多可能引入效能開銷，且對初學者而言，理解 DataParser/RayBundle/Field 的分層反而可能增加學習曲線。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-nerfacto">5. Nerfacto Method — Nerfacto 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Nerfacto</span> leverages the modular design to <span class="hl-method">integrate ideas from multiple research papers</span>, heavily influenced by <span class="hl-concept">MipNeRF-360</span> with components from <span class="hl-concept">NeRF--, Instant-NGP, NeRF-W, and Ref-NeRF</span>. The method employs a <span class="hl-method">piece-wise sampler</span> that samples uniformly up to a fixed distance, then with increasing step sizes, followed by a <span class="hl-method">proposal network sampler from MipNeRF-360</span> that consolidates samples into contributing regions. Configuration uses <span class="hl-evidence">256 initial samples reduced to 96, then 48 through two proposal iterations</span>. For unbounded scenes, <span class="hl-method">L-infinity norm scene contraction</span> (cube-based, aligning with hash encodings) replaces MipNeRF-360's L2 norm. <span class="hl-method">Per-image appearance embeddings</span> handle exposure differences, and <span class="hl-method">Ref-NeRF techniques</span> predict normals.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Nerfacto 利用模組化設計整合多篇研究論文的概念，深受 MipNeRF-360 影響，並融入 NeRF--、Instant-NGP、NeRF-W 與 Ref-NeRF 的組件。該方法採用分段式取樣器：先在固定距離內均勻取樣，接著以遞增步長取樣，再以 MipNeRF-360 的提案網路取樣器將樣本集中至有貢獻的區域。配置上使用 256 個初始樣本，經兩次提案迭代縮減為 96 再到 48。對於無界場景，以 L 無窮範數的場景壓縮（立方體形式，與雜湊編碼對齊）取代 MipNeRF-360 的 L2 範數。逐影像外觀嵌入處理曝光差異，並以 Ref-NeRF 技術預測法線。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示框架能力——Nerfacto 作為模組化組合的具體範例。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    Nerfacto 是全文論證的關鍵支柱：它不僅是一個好方法，更是模組化框架能產出競爭力方法的活證明。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從多篇頂會論文中「cherry-pick」最佳組件的策略展現了框架的價值。但 L 無窮 vs. L2 範數的選擇需更多理論或實驗支撐，且各組件之間的交互作用可能產生非預期的副效果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">"In as little as 5K iterations (~2 minutes), our Nerfacto method achieves reasonable quality in contrast to MipNeRF-360 which takes several hours on a TPU with 32 cores."</span> Training for up to <span class="hl-evidence">70K iterations (~30 minutes) further improves quality</span>. While <span class="hl-rebuttal">Nerfacto falls short of metric results obtained by MipNeRF-360</span>, the authors prioritize <span class="hl-thesis">efficiency and general usability over optimizing quantitative metrics</span>. A critical finding from ablation studies: <span class="hl-rebuttal">"disabling the appearance embeddings leads to an improvement in PSNR and SSIM. However, qualitative results show that the 'w/o app' method results in the production of blurry 'floater' artifacts."</span> This demonstrates that <span class="hl-thesis">standard metrics can be misleading for real-world NeRF evaluation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                僅需 5K 次迭代（約 2 分鐘），Nerfacto 即可達到合理品質，相比之下 MipNeRF-360 在 32 核 TPU 上需數小時。訓練至 70K 次迭代（約 30 分鐘）品質進一步提升。雖然 Nerfacto 在指標結果上不及 MipNeRF-360，但作者優先考量效率與通用易用性而非最佳化定量指標。消融研究的關鍵發現：停用外觀嵌入會提升 PSNR 和 SSIM，但定性結果顯示無外觀嵌入的方法會產生模糊的「漂浮物」偽影。這證明了標準指標對真實世界 NeRF 評估可能具有誤導性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗結果——以速度優勢與指標反思雙重論點支撐框架價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    坦承指標不如 MipNeRF-360 但轉而質疑指標本身的可靠性，這是精妙的論證策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「指標提升但品質下降」的發現極具價值，有力支撐了即時視覺化的重要性。但此論點也可被解讀為「對自身方法指標不佳的辯護」。2 分鐘 vs. 數小時的速度比較令人印象深刻，但在品質敏感的應用中可能不夠。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Nerfstudio</span> draws upon existing techniques and proposes a framework that supports <span class="hl-thesis">a more modularized approach to NeRF development, allows for real-time visualization, and is readily usable with real-world data</span>. The authors <span class="hl-thesis">"emphasize the importance of utilizing the interactive real-time viewer during training to compensate for imperfect quantitative metrics."</span> The <span class="hl-evidence">open-source repository has grown to include over 60 contributors and over 3K stars</span>, with extensions like <span class="hl-evidence">SDFStudio and ArcNerf</span> built upon the framework. Future research directions include <span class="hl-method">development of more appropriate evaluation metrics and integration with other fields</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Nerfstudio 借鑑現有技術，提出一個支援更模組化的 NeRF 開發方法、允許即時視覺化且可直接用於真實世界資料的框架。作者強調在訓練期間使用互動式即時檢視器以彌補不完美定量指標的重要性。開源程式庫已成長至超過 60 位貢獻者與 3,000 顆星，並有 SDFStudio 和 ArcNerf 等擴展建構於此框架之上。未來研究方向包括開發更適當的評估指標以及與其他領域的整合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以社群採用數據驗證框架的影響力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以「60+ 貢獻者、3K+ 星」的實際採用數據作為框架成功的終極論據，比任何基準測試更具說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    社群指標（星數、貢獻者）是衡量開源框架成功的適當方式。但「更適當的評估指標」被留為未來工作，而這正是支撐 Nerfacto 品質論點所需的基礎。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>NeRF 程式庫碎片化<br>缺乏視覺化與易用性</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>模組化框架+即時檢視器<br>+端到端工作流程</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>Nerfacto 2 分鐘合理品質<br>60+ 貢獻者 / 3K+ 星</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>指標不如 MipNeRF-360<br>但指標本身具誤導性</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>NeRF 開發需要整合<br>框架以加速社群進展</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>NeRF 領域需要一個模組化、可視覺化且易用的統一框架來整合碎片化的研究實作，而 Nerfstudio 透過即插即用的組件設計與即時互動式檢視器滿足了此需求。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>「指標提升但品質下降」的反直覺發現：</strong>消融研究中停用外觀嵌入導致 PSNR 提升但產生漂浮偽影的發現，不僅支撐了即時視覺化的必要性，更對整個 NeRF 社群的評估方式提出了有價值的質疑，開啟了新的研究方向。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>Nerfacto 的定量表現差距：</strong>坦承指標不如 MipNeRF-360 卻未提出替代的定量評估方案，使得「品質足夠好」的主張缺乏客觀支撐。框架論文天然面臨的困境是：若附帶方法不夠強，讀者可能質疑框架的技術深度。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

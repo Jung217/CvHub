@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SceneSplat: Gaussian Splatting-based Scene Understanding with Vision-Language Pretraining — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                SceneSplat: Gaussian Splatting-based Scene Understanding with Vision-Language Pretraining
+                <span class="course-tag">ICCV 2025</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2503.18052" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-vlpretrain">3.2 視覺語言預訓練</a>
+        <a href="#sec-gaussssl">3.3 自監督預訓練</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper introduces <span class="hl-concept">SceneSplat</span>, described as <span class="hl-thesis">"the first large-scale 3D indoor scene understanding approach that operates natively on 3DGS"</span>. It addresses the challenge of <span class="hl-rebuttal">effectively integrating semantic reasoning into 3DGS in a generalizable manner</span>. Key contributions include <span class="hl-concept">SceneSplat-7K</span>, a new dataset containing <span class="hl-evidence">7,916 scenes derived from seven established datasets totaling 8.15 billion 3D Gaussians</span>. The authors propose a <span class="hl-method">self-supervised learning scheme called GaussSSL</span> that enables <span class="hl-thesis">rich 3D feature learning from unlabeled scenes</span>, achieving state-of-the-art performance in zero-shot semantic segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 SceneSplat，被描述為「首個原生運作於三維高斯潑灑上的大規模三維室內場景理解方法」。它解決了以可泛化方式將語意推理有效整合至 3DGS 的挑戰。關鍵貢獻包括 SceneSplat-7K 資料集，包含源自七個既有資料集的 7,916 個場景，共計 81.5 億個三維高斯。作者提出名為 GaussSSL 的自監督學習方案，實現從未標註場景中學習豐富的三維特徵，在零樣本語意分割上達到最先進的表現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「首個」定位建立差異化，並以大規模資料集與自監督方法作為雙重支柱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    81.5 億高斯的資料規模建立了實證基礎的可信度，「原生 3DGS」的定位區分了與投影至二維再融合的既有方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首個」的宣稱需謹慎——LangSplat 等先前工作也在 3DGS 上整合了語言特徵，此處的「原生」定義（不依賴二維融合的推論階段）需更明確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">Recognizing arbitrary or previously unseen categories is essential for comprehensive real-world 3D scene understanding.</span> Current systems trained on fixed closed-set categories from datasets like <span class="hl-concept">ScanNet</span> <span class="hl-rebuttal">fail to capture real-world diversity</span>. The fundamental challenge is <span class="hl-rebuttal">"the absence of a robust model for processing 3D data end-to-end for semantic learning, along with the lack of sufficient data for training such a model"</span>. <span class="hl-concept">3D Gaussian Splatting</span> has emerged as the de facto standard for 3D scene representation, but integrating semantic reasoning remains problematic. Prior approaches like <span class="hl-rebuttal">optimizing additional semantic features are inefficient and limited to a single scene</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                辨識任意或先前未見的類別對於全面的真實世界三維場景理解至關重要。在如 ScanNet 等固定封閉類別資料集上訓練的現有系統無法捕捉真實世界的多樣性。根本挑戰在於「缺乏一個端到端處理三維資料進行語意學習的穩健模型，以及缺乏足以訓練此類模型的充足資料」。三維高斯潑灑已成為三維場景表示的事實標準，但語意推理的整合仍是問題。先前如最佳化額外語意特徵的方法效率低下且僅限於單一場景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義雙重缺口——模型缺口（端到端三維語意學習）與資料缺口（大規模 3DGS 資料集）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    雙重缺口的定義為 SceneSplat 的兩大貢獻（SceneSplat-7K 資料集 + GaussSSL 方法）提供了一對一的對應動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「逐場景最佳化」定位為低效是合理的批判，但這也是 3DGS 語意整合的最直接方法。SceneSplat 的前饋式方法犧牲了逐場景適應性以換取效率。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing 3D datasets (<span class="hl-concept">ScanNet</span>, <span class="hl-concept">ScanNet++</span>, <span class="hl-concept">Hypersim</span>, <span class="hl-concept">ARKitScenes</span>) are essential for 3D perception but <span class="hl-rebuttal">lack large-scale support for emerging 3D representations like 3DGS</span>. For open vocabulary scene understanding, <span class="hl-concept">LERF</span> integrated language queries into NeRF but requires <span class="hl-rebuttal">time-consuming preprocessing</span>. <span class="hl-concept">LangSplat</span> combined 3DGS with open-vocabulary embeddings from SAM and CLIP. SceneSplat's distinction: it enables <span class="hl-thesis">"feed-forward open-vocabulary understanding of 3DGS" without requiring time-consuming preprocessing</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有的三維資料集（ScanNet、ScanNet++、Hypersim、ARKitScenes）對三維感知至關重要，但缺乏對如 3DGS 等新興三維表示的大規模支持。在開放詞彙場景理解方面，LERF 將語言查詢整合至 NeRF 但需要耗時的前處理。LangSplat 結合了 3DGS 與 SAM 和 CLIP 的開放詞彙嵌入。SceneSplat 的區別在於：它實現了「3DGS 的前饋式開放詞彙理解」，無需耗時的前處理。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——從資料集缺口到方法缺口，系統性定位 SceneSplat。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「前饋式 vs. 逐場景最佳化」是核心區分點：前者可擴展到大量場景，後者在每個場景上需獨立訓練。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    前饋式方法的效率優勢以犧牲場景特定精度為代價。LangSplat 的逐場景最佳化可能在特定場景上達到更高精度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 3DGS Language Label Collection — 語言標籤收集</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The approach uses <span class="hl-method">SAMv2 for object-level segmentation</span> and <span class="hl-method">SigLIP2 for feature extraction</span>, then employs <span class="hl-method">Occam's LGS to efficiently lift 2D feature maps to a 3D Gaussian feature field</span>. Rather than aligning with text embeddings, the method <span class="hl-thesis">directly aligns Gaussians with the image embedding space of vision-language models, preserving richer latent semantic information</span>. A <span class="hl-method">dynamic weighting mechanism</span> combines three feature types: global features capturing full scene context, local features from crops with background, and masked features focusing solely on objects.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                方法使用 SAMv2 進行物件級分割，SigLIP2 進行特徵提取，再以 Occam's LGS 有效地將二維特徵圖提升至三維高斯特徵場。不同於與文字嵌入對齊，方法直接將高斯與視覺語言模型的影像嵌入空間對齊，保留更豐富的潛在語意資訊。動態加權機制結合三種特徵類型：捕捉完整場景上下文的全域特徵、含背景裁切的局部特徵、以及僅聚焦於物件的遮罩特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料準備管線——描述如何從二維基礎模型蒸餾語言特徵至三維高斯。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「影像嵌入 vs. 文字嵌入」的選擇是有意義的設計決策：影像嵌入保留了更多視覺細節，而文字嵌入經過語言壓縮可能損失空間資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三種特徵的動態加權增加了複雜度但提供了多尺度語意理解。然而，此標籤收集過程依賴多個外部基礎模型（SAMv2、SigLIP2、Occam's LGS），其品質上限受限於這些模型的能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-vlpretrain">3.2 Vision-Language 3DGS Pretraining — 視覺語言預訓練</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The model architecture adapts <span class="hl-method">a transformer encoder-decoder backbone</span> to map input Gaussians to language features. Three training objectives are employed: <span class="hl-method">Cosine Similarity Loss</span> minimizes angular difference, <span class="hl-method">L2 Loss</span> enforces feature similarity in Euclidean space, and <span class="hl-method">Aggregated Contrastive Loss</span> encourages class-level feature separation through class-wise mean pooling. Notably, <span class="hl-evidence">"applying the contrastive loss later during training helps promote early feature learning while effectively refining class distinctions"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模型架構採用 Transformer 編碼器-解碼器主幹，將輸入高斯映射至語言特徵。使用三種訓練目標：餘弦相似度損失最小化角度差異、L2 損失在歐氏空間中強制特徵相似、以及聚合對比損失透過類別級平均池化促進類別間特徵分離。值得注意的是，「在訓練後期應用對比損失有助於促進早期特徵學習，同時有效精煉類別區分」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略——三重損失函數的設計與時序安排。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三重損失提供互補的學習訊號：餘弦相似度處理方向、L2 處理距離、對比損失處理類別邊界。延遲應用對比損失的策略防止了早期訓練中的過度特化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    延遲對比損失是有趣的發現，暗示對比學習在特徵空間尚未成型時可能有害。但最佳的延遲時間點（75%）看似經驗性而非原則性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-gaussssl">3.3 Self-Supervised Pretraining (GaussSSL) — 自監督預訓練</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Three components are integrated: <span class="hl-method">Masked Gaussian Modeling (MGM)</span> samples Gaussian subsets, masks them, and reconstructs via L2 loss. <span class="hl-method">Self-Distillation</span> follows the <span class="hl-concept">DINO</span> framework with student-teacher networks using EMA updates. <span class="hl-method">Language-Gaussian Alignment</span> uses precomputed language features compressed via autoencoder to regularize self-supervised learning. The high dimensionality problem is addressed by <span class="hl-method">replacing original features with compressed representation learned via an autoencoder</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                整合三個組件：遮罩高斯建模（MGM）取樣高斯子集、遮罩並透過 L2 損失重建。自蒸餾遵循 DINO 框架，使用指數移動平均更新的學生-教師網路。語言-高斯對齊使用經自動編碼器壓縮的預計算語言特徵來正規化自監督學習。高維度問題透過以自動編碼器學習的壓縮表示替代原始特徵來解決。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    無標籤學習——描述 GaussSSL 的三組件自監督預訓練策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三組件分別提供：空間結構學習（MGM）、語意一致性學習（自蒸餾）、語言對齊正規化。此組合使模型能從未標註的 3DGS 場景中學習有用的表示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    GaussSSL 的三組件設計參考了成熟的自監督範式（MAE、DINO），遷移至 3DGS 領域。但消融結果顯示改善幅度有限（+0.1% 到 +0.5%），自監督的價值需更有力的驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">ScanNet200</span>, SceneSplat achieves a <span class="hl-evidence">5.9% f-mIoU increase</span> over prior work when trained on single sources. On <span class="hl-evidence">ScanNet++</span>, results show <span class="hl-evidence">11.1% f-mIoU improvement</span> while using significantly less training data. Remarkably, inference results can <span class="hl-evidence">"even be better than using the collected labels"</span>, demonstrating that <span class="hl-thesis">large-scale pretraining is able to filter noise and learn meaningful patterns</span>. For efficiency, <span class="hl-evidence">SceneSplat requires 0.24 minutes per scene versus 107 minutes for Occam's LGS — approximately 445.8 times faster</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ScanNet200 上，SceneSplat 以單一來源訓練時達到 5.9% 的 f-mIoU 提升。在 ScanNet++ 上，結果顯示 11.1% 的 f-mIoU 改善，同時使用明顯更少的訓練資料。值得注意的是，推論結果甚至「可能優於使用收集的標籤」，展示了大規模預訓練能夠過濾噪聲並學習有意義的模式。在效率方面，SceneSplat 每個場景僅需 0.24 分鐘，相比 Occam's LGS 的 107 分鐘，快約 445.8 倍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗結果——以精度與效率的雙重數據展示方法優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    445.8 倍加速是最具衝擊力的數據，直接回應了「逐場景最佳化太慢」的動機。「推論優於標籤」的發現則暗示大規模預訓練的泛化價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    445.8 倍加速部分因為 SceneSplat 是前饋式而 Occam's LGS 是逐場景最佳化，二者的架構根本不同。f-mIoU 的改善雖顯著但需注意不同方法的資料條件差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Ablation studies</span> reveal a <span class="hl-evidence">clear positive trend between input 3DGS quality (PSNR) and resulting mIoU</span>, highlighting the importance of data curation. When comparing <span class="hl-evidence">3DGS parameters versus point cloud properties</span>, the model <span class="hl-evidence">trained on 3DGS parameters consistently outperforms the point cloud variant</span>. The paper also identifies <span class="hl-rebuttal">temporal inconsistency in the SAMv2+SigLIP2 pipeline</span>, particularly for large background objects, resulting in corrupted feature fields.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究揭示輸入 3DGS 品質（PSNR）與結果 mIoU 之間存在清楚的正向趨勢，突顯了資料策展的重要性。在比較 3DGS 參數與點雲屬性時，以 3DGS 參數訓練的模型持續優於點雲變體。論文也指出 SAMv2+SigLIP2 管線的時序不一致性，特別是在大型背景物件上，導致損壞的特徵場。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深入分析——消融研究揭示設計決策的合理性與已知侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「3DGS > 點雲」的消融直接驗證了「原生 3DGS」定位的合理性。PSNR-mIoU 的正向趨勢則強調了 SceneSplat-7K 資料集品質控制的重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    誠實揭露 SAMv2+SigLIP2 的時序不一致性增強了論文的可信度，但也揭示了語言標籤收集管線的本質性侷限——前饋模型的品質受限於蒸餾來源的品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                SceneSplat establishes <span class="hl-thesis">"the first large-scale 3D scene understanding model for indoor environments operating directly on 3D Gaussian splats"</span>. It enables <span class="hl-thesis">"open-vocabulary scene recognition without relying on 2D fusion"</span> through vision-language pretraining, and unlocks <span class="hl-thesis">"label-free 3DGS pretraining at the scene level"</span> through self-supervised techniques. The approach <span class="hl-evidence">"achieves state-of-the-art performance in zero-shot semantic segmentation, establishing new benchmarks"</span> for future 3D understanding research.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SceneSplat 建立了「首個直接運作於三維高斯潑灑上的大規模室內環境三維場景理解模型」。它透過視覺語言預訓練實現了「不依賴二維融合的開放詞彙場景識別」，並透過自監督技術解鎖了「場景級的無標籤 3DGS 預訓練」。該方法「在零樣本語意分割上達到最先進的表現，為未來三維理解研究建立新的基準」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以三個「首個」重申研究的開創性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以「資料集 + 方法 + 基準」的三位一體結構概括貢獻，暗示 SceneSplat 不僅是一個方法，更是一個生態系統的起點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論未討論室外場景的適用性、動態場景的處理、以及自監督預訓練（GaussSSL）改善有限（+0.1% 到 +0.5%）的事實。「首個」的定位可能因快速發展的領域而迅速過時。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>3DGS 缺乏原生的<br>語意理解能力<br>且無大規模資料集</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>前饋式視覺語言<br>預訓練 + 自監督<br>原生 3DGS 理解</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>f-mIoU +5.9%/+11.1%<br>445.8 倍加速<br>推論優於標籤</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>SceneSplat-7K 資料集<br>品質策展確保<br>PSNR-mIoU 正相關</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>大規模原生 3DGS<br>語意理解已可行<br>建立新基準</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過建構大規模 3DGS 資料集（SceneSplat-7K）並結合視覺語言預訓練與自監督學習，可以首次實現原生運作於三維高斯潑灑上的前饋式開放詞彙場景理解，以 445 倍的速度優勢超越逐場景最佳化方法。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>效率與精度的雙重突破：</strong>445.8 倍的速度優勢徹底改變了 3DGS 語意理解的可用性——從每場景近兩小時縮短至 15 秒。同時在 ScanNet++ 上達到 11.1% 的 f-mIoU 改善，證明效率提升不以精度為代價。「推論優於標籤」的發現更揭示了大規模預訓練的降噪能力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>自監督預訓練（GaussSSL）的邊際效益有限：</strong>GaussSSL 僅帶來 +0.1% 到 +0.5% 的 mIoU 改善，考慮到其設計複雜度（遮罩建模 + 自蒸餾 + 語言對齊三組件），投入產出比存疑。此外，語言標籤收集管線對多個二維基礎模型的重度依賴，使得「原生 3DGS」的宣稱在訓練階段並不完全成立。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

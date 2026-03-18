@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hierarchical Data-driven Descent for Efficient Optimal Deformation Estimation — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Hierarchical Data-driven Descent for Efficient Optimal Deformation Estimation
+                <span class="course-tag">ICCV 2013</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://openaccess.thecvf.com/content_iccv_2013/html/Tian_Hierarchical_Data-Driven_Descent_2013_ICCV_paper.html" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-hierarchy">3.2 層級結構</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Tracking <span class="hl-concept">complex surface deformations</span> in real-world scenarios remains a challenging problem. <span class="hl-concept">Data-driven descent</span> methods estimate deformation parameters by learning <span class="hl-method">nearest neighbor (NN) regressors</span> that map image observations to parameter updates. However, existing approaches require <span class="hl-rebuttal">a prohibitively large number of training samples</span> to achieve good coverage of the parameter space. In this paper, we propose a <span class="hl-thesis">hierarchical extension of data-driven descent</span> that decomposes the estimation problem into <span class="hl-method">a coarse-to-fine hierarchy of simpler sub-problems</span>. Our approach provides <span class="hl-thesis">optimality guarantees while requiring significantly fewer training samples</span> and running <span class="hl-evidence">orders of magnitude faster</span> than the non-hierarchical baseline. We also introduce a <span class="hl-method">difficulty metric</span> to identify computationally "hard" versus "easy" images, and demonstrate the method on diverse non-rigid tracking tasks including <span class="hl-evidence">water surfaces, clothing, and medical imaging</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在真實場景中追蹤複雜曲面形變仍是一項具有挑戰性的問題。資料驅動下降法透過學習最近鄰迴歸器，將影像觀測映射到參數更新，以估計形變參數。然而，現有方法需要數量過大的訓練樣本才能良好覆蓋參數空間。本文提出了資料驅動下降法的層級式擴展，將估計問題分解為由粗到精的層級式簡易子問題。我們的方法在提供最佳性保證的同時，所需訓練樣本顯著減少，且執行速度比非層級式基線快數個數量級。我們同時引入一個難度度量來辨識計算上「困難」或「容易」的影像，並在多種非剛性追蹤任務上展示此方法，包括水面、布料與醫學影像。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——界定追蹤形變的問題、現有方法的瓶頸，以及層級式解決方案的核心優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「問題→現有方法的限制→本文方案→優勢→應用」的遞進結構，清晰預告了全文的論證脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「最佳性保證」與「數量級加速」的雙重宣稱極具吸引力，但需在方法章節中以嚴謹的數學推導支撐。「數量級」的量化程度（10倍？100倍？）也需明確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Estimating <span class="hl-concept">non-rigid deformations</span> from images is fundamental to applications in <span class="hl-evidence">motion capture, medical image registration, and augmented reality</span>. Traditional approaches based on <span class="hl-concept">gradient descent optimization</span> suffer from <span class="hl-rebuttal">local minima</span> and require <span class="hl-rebuttal">good initialization</span>. <span class="hl-concept">Data-driven methods</span> bypass these issues by learning direct mappings from image features to deformation parameters. The recently proposed <span class="hl-concept">data-driven descent (DDD)</span> framework learns <span class="hl-method">a sequence of NN regressors</span> that iteratively refine parameter estimates. While theoretically sound, DDD requires <span class="hl-rebuttal">exponentially many training samples as the parameter dimensionality increases</span>, limiting its practical applicability.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從影像中估計非剛性形變是動作捕捉、醫學影像配準與擴增實境等應用的基礎。傳統的梯度下降最佳化方法受限於局部最小值，且需要良好的初始化。資料驅動方法繞過了這些問題，透過學習從影像特徵到形變參數的直接映射。最近提出的資料驅動下降（DDD）框架學習一系列最近鄰迴歸器，迭代式地精煉參數估計。雖然在理論上是合理的，但 DDD 所需的訓練樣本隨參數維度呈指數增長，限制了其實際應用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究脈絡——從應用動機到現有方法的技術瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「傳統方法（局部最小值）→ DDD（指數樣本需求）」的雙重限制，為層級式方法的引入創造必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    精準指出 DDD 的「指數增長」問題是有效的動機建構，但需明確此指數關係的理論依據——是否為最壞情況分析？實際應用中是否有緩解策略？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Non-rigid registration</span> methods can be broadly categorized into <span class="hl-concept">optimization-based</span> and <span class="hl-concept">learning-based</span> approaches. Optimization methods such as <span class="hl-concept">Lucas-Kanade</span> and its extensions perform well locally but are <span class="hl-rebuttal">sensitive to initialization and prone to local minima</span>. <span class="hl-concept">Random forest regressors</span> and <span class="hl-concept">cascaded regression</span> approaches have shown promise in face alignment tasks. The <span class="hl-concept">data-driven descent</span> framework unifies these ideas by providing <span class="hl-method">theoretical guarantees on convergence</span>, but its <span class="hl-rebuttal">sample complexity remains a practical bottleneck</span>. Our hierarchical approach draws inspiration from <span class="hl-method">multi-resolution and coarse-to-fine strategies</span> that have been successful in optical flow and stereo matching.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                非剛性配準方法大致可分為基於最佳化的方法與基於學習的方法。Lucas-Kanade 等最佳化方法在局部表現良好，但對初始化敏感且容易陷入局部最小值。隨機森林迴歸器與級聯迴歸方法在臉部對齊任務中展現了潛力。資料驅動下降框架透過提供收斂的理論保證統一了這些概念，但其樣本複雜度仍是實際應用的瓶頸。我們的層級式方法借鑑了在光流與立體匹配中已獲成功的多解析度和由粗到精策略。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將本方法置於最佳化與學習兩大類方法的交叉點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「多解析度策略」在其他視覺任務中的成功先例，為將此策略引入 DDD 框架提供類比論證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以光流和立體匹配的多解析度成功案例作為類比支撐，論證策略合理但需注意：形變估計的參數空間結構可能與光流的位移場有本質差異，類比的有效性需要理論支持。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Data-driven Descent Recap — 資料驅動下降回顧</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">data-driven descent (DDD)</span> framework operates by learning a sequence of <span class="hl-method">nearest neighbor regressors</span> <em>R<sub>1</sub>, R<sub>2</sub>, ..., R<sub>T</sub></em>. At each iteration <em>t</em>, given the current parameter estimate <em>p<sub>t</sub></em>, the regressor <span class="hl-method">finds the nearest training example in feature space and returns the associated parameter update</span>. The process converges when the parameter updates become sufficiently small. The key theoretical result of DDD is that <span class="hl-thesis">with sufficient training data, the method provably converges to the optimal solution</span>. However, the required number of training samples scales as <span class="hl-evidence">O(1/epsilon^d)</span> where <em>d</em> is the parameter dimensionality and <em>epsilon</em> is the desired precision — an <span class="hl-rebuttal">exponential dependence that is impractical for high-dimensional problems</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                資料驅動下降（DDD）框架透過學習一序列最近鄰迴歸器 R1, R2, ..., RT 來運作。在每次迭代 t 中，給定當前的參數估計 pt，迴歸器在特徵空間中找到最近的訓練範例並回傳對應的參數更新。當參數更新足夠小時，程序收斂。DDD 的關鍵理論結果是：在充足的訓練資料下，該方法可證明收斂至最佳解。然而，所需訓練樣本數量的規模為 O(1/epsilon^d)，其中 d 為參數維度、epsilon 為期望精度——這種指數級的依賴關係在高維問題中是不切實際的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法基礎——回顧 DDD 框架的運作機制與理論保證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    精確量化 DDD 的瓶頸：O(1/epsilon^d) 的樣本複雜度公式讓問題從定性描述變為定量明確，為層級分解策略提供了清晰的改進目標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以精確的複雜度公式量化問題是強力的數學論證。但此分析假設最壞情況下的均勻覆蓋需求——實際資料分布往往集中在低維流形上，真實的樣本需求可能遠低於理論上界。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-hierarchy">3.2 Hierarchical Decomposition — 層級分解</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our key contribution is a <span class="hl-thesis">hierarchical decomposition of the parameter space</span>. Instead of estimating all <em>d</em> parameters simultaneously, we organize them into a <span class="hl-method">tree structure where each level handles a subset of parameters</span>. At the coarsest level, the method estimates <span class="hl-method">low-frequency, global deformation components</span> (e.g., rigid motion). Subsequent levels progressively estimate <span class="hl-method">higher-frequency, localized deformation details</span>. Each sub-problem has <span class="hl-evidence">reduced dimensionality d' &lt;&lt; d</span>, so the sample complexity at each level is <span class="hl-evidence">O(1/epsilon^{d'})</span> — dramatically lower than the original. The total sample complexity becomes <span class="hl-thesis">O(L/epsilon^{d'}) where L is the number of hierarchy levels</span>, converting the exponential dependence on <em>d</em> into a <span class="hl-thesis">linear dependence on L</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的核心貢獻是參數空間的層級式分解。不再同時估計所有 d 個參數，而是將它們組織成樹狀結構，每一層處理參數的一個子集。在最粗的層級，方法估計低頻的全域形變分量（如剛性運動）。後續層級逐步估計高頻的局部形變細節。每個子問題的維度降低為 d' << d，因此每一層的樣本複雜度為 O(1/epsilon^{d'})——比原始的大幅降低。總樣本複雜度變為 O(L/epsilon^{d'})，其中 L 為層級數量，將對 d 的指數級依賴轉化為對 L 的線性依賴。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——以數學嚴格性展示層級分解如何根本性地改善樣本複雜度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    全文論證的支柱：從 O(1/epsilon^d) 到 O(L/epsilon^{d'}) 的轉換是最強的理論貢獻，直接回應了 DDD 的核心瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    複雜度的分析優雅而具說服力。然而，此分析隱含假設各層級的子問題是相互獨立的——若高頻形變強烈依賴於低頻估計的準確性，則誤差可能在層級間累積，削弱理論保證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further introduce a <span class="hl-concept">difficulty metric</span> that characterizes <span class="hl-method">the local conditioning of the estimation problem around each test image</span>. This metric is computed from the <span class="hl-method">distribution of nearest neighbor distances in feature space</span>: when many training examples are nearby with consistent parameter values, the problem is "easy"; when neighbors are sparse or inconsistent, it is "hard." This allows the system to <span class="hl-thesis">allocate computational resources adaptively</span> — using more refinement iterations for hard cases and fewer for easy ones. Empirically, <span class="hl-evidence">the difficulty metric correlates strongly with actual estimation error</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步引入一個難度度量，用以描述每張測試影像周圍估計問題的局部條件。此度量從特徵空間中最近鄰距離的分布計算得出：當附近有許多訓練範例且參數值一致時，問題為「容易」；當鄰居稀疏或不一致時，為「困難」。這讓系統得以自適應地分配計算資源——對困難案例使用更多精煉迭代，對容易案例使用較少。在實證上，難度度量與實際估計誤差呈高度相關。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    輔助創新——提出自適應計算資源分配的難度度量。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    難度度量為層級方法增添了實用價值：不僅估計更快、更準，還能預判何時估計可能不可靠，這對實際部署至關重要。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    難度度量的構思直觀且有實用價值。但其可靠性取決於訓練集對測試分布的覆蓋程度——若測試影像處於訓練集未覆蓋的區域，最近鄰距離大可能既表示「困難」也表示「超出模型能力」，兩者的區分並不明確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The hierarchical approach is evaluated on <span class="hl-evidence">diverse non-rigid deformation tracking scenarios</span>: (1) <span class="hl-evidence">water surface deformation</span> with complex wave patterns, (2) <span class="hl-evidence">cloth deformation</span> under grasping and wind forces, and (3) <span class="hl-evidence">cardiac motion estimation</span> in medical ultrasound sequences. Compared to the flat DDD baseline, the hierarchical method achieves <span class="hl-evidence">comparable or better accuracy with 10-100x fewer training samples</span> and runs <span class="hl-evidence">10-50x faster</span> at test time. The approach also <span class="hl-evidence">outperforms Lucas-Kanade and its variants</span> in scenarios with large deformations, where gradient-based methods fail due to local minima. The <span class="hl-evidence">difficulty metric accurately predicts estimation quality</span>, with a correlation coefficient exceeding 0.85 across all test scenarios.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                層級式方法在多種非剛性形變追蹤場景上進行評估：(1) 具有複雜波浪模式的水面形變，(2) 受抓取與風力作用的布料形變，以及 (3) 醫學超音波序列中的心臟運動估計。與平坦式 DDD 基線相比，層級式方法以少 10-100 倍的訓練樣本達到相當或更佳的準確度，且測試時間快 10-50 倍。此方法在大形變場景中也優於 Lucas-Kanade 及其變體——在此類場景中，基於梯度的方法因局部最小值而失敗。難度度量準確預測了估計品質，所有測試場景中的相關係數均超過 0.85。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在多個應用領域驗證效率和準確度的改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證核心：同時驗證三項宣稱——(1) 樣本效率（10-100x）；(2) 速度（10-50x）；(3) 難度度量的有效性（相關係數 >0.85）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多場景（水面、布料、醫學影像）的實驗覆蓋面廣泛，增強了方法的通用性論證。但具體的定量比較缺乏標準基準上的系統性對比——「10-100x」的範圍相當寬泛，可能掩蓋了在某些場景中改進較小的事實。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a <span class="hl-thesis">hierarchical extension of data-driven descent</span> that <span class="hl-thesis">fundamentally reduces the sample complexity from exponential to near-linear in the parameter dimensionality</span>. The coarse-to-fine decomposition maintains the <span class="hl-method">optimality guarantees of the original framework</span> while achieving <span class="hl-evidence">dramatic speedups and reduced data requirements</span>. The accompanying <span class="hl-concept">difficulty metric</span> adds practical value by enabling <span class="hl-method">adaptive computation and reliability assessment</span>. Our results on water surfaces, clothing, and medical imaging demonstrate the <span class="hl-evidence">generality and practical utility of the approach</span>. Future work will explore <span class="hl-rebuttal">automatic hierarchy construction</span> and extension to <span class="hl-rebuttal">online learning settings</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了資料驅動下降法的層級式擴展，從根本上將樣本複雜度從對參數維度的指數級降低至近線性。由粗到精的分解維持了原始框架的最佳性保證，同時實現了顯著的速度提升與資料需求降低。附帶的難度度量透過啟用自適應計算與可靠性評估增添了實用價值。我們在水面、布料與醫學影像上的結果展示了此方法的通用性與實際效用。未來工作將探索自動層級建構以及擴展至線上學習設定。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申理論貢獻與實驗驗證，並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應摘要的結構，以「指數→近線性」的複雜度改進作為核心賣點，形成論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「自動層級建構」的未來方向暴露了當前方法的一個重要限制：層級結構目前需要手動設計，對參數空間結構的先驗知識有相當依賴。這在面對全新形變類型時可能成為阻礙。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                DDD 樣本複雜度<br>隨維度指數增長
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                層級分解將指數級<br>降為近線性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                多場景驗證<br>10-100x 樣本節省
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                層級結構需手動設計<br>未來可自動化
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                層級式 DDD 兼具<br>理論保證與實用效率
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將形變估計問題分解為由粗到精的層級子問題，可在維持最佳性保證的同時，將資料驅動下降法的樣本複雜度從指數級降至近線性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論與實踐的完美結合：</strong>複雜度分析從 O(1/epsilon^d) 到 O(L/epsilon^{d'}) 的推導提供了嚴謹的理論基礎，而多場景的實驗驗證（水面、布料、醫學影像）則展示了實際的效率提升。難度度量的引入更添加了工程實用性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>層級設計的手動依賴：</strong>層級結構的設計依賴於對形變空間的先驗知識，且各層級間的誤差累積問題未被充分分析。在參數間存在強耦合的形變類型中，由粗到精的分解假設可能不成立，導致理論保證的前提被破壞。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

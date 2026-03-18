@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Per-Pixel Classification is Not All You Need for Semantic Segmentation (MaskFormer) — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Per-Pixel Classification is Not All You Need for Semantic Segmentation (MaskFormer)
+                <span class="course-tag">ICCV 2021</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2107.06278" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-arch">3.2 架構設計</a>
+        <a href="#sec-inference">3.3 推論策略</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Modern approaches to <span class="hl-concept">semantic segmentation</span> typically formulate the task as <span class="hl-rebuttal">per-pixel classification</span>. The authors argue that <span class="hl-concept">mask classification</span> — predicting a set of <span class="hl-method">binary masks each associated with a single class label</span> — is <span class="hl-thesis">sufficiently general to solve both semantic- and instance-level segmentation tasks in a unified manner</span>. Following this insight, the authors propose <span class="hl-concept">MaskFormer</span>, which adopts a <span class="hl-method">Transformer decoder to compute per-segment embeddings</span> that generate class predictions and mask embeddings simultaneously. MaskFormer achieves <span class="hl-evidence">state-of-the-art results on ADE20K semantic segmentation (55.6 mIoU) and competitive performance on COCO panoptic segmentation (52.7 PQ)</span>, demonstrating that a single mask classification model can <span class="hl-thesis">simplify the landscape of segmentation approaches</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現代語意分割方法通常將此任務公式化為逐像素分類。作者主張遮罩分類——預測一組各自關聯一個類別標籤的二值遮罩——足以通用到能以統一方式解決語意級與實例級分割任務。基於此洞察，作者提出 MaskFormer，採用 Transformer 解碼器計算逐區段嵌入，同時生成類別預測與遮罩嵌入。MaskFormer 在 ADE20K 語意分割上達到最先進的 55.6 mIoU，在 COCO 全景分割上達到具有競爭力的 52.7 PQ，證明單一遮罩分類模型可以簡化分割方法的研究版圖。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——挑戰逐像素分類的主流範式，提出遮罩分類作為統一替代。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的核心論證是範式轉移：從「每個像素獨立分類」到「預測一組遮罩+標籤」。此轉移的吸引力在於它自然地統一了語意分割與實例分割。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    標題「Per-Pixel Classification is Not All You Need」是一種大膽的否定性宣稱，直接挑戰自 FCN 以來的主流範式。但遮罩分類並非全新概念——Mask R-CNN 已在實例分割中使用。作者的真正貢獻是將此範式擴展至語意分割。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since the introduction of <span class="hl-concept">Fully Convolutional Networks (FCN)</span>, <span class="hl-concept">per-pixel classification</span> has been the <span class="hl-rebuttal">de facto standard for semantic segmentation</span>. This approach assigns a class probability distribution to each pixel independently, which is natural for semantic segmentation where each pixel belongs to exactly one category. However, for <span class="hl-concept">instance-level tasks</span> (instance segmentation and panoptic segmentation), per-pixel classification is <span class="hl-rebuttal">fundamentally insufficient</span> — these tasks require distinguishing different instances of the same class, which cannot be achieved by independent pixel-level classification. This has led to <span class="hl-rebuttal">divergent methodologies</span>: per-pixel classification for semantic segmentation, and detection-based approaches (like <span class="hl-concept">Mask R-CNN</span>) for instance segmentation. The authors propose that <span class="hl-thesis">mask classification can serve as a universal paradigm for all segmentation tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自全摺積網路 (FCN) 引入以來，逐像素分類一直是語意分割的事實標準。此方法為每個像素獨立地分配類別機率分布，這對語意分割而言是自然的，因為每個像素恰好屬於一個類別。然而，對於實例級任務（實例分割與全景分割），逐像素分類從根本上不足——這些任務需要區分同一類別的不同實例，這無法透過獨立的像素級分類實現。這導致了方法論的分歧：語意分割用逐像素分類，實例分割用基於偵測的方法（如 Mask R-CNN）。作者提出遮罩分類可作為所有分割任務的通用範式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題識別——揭示逐像素分類在實例級任務上的根本性不足，並指出方法論分歧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建構了核心問題：「分割領域的方法論分歧」。語意分割用一套方法、實例分割用另一套，這種分歧增加了系統複雜性。遮罩分類的價值在於消除此分歧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「方法論分歧」框定為問題是策略性的——它暗示統一框架本身就是有價值的。但在實務中，專用方法往往在各自的任務上效能更優。統一框架的價值更多在於概念簡潔性而非效能優越性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Mask classification</span> formulates segmentation differently: instead of classifying each pixel independently, the method <span class="hl-method">splits the task into (1) partitioning the image into N regions (binary masks) and (2) associating each region with a class distribution over K categories</span>. This formulation naturally handles <span class="hl-thesis">variable numbers of segments</span> — a requirement for instance segmentation where the number of objects is unknown — while being equally applicable to semantic segmentation where masks can overlap and are resolved via <span class="hl-method">argmax aggregation</span>. The key advantage is that <span class="hl-thesis">a single model architecture can address semantic, instance, and panoptic segmentation without task-specific modifications</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                遮罩分類以不同方式公式化分割：不再獨立分類每個像素，而是將任務分為 (1) 將影像劃分為 N 個區域（二值遮罩）與 (2) 為每個區域關聯一個 K 類別上的類別分布。此公式化自然地處理了可變數量的區段——實例分割中物件數量未知的需求——同時同樣適用於語意分割，其中遮罩可以重疊並透過 argmax 聚合來解析。關鍵優勢在於單一模型架構可以在無需任務特定修改的情況下處理語意、實例與全景分割。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    範式定義——精確描述遮罩分類的數學公式化及其通用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的概念基石：將分割分解為「區域產生 + 區域分類」兩步。這個分解使得同一框架可以處理固定類別數（語意）和可變實例數（實例）的分割。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「變數量的區段」作為遮罩分類的關鍵優勢是有說服力的。但這也意味著模型需要預設一個最大區段數 N，且 N 的選擇會影響效能。在類別數極多的語意分割中（如 ADE20K 的 150 類），N 的設定與計算效率之間的取捨需要仔細考量。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Per-pixel classification</span> has dominated semantic segmentation since <span class="hl-concept">FCN</span>, with subsequent works (<span class="hl-concept">DeepLab</span>, <span class="hl-concept">PSPNet</span>, <span class="hl-concept">SegFormer</span>) all maintaining this paradigm while improving feature extraction. For <span class="hl-concept">instance segmentation</span>, <span class="hl-concept">Mask R-CNN</span> popularized a <span class="hl-method">detect-then-segment approach</span>, and <span class="hl-concept">DETR</span> later introduced a <span class="hl-method">set-prediction framework using Transformer decoder with learnable queries</span>. <span class="hl-concept">Panoptic segmentation</span> further demonstrated the limitations of per-pixel classification, requiring <span class="hl-rebuttal">complex multi-branch architectures to merge semantic and instance predictions</span>. The mask classification idea draws inspiration from <span class="hl-concept">DETR</span>'s set prediction approach but applies it to <span class="hl-thesis">all segmentation tasks, not just instance-level ones</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自 FCN 以來，逐像素分類主導了語意分割，後續工作（DeepLab、PSPNet、SegFormer）皆維持此範式並改進特徵擷取。在實例分割方面，Mask R-CNN 普及了「先偵測再分割」的方法，而 DETR 後來引入了使用 Transformer 解碼器與可學習查詢的集合預測框架。全景分割進一步展示了逐像素分類的局限性，需要複雜的多分支架構來合併語意與實例預測。遮罩分類的概念受 DETR 的集合預測方法啟發，但將其應用於所有分割任務而非僅實例級任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——追溯逐像素分類與遮罩分類兩條研究脈絡的演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了從 DETR 到 MaskFormer 的學術譜系：DETR 為實例分割引入了集合預測，MaskFormer 將此概念推廣至所有分割任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    承認 DETR 的啟發是學術誠信的體現。但也暗示 MaskFormer 與 DETR 在技術上高度相似——核心差異僅在於推論策略（語意分割的 argmax 聚合 vs. 實例分割的直接輸出）。這使得 MaskFormer 的「新穎性」更多在概念洞察而非技術創新。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Mask Classification Formulation — 遮罩分類公式化</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than assigning class probabilities to each pixel independently, <span class="hl-concept">mask classification</span> <span class="hl-method">splits the segmentation task into two sub-problems</span>: (1) <span class="hl-method">partitioning the image into N regions represented as binary masks {m_i}</span>, and (2) <span class="hl-method">associating each region with a probability distribution p_i over K+1 categories</span> (including a "no object" class). The training objective uses <span class="hl-method">Hungarian matching</span> to find the optimal assignment between predicted and ground truth segments, then computes a <span class="hl-method">combination of cross-entropy loss for class predictions and binary cross-entropy plus dice loss for mask predictions</span>. This formulation allows <span class="hl-thesis">the number of predicted segments N to be independent of the number of categories K</span>, enabling a single model to handle tasks with vastly different numbers of output segments.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                不同於為每個像素獨立分配類別機率，遮罩分類將分割任務分為兩個子問題：(1) 將影像劃分為 N 個以二值遮罩 {m_i} 表示的區域，(2) 為每個區域關聯一個在 K+1 個類別（包含「無物件」類別）上的機率分布 p_i。訓練目標使用匈牙利匹配來尋找預測與真實區段之間的最佳配對，然後計算類別預測的交叉熵損失與遮罩預測的二元交叉熵加骰子損失的組合。此公式化允許預測區段數 N 獨立於類別數 K，使單一模型能處理輸出區段數量差異極大的任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學公式化——精確定義遮罩分類的優化目標與訓練流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法的數學基礎。匈牙利匹配確保了訓練時預測與真實遮罩之間的最佳對應，而 N 與 K 的解耦是架構通用性的關鍵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    匈牙利匹配的使用直接借鑒了 DETR，這是成熟的技術。但匈牙利匹配的計算複雜度為 O(N^3)，當預測區段數 N 較大時可能成為瓶頸。此外，「無物件」類別的引入在語意分割中的意義不如在實例分割中明確——語意分割中每個像素都應屬於某個類別。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 架構 ====== -->
+    <h3 class="subsection-heading" id="sec-arch">3.2 MaskFormer Architecture — MaskFormer 架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                MaskFormer consists of three modules. The <span class="hl-method">pixel-level module</span> extracts per-pixel embeddings using a backbone (e.g., ResNet or Swin Transformer) followed by a <span class="hl-method">pixel decoder that gradually upsamples features</span> to generate high-resolution embeddings. The <span class="hl-method">Transformer decoder</span> takes N <span class="hl-concept">learnable query embeddings</span> and, through <span class="hl-method">cross-attention with the image features</span>, produces N <span class="hl-concept">per-segment embeddings</span>. The <span class="hl-method">segmentation module</span> then generates: (1) <span class="hl-method">class predictions via a linear classifier on segment embeddings</span>, and (2) <span class="hl-method">binary masks via dot product between segment embeddings and per-pixel embeddings followed by sigmoid activation</span>. This design is <span class="hl-thesis">backbone-agnostic and can leverage any existing feature extractor</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MaskFormer 由三個模組組成。像素級模組使用骨幹（如 ResNet 或 Swin Transformer）擷取逐像素嵌入，接著像素解碼器逐步上取樣特徵以生成高解析度嵌入。Transformer 解碼器接收 N 個可學習的查詢嵌入，透過與影像特徵的交叉注意力產生 N 個逐區段嵌入。分割模組接著生成：(1) 透過區段嵌入上的線性分類器產生類別預測，(2) 透過區段嵌入與逐像素嵌入的點積加 sigmoid 啟動產生二值遮罩。此設計與骨幹無關，可利用任何現有的特徵擷取器。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構詳述——描述 MaskFormer 的三模組設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三模組的分工清晰：像素級模組負責空間資訊、Transformer 解碼器負責區段級語義、分割模組負責整合兩者。遮罩生成透過點積實現在數學上優雅且計算高效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「骨幹無關」是強有力的設計特性——它使 MaskFormer 可以搭配任何骨幹的進步（如從 ResNet 到 Swin）。但 Transformer 解碼器的計算開銷（O(N) 個查詢的交叉注意力）可能在高解析度影像上成為瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 推論策略 ====== -->
+    <h3 class="subsection-heading" id="sec-inference">3.3 Inference Strategy — 推論策略</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The inference strategy differs by task. For <span class="hl-concept">semantic segmentation</span>, MaskFormer uses <span class="hl-method">marginalization</span>: at each pixel, the probability of category c is computed as <span class="hl-method">the sum over all N masks of the product of mask probability and class probability for c</span>, then <span class="hl-method">argmax over categories</span> gives the final label. This allows <span class="hl-thesis">multiple queries to contribute to the same semantic class</span>, effectively handling large or disjoint regions of the same category. For <span class="hl-concept">panoptic and instance segmentation</span>, a simpler <span class="hl-method">argmax over masks</span> assigns each pixel to the most confident segment, with a <span class="hl-method">confidence threshold to filter low-quality predictions</span>. This demonstrates that <span class="hl-thesis">the same trained model handles different tasks solely by changing the inference procedure</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                推論策略因任務而異。在語意分割中，MaskFormer 使用邊際化：在每個像素上，類別 c 的機率計算為所有 N 個遮罩上遮罩機率與類別 c 的類別機率的乘積之總和，然後對類別取 argmax 得到最終標籤。這允許多個查詢貢獻於同一語意類別，有效地處理同一類別的大面積或不連通區域。在全景與實例分割中，較簡單的對遮罩取 argmax 將每個像素分配給最有信心的區段，並以信心閾值過濾低品質預測。這證明了同一訓練模型僅透過改變推論程序即可處理不同任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推論設計——展示同一模型如何透過不同推論策略適配不同任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是統一性宣稱的關鍵支撐：模型架構與訓練完全相同，僅推論策略隨任務變化。這使得「一個模型解決所有分割問題」的願景具有可操作性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    語意分割的邊際化策略允許多查詢覆蓋同一類別是巧妙的設計——但這也意味著查詢數 N 需要大於類別數 K。在類別數極多的情況下（如 ADE20K-Full 的 847 類），N 的設定成為敏感的超參數。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key finding is that MaskFormer's advantage over per-pixel baselines <span class="hl-evidence">increases with the number of categories</span>. On <span class="hl-evidence">Cityscapes (19 classes)</span>, the improvement is minimal. On <span class="hl-evidence">ADE20K (150 classes)</span>, MaskFormer with Swin-Large backbone achieves <span class="hl-evidence">55.6 mIoU</span>, establishing state-of-the-art. On <span class="hl-evidence">ADE20K-Full (847 classes)</span>, the gain reaches <span class="hl-evidence">+3.5 mIoU</span> over the per-pixel baseline, demonstrating that <span class="hl-thesis">mask classification becomes increasingly advantageous as the number of categories grows</span>. For <span class="hl-evidence">COCO panoptic segmentation</span>, MaskFormer achieves <span class="hl-evidence">52.7 PQ</span>, competitive with specialized panoptic methods. The model handles <span class="hl-evidence">both things and stuff categories without architectural changes</span>, confirming the unification claim.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項關鍵發現是 MaskFormer 相對逐像素基線的優勢隨類別數量增加而擴大。在 Cityscapes（19 類）上，改進幅度不大。在 ADE20K（150 類）上，搭配 Swin-Large 骨幹的 MaskFormer 達到 55.6 mIoU，確立最先進結果。在 ADE20K-Full（847 類）上，增益達到相對逐像素基線 +3.5 mIoU，證明遮罩分類隨類別數增長而愈具優勢。在 COCO 全景分割上，MaskFormer 達到 52.7 PQ，與專用全景方法具有競爭力。模型在無架構修改的情況下同時處理物件（things）與背景（stuff）類別，確認了統一性的宣稱。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗驗證——展示跨不同類別數與分割任務的效能趨勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「類別數越多優勢越大」的趨勢是最具說服力的發現——它不僅展示了效能，更揭示了遮罩分類在規模化上的結構性優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以類別數作為分析軸的實驗設計非常有洞察力。但在 Cityscapes 上「改進幅度不大」的承認也暗示了一個重要限制：對於少類別、高解析度的場景，逐像素分類仍然是有效甚至更優的選擇。統一框架的價值更多體現在多類別場景中。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">MaskFormer</span> demonstrates that <span class="hl-thesis">mask classification is a viable and often superior alternative to per-pixel classification for semantic segmentation</span>, while naturally extending to instance and panoptic segmentation. The approach achieves <span class="hl-evidence">state-of-the-art results on ADE20K</span> and <span class="hl-evidence">competitive performance across multiple benchmarks</span>. The findings suggest that <span class="hl-thesis">the segmentation community should reconsider the dominance of per-pixel classification</span> and explore mask-based formulations that offer greater flexibility and scalability. The authors envision this as a step toward <span class="hl-thesis">truly unified segmentation models</span> that can handle any segmentation task with a single architecture.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MaskFormer 證明了遮罩分類是語意分割中逐像素分類的可行且通常更優的替代方案，同時自然地延伸至實例與全景分割。此方法在 ADE20K 上達到最先進結果，並在多個基準上展現具有競爭力的效能。研究發現建議分割社群應重新審視逐像素分類的主導地位，並探索提供更大靈活性與可擴展性的遮罩式公式化。作者將此視為朝向真正統一的分割模型——以單一架構處理任何分割任務——邁出的一步。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與呼籲——重申核心貢獻並倡議範式轉移。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論超越了個別方法的宣傳，提出了更廣泛的社群呼籲：「重新審視逐像素分類的主導地位」。這將 MaskFormer 定位為範式轉移的起點而非終點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「重新審視主導地位」的呼籲後來被 MaskFormer 的後續工作 Mask2Former 所驗證——後者在所有分割基準上都取得了最先進結果，證明了遮罩分類範式的生命力。但初版 MaskFormer 在實例分割上仍不及 Mask R-CNN 系列，使統一性的宣稱在效能維度上尚不完整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                逐像素分類無法<br>統一語意/實例分割
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                遮罩分類是通用<br>分割範式
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ADE20K SOTA<br>類別數越多優勢越大
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                同一模型不同推論<br>適配不同任務
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                分割社群應重新<br>審視主流範式
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    遮罩分類——預測一組二值遮罩與類別標籤的配對——是比逐像素分類更通用的分割範式，能以單一架構統一語意、實例與全景分割任務。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>類別數量的規模化優勢：</strong>「類別數越多優勢越大」的實驗發現（Cityscapes 19 類微幅改進 vs. ADE20K-Full 847 類 +3.5 mIoU）提供了遮罩分類結構性優勢的有力證據，暗示此方法在更大規模的分割問題上將愈發重要。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>統一性在效能維度上的不完整：</strong>MaskFormer 在語意分割上達到 SOTA，但在實例分割上僅「具有競爭力」，暗示統一框架在各個任務上可能不如專用方法。此外，在少類別場景（如 Cityscapes）上的微幅改進質疑了遮罩分類是否在所有情境下都優於逐像素分類。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

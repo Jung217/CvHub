@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dense Optical Flow Prediction From a Static Image — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Dense Optical Flow Prediction From a Static Image
+                <span class="course-tag">ICCV 2015</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1505.00295" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-classification">3.2 迴歸即分類</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors present a <span class="hl-concept">CNN-based approach</span> that <span class="hl-thesis">predicts the future motion of each and every pixel in a static image in terms of optical flow</span>. Given <span class="hl-method">a single static image as input</span>, the model forecasts <span class="hl-concept">dense optical flow</span> — the expected pixel-level motion that would occur in the immediate future. The system is trained on <span class="hl-evidence">tens of thousands of realistic videos without requiring human annotations</span>, leveraging <span class="hl-method">automatically computed optical flow as ground truth</span>. The approach <span class="hl-evidence">significantly outperforms prior methods</span> across multiple benchmarks and demonstrates the ability to <span class="hl-thesis">predict plausible motion patterns across diverse scenarios</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提出一種基於 CNN 的方法，從靜態影像預測每一個像素的未來運動，以光流表示。給定單一靜態影像作為輸入，模型預測稠密光流——即近未來可能發生的像素級運動。系統在數萬支寫實影片上訓練，無需人工標註，利用自動計算的光流作為真實標註。該方法在多個基準上顯著超越先前方法，並展示了在多樣場景中預測合理運動模式的能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義「從靜態影像預測運動」這一反直覺的任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以矛盾性命題吸引注意：「靜態影像」與「運動預測」的對比挑戰讀者的直覺，迫使其思考影像中蘊含的運動先驗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「每一個像素」的宣稱暗示稠密預測，但實際上粗糙的 20x20 預測被上取樣——此處的精度承諾可能被高估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Humans possess a remarkable ability to <span class="hl-thesis">infer future motion from static images</span>: seeing a ball in mid-air, we predict its trajectory; seeing a person mid-stride, we anticipate their next step. This ability relies on <span class="hl-concept">learned associations between visual appearance and typical motion patterns</span>. The authors argue that <span class="hl-thesis">CNNs can learn similar associations from large video datasets</span>, enabling <span class="hl-concept">motion prediction</span> from single frames. The task is inherently <span class="hl-rebuttal">ambiguous — the same static image can correspond to multiple plausible future motions</span>. Prior approaches have been limited to <span class="hl-rebuttal">specific domains (e.g., traffic scenes) or coarse motion categories</span>. This work aims for a <span class="hl-thesis">general-purpose, pixel-level motion prediction system</span> trained across diverse scenarios.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人類擁有從靜態影像推斷未來運動的卓越能力：看見半空中的球，我們預測其軌跡；看見正在跨步的人，我們預期其下一步。此能力依賴於視覺外觀與典型運動模式之間的學習聯想。作者論證 CNN 可從大規模影片資料集中學習類似的聯想，實現從單一影格的運動預測。此任務本質上具有模糊性——同一靜態影像可對應多種合理的未來運動。先前的方法受限於特定領域（如交通場景）或粗糙的運動類別。本研究旨在建立一個跨多樣場景訓練的通用像素級運動預測系統。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    動機建立——以人類直覺類比開場，定義任務與挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以人類認知能力作為起點，建立「機器應能學到類似能力」的論證。「模糊性」的誠實承認預先化解了潛在質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    球與跨步的例子直覺有力，但這些場景的運動高度可預測。對於靜止物件（如桌子）或多義場景（人可以向左或向右走），預測的意義與可行性值得商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Optical flow estimation</span> traditionally requires <span class="hl-rebuttal">two consecutive frames</span>, with classical methods like <span class="hl-concept">Horn-Schunck</span> and modern approaches like <span class="hl-concept">DeepFlow</span>. <span class="hl-concept">Motion prediction</span> from single images is a less explored direction. Prior work includes <span class="hl-concept">action prediction</span> models that <span class="hl-rebuttal">classify discrete action categories rather than predicting continuous motion fields</span>, and <span class="hl-concept">scene flow estimation</span> methods that <span class="hl-rebuttal">require 3D information or stereo input</span>. <span class="hl-concept">Random forests</span> have been used for structured pixel-level prediction but are <span class="hl-rebuttal">limited in representational capacity compared to deep networks</span>. The proposed CNN approach provides <span class="hl-thesis">the first general-purpose dense motion prediction from single static images</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                光流估計傳統上需要兩個連續影格，經典方法如 Horn-Schunck 與現代方法如 DeepFlow。從單一影像進行運動預測是較少被探索的方向。先前研究包括：動作預測模型（分類離散動作類別而非預測連續運動場），以及需要三維資訊或立體輸入的場景流估計方法。隨機森林已用於結構化像素級預測，但相較深度網路其表示能力有限。所提出的 CNN 方法提供了首個從單一靜態影像進行通用稠密運動預測的方案。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——區分「運動估計」（雙影格）與「運動預測」（單影格）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「估計 vs 預測」的精確區分建立問題的新穎性。現有方法的三個弱點（離散類別、需 3D、容量有限）為 CNN 方案清出空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    宣稱「首個通用稠密預測」是強烈的優先性宣稱。但「通用」的範圍取決於訓練資料的多樣性——UCF-101 和 HMDB-51 以人類動作為主，場景多樣性有限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Network Architecture</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The network is a <span class="hl-method">modified seven-layer CNN</span> that takes a <span class="hl-evidence">200x200 pixel image</span> as input and produces a <span class="hl-evidence">20x20 coarse prediction map</span>. The final layer contains <span class="hl-evidence">16,000 neurons</span> (20 x 20 spatial locations x 40 flow clusters), outputting a <span class="hl-method">spatial softmax</span> over flow clusters at each location. The key design choice is to use <span class="hl-method">fully convolutional layers throughout</span>, maintaining spatial correspondence between input and output. The <span class="hl-method">coarse 20x20 output is bilinearly upsampled</span> to the original image resolution for evaluation. Training labels are <span class="hl-method">automatically generated using the DeepFlow algorithm</span> on consecutive video frames, with <span class="hl-method">camera stabilization and averaging over five future frames</span> to reduce label noise.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                網路為修改後的七層 CNN，接受 200x200 像素影像作為輸入，產生 20x20 的粗糙預測圖。最終層包含 16,000 個神經元（20 x 20 空間位置 x 40 個光流群集），在每個位置輸出光流群集的空間 softmax。關鍵設計選擇是全程使用全摺積層，維持輸入與輸出之間的空間對應。粗糙的 20x20 輸出以雙線性內插上取樣至原始影像解析度以供評估。訓練標籤使用 DeepFlow 演算法在連續影片影格上自動生成，配合攝影機穩定化與五個未來影格的平均以降低標籤雜訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構定義——描述 CNN 的輸入輸出規格與自監督標籤生成。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「自動標籤生成」是方法的關鍵使能機制——將運動預測問題轉化為可用影片自動標註的監督學習。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    20x20 的粗糙預測上取樣至原始解析度，意味著實際的空間精度很低。「稠密預測」的宣稱與 20x20 的實際解析度之間存在認知差距。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 迴歸即分類 ====== -->
+    <h3 class="subsection-heading" id="sec-classification">3.2 Regression as Classification — 迴歸即分類</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A crucial methodological choice is to <span class="hl-thesis">reformulate the optical flow regression problem as a classification task</span>. Rather than <span class="hl-rebuttal">directly regressing continuous flow vectors — which tends to produce blurry mean predictions</span> — the authors <span class="hl-method">quantize the optical flow space into 40 clusters using k-means</span> and train the network to <span class="hl-method">predict a probability distribution over these clusters at each pixel</span> using softmax loss. This formulation has two advantages: it <span class="hl-thesis">avoids averaging to the mean</span> (which destroys directional information when multiple motions are plausible) and <span class="hl-thesis">preserves directional ambiguity through probability distributions</span>. The expected flow can be recovered by computing the <span class="hl-method">weighted average of cluster centers using the predicted probabilities</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個關鍵的方法論選擇是將光流迴歸問題重新公式化為分類任務。與其直接迴歸連續光流向量——傾向於產生模糊的均值預測——作者使用 k-means 將光流空間量化為 40 個群集，訓練網路以 softmax 損失預測每個像素上這些群集的機率分布。此公式有兩個優勢：避免趨向均值（當多種運動皆合理時會破壞方向資訊），以及透過機率分布保留方向模糊性。期望光流可透過以預測機率作為權重計算群集中心的加權平均而恢復。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術創新——將迴歸轉化為分類以處理多義性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文方法論的支柱。「迴歸即分類」直接回應了緒論中承認的「模糊性」問題——機率分布自然表達了多種可能運動。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    40 個群集的量化精度是一個關鍵超參數——太少導致粗糙預測，太多導致稀疏分布難以學習。此數字的選擇依據（k-means 在訓練集上的結果）可能偏向特定的運動模式分布。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The model is trained on <span class="hl-evidence">UCF-101 (approximately 350,000 frames)</span> and <span class="hl-evidence">HMDB-51 (approximately 150,000 frames)</span>. Evaluation uses multiple metrics: <span class="hl-method">End-Point-Error (EPE)</span> for magnitude accuracy, <span class="hl-method">direction/orientation similarity</span> for angular accuracy, and <span class="hl-method">Top-N cluster ranking</span> for categorical accuracy. Results demonstrate <span class="hl-evidence">substantial improvements over Structured Random Forests and Nearest-Neighbor baselines</span> across all three datasets. The method shows <span class="hl-evidence">strong cross-dataset generalization</span> — a model trained on UCF-101 performs well on HMDB-51 and vice versa, suggesting that <span class="hl-thesis">the learned motion priors generalize across action types and visual domains</span>. A proof-of-concept <span class="hl-method">multi-frame extension</span> demonstrates that the model can predict motion for <span class="hl-evidence">multiple future time steps</span>, though with decreasing accuracy.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                模型在 UCF-101（約 350,000 個影格）與 HMDB-51（約 150,000 個影格）上訓練。評估使用多個指標：端點誤差（EPE）衡量幅度精度，方向/朝向相似度衡量角度精度，以及 Top-N 群集排名衡量類別精度。結果展示在所有三個資料集上對結構化隨機森林與最近鄰基線的顯著改進。該方法展現強健的跨資料集泛化——在 UCF-101 上訓練的模型在 HMDB-51 上表現良好（反之亦然），暗示學到的運動先驗能跨動作類型與視覺領域泛化。概念驗證的多影格擴展展示了模型可預測多個未來時間步的運動，儘管精度隨之遞減。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗驗證——跨資料集泛化與多指標評估。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    跨資料集泛化是最有力的論據——它證明模型學到的不是資料集特定的統計規律，而是通用的運動先驗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    UCF-101 與 HMDB-51 都以人類動作為主，跨資料集泛化可能僅限於此領域。在自然場景（風吹樹搖）或機械運動等不同類型的運動上是否仍有效，尚未驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents a <span class="hl-concept">generalized prediction framework</span> that learns to <span class="hl-thesis">predict dense optical flow from single static images</span> by training on <span class="hl-method">automatically labeled video data</span>. The key insight that <span class="hl-thesis">regression as classification preserves motion ambiguity</span> is central to the method's success. The approach enables <span class="hl-evidence">motion estimation across diverse indoor and outdoor scenarios with multiple agents</span>, demonstrating that <span class="hl-thesis">static images contain rich predictive information about future dynamics</span>. Future directions include <span class="hl-concept">semantic action prediction integration</span> — combining appearance-based motion prediction with action understanding — and <span class="hl-concept">pixel-space video synthesis</span>, where predicted flow could drive video generation from single images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一個通用預測框架，透過在自動標註的影片資料上訓練，學習從單一靜態影像預測稠密光流。「迴歸即分類以保留運動模糊性」的關鍵洞見是方法成功的核心。該方法實現了跨多樣室內外場景且含多個主體的運動估計，展示了靜態影像中蘊含關於未來動態的豐富預測資訊。未來方向包括語意動作預測整合——結合基於外觀的運動預測與動作理解——以及像素空間影片合成，其中預測的光流可驅動從單一影像生成影片。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心洞見並展望應用方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論從技術方法提升至認知科學啟示：靜態影像中隱含動態資訊。「影片合成」的展望在後續研究中已部分實現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「影片合成」展望具有遠見，但當前方法的 20x20 預測解析度距離實際影片生成仍有巨大鴻溝。結論可能過度推廣了方法的能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                靜態影像能否<br>預測未來運動？
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                迴歸即分類<br>保留運動模糊性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                超越隨機森林基線<br>跨資料集泛化
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                運動本質多義<br>分類保留分布
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                靜態影像蘊含<br>豐富的動態先驗
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將光流迴歸重新公式化為群集分類，CNN 能從單一靜態影像預測合理的稠密像素級運動，且此能力可跨場景與動作類型泛化。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>迴歸即分類的方法論創新：</strong>將連續迴歸轉化為離散分類不僅避免了均值模糊問題，更自然地以機率分布表達運動的多義性。此設計選擇優雅地回應了問題的核心挑戰，且跨資料集泛化結果有力地支持了學到先驗的通用性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>解析度與領域限制：</strong>20x20 的實際預測解析度與「稠密」的宣稱之間存在落差——最終結果依賴雙線性內插而非真正的像素級預測。此外，訓練與測試均以人類動作影片為主，在靜止場景或非人類運動（如自然現象、機械運動）上的效果不明。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

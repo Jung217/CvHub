@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holistically-Nested Edge Detection — 雙欄批注</title>
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #c0c0c0, #8a8a8a); color: #fff; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        /* ===== 章節導航條 ===== */
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        /* ===== 主體容器 ===== */
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        /* ===== 批注卡片 ===== */
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Holistically-Nested Edge Detection
+                <span class="course-tag">ICCV 2015</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1504.06375" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. HED 方法</a>
+        <a href="#sec-arch">3. 網路架構</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We develop a new <span class="hl-concept">edge detection algorithm</span> that addresses two important issues in this long-standing vision problem: (1) <span class="hl-thesis">holistic image training and prediction</span>; and (2) <span class="hl-thesis">multi-scale and multi-level feature learning</span>. Our proposed method, <span class="hl-concept">holistically-nested edge detection (HED)</span>, performs <span class="hl-method">image-to-image prediction by means of a deep learning model that leverages fully convolutional neural networks and deeply-supervised nets</span>. HED automatically learns rich hierarchical representations that are important in order to approach the human ability of resolving the challenging ambiguity in edge and object boundary detection. We significantly advance the state-of-the-art on the <span class="hl-evidence">BSD500 dataset (ODS F-score of .782)</span> and the <span class="hl-evidence">NYU Depth dataset (.746)</span>, with <span class="hl-evidence">substantially faster speed (0.4 seconds per image on GPU)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們開發了一種新的邊緣偵測演算法，解決此長期視覺問題中的兩個重要議題：(1) 整體性影像訓練與預測；(2) 多尺度與多層級特徵學習。本文提出的整體嵌套邊緣偵測（HED），透過深度學習模型實現影像對影像的預測，該模型結合了全摺積神經網路與深度監督網路。HED 自動學習豐富的階層式表示，這對於接近人類在邊緣與物件邊界偵測中解決困難歧義的能力至關重要。我們在 BSD500 資料集（ODS F-score .782）與 NYU Depth 資料集（.746）上大幅推進了最先進水準，且速度顯著更快（GPU 上每張影像 0.4 秒）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以兩個核心議題定義研究範疇，並以具體數據預告成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「議題-方法-成果」三段式組織，同時涵蓋精確度（F-score）與效率（速度），展示方法的雙重優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「接近人類能力」的表述為強烈的修辭手法，但人類 F-score 約為 0.80，而 HED 達到 0.782，差距雖小但仍存在。速度優勢的強調有效，因為先前 CNN 方法需數秒至數小時。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Edge and boundary detection is <span class="hl-concept">fundamental to computer vision</span>, serving applications from <span class="hl-evidence">visual saliency, segmentation, object detection/recognition, tracking, and motion analysis</span> to modern tasks like autonomous driving and 3D reconstruction. <span class="hl-concept">Human consistency studies</span> established an <span class="hl-evidence">F-score of 0.80 for edge placement</span>, setting a practical upper bound. Prior work falls into three categories: <span class="hl-rebuttal">early gradient-based methods (Sobel, Canny)</span>, <span class="hl-rebuttal">information-theory approaches (Pb, gPb)</span>, and <span class="hl-rebuttal">learning-based methods with hand-crafted features</span>. Recent CNN approaches showed promise but suffered from <span class="hl-rebuttal">slow inference speeds and modest improvements over Structured Edges</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                邊緣與邊界偵測是電腦視覺的基礎，服務於視覺顯著性、分割、物件偵測/辨識、追蹤與運動分析等應用，乃至自動駕駛與三維重建等現代任務。人類一致性研究確立了 0.80 的邊緣定位 F-score 作為實際上限。先前的研究分為三類：早期梯度方法（Sobel、Canny）、資訊理論方法（Pb、gPb）以及使用手工特徵的學習方法。近期的 CNN 方法雖展現前景，卻飽受推論速度緩慢與相較 Structured Edges 僅有適度改善之苦。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——系統性回顧邊緣偵測的歷史與現狀。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：以三類方法的分類建立研究脈絡，指出 CNN 方法的「速度與精度」雙重不足，為 HED 的定位鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將先前 CNN 方法歸類為「緩慢且改善有限」是有效的對比策略。0.80 人類上限的引入為後續評估提供了天花板參照，是良好的論證框架設定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. HED 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">2. Holistically-Nested Edge Detection — HED 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We formalize existing multi-scale deep learning approaches into four categories: <span class="hl-concept">multi-stream learning</span>, <span class="hl-concept">skip-layer networks</span>, <span class="hl-concept">single models on multiple inputs</span>, and <span class="hl-concept">independent networks</span>. Our holistically-nested approach differs fundamentally: it uses <span class="hl-method">a single-stream deep network with multiple side outputs</span>, drawing on <span class="hl-concept">deeply-supervised net</span> methodology. The training objective combines <span class="hl-method">side-output losses across M layers</span>: <em>L_side(W,w) = &Sigma;_m &alpha;_m l_side(W,w^(m))</em>. To handle the <span class="hl-rebuttal">severe class imbalance (roughly 90% non-edge pixels)</span>, we employ <span class="hl-method">class-balanced cross-entropy loss</span> with weight &beta; = |Y-|/|Y|. A <span class="hl-method">weighted-fusion layer</span> learns to combine multi-scale outputs during training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將現有的多尺度深度學習方法系統化為四類：多串流學習、跳層網路、單一模型多輸入以及獨立網路。我們的整體嵌套方法有本質區別：它使用具有多個側輸出的單串流深度網路，借鑑深度監督網路方法論。訓練目標結合跨 M 層的側輸出損失：L_side(W,w) = &Sigma;_m &alpha;_m l_side(W,w^(m))。為處理嚴重的類別不平衡（約 90% 為非邊緣像素），我們採用類別平衡交叉熵損失，權重 &beta; = |Y-|/|Y|。加權融合層在訓練中學習組合多尺度輸出。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法定義——以分類學定位 HED 並描述其數學公式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將四類現有方法作為對照組，凸顯 HED 的「單串流多側輸出」獨特性。類別平衡損失直接解決實際訓練中的數據偏差問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以分類學建立差異化是有效的論證手法。但「深度監督」的概念並非首創，作者需明確說明 HED 在此基礎上的增量貢獻。類別平衡損失是必要的工程決策，但其超參數 &alpha;_m 的選擇策略需要交代。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 網路架構 ====== -->
+    <h2 class="section-heading" id="sec-arch">3. Network Architecture — 網路架構</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The architecture adopts <span class="hl-concept">VGGNet</span> but removes <span class="hl-method">the 5th pooling layer and all fully connected layers</span> to improve efficiency and produce meaningful multi-scale outputs. <span class="hl-method">Side outputs connect to layers conv1_2, conv2_2, conv3_3, conv4_3, and conv5_3</span>, with <span class="hl-evidence">receptive field sizes ranging from 5 to 196</span> and <span class="hl-evidence">strides from 1 to 16</span>. Comparison with <span class="hl-concept">FCN</span> variants showed HED outperformed <span class="hl-evidence">FCN-8s (.697 ODS) and FCN-2s (.738 ODS)</span>. Deep supervision proved critical: <span class="hl-thesis">"training with only the weighted-fusion output loss gives edge predictions that lack discernible order"</span> with many critical edges absent at higher layers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                架構採用 VGGNet 但移除第五池化層與所有全連接層，以提升效率並產生有意義的多尺度輸出。側輸出連接至 conv1_2、conv2_2、conv3_3、conv4_3 與 conv5_3 層，感受野大小從 5 到 196，步幅從 1 到 16。與 FCN 變體的比較顯示 HED 優於 FCN-8s（.697 ODS）與 FCN-2s（.738 ODS）。深度監督至關重要：僅以加權融合輸出損失訓練會導致邊緣預測「缺乏可辨別的秩序」，高層中許多關鍵邊緣缺失。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構細節——具體說明網路修改與側輸出配置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 VGG 修剪策略說明工程決策的合理性，並透過與 FCN 的定量對比驗證架構優越性。深度監督的必要性以消融實驗確認。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    5 到 196 的感受野跨度清楚展示了多尺度捕獲能力。與 FCN 的直接比較極具說服力，但 FCN 並非為邊緣偵測而設計，此比較的公平性可被質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training uses <span class="hl-method">Caffe with VGG-16 pre-training</span>, mini-batch size 10, learning rate 1e-6, momentum 0.9, and 10,000 iterations. <span class="hl-method">Consensus sampling</span> uses only pixels labeled positive by at least 3 annotators. Data augmentation rotates images to 16 angles with flipping, creating <span class="hl-evidence">32x dataset expansion</span>. On <span class="hl-evidence">BSDS500, HED achieves ODS F-score of .782, OIS of .804, and AP of .833</span>. Individual side outputs contribute variably: <span class="hl-evidence">layer 1 reaches .595 ODS, layer 2 achieves .697, layer 3 reaches .738, while layer 5 achieves only .606</span>. Processing takes <span class="hl-evidence">0.4 seconds per 320x480 image on GPU</span>, compared to seconds or hours for competing methods. On <span class="hl-evidence">NYUDv2, the combined RGB-HHA model achieves ODS of .746</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練使用 Caffe 搭配 VGG-16 預訓練權重，小批次大小 10，學習率 1e-6，動量 0.9，共 10,000 次迭代。共識取樣僅使用至少 3 位標注者標記為正的像素。資料增強將影像旋轉至 16 個角度並翻轉，產生 32 倍的資料集擴充。在 BSDS500 上，HED 達到 ODS F-score .782、OIS .804 與 AP .833。各側輸出的貢獻不一：第 1 層達 .595 ODS，第 2 層 .697，第 3 層 .738，而第 5 層僅 .606。處理每張 320x480 影像在 GPU 上需 0.4 秒，相較於競爭方法的數秒至數小時。在 NYUDv2 上，RGB-HHA 組合模型達到 .746 ODS。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面的實驗驗證——涵蓋訓練細節、主要結果與跨資料集評估。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱：以精確度（.782 ODS）、速度（0.4 秒）與跨資料集泛化（NYUDv2）三個面向支撐方法的有效性。各層輸出的分析揭示多尺度融合的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    各層輸出的個別效能數據非常有洞察力——第 5 層僅 .606 顯示高層語義特徵不適合精細邊緣定位，但融合後仍有貢獻。速度對比以「數秒至數小時」描述競爭方法略顯模糊，精確的比較表格會更有說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present an <span class="hl-concept">end-to-end edge detection system</span> that achieves <span class="hl-thesis">state-of-the-art performance on natural images at a speed of practical relevance</span> (0.4 seconds using GPU and 12 seconds using CPU). The method combines <span class="hl-method">fully convolutional networks with deep supervision</span> on a <span class="hl-method">trimmed VGG architecture</span>. The <span class="hl-thesis">holistically-nested design enables automatic learning of multi-scale, multi-level edge representations</span>, addressing a fundamental challenge in this classic vision task. Code and pre-trained models are publicly released.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一個端對端邊緣偵測系統，在自然影像上以具實際意義的速度達到最先進效能（GPU 0.4 秒，CPU 12 秒）。該方法在修剪後的 VGG 架構上結合全摺積網路與深度監督。整體嵌套設計實現了多尺度、多層級邊緣表示的自動學習，解決了此經典視覺任務中的根本挑戰。程式碼與預訓練模型已公開釋出。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並強調實用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論簡潔有力地回應了摘要中的兩個核心議題（整體性與多尺度），並以開源釋出作為對社群的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論適度聚焦而不過度膨脹。然而未討論方法的局限性——例如對紋理邊緣與物件邊界的區分能力，以及在更高解析度影像上的可擴展性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                邊緣偵測缺乏整體性<br>與多尺度學習能力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                單串流多側輸出+<br>深度監督實現 HED
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                BSD500 .782 ODS<br>NYUDv2 .746 ODS
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                類別平衡損失解決<br>90% 非邊緣偏差
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                端對端系統以實用速度<br>達到最先進效能
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過在單串流全摺積網路中以深度監督訓練多個側輸出，HED 自動學習多尺度邊緣表示，以 0.4 秒的實用速度在 BSD500 上達到 .782 ODS F-score。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>深度監督的多尺度融合：</strong>各層側輸出的個別效能分析清楚展示不同網路深度捕獲不同尺度的邊緣資訊，而學習式融合能有效整合這些互補訊號。速度優勢從數小時壓縮至 0.4 秒，使方法具備真正的實用性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>與人類效能的差距未充分分析：</strong>HED 的 .782 與人類的 .800 之間仍有差距，但作者未深入分析失敗案例或討論此差距的來源。此外，方法對 VGG 預訓練的依賴意味著其效能可能受限於預訓練資料的多樣性。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

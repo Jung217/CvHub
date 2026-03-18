@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First-Person Activity Forecasting with Online Inverse Reinforcement Learning — ICCV 2017 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #a8d8ea, #5ba0c2); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                First-Person Activity Forecasting with Online Inverse Reinforcement Learning
+                <span class="course-tag">ICCV 2017</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1612.07796" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-darko">3.1 Darko 演算法</a>
+        <a href="#sec-forecast">3.2 活動預測</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We address the problem of <span class="hl-thesis">incrementally modeling and forecasting long-term goals of a first-person camera wearer</span>. We present the <span class="hl-concept">Darko</span> algorithm for <span class="hl-concept">Discovering Agent Rewards for K-futures Online</span>. Darko learns and predicts <span class="hl-method">semantic states, state transitions, rewards, and goals from streaming first-person video</span> using <span class="hl-concept">Online Inverse Reinforcement Learning (IRL)</span>. In contrast to classical <span class="hl-rebuttal">batch IRL approaches that require complete demonstrations</span>, Darko <span class="hl-thesis">discovers states, transitions, rewards, and goals from continuous observations</span>. We provide a <span class="hl-evidence">theoretical guarantee of no-regret performance</span> and demonstrate the algorithm's effectiveness empirically on first-person activity datasets spanning extended temporal and spatial horizons.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們處理的問題是以漸進方式建模與預測第一人稱攝影機穿戴者的長期目標。我們提出 Darko 演算法（Discovering Agent Rewards for K-futures Online，線上探索代理獎勵以預測 K 個未來），從串流的第一人稱影片中使用線上逆強化學習（IRL）學習並預測語意狀態、狀態轉移、獎勵與目標。相較於需要完整示範的傳統批次 IRL 方法，Darko 從持續觀測中探索狀態、轉移、獎勵與目標。我們提供無悔效能的理論保證，並在橫跨延長時間與空間範圍的第一人稱活動資料集上實證驗證演算法的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義問題（長期目標預測）並引出 Darko 演算法的核心定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時涵蓋理論（無悔保證）與實驗（實證驗證），展現論文的雙重貢獻。「線上」與「批次」的對比清晰界定了新穎性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調「無悔保證」的理論結果極為有力，但此保證的前提假設（如獎勵的線性結構）可能在複雜的真實場景中不完全成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Wearable cameras provide a continuous stream of <span class="hl-concept">first-person visual data</span> that captures the wearer's activities, interactions, and environment over extended periods. A key challenge is to develop AI systems that <span class="hl-thesis">learn human intent and goals through continuous behavioral observation</span>. This extends beyond simple <span class="hl-rebuttal">trajectory forecasting</span> to include reasoning about <span class="hl-concept">object interactions, scene-based goals, and semantic understanding</span>. We present <span class="hl-thesis">the first application of ideas from online learning theory and inverse reinforcement learning to the task of continuously learning human behavior models with a wearable camera</span>. Our approach addresses fundamental questions: where will this person go, what will they do, and what semantic goals are they pursuing?
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                穿戴式攝影機提供持續的第一人稱視覺資料串流，在延長時段中擷取穿戴者的活動、互動與環境。一個關鍵挑戰是開發能透過持續行為觀測學習人類意圖與目標的人工智慧系統。這超越了簡單的軌跡預測，涵蓋對物件互動、基於場景的目標與語意理解的推理。我們提出將線上學習理論與逆強化學習的概念首次應用於以穿戴式攝影機持續學習人類行為模型的任務。我們的方法回應了根本性問題：這個人會去哪裡、會做什麼、以及正在追求什麼語意目標？
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——從穿戴式攝影機的實際場景出發，定義活動預測的三層問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「首次應用」的措辭確立新穎性，並將問題從低層次（軌跡）提升至高層次（語意目標）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三個層次的問題（去哪裡、做什麼、追求什麼目標）的設定極具吸引力，但每個層次的難度差異巨大。實際驗證中是否能同等有效地回答這三個問題，需仔細檢驗。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our work draws from three research domains: <span class="hl-concept">first-person vision (FPV)</span>, <span class="hl-concept">inverse reinforcement learning (IRL)</span>, and <span class="hl-concept">trajectory forecasting</span>. In first-person vision, prior work focuses on activity recognition, object detection, and gaze prediction from egocentric video. In IRL, classical methods such as <span class="hl-concept">maximum entropy IRL</span> learn reward functions from complete expert demonstrations in a <span class="hl-rebuttal">batch setting, assuming access to full trajectories and known state spaces</span>. Trajectory forecasting methods predict future physical positions but <span class="hl-rebuttal">typically do not reason about object interactions or semantic goals</span>. Our work distinguishes itself by going <span class="hl-thesis">"beyond physical trajectory forecasting by reasoning over future object interactions and predicting future goals in terms of scene types"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的研究涉及三個領域：第一人稱視覺（FPV）、逆強化學習（IRL）與軌跡預測。在第一人稱視覺中，先前研究聚焦於自我中心影片的活動辨識、物件偵測與凝視預測。在 IRL 中，最大熵 IRL 等經典方法在批次設定下從完整的專家示範中學習獎勵函數，假設能取得完整軌跡與已知狀態空間。軌跡預測方法預測未來的物理位置，但通常不對物件互動或語意目標進行推理。我們的研究透過「超越物理軌跡預測，推理未來物件互動並以場景類型預測未來目標」來區隔自身。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——跨三個領域梳理相關工作，界定 Darko 的獨特位置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過指出每個領域的局限（批次假設、缺乏語意推理），構建出 Darko 所填補的精確研究缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    跨領域的文獻整合展現了廣闊的研究視野。但將三個領域的缺點各取一個加以批判，可能簡化了各領域內部的進展。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-darko">3.1 Online IRL with Darko — 線上逆強化學習與 Darko 演算法</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We formulate the problem as a <span class="hl-concept">Markov Decision Process (MDP)</span>. States encode <span class="hl-method">3D position, held objects, and previous goal location</span>: s = [x, y, z, o_1...o_|O|, h_1...h_|K|]. Actions include <span class="hl-method">movement and object acquisition/release</span>. State transitions are <span class="hl-method">incrementally built from observed (s, a, s') triplets</span>. The reward function is modeled as <span class="hl-method">R(s, a; theta) = theta^T * phi(s, a)</span>, an inner product of features and learned weights. The <span class="hl-concept">Darko algorithm</span> operates in three steps: (1) <span class="hl-method">state tracking via SLAM for localization and action detection for hand-object interactions</span>; (2) <span class="hl-method">goal detection via velocity-based stop detection</span>; (3) <span class="hl-method">online IRL weight update after each episode using gradient descent on the maximum entropy IRL objective</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將問題公式化為馬可夫決策過程（MDP）。狀態編碼三維位置、持有物件與先前目標位置：s = [x, y, z, o_1...o_|O|, h_1...h_|K|]。動作包括移動與物件獲取/釋放。狀態轉移從觀測到的 (s, a, s') 三元組漸進建構。獎勵函數建模為 R(s, a; theta) = theta^T * phi(s, a)，即特徵與學習權重的內積。Darko 演算法以三步驟運作：(1) 透過 SLAM 進行定位追蹤與手-物件互動偵測；(2) 透過基於速度的停止偵測進行目標偵測；(3) 在每個情節後使用梯度下降法在最大熵 IRL 目標上進行線上權重更新。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法定義——建立 MDP 公式化並描述 Darko 的三步驟流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將抽象的「活動預測」問題轉化為精確的數學框架。三步驟設計將感知（SLAM）、語意（目標偵測）與學習（IRL 更新）清晰分離。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    MDP 公式化賦予問題嚴格的數學結構。但狀態空間中同時包含連續（3D 位置）與離散（物件持有）元素，實際離散化策略可能影響方法的可擴展性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The gradient update uses the <span class="hl-method">difference between expected feature counts and empirical feature counts of the current episode</span>. We prove a <span class="hl-evidence">regret bound of R_t &lt;= 2B * sqrt(2td)</span>, where the average regret approaches zero as more episodes are observed, guaranteeing <span class="hl-thesis">no-regret convergence</span>. This means Darko's <span class="hl-thesis">cumulative prediction performance asymptotically matches the best fixed reward function in hindsight</span>, even though it learns incrementally without access to future data.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                梯度更新使用目前情節的期望特徵計數與經驗特徵計數之差。我們證明了悔恨界限 R_t &lt;= 2B * sqrt(2td)，其中平均悔恨隨觀測的情節增加而趨近零，保證無悔收斂。這意味著 Darko 的累積預測效能漸進地匹配事後最佳固定獎勵函數，即使它是在無法取得未來資料的情況下漸進學習的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論保證——提供 Darko 演算法的收斂性證明。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將 Darko 從純經驗方法提升至有理論基礎的演算法。無悔保證是線上學習理論的標準品質指標，賦予方法堅實的理論地位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    無悔界限提供了漸進保證，但界限中的常數（B, d）在實際規模下可能導致收斂速度較慢。此外，界限假設獎勵的線性結構，在非線性獎勵場景中可能不適用。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-forecast">3.2 Activity Forecasting — 活動預測</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given the learned reward function, we derive multiple forecasting capabilities. <span class="hl-method">Goal prediction</span> is formulated as posterior estimation: <span class="hl-method">P(g | trajectory) is proportional to P(g) * exp(V_st(g) - V_s0(g))</span>, encoding progress toward goals through value differences. This captures the intuition that <span class="hl-thesis">if the agent has gotten closer to a goal (in terms of expected cumulative reward), that goal becomes more likely</span>. Additional predictions include <span class="hl-method">trajectory length forecasting</span> and <span class="hl-method">action-state subspace visitation</span>, both derived from the core state visitation function. The <span class="hl-concept">state visitation function</span> computes expected future state occupancies given partial trajectories, enabling <span class="hl-thesis">probabilistic multi-modal forecasting of future behaviors</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於學習到的獎勵函數，我們推導出多種預測能力。目標預測公式化為後驗估計：P(g | 軌跡) 正比於 P(g) * exp(V_st(g) - V_s0(g))，透過價值差異編碼朝向目標的進展。此直覺是：如果代理已更接近某個目標（以期望累積獎勵衡量），該目標就變得更可能。額外的預測包括軌跡長度預測與動作-狀態子空間造訪，兩者均由核心狀態造訪函數推導而來。狀態造訪函數計算給定部分軌跡後的期望未來狀態佔據，使得未來行為的機率多模態預測成為可能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    預測框架——描述如何從學習到的獎勵函數推導多種預測能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將學習階段與預測階段連結，展示 IRL 框架的豐富推論能力——不僅能預測目標，還能預測到達時間與中間行為。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以貝式公式推導目標預測既優雅又有理論基礎。但「價值差異」作為進展指標假設了目標之間的獨立性，在多目標相互關聯的場景中可能失準。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on a <span class="hl-evidence">custom first-person continuous activity dataset across 5 environments</span> (homes, offices, laboratory), featuring <span class="hl-evidence">over 200 high-level activities, 250+ actions with 19 objects, and 17 scene types, spanning over 15 days of recording</span>. Goal detection uses <span class="hl-method">velocity-based stop detection</span>, achieving <span class="hl-evidence">62-73% accuracy</span>. Darko achieves <span class="hl-evidence">mean goal prediction probability of 0.378-0.667</span> across environments using visual detections, and <span class="hl-evidence">0.683-0.880 with ground-truth labels</span>. Darko outperforms baselines including <span class="hl-evidence">logistic regression, max-margin event detection (MMED), and RNN classifiers</span>. <span class="hl-evidence">Trajectory length prediction achieves 6.3-34.8% median relative error</span>. We also empirically validate <span class="hl-evidence">sublinear regret convergence</span>, confirming the theoretical guarantee. Notably, <span class="hl-thesis">incorporating object interactions substantially improves goal prediction compared to position-only representations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在跨 5 個環境（住宅、辦公室、實驗室）的自訂第一人稱持續活動資料集上進行評估，包含超過 200 個高階活動、250 餘個動作搭配 19 種物件、17 個場景類型，涵蓋超過 15 天的錄影。目標偵測使用基於速度的停止偵測，達到 62-73% 準確率。Darko 使用視覺偵測在各環境中達到平均目標預測機率 0.378-0.667，使用真實標籤時為 0.683-0.880。Darko 優於邏輯迴歸、最大邊距事件偵測（MMED）及 RNN 分類器等基線。軌跡長度預測達到 6.3-34.8% 的中位相對誤差。我們也實證驗證了次線性悔恨收斂，確認理論保證。值得注意的是，納入物件互動相比僅位置表示顯著改善了目標預測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面實驗驗證——在多環境、多指標上展示 Darko 的表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱涵蓋五個維度：目標預測、基線比較、軌跡預測、理論驗證、消融分析（物件互動的貢獻）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用自訂資料集雖允許更長期的記錄，但缺乏與公開基準的可比性。視覺偵測與真實標籤之間的巨大效能差距（0.378 vs. 0.683）暗示系統瓶頸可能在感知而非推理。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We presented <span class="hl-concept">Darko</span>, the <span class="hl-thesis">first method for continuous first-person semantic behavior modeling at extended temporal and spatial horizons</span>. By combining <span class="hl-method">online inverse reinforcement learning with first-person visual perception</span>, Darko learns to <span class="hl-thesis">predict goals, trajectories, and actions from streaming egocentric video</span> with theoretical guarantees of no-regret convergence. Our results demonstrate that <span class="hl-thesis">reasoning beyond physical trajectories — incorporating object interactions and scene semantics — significantly enhances long-term activity forecasting</span>. This work opens new directions at the intersection of online learning, decision-theoretic modeling, and first-person vision.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 Darko，這是第一個在延長的時間與空間範圍內進行持續第一人稱語意行為建模的方法。透過結合線上逆強化學習與第一人稱視覺感知，Darko 學習從串流的自我中心影片中預測目標、軌跡與動作，並具有無悔收斂的理論保證。我們的結果展示，超越物理軌跡的推理——納入物件互動與場景語意——顯著增強了長期活動預測。這項工作在線上學習、決策理論建模與第一人稱視覺的交匯處開闢了新方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望跨領域的未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論精煉地呼應摘要的三重主張：(1) 首創性（第一個方法）；(2) 理論性（無悔保證）；(3) 實用性（語意推理的效益）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以跨領域交叉作為展望方向頗具遠見。但論文未充分討論在更大規模、更多人的場景中的可擴展性，以及感知誤差累積對長期預測的潛在影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                如何從第一人稱影片<br>預測長期語意目標？
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                線上逆強化學習<br>實現漸進式行為建模
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                多環境實驗 +<br>無悔理論保證
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                超越軌跡預測<br>納入物件互動與語意
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                跨領域融合<br>開闢新研究方向
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過線上逆強化學習從串流的第一人稱影片中漸進學習獎勵函數，Darko 能以理論保證的方式預測穿戴者的長期語意目標、軌跡與動作。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論與實務的結合：</strong>無悔收斂保證賦予方法堅實的理論基礎，而實驗中次線性悔恨的實證驗證確認了理論預測。將 IRL 從批次擴展至線上的貢獻在理論上清晰且在實務上有意義。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>感知瓶頸與可擴展性：</strong>視覺偵測與真實標籤之間的巨大效能差距暗示系統的上限受限於感知品質而非推理框架。此外，自訂資料集的使用雖允許長期記錄，但降低了與其他方法在公開基準上的可比性。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

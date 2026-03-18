@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LegoGPT: Generating Physically Stable and Buildable LEGO Designs from Text — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                LegoGPT: Generating Physically Stable and Buildable LEGO Designs from Text
+                <span class="course-tag">ICCV 2025</span>
+                <span class="best-paper-badge">Marr Prize (Best Paper)</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2505.05469" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-dataset">3. 資料集</a>
+        <a href="#sec-method">4. 方法</a>
+        <a href="#sec-experiments">5. 實驗</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-concept">LegoGPT</span>, <span class="hl-thesis">the first approach for generating physically stable LEGO brick models from text prompts</span>. To achieve this, we construct a <span class="hl-evidence">large-scale, physically stable dataset of LEGO designs</span>, along with their associated captions, and train an <span class="hl-method">autoregressive large language model to predict the next brick to add via next-token prediction</span>. To improve the stability of the resulting designs, we employ an <span class="hl-method">efficient validity check and physics-aware rollback during autoregressive inference</span>, which prunes infeasible token predictions using physics laws and assembly constraints. Our experiments show that <span class="hl-evidence">LegoGPT produces stable, diverse, and aesthetically pleasing LEGO designs that align closely with the input text prompts</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 LegoGPT，這是首個能從文字提示生成物理穩定 LEGO 積木模型的方法。為此，我們建構了一個大規模、物理穩定的 LEGO 設計資料集及其對應的文字描述，並訓練一個自迴歸大型語言模型，透過下一詞元預測的方式逐塊預測要添加的積木。為提升生成結果的穩定性，我們在自迴歸推論過程中引入高效的合法性檢查與物理感知回滾機制，利用物理定律與組裝約束來剪除不可行的詞元預測。實驗結果顯示，LegoGPT 能生成穩定、多樣且具美感的 LEGO 設計，並與輸入的文字提示高度一致。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精煉語言概述問題（文字到 LEGO 生成）、核心方案（自迴歸 LLM + 物理約束）與實驗成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題-方案-證據」三段式論證的濃縮：先宣告「首個」的開創性定位，再交代資料集與模型架構，最後以實驗結果背書。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首個」(the first) 的措辭確立了強烈的新穎性宣稱。物理穩定性與可組裝性同時作為賣點，但摘要未提及格點解析度或積木種類的限制，讀者需在後文確認實際可行範圍。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While <span class="hl-concept">3D generative models</span> have advanced significantly, applying them to create <span class="hl-rebuttal">real-world objects remains challenging due to assembly and physical stability constraints</span>. <span class="hl-concept">LEGO design generation</span> serves as an accessible benchmark with <span class="hl-thesis">standardized components</span>, yet existing methods <span class="hl-rebuttal">do not account for the unique physical constraints and assembly requirements of real-world object designs</span>. The gap between digital 3D generation and physically realizable construction motivates our work.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管三維生成模型已有長足進展，但要將其應用於創造真實世界物件，仍因組裝與物理穩定性約束而充滿挑戰。LEGO 設計生成由於具備標準化元件，可作為一個易於存取的基準測試平台，然而既有方法並未考量真實物件設計所需的獨特物理約束與組裝要求。數位三維生成與可物理實現建構之間的落差，正是驅動本研究的動機。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從廣泛的 3D 生成切入，收窄至 LEGO 生成的特殊需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定 3D 生成能力，再指出「物理可行性」的缺口，為 LEGO 作為研究載體建立合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 LEGO 的「標準化」特性作為選擇此領域的正當理由，但這也限制了方法的泛化性——該框架能否擴展到非標準化元件的組裝任務仍不明確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">LegoGPT</span>, which formulates LEGO generation as a <span class="hl-method">sequential token prediction problem</span>. Each brick placement is encoded as a token, and a <span class="hl-method">fine-tuned LLaMA-3.2-1B-Instruct model</span> learns to predict the next brick given the current assembly state and a text description. During inference, we integrate <span class="hl-method">physical stability checks and a physics-aware rollback mechanism</span> that rejects unstable placements and backtracks to find stable alternatives, ensuring all generated designs are <span class="hl-thesis">both structurally sound and buildable in the real world</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 LegoGPT，將 LEGO 生成問題化為序列詞元預測問題。每個積木放置動作被編碼為一個詞元，經過微調的 LLaMA-3.2-1B-Instruct 模型學習根據當前組裝狀態與文字描述來預測下一塊積木。在推論階段，我們整合物理穩定性檢查與物理感知回滾機制，拒絕不穩定的放置並回溯尋找穩定替代方案，確保所有生成的設計在結構上均健全且可在真實世界中組裝。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——概述 LegoGPT 的核心架構與推論策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段完成「問題到方案」的轉折：將 3D 組裝問題重新框架為 LLM 的序列生成問題，是全文最關鍵的創新跳躍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將積木放置序列化為詞元是巧妙的類比，但序列順序的選擇（例如由下而上 vs. 由前而後）會顯著影響生成品質，作者需解釋此設計選擇的合理性。回滾機制雖強化穩定性，但可能大幅增加推論時間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Text-to-3D generation</span> has progressed rapidly with methods like <span class="hl-concept">DreamFusion</span> and <span class="hl-concept">Score Distillation Sampling</span>, but these approaches produce <span class="hl-rebuttal">continuous 3D representations that cannot be directly manufactured</span>. <span class="hl-concept">Autoregressive 3D modeling</span> treats shape generation as token sequences, yet prior work focuses on voxels or point clouds rather than <span class="hl-rebuttal">structured assemblies with physical constraints</span>. In the LEGO domain, classical <span class="hl-concept">legolization algorithms</span> convert 3D meshes to brick layouts through voxelization and merging, but they <span class="hl-rebuttal">do not incorporate text conditioning or learned generative priors</span>. <span class="hl-concept">Physics-aware generation</span> methods enforce stability in rigid body systems, yet <span class="hl-rebuttal">none addresses the combined challenge of text-guided design and physical buildability in brick structures</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                文字到三維生成已隨 DreamFusion 與分數蒸餾取樣等方法快速進展，但這些方法產出連續的三維表示，無法直接製造。自迴歸三維建模將形狀生成視為詞元序列，但先前工作著重於體素或點雲，而非具有物理約束的結構化組裝。在 LEGO 領域，經典的積木化演算法透過體素化與合併將三維網格轉換為積木佈局，但未納入文字條件或學習得到的生成先驗。物理感知生成方法在剛體系統中強制穩定性，然而尚無方法同時處理文字引導設計與積木結構物理可組裝性的雙重挑戰。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性涵蓋四個相關領域，逐一指出各自的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以四條平行的「能力-缺陷」線索建構出一個尚無解的交叉缺口：文字引導 + 物理可行 + 積木結構。LegoGPT 的定位正是填補此交叉點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將四個子領域的缺陷巧妙對齊，使讀者自然得出「需要一個整合方案」的結論。但各領域的引用是否充分（特別是 LEGO 組裝最佳化的工程文獻）值得進一步查證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 資料集 ====== -->
+    <h2 class="section-heading" id="sec-dataset">3. StableText2Lego Dataset — 資料集</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We construct <span class="hl-concept">StableText2Lego</span>, a dataset <span class="hl-evidence">containing over 47,000 LEGO structures of over 28,000 unique 3D objects accompanied by detailed captions</span>. The construction pipeline consists of four stages: (1) <span class="hl-method">converting 3D shapes from ShapeNetCore into LEGO structures through voxelization</span>; (2) applying a <span class="hl-method">split-and-remerge legolization algorithm</span> to produce valid brick layouts; (3) <span class="hl-method">assessing physical stability</span> through simulation; and (4) <span class="hl-method">generating captions using GPT-4o from multi-view renderings</span>. This pipeline ensures that every sample in the dataset is both a <span class="hl-thesis">valid LEGO assembly and physically stable</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們建構了 StableText2Lego 資料集，涵蓋超過 47,000 個 LEGO 結構，對應超過 28,000 個不同的三維物件，並附有詳細的文字描述。建構流程包含四個階段：(1) 透過體素化將 ShapeNetCore 中的三維形狀轉換為 LEGO 結構；(2) 應用分割與重新合併的積木化演算法以產生合法的積木佈局；(3) 透過模擬評估物理穩定性；(4) 使用 GPT-4o 從多視角渲染圖生成文字描述。此流程確保資料集中的每個樣本既是合法的 LEGO 組裝，也具備物理穩定性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料基礎——詳述資料集的規模、來源與建構流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為「資料驅動方法」的基石，此段的可信度直接影響整體論證。四階段流程展現了嚴謹的資料品質控制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用 GPT-4o 生成描述是高效但可能引入偏差的策略——模型可能對某些形狀產生雷同的描述，降低文字多樣性。此外，ShapeNetCore 的物件類別有限，可能制約了生成設計的多樣性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">4. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                LegoGPT fine-tunes <span class="hl-concept">LLaMA-3.2-1B-Instruct</span> on the StableText2Lego dataset. Each LEGO structure is <span class="hl-method">serialized as a sequence of brick tokens, where each token encodes the brick type, position (x, y, z), and orientation</span>. The model is trained with standard <span class="hl-method">next-token prediction loss</span>, learning to generate brick-by-brick given the text prompt and the previously placed bricks as context. This formulation naturally captures <span class="hl-thesis">spatial dependencies between bricks and enables the model to learn structural patterns from the training data</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LegoGPT 在 StableText2Lego 資料集上微調 LLaMA-3.2-1B-Instruct。每個 LEGO 結構被序列化為一串積木詞元，每個詞元編碼積木類型、位置 (x, y, z) 與朝向。模型以標準的下一詞元預測損失訓練，學習根據文字提示與先前已放置的積木作為上下文，逐塊生成積木。此公式化自然地捕捉積木之間的空間依賴關係，使模型得以從訓練資料中學習結構樣式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——描述如何將 LEGO 生成轉化為語言模型的序列預測問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立「積木即詞元」的核心類比，使整個 LEGO 組裝問題可以利用成熟的 LLM 訓練基礎設施。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選用僅 1B 參數的 LLaMA 模型展現了效率意識，但也引發疑問：更大的模型是否能生成更複雜的設計？序列化順序的選擇（如由底部到頂部）隱含了強歸納偏置，作者需證明此順序的合理性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">4.1 Physics-Aware Inference — 物理感知推論</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                During inference, we integrate two mechanisms to enforce physical validity. First, a <span class="hl-method">brick-by-brick rejection sampling</span> step checks whether each predicted brick satisfies <span class="hl-method">assembly constraints (no collision, valid connection)</span>. Second, a <span class="hl-method">physics-aware rollback</span> mechanism monitors the cumulative <span class="hl-concept">structural stability</span> of the growing assembly: if adding a brick causes the structure to become <span class="hl-rebuttal">physically unstable (e.g., cantilevered without support)</span>, the system <span class="hl-method">backtracks several steps and resamples</span> alternative brick placements. This combination ensures that the final design is <span class="hl-thesis">not only geometrically valid but also physically buildable — it can stand on its own without external support</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在推論階段，我們整合兩項機制以確保物理合法性。首先，逐塊拒絕取樣步驟檢查每個預測的積木是否滿足組裝約束（無碰撞、有效連接）。其次，物理感知回滾機制監控不斷增長的組裝體之累積結構穩定性：若添加某塊積木導致結構變得物理不穩定（例如無支撐的懸臂），系統便回溯數步並重新取樣替代的積木放置方案。此組合確保最終設計不僅在幾何上合法，在物理上也可組裝——能夠自行站立而無需外部支撐。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    關鍵創新——描述推論時的物理約束強制機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應了「僅靠語言模型無法保證物理可行性」的潛在質疑，展示如何在生成過程中即時整合物理法則。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    拒絕取樣加回滾的雙重機制在概念上完備，但回滾的步數與觸發條件是超參數——過度回滾會導致生成失敗或退化為簡單結構，過少則無法保證穩定性。作者需報告回滾頻率與成功率的統計資料。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">5. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate LegoGPT on <span class="hl-evidence">quantitative metrics including physical stability rate, text-design alignment (CLIP score), and aesthetic quality</span>. Compared to baseline methods that apply legolization to text-to-3D outputs, <span class="hl-evidence">LegoGPT achieves significantly higher stability rates while maintaining comparable or better visual quality</span>. <span class="hl-evidence">Ablation studies</span> confirm that both the physics-aware rollback and the rejection sampling components contribute meaningfully to the final design quality. We further demonstrate <span class="hl-evidence">real-world buildability through robotic assembly and manual construction</span>, validating that generated designs can be physically assembled using standard LEGO bricks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們以物理穩定率、文字與設計對齊度（CLIP 分數）及美學品質等定量指標評估 LegoGPT。相比將積木化應用於文字到三維輸出的基線方法，LegoGPT 達到顯著更高的穩定率，同時維持相當或更佳的視覺品質。消融研究確認物理感知回滾與拒絕取樣兩個組件均對最終設計品質有實質貢獻。我們進一步透過機器人組裝與手動建構展示真實世界的可組裝性，驗證了生成的設計可使用標準 LEGO 積木進行實體組裝。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實驗證據——以多面向指標與實體驗證支撐方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱涵蓋三個層次：(1) 定量比較；(2) 消融研究；(3) 真實世界驗證。機器人組裝的展示尤其具說服力，將論文從理論帶入實踐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    真實世界組裝的展示是強有力的佐證，但需確認示範的設計複雜度是否具代表性——若僅展示簡單結構，說服力將大打折扣。CLIP 分數作為文字對齊指標在 3D 領域的適用性也值得商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Discussion and Conclusion — 討論與結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">LegoGPT</span> demonstrates that <span class="hl-thesis">large language models can be effectively repurposed for physically-grounded 3D design tasks</span> by formulating brick assembly as token prediction. The <span class="hl-method">combination of learned generative priors with physics-based constraints during inference</span> ensures that outputs are not merely plausible-looking but genuinely buildable. <span class="hl-rebuttal">Limitations include the fixed grid size (20x20x20), the restricted brick library, and computational costs of the rollback mechanism</span>. Future work may explore larger design spaces, more diverse brick types, and integration with robotic assembly systems for <span class="hl-thesis">fully automated text-to-physical-object pipelines</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                LegoGPT 證明了大型語言模型可透過將積木組裝化為詞元預測，有效地轉用於物理基礎的三維設計任務。學習得到的生成先驗與推論時物理約束的結合，確保輸出不僅外觀合理，更是真正可組裝的。限制包括固定的格點尺寸（20x20x20）、受限的積木庫，以及回滾機制的計算成本。未來工作可探索更大的設計空間、更多樣的積木類型，以及與機器人組裝系統的整合，以實現完全自動化的文字到實體物件流程。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻、坦承限制、展望未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要，形成完整的論證閉環。坦率地列出限制（格點尺寸、積木種類）增強了學術誠信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對限制的討論坦誠但略顯保守——20x20x20 的格點限制意味著無法生成大型或精細的設計，這是一個重大的實用性約束。「完全自動化的文字到實體物件流程」的展望雄心勃勃，但從當前能力到該目標的距離仍然遙遠。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                3D 生成模型無法保證<br>物理可行的積木組裝
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                以 LLM 序列預測<br>結合物理約束生成 LEGO
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                47K 資料集訓練<br>穩定率與品質超越基線
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                物理回滾機制確保<br>結構穩定與可組裝
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                LLM 可有效轉用於<br>物理基礎 3D 設計
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將 LEGO 組裝序列化為詞元並以物理約束引導自迴歸推論，大型語言模型能從文字提示生成物理穩定且可實際組裝的積木設計。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>「積木即詞元」的創新類比：</strong>將三維組裝問題優雅地映射為語言模型的序列預測任務，配合推論時的物理回滾機制，在生成能力與物理可行性之間取得了出色的平衡。真實世界的機器人組裝展示更提供了超越量化指標的說服力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>設計空間的嚴格限制：</strong>20x20x20 的格點尺寸與有限的積木庫大幅限制了可生成設計的複雜度與多樣性。回滾機制的計算開銷也未被充分量化——在複雜提示下，推論可能需要大量回滾才能找到穩定解，實用性待驗證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

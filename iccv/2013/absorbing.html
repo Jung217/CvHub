@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saliency Detection via Absorbing Markov Chain — 雙欄批注</title>
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+
+        /* ===== 章節導航條 ===== */
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+
+        /* ===== 主體容器 ===== */
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+
+        /* 批注卡片 */
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Saliency Detection via Absorbing Markov Chain
+                <span class="course-tag">ICCV 2013</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_iccv_2013/html/Jiang_Saliency_Detection_via_2013_ICCV_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-graph">3.1 圖建構</a>
+        <a href="#sec-absorb">3.2 吸收時間</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, we formulate <span class="hl-concept">saliency detection</span> as a problem of <span class="hl-thesis">computing the absorption time of absorbing Markov chains on image graphs</span>. We construct a graph where <span class="hl-method">image superpixels serve as transient nodes and boundary superpixels are designated as absorbing nodes</span>. The <span class="hl-concept">expected absorption time</span> from each transient node to the absorbing boundary nodes effectively measures the <span class="hl-thesis">dissimilarity between interior regions and the image boundary</span>, naturally distinguishing salient objects from the background. To handle <span class="hl-rebuttal">false positives that arise from homogeneous background regions near the image center</span>, we further leverage the <span class="hl-method">equilibrium distribution of an ergodic Markov chain</span> to refine the saliency map. Experiments on <span class="hl-evidence">four benchmark datasets</span> demonstrate that our method achieves <span class="hl-evidence">competitive or superior performance</span> compared to state-of-the-art approaches.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文將顯著性偵測公式化為計算影像圖上吸收馬可夫鏈之吸收時間的問題。我們建構一個圖，其中影像超像素作為暫態節點，邊界超像素被指定為吸收節點。從每個暫態節點到吸收邊界節點的期望吸收時間，有效地衡量了內部區域與影像邊界之間的差異性，自然地將顯著物件與背景區分開來。為處理影像中心附近均質背景區域所引起的誤正例，我們進一步利用遍歷馬可夫鏈的均衡分布來精煉顯著性圖。在四個基準資料集上的實驗證明，我們的方法達到了與最先進方法相當或更優的表現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從「馬可夫鏈建模」到「吸收時間計算」再到「遍歷修正」，預告實驗成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要精確對應了三層技術貢獻：(1) 吸收馬可夫鏈的新框架；(2) 邊界先驗的數學實現；(3) 均衡分布的修正機制。結構緊湊完整。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將顯著性偵測重新框架為馬可夫鏈問題，具有概念上的新穎性。但「邊界即背景」的假設在某些場景（如物件被裁切）中可能失效，作者透過遍歷修正試圖緩解此問題，但未在摘要中明確其適用範圍。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Salient object detection</span> aims to identify the most visually prominent regions in an image. It has wide applications in <span class="hl-evidence">image segmentation, content-aware resizing, object recognition, and visual tracking</span>. Most existing approaches compute saliency based on <span class="hl-concept">local or global contrast</span>: local methods compare each pixel or region with its neighbors, while global methods compare regions against the <span class="hl-rebuttal">entire image statistics</span>. While effective, contrast-based methods may <span class="hl-rebuttal">fail when the salient object has similar color distribution to the background</span> or when the background is complex and heterogeneous.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                顯著物件偵測旨在識別影像中最視覺突出的區域。它在影像分割、內容感知裁切、物件辨識與視覺追蹤等方面具有廣泛應用。大多數現有方法基於局部或全域對比來計算顯著性：局部方法比較每個像素或區域與其鄰域，全域方法則比較區域與整幅影像的統計特性。儘管有效，基於對比的方法在顯著物件與背景具有相似色彩分布，或背景複雜且異質時可能失效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義問題並指出對比方法的兩大失敗模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以應用場景建立重要性，再揭示對比範式的結構性缺陷，為馬可夫鏈方法的引入建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    兩個失敗模式（色彩相似、背景複雜）的列舉具體且有說服力。但這些失敗模式對於馬可夫鏈方法是否同樣存在，需在後文中回應。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent works have explored the use of <span class="hl-concept">boundary prior</span> — the observation that <span class="hl-thesis">image boundaries are predominantly occupied by background regions</span>. Methods such as <span class="hl-concept">geodesic saliency</span> leverage this prior by computing the <span class="hl-method">shortest geodesic distance from each region to the image boundary</span>. In this paper, we propose a principled formulation based on <span class="hl-concept">absorbing Markov chains</span> that <span class="hl-thesis">naturally integrates the boundary prior with a global diffusion process</span>. The <span class="hl-method">absorption time captures both local appearance similarity and global connectivity structure</span>, providing a more robust saliency measure than simple distance metrics.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期研究探索了邊界先驗的使用——即影像邊界主要被背景區域佔據的觀察。如測地線顯著性等方法利用此先驗，計算每個區域到影像邊界的最短測地線距離。本文提出一種基於吸收馬可夫鏈的原則性公式化方法，自然地將邊界先驗與全域擴散過程整合。吸收時間同時捕捉了局部外觀相似性與全域連通結構，提供比簡單距離度量更穩健的顯著性衡量。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心思想——將邊界先驗與馬可夫鏈擴散結合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段將方法定位為「測地線顯著性的升級版」——從靜態距離到動態擴散過程，理論深度提升。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「原則性公式化」一詞暗示方法具有嚴格的數學基礎，與啟發式方法形成對比。但馬可夫鏈的轉移機率設定仍需啟發式選擇（如特徵距離的核函數），並非完全「原則性」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Saliency detection methods can be broadly categorized into <span class="hl-concept">local contrast-based</span>, <span class="hl-concept">global contrast-based</span>, and <span class="hl-concept">boundary prior-based</span> approaches. <span class="hl-concept">Itti et al.</span>'s classic model uses <span class="hl-method">multi-scale center-surround differences</span>. <span class="hl-concept">Cheng et al.</span> proposed <span class="hl-method">global contrast using histogram-based color distance</span>. <span class="hl-concept">Wei et al.</span> introduced <span class="hl-method">geodesic saliency</span> based on boundary connectivity. Our work is most related to <span class="hl-concept">graph-based diffusion methods</span> such as <span class="hl-concept">Yang et al.</span>'s <span class="hl-method">manifold ranking approach</span>, but differs in using <span class="hl-thesis">absorbing rather than regular random walks</span>. The absorbing formulation provides a <span class="hl-thesis">natural and principled way to incorporate the boundary prior</span> through the designation of absorbing states.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                顯著性偵測方法可大致分為局部對比、全域對比與邊界先驗三大類。Itti 等人的經典模型使用多尺度中心-環繞差異。Cheng 等人提出基於直方圖色彩距離的全域對比。Wei 等人引入基於邊界連通性的測地線顯著性。我們的工作與基於圖的擴散方法最為相關，如 Yang 等人的流形排序方法，但不同之處在於使用吸收型而非一般型隨機漫步。吸收式公式化透過吸收狀態的指定，提供了一種自然且有原則的邊界先驗融入方式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——將方法定位於三大路線的交匯處。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立清晰的學術譜系，並精確指出與最近親方法（流形排序）的關鍵差異點：吸收 vs. 一般隨機漫步。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「吸收」與「一般」隨機漫步的區別作為核心差異化要素是精準的技術定位。但需要在方法章節中證明此差異在實務上確實帶來顯著的效能提升。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-graph">3.1 Graph Construction — 圖建構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We first over-segment the input image into <span class="hl-method">superpixels using SLIC</span>. A graph <span class="hl-method">G = (V, E)</span> is constructed where each <span class="hl-method">superpixel is a node</span> and edges connect <span class="hl-method">spatially adjacent superpixels</span>. The <span class="hl-method">edge weight</span> between nodes i and j is defined as <span class="hl-method">w_ij = exp(-||c_i - c_j||^2 / (2 * sigma^2))</span>, where <span class="hl-method">c_i and c_j are the mean color vectors</span> in CIELAB space and sigma is a bandwidth parameter. The <span class="hl-concept">transition probability matrix P</span> of the Markov chain is derived by <span class="hl-method">row-normalizing the weight matrix</span>. Superpixels touching the <span class="hl-concept">image boundary</span> are designated as <span class="hl-concept">absorbing nodes</span> — once the random walker reaches these nodes, it is absorbed and stops.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們首先使用 SLIC 將輸入影像過度分割為超像素。建構圖 G = (V, E)，其中每個超像素為一個節點，邊連接空間上相鄰的超像素。節點 i 與 j 之間的邊權重定義為 w_ij = exp(-||c_i - c_j||^2 / (2 * sigma^2))，其中 c_i 與 c_j 為 CIELAB 空間中的平均色彩向量，sigma 為頻寬參數。馬可夫鏈的轉移機率矩陣 P 透過對權重矩陣進行列正規化而得。接觸影像邊界的超像素被指定為吸收節點——隨機漫步者一旦到達這些節點即被吸收而停止。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義圖結構與馬可夫鏈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此為整個框架的數學基礎。SLIC 超像素提供了計算效率（相比像素級），高斯核的邊權重編碼了色彩相似性，邊界吸收節點實現了邊界先驗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數學公式化清晰嚴謹。但頻寬參數 sigma 的選擇對結果可能有顯著影響——過大導致所有節點相似，過小則圖變得稀疏。此超參數的敏感性需進一步分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-absorb">3.2 Absorption Time — 吸收時間</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In an <span class="hl-concept">absorbing Markov chain</span>, the <span class="hl-concept">expected absorption time</span> y_i for a transient node i represents the <span class="hl-thesis">expected number of steps a random walker starting at node i takes before being absorbed by any boundary node</span>. This can be computed from the <span class="hl-method">fundamental matrix N = (I - Q)^{-1}</span>, where <span class="hl-method">Q is the sub-matrix of the transition matrix corresponding to transient nodes</span>. The absorption time is <span class="hl-method">y = N * 1</span> (the row sums of N). Intuitively, <span class="hl-thesis">salient regions that differ from the background will have longer absorption times</span> because the random walker must traverse through dissimilar regions to reach the boundary. Conversely, <span class="hl-thesis">background regions similar to the boundary have short absorption times</span>. To address the <span class="hl-rebuttal">false positive problem for homogeneous regions far from boundaries</span>, we compute the <span class="hl-method">equilibrium distribution of an ergodic version of the chain</span> (by removing absorbing states) and use it to <span class="hl-method">normalize the absorption times</span>, suppressing large central background regions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在吸收馬可夫鏈中，暫態節點 i 的期望吸收時間 y_i 代表從節點 i 出發的隨機漫步者在被任何邊界節點吸收前所需的期望步數。此可從基本矩陣 N = (I - Q)^{-1} 計算，其中 Q 為轉移矩陣中對應暫態節點的子矩陣。吸收時間為 y = N * 1（N 的列和）。直覺上，與背景不同的顯著區域將具有較長的吸收時間，因為隨機漫步者必須穿越不相似的區域才能到達邊界。反之，與邊界相似的背景區域具有較短的吸收時間。為解決遠離邊界的均質區域所產生的誤正例問題，我們計算鏈的遍歷版本（移除吸收狀態後）的均衡分布，並用其正規化吸收時間，抑制大面積的中央背景區域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心演算法——推導吸收時間的計算與修正機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的支柱：基本矩陣的逆運算提供了嚴格的數學解，均衡分布的修正則回應了邊界先驗的已知弱點。兩者構成了「基礎方法 + 修正機制」的完整架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「直覺上」的解釋使抽象的數學概念變得可理解。但 (I - Q)^{-1} 的計算在超像素數量較多時可能成為瓶頸（O(n^3) 複雜度）。均衡分布修正是對邊界先驗弱點的補救，但兩個機制的權重如何平衡需要實驗調校。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate the proposed method on <span class="hl-evidence">four benchmark datasets: MSRA-B (5000 images), ECSSD (1000 images), DUT-OMRON (5168 images), and PASCAL-S (850 images)</span>. We compare against <span class="hl-evidence">fourteen state-of-the-art methods</span> using standard metrics including <span class="hl-evidence">Precision-Recall curves, F-measure, and Mean Absolute Error (MAE)</span>. Our method consistently achieves <span class="hl-evidence">top-tier performance across all datasets</span>. On MSRA-B, we achieve <span class="hl-evidence">the highest F-measure of 0.903</span>, outperforming geodesic saliency (0.871) and manifold ranking (0.889). On the more challenging DUT-OMRON dataset, our method shows <span class="hl-evidence">particularly strong improvements</span>, demonstrating robustness to complex backgrounds. <span class="hl-rebuttal">Ablation experiments</span> confirm that both the absorbing Markov chain formulation and the equilibrium distribution refinement contribute positively to the final performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在四個基準資料集上評估所提方法：MSRA-B（5000 幅影像）、ECSSD（1000 幅影像）、DUT-OMRON（5168 幅影像）及 PASCAL-S（850 幅影像）。我們與十四個最先進方法進行比較，使用的標準指標包括精確率-召回率曲線、F-measure 與平均絕對誤差（MAE）。我們的方法在所有資料集上穩定地達到頂級表現。在 MSRA-B 上，我們達到 0.903 的最高 F-measure，優於測地線顯著性（0.871）與流形排序（0.889）。在更具挑戰性的 DUT-OMRON 資料集上，我們的方法展現出尤為顯著的改進，證明了對複雜背景的穩健性。消融實驗確認吸收馬可夫鏈公式化與均衡分布精煉均對最終效能有正面貢獻。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在四個資料集上以三個指標驗證方法有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱：大規模比較（14 個基線）與多資料集驗證提供了統計穩健性。DUT-OMRON 上的特別優勢呼應了緒論中「複雜背景」挑戰的討論。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    直接報告與最近親方法（測地線、流形排序）的數值對比是有效的差異化策略。但未報告執行時間比較——矩陣求逆的計算成本可能顯著高於簡單的距離計算。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have proposed a novel <span class="hl-concept">saliency detection method</span> based on <span class="hl-concept">absorbing Markov chains</span>. By treating <span class="hl-method">boundary superpixels as absorbing states</span> and computing the <span class="hl-thesis">expected absorption time for each interior region</span>, our method naturally integrates the <span class="hl-thesis">boundary prior with a principled diffusion process</span>. The additional refinement using <span class="hl-method">equilibrium distributions</span> effectively addresses the false positive problem. Our approach achieves <span class="hl-evidence">state-of-the-art results on multiple benchmarks</span> with a <span class="hl-thesis">clean and mathematically grounded formulation</span>. Future directions include extending the framework to <span class="hl-rebuttal">video saliency detection with temporal absorbing states</span> and exploring <span class="hl-rebuttal">learning-based approaches for adaptive graph construction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一種基於吸收馬可夫鏈的新穎顯著性偵測方法。透過將邊界超像素作為吸收狀態並計算每個內部區域的期望吸收時間，我們的方法自然地將邊界先驗與有原則的擴散過程整合。使用均衡分布的額外精煉有效地解決了誤正例問題。我們的方法以乾淨且數學上有根據的公式化，在多個基準上達到最先進的結果。未來方向包括將框架擴展至具有時間吸收狀態的影片顯著性偵測，以及探索用於自適應圖建構的學習式方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要結構，以「乾淨且數學上有根據」作為方法的核心賣點。兩個未來方向（時間擴展、學習式圖建構）均具有明確的技術可行性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「學習式圖建構」的展望暗示了手工設計圖結構的侷限性——這實際上是方法的一個潛在弱點的委婉承認。隨著深度學習的興起，此類手工方法的長期競爭力面臨挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                對比方法在相似色彩<br>或複雜背景下失效
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                吸收馬可夫鏈整合<br>邊界先驗與擴散過程
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                四個資料集上達到<br>F-measure 0.903
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                均衡分布修正<br>解決中央誤正例
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                數學上嚴謹的<br>顯著性偵測框架
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>吸收馬可夫鏈的期望吸收時間提供了一種數學上嚴謹、計算上可行的顯著性度量，自然整合了邊界先驗與全域擴散結構。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>數學框架的優雅性：</strong>將顯著性偵測重新框架為吸收馬可夫鏈問題，使得邊界先驗成為模型的自然組成部分（而非外部附加條件）。基本矩陣的閉合形式解避免了迭代求解的不確定性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>計算效率與邊界假設：</strong>基本矩陣的求逆（O(n^3)）在高解析度影像上可能成為瓶頸。更根本地，「邊界即背景」的假設在裁切影像或全景場景中系統性失效，均衡分布修正僅能部分緩解此問題。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

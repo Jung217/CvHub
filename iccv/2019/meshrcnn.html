@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesh R-CNN — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Mesh R-CNN
+                <span class="course-tag">ICCV 2019</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1906.02739" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-voxel">3.1 體素預測</a>
+        <a href="#sec-refine">3.2 網格精煉</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract -- 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Predicting the <span class="hl-concept">3D shape of objects</span> from a single image is a fundamental challenge in computer vision. This paper presents a system that <span class="hl-thesis">detects objects in real-world images and produces a triangle mesh representing the full 3D shape of each detected object</span>. The approach augments <span class="hl-concept">Mask R-CNN</span> with a <span class="hl-method">mesh prediction branch</span> that uses <span class="hl-method">voxel representations converted to meshes and refined through graph convolution networks</span> operating on mesh vertices and edges. This unified system handles <span class="hl-evidence">multiple objects with varying topology, occlusion, and diverse real-world conditions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從單張影像預測物件的三維形狀是電腦視覺的根本挑戰。本文提出一個系統，能夠偵測真實世界影像中的物件，並為每個偵測到的物件產生代表其完整三維形狀的三角網格。該方法在 Mask R-CNN 的基礎上擴增了網格預測分支，利用體素表示轉換為網格，再透過作用於網格頂點與邊的圖摺積網路進行精煉。此統一系統能處理具有不同拓撲結構、遮擋以及多樣真實環境條件的多個物件。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從根本問題出發，預告系統架構與核心能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要作為「問題定義 + 方案概述」的雙重載體：先界定單影像三維預測的挑戰，再以一句話概述 Mesh R-CNN 如何整合偵測與三維重建。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 Mask R-CNN 這一廣受認可的框架作為基礎，降低讀者對系統可行性的質疑。但「完整三維形狀」的宣稱在面對嚴重遮擋或罕見物件時需要實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction -- 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While current systems excel at <span class="hl-evidence">recognizing and localizing objects in 2D</span>, they <span class="hl-rebuttal">ignore the 3D structure of the world</span>. <span class="hl-thesis">Unifying 2D object detection with 3D shape prediction</span> in a single system is an important but largely unsolved problem, especially for <span class="hl-rebuttal">real-world images with multiple objects, occlusion, and varying lighting</span>. Prior approaches to single-image 3D reconstruction typically operate on <span class="hl-rebuttal">synthetic data with clean backgrounds and known object categories</span>, limiting their practical applicability.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管當前系統在二維物件辨識與定位方面表現優異，卻忽略了世界的三維結構。在單一系統中統一二維物件偵測與三維形狀預測是一項重要但尚未解決的問題，特別是對於包含多個物件、遮擋與光照變化的真實影像。先前的單張影像三維重建方法通常在具有乾淨背景與已知物件類別的合成資料上運作，限制了其實際應用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出二維偵測與三維理解之間的鴻溝。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定二維偵測的成就，再以「忽略三維結構」形成張力，為系統的必要性鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「忽略三維結構」的陳述雖然在偵測領域大致成立，但深度估計等相關領域已有大量三維理解的研究。此處聚焦於「三角網格」形式的三維輸出，縮小了問題範圍以凸顯貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The novelty of this work lies in <span class="hl-thesis">predicting meshes with varying topology</span> by leveraging <span class="hl-method">voxel predictions as initialization</span>, which are then <span class="hl-method">refined to capture fine object structures</span> like chair legs and table edges. The key insight is that <span class="hl-method">voxels provide a robust coarse shape representation</span> that can be <span class="hl-method">converted to a mesh via a "cubify" operation</span> and subsequently <span class="hl-method">refined through learned graph convolutions</span>. This two-stage approach avoids the <span class="hl-rebuttal">fixed-topology limitation of deformation-based methods</span> while still producing <span class="hl-evidence">high-quality mesh outputs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究的創新之處在於透過將體素預測作為初始化來預測具有不同拓撲結構的網格，再加以精煉以捕捉如椅腳、桌緣等精細物件結構。核心洞見是：體素提供了穩健的粗略形狀表示，可透過「立方化」操作轉換為網格，隨後再以學習式圖摺積進行精煉。此兩階段方法避免了基於變形方法的固定拓撲限制，同時仍能產生高品質的網格輸出。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心方案——概述體素到網格的兩階段管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「現有方法不足」過渡到「本文方案」。體素初始化直接回應拓撲多樣性的需求，圖摺積精煉回應精細度的需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以椅腳與桌緣為例，直觀地展示精細結構的重要性。但體素解析度本質上受到記憶體限制，初始表示的粗糙程度可能影響精煉結果，尤其是極細薄的結構。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work -- 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing approaches to <span class="hl-concept">single-image 3D reconstruction</span> can be categorized by their output representation. <span class="hl-concept">Voxel-based methods</span> predict <span class="hl-method">3D occupancy grids</span> but suffer from <span class="hl-rebuttal">cubic memory scaling that limits resolution</span>. <span class="hl-concept">Point cloud methods</span> generate <span class="hl-method">unordered sets of 3D points</span> but <span class="hl-rebuttal">lack surface connectivity information</span>. <span class="hl-concept">Mesh deformation approaches</span> start from a <span class="hl-method">template mesh (typically a sphere) and deform vertices</span> to match the target shape, but are <span class="hl-rebuttal">restricted to objects with the same topology as the template</span>. This work combines the <span class="hl-thesis">topological flexibility of voxels with the geometric precision of meshes</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有的單張影像三維重建方法可依據其輸出表示形式分類。體素方法預測三維佔用格點，但受限於立方級記憶體增長而無法達到高解析度。點雲方法生成無序的三維點集合，卻缺乏表面連接資訊。網格變形方法從範本網格（通常是球體）出發，透過形變頂點來匹配目標形狀，但受限於物件必須與範本具有相同的拓撲結構。本研究結合了體素的拓撲彈性與網格的幾何精確度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性比較三類三維表示法的優缺點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「各有所長、各有所短」的文獻景觀，為 Mesh R-CNN 的混合策略提供理論依據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以清晰的三分法整理文獻，使讀者迅速理解研究缺口。但隱式表示（如 DeepSDF）的遺漏暗示文獻回顧可能不夠完整，或者作者有意避免與這類方法比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method -- 方法</h2>
+    <h3 class="subsection-heading" id="sec-voxel">3.1 Voxel Prediction and Cubify -- 體素預測與立方化</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">voxel branch</span> predicts <span class="hl-method">3D occupancy grids representing coarse object shapes</span>. Given <span class="hl-method">aligned features from the RoI head</span>, a small network predicts per-voxel occupancy probabilities. A <span class="hl-concept">"cubify" operation</span> then converts the voxel predictions into triangle meshes by <span class="hl-method">replacing each occupied voxel with a cuboid structure, merging shared vertices and eliminating interior faces</span>. This initial mesh captures the <span class="hl-thesis">coarse topology of the object</span> and serves as the <span class="hl-method">starting point for mesh refinement</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                體素分支預測代表粗略物件形狀的三維佔用格點。給定來自 RoI 頭部的對齊特徵，一個小型網路預測每個體素的佔用機率。接著，「立方化」操作將體素預測轉換為三角網格，方式是將每個被佔用的體素替換為長方體結構，合併共享頂點並消除內部面。此初始網格捕捉物件的粗略拓撲結構，並作為網格精煉的起點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義從特徵到粗略網格的轉換管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立方法的數學基礎：體素預測提供拓撲資訊，「立方化」則是連接體素與網格兩種表示的橋樑操作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「立方化」操作的設計非常巧妙——直接將離散的體素轉換為連續的網格表示。但產生的初始網格必然具有階梯狀的表面，完全依賴後續精煉步驟來平滑化，若精煉不充分則可能保留偽影。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-refine">3.2 Mesh Refinement -- 網格精煉</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">mesh refinement branch</span> refines initial meshes through three operations in sequence. First, <span class="hl-method">vertex alignment</span> extracts image features for each mesh vertex by projecting it onto the feature map. Second, <span class="hl-method">graph convolution</span> propagates information along mesh edges, allowing vertices to aggregate neighborhood context. Third, <span class="hl-method">vertex refinement</span> updates vertex positions using learned transformations. Training employs <span class="hl-method">chamfer distance, normal consistency, and edge length regularization losses</span> operating on point clouds sampled from mesh surfaces. These three stages are <span class="hl-evidence">applied iteratively, progressively improving mesh quality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                網格精煉分支透過三個依序進行的操作來精煉初始網格。首先，頂點對齊透過將每個網格頂點投影到特徵圖上來擷取影像特徵。其次，圖摺積沿著網格邊傳播資訊，讓頂點能聚合鄰域上下文。第三，頂點精煉使用學習式變換更新頂點位置。訓練使用倒角距離、法線一致性與邊長正則化損失函數，作用於從網格表面取樣的點雲上。這三個階段以迭代方式應用，逐步提升網格品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法細節——描述網格精煉的三步驟管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法的關鍵環節：將粗略的立方化網格轉變為精細的三維表面。三步驟設計（對齊、傳播、更新）形成完整的資訊流迴路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多損失函數的組合（倒角距離 + 法線一致性 + 邊長正則化）顯示作者對網格品質的多面向考量。但多損失函數的權重平衡通常需要大量調參，作者未充分討論此敏感度問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments -- 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments are conducted on <span class="hl-evidence">ShapeNet and Pix3D</span> datasets. On ShapeNet, the method <span class="hl-evidence">significantly outperforms prior work</span> across multiple shape categories. On the more challenging <span class="hl-evidence">Pix3D</span> benchmark with real-world images, Mesh R-CNN achieves <span class="hl-evidence">51.1% AP^mesh on the S1 split</span>, substantially surpassing baseline approaches. The key advantage appears on <span class="hl-evidence">objects with complex topologies like chairs with holes</span>, where <span class="hl-rebuttal">template-deformation methods fundamentally cannot represent the correct topology</span>. <span class="hl-evidence">Ablation studies confirm that combining voxel prediction with mesh refinement substantially outperforms</span> using either component alone.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗在 ShapeNet 與 Pix3D 資料集上進行。在 ShapeNet 上，該方法在多個形狀類別中顯著超越先前研究。在更具挑戰性的 Pix3D 真實影像基準上，Mesh R-CNN 在 S1 分割上達到 51.1% AP^mesh，大幅超越基線方法。關鍵優勢出現在具有複雜拓撲的物件（如帶孔洞的椅子）上，此類物件的正確拓撲是範本變形方法根本無法表示的。消融研究確認體素預測與網格精煉的結合遠優於單獨使用任一組件。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實驗證據——在合成與真實資料上全面驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應了「拓撲多樣性」的核心承諾：在帶孔洞的椅子等案例上展現無可取代的優勢，直接驗證了方法設計的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「椅子」這類拓撲複雜的日常物件為論證焦點非常有說服力。但 Pix3D 的物件類別有限，在更多樣的真實場景中的泛化能力仍有待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion -- 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Mesh R-CNN</span> demonstrates that <span class="hl-thesis">end-to-end 3D shape prediction from real-world images is achievable by augmenting a state-of-the-art 2D detection system with a voxel-to-mesh prediction pipeline</span>. The <span class="hl-method">cubify operation bridges the gap between voxel and mesh representations</span>, enabling topologically diverse predictions. The <span class="hl-method">graph convolution-based refinement</span> captures fine geometric details that coarse voxels miss. This work suggests that <span class="hl-thesis">the rich feature representations learned by modern detection systems contain sufficient information for 3D reasoning</span>, opening the door to more holistic scene understanding systems.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Mesh R-CNN 證明了透過在最先進的二維偵測系統上擴增體素到網格預測管線，從真實影像進行端對端三維形狀預測是可行的。立方化操作彌合了體素與網格表示之間的差距，實現拓撲多樣的預測。基於圖摺積的精煉捕捉了粗略體素遺漏的精細幾何細節。本研究表明，現代偵測系統所學習的豐富特徵表示包含足以進行三維推理的資訊，為更全面的場景理解系統開啟了大門。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望更廣闊的研究方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應緒論的「二維與三維的統一」願景，形成論證閉環。同時以「場景理解」的遠景收尾，拉高研究意義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「偵測特徵包含三維資訊」的主張雖令人興奮，但可能過於樂觀——三維重建的品質在很大程度上取決於訓練資料中的三維標註品質，而非純粹從二維特徵「湧現」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                二維偵測忽略<br>三維結構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                體素到網格管線<br>實現拓撲多樣的 3D 預測
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ShapeNet / Pix3D<br>顯著超越基線
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                立方化+圖摺積精煉<br>克服拓撲限制
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                端對端 3D 預測<br>從偵測特徵可行
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過在 Mask R-CNN 上擴增體素預測與圖摺積網格精煉，能從單張真實影像端對端地預測具有多樣拓撲的高品質三維網格。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>拓撲靈活性的設計：</strong>以體素作為中介表示再轉換為網格的策略，從根本上解決了範本變形方法的固定拓撲限制。在帶有孔洞結構的物件上展現出無可取代的優勢，且消融研究清楚證明了兩階段設計的必要性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>真實場景泛化性：</strong>Pix3D 資料集的物件類別有限且場景相對簡單，在更複雜的真實環境中（嚴重遮擋、非剛性物件、未見過的類別）的表現尚未被充分驗證。此外，體素解析度的記憶體限制仍然制約了初始形狀的精細程度。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsupervised Visual Representation Learning by Context Prediction — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Unsupervised Visual Representation Learning by Context Prediction
+                <span class="course-tag">ICCV 2015</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1505.05192" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-shortcuts">3.2 避免捷徑</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors explore <span class="hl-concept">spatial context</span> within images as a <span class="hl-thesis">supervisory signal for learning visual representations without labels</span>. Their approach extracts <span class="hl-method">random pairs of patches from unlabeled images</span> and trains a <span class="hl-concept">convolutional neural network</span> to <span class="hl-method">predict the relative position of one patch with respect to the other</span>. They hypothesize that this task <span class="hl-thesis">forces the model to learn to recognize objects and their parts</span>. The learned representation <span class="hl-evidence">captures visual similarity across images</span>, enabling <span class="hl-evidence">unsupervised discovery of object categories</span> from Pascal VOC 2011 and providing <span class="hl-evidence">significant boosts when used as pre-training for R-CNN object detection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者探索影像內的空間脈絡作為無標籤學習視覺表示的監督訊號。其方法從無標籤影像中擷取隨機圖塊對，並訓練摺積神經網路預測一個圖塊相對於另一個圖塊的位置關係。他們假設此任務迫使模型學習辨識物件及其部件。學到的表示能捕捉跨影像的視覺相似性，從 Pascal VOC 2011 中實現無監督的物件類別發現，並在用作 R-CNN 物件偵測的預訓練時提供顯著提升。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「空間脈絡即監督訊號」的核心命題統領全文。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立三層邏輯：(1) 前置任務定義；(2) 學到表示的特性；(3) 下游應用驗證。層層遞進展現方法的完整性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「迫使模型學習辨識物件」是關鍵假說而非已證事實。網路可能透過低階紋理統計而非語意理解來解決位置預測任務，此假說需實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Unsupervised learning</span> from large image collections remains <span class="hl-rebuttal">a largely unsolved challenge in computer vision</span>. While <span class="hl-concept">supervised learning with ImageNet</span> has driven remarkable progress, the reliance on <span class="hl-rebuttal">millions of manually annotated labels is expensive and limits scalability</span>. Inspired by the success of <span class="hl-concept">word2vec</span> in natural language processing — where <span class="hl-method">context prediction serves as a self-supervised task for learning word embeddings</span> — the authors propose an analogous approach for visual data. The core idea is a <span class="hl-concept">pretext task</span>: given two image patches, <span class="hl-method">predict their relative spatial configuration from eight possible positions</span>. Success at this task, they argue, requires <span class="hl-thesis">understanding the semantic content of patches — recognizing objects, parts, and their typical spatial arrangements</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從大規模影像集合進行無監督學習仍是電腦視覺中一個大致未解的挑戰。儘管以 ImageNet 為基礎的監督式學習推動了卓越進展，但對數百萬人工標註的依賴成本高昂且限制可擴展性。受 word2vec 在自然語言處理中的成功啟發——以脈絡預測作為學習詞嵌入的自監督任務——作者為視覺資料提出類似方法。核心概念是一個前置任務：給定兩個影像圖塊，從八個可能位置中預測其相對空間配置。作者論證，此任務的成功需要理解圖塊的語意內容——辨識物件、部件及其典型的空間排列。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    動機建立——從 NLP 的成功類比引出視覺自監督學習。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：「標註成本高」建立需求，「word2vec 類比」提供靈感，「前置任務」定義方案。三步收窄至精確的研究問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    word2vec 類比極具說服力但有風險——語言的離散序列結構與影像的連續二維結構有本質差異。空間位置預測是否真能像脈絡詞預測一樣有效仍需驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior <span class="hl-concept">unsupervised representation learning</span> methods include <span class="hl-concept">generative models</span> (restricted Boltzmann machines, variational autoencoders) that are <span class="hl-rebuttal">effective on small datasets but struggle to scale to large natural images</span>, and <span class="hl-concept">reconstruction-based approaches</span> (denoising autoencoders) that <span class="hl-rebuttal">tend to focus on low-level statistics rather than semantic content</span>. In NLP, <span class="hl-concept">skip-gram models</span> learn word representations by predicting surrounding context words, demonstrating that <span class="hl-thesis">self-supervised prediction tasks can produce semantically meaningful embeddings</span>. Several works in vision have explored <span class="hl-concept">discriminative patch mining</span> and <span class="hl-concept">object discovery</span>, but typically require <span class="hl-rebuttal">hand-crafted features or iterative refinement procedures</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的無監督表示學習方法包括：生成式模型（受限玻茲曼機、變分自編碼器），在小型資料集上有效但難以擴展至大型自然影像；以及基於重建的方法（去雜訊自編碼器），傾向於關注低階統計而非語意內容。在 NLP 中，skip-gram 模型透過預測周圍脈絡詞來學習詞表示，展示了自監督預測任務能產生語意上有意義的嵌入。視覺領域有數項研究探索了判別式圖塊挖掘與物件發現，但通常需要手工特徵或迭代精煉程序。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性分類現有無監督方法並指出各自弱點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立四條失敗路線（生成式、重建式、NLP 式、判別式），為第五條——脈絡預測——清出差異化空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對每類方法的批評精準但簡略。特別是 VAE 在大型影像上的困難已被後續研究改善；此處的文獻評價反映 2015 年的技術水準。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Learning Visual Context Prediction — 方法</h2>
+    <h3 class="subsection-heading">3.1 Architecture and Training</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method employs a <span class="hl-method">late-fusion Siamese architecture</span>: two <span class="hl-concept">AlexNet-style networks</span> with <span class="hl-method">shared weights (weight tying)</span> process the two patches independently until the <span class="hl-method">fc6 layer</span>, then their representations are <span class="hl-method">fused and passed through additional fully connected layers for 8-way classification</span>. Training data consists of <span class="hl-evidence">patch pairs sampled from 1.3M ImageNet images</span>, resized to <span class="hl-evidence">96x96 pixels</span>, with approximately <span class="hl-method">48-pixel gaps and random jitter of up to 7 pixels</span> between patches to prevent trivial solutions based on boundary continuity.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                該方法採用延遲融合的孿生架構：兩個共享權重的 AlexNet 風格網路分別獨立處理兩個圖塊至 fc6 層，隨後將表示融合並通過額外的全連接層進行八分類。訓練資料由從 130 萬張 ImageNet 影像中取樣的圖塊對組成，調整為 96x96 像素，圖塊之間設有約 48 像素的間隔與最多 7 像素的隨機抖動，以防止基於邊界連續性的捷徑解。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構定義——描述孿生網路與訓練資料設置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法的工程基礎。延遲融合確保每個圖塊獨立編碼，共享權重保證嵌入空間的一致性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    間隔與抖動的設計展現了對捷徑問題的敏感度。但 96x96 的圖塊大小限制了可學到的空間範圍，對大型物件的部件關係建模可能不足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 避免捷徑 ====== -->
+    <h3 class="subsection-heading" id="sec-shortcuts">3.2 Avoiding Trivial Solutions — 避免捷徑解</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical discovery during development was that the network could exploit several <span class="hl-rebuttal">low-level shortcuts</span> rather than learning semantic features. Most significantly, <span class="hl-concept">chromatic aberration</span> — the lens-induced misalignment of color channels — allows the network to <span class="hl-rebuttal">determine the absolute position of a patch within the image</span> without understanding its content. The authors address this through two preprocessing techniques: (1) a <span class="hl-method">"projection" technique that subtracts the green-magenta color axis from RGB channels</span>, and (2) <span class="hl-method">"color dropping" that randomly removes 2 of 3 color channels</span>, replacing them with Gaussian noise. Additional measures include <span class="hl-method">gap insertion between patches and batch normalization without learnable scale/shift parameters</span> to prevent activation collapse.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                開發過程中的關鍵發現是：網路可能利用若干低階捷徑而非學習語意特徵。最為顯著的是色差現象——鏡頭引起的色彩通道錯位——使網路能在不理解內容的情況下判定圖塊在影像中的絕對位置。作者透過兩種前處理技術解決此問題：(1) 「投影」技術，從 RGB 通道中減去綠-洋紅色軸；(2) 「色彩丟棄」，隨機移除三個色彩通道中的兩個，以高斯雜訊替代。額外措施包括圖塊間插入間隔，以及使用不含可學習縮放/偏移參數的批次正規化以防止啟動值崩塌。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題發現與解決——識別並克服訓練中的捷徑問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最具洞察力的部分：承認方法的潛在缺陷（網路可能作弊），並展示解決方案。此誠實提升了整體論證的可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    色差問題的發現展現了深刻的實驗洞察力，後續自監督學習研究中「避免捷徑」成為標準議題。但無法保證所有低階捷徑都已被識別與消除——網路可能仍利用尚未發現的統計規律。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Nearest neighbor retrieval</span> using the learned fc6 features shows that the representation captures <span class="hl-evidence">semantic similarity comparable to ImageNet-supervised features</span>, sometimes with better pose preservation. For <span class="hl-concept">object detection on Pascal VOC 2007</span>, the context-prediction pre-trained features achieve <span class="hl-evidence">46.3% mAP</span> (with color dropping), compared to <span class="hl-evidence">40.7% from scratch</span> — a substantial <span class="hl-evidence">5.6% improvement</span>. This is approximately <span class="hl-evidence">8 points below the 54.2% achieved by ImageNet pre-training</span>. A VGG-based variant further improves to <span class="hl-evidence">61.7% mAP</span>. For <span class="hl-concept">surface normal estimation</span> on NYUv2, fine-tuning yields <span class="hl-evidence">near-identical performance to ImageNet pre-training</span>, suggesting the representation captures geometric structure despite lacking explicit geometric supervision.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用學到的 fc6 特徵進行最近鄰檢索顯示，該表示捕捉了與 ImageNet 監督式特徵相當的語意相似性，有時姿態保持更佳。在 Pascal VOC 2007 物件偵測上，脈絡預測預訓練特徵達到 46.3% mAP（採用色彩丟棄），相較從零訓練的 40.7% 有 5.6% 的顯著提升。此數值約低於 ImageNet 預訓練所達到的 54.2% 約 8 個百分點。基於 VGG 的變體進一步提升至 61.7% mAP。在 NYUv2 表面法向量估計上，微調後的效能與 ImageNet 預訓練幾乎相同，顯示該表示雖無顯式的幾何監督，仍能捕捉幾何結構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    多面向驗證——在偵測、幾何估計、檢索等任務上評估表示品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以多個下游任務證明前置任務學到的是通用視覺表示而非任務特定特徵。尤其法向量估計的結果有力地支持了「語意理解」假說。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    誠實報告與 ImageNet 預訓練的 8% 差距，體現學術誠信。但此差距也暗示自監督方法在 2015 年仍遠未達到監督式水準。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">visual data mining</span>, the learned features enable <span class="hl-evidence">automatic discovery of object categories</span> from Pascal VOC 2011 without any labels. The method samples <span class="hl-method">constellations of four adjacent patches</span>, finds top-matching images across all patches, and applies <span class="hl-method">geometric verification</span>. It <span class="hl-evidence">automatically discovers categories including cats, people, and birds</span> with improved coverage over prior work. The pretext task itself achieves <span class="hl-evidence">38.4% accuracy on 8-way position classification</span> (chance: 12.5%), indicating the task remains genuinely challenging even for the trained model.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在視覺資料挖掘方面，學到的特徵能從 Pascal VOC 2011 中在無任何標籤的情況下自動發現物件類別。該方法取樣四個相鄰圖塊的組合，在所有圖塊中尋找最佳匹配影像，並進行幾何驗證。它自動發現了包括貓、人、鳥在內的類別，且涵蓋率優於先前研究。前置任務本身在八分類位置預測上達到 38.4% 的準確率（隨機基線：12.5%），顯示即使對訓練後的模型而言，此任務仍極具挑戰性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——無監督物件發現與前置任務分析。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補充論證：自動物件發現直接驗證「學到語意表示」的假說。38.4% 的準確率分析則展現任務的適當難度——既非太簡單（無法驅動學習）也非太難（無法解決）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    物件發現實驗極具說服力——從純位置預測任務到自動類別發現的飛躍展示了表示的強大泛化力。但類別發現的品質（純度 vs 涵蓋率的取捨）未被深入量化分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This work demonstrates that <span class="hl-thesis">spatial context within single images provides an effective supervisory signal for learning visual representations without any labels</span>. The proposed <span class="hl-concept">context prediction pretext task</span> trains CNNs to produce <span class="hl-method">patch-level embeddings that capture semantic similarity across images</span>, despite being trained only at the instance level. The discovery and resolution of the <span class="hl-concept">chromatic aberration</span> shortcut highlights the importance of <span class="hl-thesis">carefully designing self-supervised tasks to prevent trivial solutions</span>. The learned representations achieve <span class="hl-evidence">state-of-the-art unsupervised pre-training results</span>, coming within <span class="hl-evidence">8 percentage points of supervised ImageNet pre-training on VOC detection</span>, and demonstrating <span class="hl-thesis">that instance-level supervision paradoxically improves category-level understanding</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究證明，單一影像內的空間脈絡為無標籤學習視覺表示提供了有效的監督訊號。所提出的脈絡預測前置任務訓練 CNN 產生能跨影像捕捉語意相似性的圖塊級嵌入，儘管僅在實例層級進行訓練。色差捷徑的發現與解決突顯了仔細設計自監督任務以防止捷徑解的重要性。學到的表示達到最先進的無監督預訓練結果，在 VOC 偵測上僅落後 ImageNet 監督預訓練 8 個百分點，並展示了實例級監督矛盾地提升類別級理解的現象。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻與意外發現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論巧妙地將「色差問題」從技術障礙轉化為方法論啟示，提升了論文的學術影響力。「實例到類別」的矛盾觀察開啟了新的理論問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「矛盾地」一詞巧妙包裝了一個深刻觀察。但 8% 的差距仍然顯著，作者在展望未來時未充分討論如何縮小此差距。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺表示學習<br>依賴昂貴的標註
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                空間脈絡預測為<br>有效的自監督訊號
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                VOC 偵測 46.3% mAP<br>接近監督式預訓練
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                識別並解決色差<br>等捷徑問題
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                自監督前置任務<br>能學到語意表示
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過預測影像圖塊的相對空間位置，摺積神經網路能在無標籤的情況下學到捕捉語意相似性的視覺表示，為物件偵測與幾何估計等下游任務提供有效的預訓練。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>色差捷徑的發現與解決：</strong>此發現不僅增強了當前方法的可靠性，更為整個自監督學習領域揭示了「捷徑學習」這一系統性風險。後續大量研究引用此發現作為設計自監督任務的基本原則，體現了超越單一方法的學術貢獻。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>與監督式預訓練的差距：</strong>在 VOC 偵測上 8 個百分點的差距仍然顯著，暗示空間脈絡預測雖能提供有用的初始化，但所學表示的品質仍遠遜於有標籤的 ImageNet 預訓練。此外，38.4% 的前置任務準確率（8 類）表明網路可能僅學到了部分空間關係知識。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

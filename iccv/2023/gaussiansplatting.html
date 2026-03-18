@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Gaussian Splatting for Real-Time Radiance Field Rendering — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                3D Gaussian Splatting for Real-Time Radiance Field Rendering
+                <span class="course-tag">ICCV 2023</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2308.04079" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-optimization">4. 自適應密度控制</a>
+        <a href="#sec-rasterizer">5. 快速光柵化器</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Radiance field methods have recently revolutionized novel-view synthesis of scenes captured with multiple photos or videos. However, achieving <span class="hl-evidence">high visual quality still requires neural networks that are costly to train and render</span>, while recent faster methods <span class="hl-rebuttal">inevitably trade off speed for quality</span>. We introduce three key elements that allow us to achieve <span class="hl-thesis">state-of-the-art visual quality while maintaining competitive training times and importantly enabling real-time (&ge;30 fps) novel-view synthesis at 1080p resolution</span>: (1) <span class="hl-concept">anisotropic 3D Gaussians</span> as a flexible scene representation, (2) <span class="hl-method">interleaved optimization with adaptive density control</span> of the 3D Gaussians, and (3) a <span class="hl-method">fast, visibility-aware GPU rendering algorithm</span> that supports anisotropic splatting.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                輻射場方法近期徹底變革了以多張照片或影片擷取之場景的新視角合成。然而，達到高視覺品質仍需要訓練與渲染成本高昂的神經網路，而近期的快速方法不可避免地以品質換取速度。我們引入三項關鍵元素，使我們能在維持具競爭力的訓練時間的同時達到最先進的視覺品質，且至關重要地，實現 1080p 解析度下的即時（大於等於 30 fps）新視角合成：(1) 非等向性三維高斯作為彈性的場景表示；(2) 三維高斯的交錯最佳化與自適應密度控制；(3) 支援非等向性潑灑的快速可見性感知 GPU 渲染演算法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「品質-速度」的兩難為起點，引出三項核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要精準定位：在品質與速度的帕累托前沿上同時推進兩個軸向。三項貢獻對應「表示→最佳化→渲染」的完整管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「即時 1080p」是極具衝擊力的指標——將 NeRF 類方法從「離線工具」提升至「即時應用」。但「最先進的視覺品質」與「即時」的同時達成需仔細核驗——在某些場景中兩者可能無法兼得。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Neural Radiance Fields (NeRF)</span> and its variants have enabled <span class="hl-evidence">stunning novel-view synthesis quality</span>. However, they rely on <span class="hl-rebuttal">costly volumetric ray-marching with neural network evaluations at each sample point</span>. Fast NeRF variants like <span class="hl-concept">InstantNGP</span> and <span class="hl-concept">Plenoxels</span> use spatial data structures to accelerate rendering but <span class="hl-rebuttal">cannot achieve real-time rendering at high resolutions</span>. A key insight from point-based rendering is that <span class="hl-thesis">"point-based alpha-blending and NeRF-style volumetric rendering share essentially the same image formation model"</span>. We build on this insight, demonstrating that a <span class="hl-thesis">"continuous representation is not strictly necessary for fast, high-quality training"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                神經輻射場（NeRF）及其變體已實現了驚人的新視角合成品質。然而，它們依賴於每個取樣點上需要神經網路運算的高成本體積射線行進。快速 NeRF 變體如 InstantNGP 和 Plenoxels 使用空間資料結構加速渲染，但無法在高解析度下實現即時渲染。基於點的渲染的關鍵洞見是：「基於點的 alpha 混合與 NeRF 風格的體積渲染本質上共享相同的影像形成模型」。我們在此洞見上進一步發展，證明「連續表示對於快速、高品質的訓練並非嚴格必要」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從 NeRF 的速度瓶頸出發，引出點渲染的等價洞見。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定 NeRF 品質，再指出速度瓶頸，最後以「alpha 混合等價於體積渲染」的洞見為離散表示方法正名。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「連續表示並非嚴格必要」是大膽且重要的主張——挑戰了 NeRF 以來「連續即優越」的隱含假設。但此等價性在理論上成立，實務上離散表示可能在邊界處產生鋸齒或空洞。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Traditional reconstruction</span> methods used <span class="hl-concept">Structure-from-Motion (SfM)</span> and <span class="hl-concept">Multi-View Stereo (MVS)</span> for view synthesis through image reprojection and blending. <span class="hl-concept">NeRF-based methods</span> employ volumetric ray-marching with neural networks; recent fast variants (<span class="hl-concept">InstantNGP, Plenoxels</span>) use spatial data structures but still <span class="hl-rebuttal">require hundreds of network evaluations per pixel per frame</span>. <span class="hl-concept">Point-based rendering</span> has a long history, from surfels to differentiable point rasterization. Our work establishes that the <span class="hl-thesis">discrete point-based representation is flexible enough to allow creation, destruction, and displacement of geometric primitives</span> during optimization.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統重建方法使用運動結構恢復（SfM）與多視圖立體視覺（MVS），透過影像重投影與混合進行視角合成。基於 NeRF 的方法採用搭配神經網路的體積射線行進；近期的快速變體（InstantNGP、Plenoxels）使用空間資料結構，但每個像素每影格仍需數百次網路運算。基於點的渲染擁有悠久歷史，從表面元素到可微分點光柵化。本研究確立了離散的基於點的表示足夠靈活，可在最佳化過程中允許幾何基元的建立、銷毀與位移。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——將三個技術脈絡匯聚，定位 3D Gaussian Splatting。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立演進脈絡：傳統方法（顯式）→ NeRF（隱式連續）→ 本文（顯式可微分），暗示從連續回到離散是合理的技術演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「每像素數百次網路運算」量化了 NeRF 的計算瓶頸，使讀者直覺理解為何需要替代方案。但傳統點渲染的品質問題（空洞、鋸齒）被輕描淡寫——3D Gaussians 如何解決這些問題是本文需回答的核心。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Differentiable 3D Gaussian Splatting — 可微分三維高斯潑灑</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Each 3D Gaussian is defined by a <span class="hl-method">mean mu (position) and full 3D covariance matrix Sigma</span> in world space. Rather than directly optimizing Sigma (which must remain <span class="hl-rebuttal">positive semi-definite</span>), we decompose it as <span class="hl-method">Sigma = R S S^T R^T</span>, storing separately a <span class="hl-method">scaling vector s and rotation quaternion q</span>. Each Gaussian additionally stores an <span class="hl-method">opacity alpha and spherical harmonics (SH) coefficients</span> for view-dependent appearance. For rendering, 3D covariance projects to 2D screen-space covariance via: <span class="hl-method">Sigma' = J W Sigma W^T J^T</span>, where J is the Jacobian of the projective transformation and W is the viewing matrix.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                每個三維高斯由世界空間中的均值 mu（位置）與完整三維共變異數矩陣 Sigma 定義。由於直接最佳化 Sigma 必須維持半正定性，我們將其分解為 Sigma = R S S^T R^T，分別儲存縮放向量 s 與旋轉四元數 q。每個高斯額外儲存不透明度 alpha 與球諧函數（SH）係數以表示視角相關的外觀。渲染時，三維共變異數透過 Sigma' = J W Sigma W^T J^T 投影至二維螢幕空間共變異數，其中 J 為投影變換的雅可比矩陣，W 為觀看矩陣。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心表示法——定義 3D Gaussian 的參數化方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法的數學基礎。以 s+q 分解取代直接的 Sigma 最佳化，巧妙地將半正定約束轉化為無約束最佳化。球諧函數的引入使離散高斯具備視角相關的色彩表達能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    參數化的選擇（s+q 而非直接 Sigma）是關鍵的工程決策——既保證物理有效性又利於梯度下降。但非等向性高斯的自由度（位置3 + 縮放3 + 旋轉4 + 不透明度1 + SH係數48 = 59 個參數/高斯）可能導致大量高斯時的記憶體消耗問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-optimization">4. Optimization with Adaptive Density Control — 自適應密度控制最佳化</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The loss function combines <span class="hl-method">L = (1 - lambda) * L1 + lambda * L_D-SSIM</span> with lambda = 0.2. The key innovation is <span class="hl-concept">adaptive density control</span> with two complementary strategies. <span class="hl-method">Cloning</span>: for under-reconstructed regions (small Gaussians with large positional gradients), duplicate the Gaussian and offset along the gradient direction. <span class="hl-method">Splitting</span>: for over-reconstructed regions (large Gaussians covering too much space), replace with two smaller Gaussians scaled by factor 1.6. Gaussians with <span class="hl-method">opacity below threshold are periodically pruned</span>, and <span class="hl-method">every 3000 iterations, opacity is reset to near-zero</span> to allow pruning of floaters accumulated during optimization.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                損失函數結合 L = (1 - lambda) * L1 + lambda * L_D-SSIM，其中 lambda = 0.2。關鍵創新是自適應密度控制，包含兩項互補策略。克隆：對於重建不足的區域（位置梯度大的小型高斯），複製該高斯並沿梯度方向偏移。分裂：對於過度重建的區域（覆蓋過大空間的大型高斯），以縮放因子 1.6 替換為兩個更小的高斯。不透明度低於閾值的高斯會被定期修剪，且每 3000 次迭代，不透明度會被重設至接近零，以允許修剪最佳化過程中累積的浮游物。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    最佳化策略——描述自適應密度控制的克隆與分裂機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法的核心創新之一：離散表示的最大優勢——可以動態調整基元數量。克隆解決稀疏區域，分裂解決過大高斯，修剪移除冗餘——三者構成完整的拓撲適應機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「克隆+分裂+修剪」三重機制回應「離散表示如何自適應」的核心問題。但密度控制的超參數（梯度閾值、不透明度閾值、3000 次迭代週期）需要經驗性調校，對於極端場景可能不夠穩健。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-rasterizer">5. Fast Differentiable Rasterizer — 快速可微分光柵化器</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our GPU rasterizer uses a <span class="hl-method">tile-based approach: the screen is divided into 16x16 tiles</span>. Each Gaussian is <span class="hl-method">instantiated for every overlapping tile, assigned a 64-bit key combining depth and tile ID</span>, then <span class="hl-method">globally sorted via GPU radix sort</span>. The <span class="hl-method">forward pass</span> processes per-tile thread blocks that <span class="hl-method">accumulate color and opacity front-to-back until alpha saturation</span>. The <span class="hl-method">backward pass</span> traverses stored sorted lists <span class="hl-method">back-to-front, recovering intermediate opacity values</span> without storing explicit per-pixel lists. This enables <span class="hl-thesis">"gradients on arbitrary numbers of blended Gaussians"</span> while achieving <span class="hl-evidence">134 FPS on Mip-NeRF360 scenes at 1080p</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的 GPU 光柵化器採用磚塊式方法：螢幕被劃分為 16x16 的磚塊。每個高斯被實例化至所有重疊的磚塊，分配一個結合深度與磚塊 ID 的 64 位元鍵值，再透過 GPU 基數排序進行全域排序。正向傳遞處理每磚塊的執行緒區塊，以前到後順序累積顏色與不透明度直到 alpha 飽和。反向傳遞以後到前順序遍歷已儲存的排序列表，恢復中間不透明度值，無需儲存顯式的逐像素列表。這使得「對任意數量混合高斯的梯度計算」成為可能，同時在 Mip-NeRF360 場景上以 1080p 達到 134 FPS。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    渲染引擎——描述磚塊式 GPU 光柵化器的設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是「即時渲染」承諾的技術實現。磚塊式設計+全域排序+前後方向遍歷的組合，將傳統圖形學的光柵化技巧引入可微分渲染，是速度突破的關鍵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「134 FPS at 1080p」是極具說服力的數字，比 NeRF（0.1 FPS）快三個數量級。但此設計高度依賴現代 GPU 的並行能力，在較舊或移動端 GPU 上的表現可能大幅下降。此外，高斯數量極多時排序成本可能成為瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on <span class="hl-evidence">Mip-NeRF360, Tanks &amp; Temples, Deep Blending, and synthetic Blender scenes</span>. On Mip-NeRF360 (30K iterations): <span class="hl-evidence">SSIM 0.815 (vs. Mip-NeRF360: 0.792), PSNR 27.21 dB (vs. 27.69 dB), training time ~42 minutes (vs. 48 hours), and rendering at 134 FPS (vs. 0.1 FPS)</span>. The method achieves <span class="hl-thesis">comparable or superior visual quality to Mip-NeRF360 with over 1000x faster rendering and over 60x faster training</span>. <span class="hl-evidence">Ablation studies confirm that all components are critical</span> — removing anisotropy, densification cloning/splitting, or unlimited gradient backpropagation each significantly degrades quality.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 Mip-NeRF360、Tanks &amp; Temples、Deep Blending 和合成 Blender 場景上進行評估。在 Mip-NeRF360（30K 次迭代）上：SSIM 0.815（對比 Mip-NeRF360 的 0.792）、PSNR 27.21 dB（對比 27.69 dB）、訓練時間約 42 分鐘（對比 48 小時），渲染速度 134 FPS（對比 0.1 FPS）。該方法以超過 1000 倍的渲染加速與超過 60 倍的訓練加速，達到與 Mip-NeRF360 相當或更優的視覺品質。消融研究確認所有組件均不可或缺——移除非等向性、密度化克隆/分裂或無限梯度反向傳播，各自都顯著降低品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的定量對比——品質、速度、訓練時間三維度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱：SSIM 超越 Mip-NeRF360（0.815 vs 0.792）而 PSNR 略低（27.21 vs 27.69），加上 1000x 渲染加速，構成極具說服力的「帕累托改進」論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「1000x 渲染加速」的數字衝擊力巨大。但 PSNR 低於 Mip-NeRF360 0.48 dB，在某些場景中可能意味著可見的品質差異。此外，記憶體消耗（峰值約 20 GB）遠超 NeRF 方法，但未在主要數字中提及。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">3D Gaussian Splatting</span>, demonstrating that <span class="hl-thesis">a continuous neural representation is not strictly necessary for fast, high-quality radiance field rendering</span>. Our approach of <span class="hl-method">representing scenes with anisotropic 3D Gaussians, optimized with adaptive density control, and rendered via a tile-based GPU rasterizer</span> achieves <span class="hl-evidence">state-of-the-art quality with real-time rendering speeds</span>. <span class="hl-rebuttal">Limitations include artifacts in poorly-observed regions, challenges with view-dependent effects, and higher memory consumption</span> (peak ~20 GB) compared to NeRF-based methods. We believe this work opens a new direction in the tradeoff between <span class="hl-thesis">representation expressiveness, optimization efficiency, and rendering speed</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了三維高斯潑灑，證明了連續神經表示對於快速、高品質的輻射場渲染並非嚴格必要。我們以非等向性三維高斯表示場景、以自適應密度控制最佳化、並透過磚塊式 GPU 光柵化器渲染的方法，以即時渲染速度達到了最先進的品質。局限性包括在觀察不足區域的偽影、視角相關效果的挑戰，以及相較 NeRF 方法更高的記憶體消耗（峰值約 20 GB）。我們相信此研究在表示表達力、最佳化效率與渲染速度之間的權衡上開啟了新的方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心論點並坦承局限性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應緒論的核心論點（「連續表示非必要」），以完整的實驗證據支撐。坦誠列出三項限制展現學術誠信。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論將工作定位為「新方向」而非「終極解決方案」，留有發展空間。記憶體消耗（20 GB）是實務上最嚴峻的限制——遠超同品質的 NeRF 方法，限制了對大場景和低端硬體的適用性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                NeRF 品質高但<br>渲染速度極慢
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                離散 3D 高斯可替代<br>連續神經表示
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                SSIM 0.815、134 FPS<br>42 分鐘訓練
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                自適應密度控制<br>解決離散表示的稀疏性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                連續表示非必要<br>開啟即時輻射場新方向
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以非等向性三維高斯作為場景表示、搭配自適應密度控制與磚塊式 GPU 光柵化器，可在維持最先進品質的同時實現 1080p 即時新視角合成，證明連續神經表示並非高品質輻射場渲染的必要條件。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>速度-品質帕累托前沿的全面推進：</strong>相較 Mip-NeRF360 在 SSIM 上更優（0.815 vs 0.792）、渲染加速 1000 倍（134 vs 0.1 FPS）、訓練加速 60 倍（42 分鐘 vs 48 小時）。三個維度的同時改進使競爭方法幾乎無法反駁。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>記憶體消耗與場景可擴展性：</strong>峰值約 20 GB 的 GPU 記憶體遠超 NeRF 方法，嚴重限制大場景與低端硬體的應用。此外，在觀察不足區域的偽影問題以及 PSNR 略低於 Mip-NeRF360（27.21 vs 27.69 dB）暗示離散表示在精細細節上仍有提升空間。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

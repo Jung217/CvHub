@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structured Forests for Fast Edge Detection — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .topic-badge { display: inline-block; background: linear-gradient(135deg, #28a745, #1e7e34); color: #fff; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .topic-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Structured Forests for Fast Edge Detection
+                <span class="course-tag">ICCV 2013</span>
+                <span class="topic-badge">邊緣偵測</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1406.5549" target="_blank" class="navbar-home-link">arXiv: 1406.5549</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-mapping">3.2 結構化映射</a>
+        <a href="#sec-edge">3.3 邊緣偵測應用</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose a <span class="hl-concept">structured learning approach to edge detection</span> that leverages <span class="hl-method">random decision forests</span> with a novel framework for predicting <span class="hl-concept">structured outputs</span> — specifically, <span class="hl-method">local segmentation masks</span> that encode edge patterns. Our key insight is that <span class="hl-thesis">edges in a local patch are highly interdependent</span>: they form structured patterns like straight lines, parallel lines, T-junctions, and curves. By predicting these structured patterns rather than independent per-pixel edge labels, we achieve <span class="hl-evidence">state-of-the-art accuracy on the BSDS500 and NYU Depth benchmarks</span> while running at <span class="hl-evidence">real-time speed — orders of magnitude faster than competing methods</span> such as gPb and SCG.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種結構化學習的邊緣偵測方法，運用隨機決策森林搭配新穎的結構化輸出預測框架——具體而言，是編碼邊緣模式的局部分割遮罩。核心洞見在於：局部區塊中的邊緣具有高度的相互依賴性——它們形成如直線、平行線、T 型交叉點與曲線等結構化模式。透過預測這些結構化模式而非獨立的逐像素邊緣標籤，我們在 BSDS500 與 NYU Depth 基準上達到最先進的準確度，同時以即時速度執行——比 gPb 與 SCG 等競爭方法快數個數量級。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「結構化預測」為核心概念，同時宣告速度與準確度的雙重優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「邊緣的結構化本質」作為方法動機，直接建立從問題洞見到技術方案的因果鏈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「準確且快速」的雙重宣稱極具吸引力——通常這兩者是互相矛盾的。作者需在方法章節中解釋為何隨機森林能同時滿足兩者。「數個數量級快」的具體量化需要實驗支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Edge detection</span> is one of the most fundamental operations in computer vision, serving as a building block for <span class="hl-evidence">object recognition, segmentation, and image understanding</span>. Classical approaches like the <span class="hl-concept">Canny detector</span> rely on <span class="hl-method">local gradient computation</span>, which <span class="hl-rebuttal">fails to detect edges lacking strong color gradients</span> — such as texture boundaries and illusory contours. Modern learning-based methods like <span class="hl-concept">gPb (global probability of boundary)</span> achieve high accuracy by integrating <span class="hl-method">local and global cues</span>, but are <span class="hl-rebuttal">prohibitively slow — requiring minutes per image</span>. Recent approaches using <span class="hl-concept">Sketch Tokens</span> speed up processing by learning <span class="hl-method">pre-defined edge patch classes</span>, but <span class="hl-rebuttal">the fixed set of patch prototypes limits expressiveness</span>. We address this challenge with a <span class="hl-thesis">general structured forest framework that naturally handles the full diversity of edge patterns without pre-defined prototypes</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                邊緣偵測是電腦視覺中最基本的操作之一，作為物件辨識、分割與影像理解的基礎。Canny 偵測器等經典方法依賴局部梯度計算，無法偵測缺乏強烈顏色梯度的邊緣——例如紋理邊界與幻覺輪廓。gPb（全域邊界機率）等現代基於學習的方法透過整合局部與全域線索達到高準確度，但速度極慢——每張影像需數分鐘。使用 Sketch Tokens 的近期方法透過學習預定義的邊緣區塊類別來加速處理，但固定的區塊原型集限制了表達力。我們以一個通用的結構化森林框架來解決此挑戰，自然地處理邊緣模式的完整多樣性，無需預定義原型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究脈絡——從 Canny 到 gPb 到 Sketch Tokens 的演進，以及各自的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「準確但慢（gPb）→ 快但受限（Sketch Tokens）→ 準確且快且通用（本方法）」的三角對比，精確定位本方法的獨特價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三階段演進的敘事結構清晰有效。但將 gPb 描述為「極慢」可能過於簡化——gPb 的計算瓶頸主要在特徵計算而非推理，後續優化版本已大幅提速。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Structured prediction</span> methods in machine learning learn to predict complex, interdependent outputs. Traditional approaches like <span class="hl-concept">structured SVMs</span> and <span class="hl-concept">CRFs</span> require <span class="hl-rebuttal">expensive inference at test time</span>. <span class="hl-concept">Random forests</span> are efficient and highly parallelizable, but are designed for <span class="hl-rebuttal">independent scalar or categorical outputs</span>. Our contribution bridges this gap: we show that <span class="hl-thesis">random forests can be extended to predict structured outputs by storing arbitrary output structures at tree leaves</span>, with fast, straightforward inference comparable to standard random forests. The key technical challenge is <span class="hl-method">defining appropriate split criteria for structured labels during tree construction</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                機器學習中的結構化預測方法學習預測複雜且相互依賴的輸出。結構化 SVM 與 CRF 等傳統方法在測試時需要耗費資源的推理。隨機森林高效且高度可平行化，但被設計用於獨立的純量或分類輸出。我們的貢獻橋接了此差距：展示隨機森林可透過在樹葉節點儲存任意輸出結構而擴展至預測結構化輸出，且推理速度快且直接，與標準隨機森林相當。關鍵技術挑戰在於在樹建構過程中為結構化標籤定義適當的分裂準則。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將結構化森林置於結構化預測與隨機森林兩大脈絡的交叉點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立方法的理論位置：結構化 SVM/CRF 太慢，標準隨機森林不支援結構化輸出，本方法是兩者的最佳結合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「在葉節點儲存任意輸出結構」的描述簡潔但具誤導性——實際上對輸出空間的離散化和映射是非平凡的。「分裂準則」的挑戰被點出但解決方案的優雅性需在方法章節展示。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Structured Random Forests — 結構化隨機森林</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A standard random forest splits data at each node by maximizing <span class="hl-method">information gain over scalar labels</span>. For structured outputs (in our case, <span class="hl-concept">16x16 segmentation masks</span>), we need to compute information gain over a <span class="hl-concept">high-dimensional label space</span>. Our solution proceeds in two stages: (1) a <span class="hl-method">mapping function maps structured labels to an intermediate space</span> where distance is easily measured — specifically, we use <span class="hl-method">pairwise pixel membership features</span> that encode whether pairs of pixels belong to the same segment, yielding an <span class="hl-evidence">m=256 dimensional representation</span>; (2) <span class="hl-method">PCA reduces this to 5 dimensions</span>, followed by <span class="hl-method">k-means clustering into k=2 discrete classes</span>. Standard information gain (entropy or Gini impurity) can then be applied to the discrete labels to guide tree splits.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                標準隨機森林在每個節點透過最大化純量標籤的資訊增益來分裂資料。對於結構化輸出（在我們的案例中為 16x16 分割遮罩），需要在高維標籤空間中計算資訊增益。我們的解決方案分兩階段進行：(1) 映射函數將結構化標籤映射至一個易於測量距離的中間空間——具體而言，使用成對像素歸屬特徵來編碼像素對是否屬於同一片段，產生 m=256 維的表示；(2) PCA 將其降至 5 維，接著以 k-means 聚類為 k=2 個離散類別。標準資訊增益（熵或 Gini 不純度）便可套用於離散標籤以引導樹的分裂。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——描述如何將結構化標籤離散化以適應隨機森林的分裂機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術核心：「結構化標籤→成對特徵→PCA→離散化→標準資訊增益」的管線將不可處理的結構化分裂問題轉化為標準的分類問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    兩階段映射的設計巧妙地解決了結構化分裂的核心難題。但 PCA 降至 5 維是否保留了足夠的結構資訊？k=2 的二元離散化是否過於粗糙？這些設計選擇需要消融研究支持。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-mapping">3.2 Structured Mapping — 結構化映射</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                At prediction time, each tree in the forest routes an input patch to a <span class="hl-method">leaf node that stores a set of training segmentation masks</span>. The final prediction is obtained by selecting the <span class="hl-method">medoid</span> — the training example whose distance to all other stored examples is minimized in the reduced space. Crucially, <span class="hl-thesis">any prediction must have been observed during training</span>; the forest does not hallucinate novel edge patterns but retrieves the most representative one from its memory. The ensemble prediction from multiple trees is averaged to produce a <span class="hl-method">soft edge probability map</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在預測時，森林中的每棵樹將輸入區塊路由至一個儲存了訓練分割遮罩集合的葉節點。最終預測透過選擇中心體——在降維空間中與所有其他儲存範例距離最小化的訓練範例——來取得。關鍵地，任何預測都必須在訓練期間被觀察過；森林不會幻想新穎的邊緣模式，而是從記憶中檢索最具代表性的模式。來自多棵樹的集成預測經平均後產生軟性邊緣機率圖。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推理機制——說明測試時如何從森林中檢索結構化預測。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    中心體選擇確保了預測的合理性（必為訓練集中的真實邊緣模式），多樹平均則提供了機率化的軟輸出。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「預測必須被觀察過」既是優勢（避免不合理的預測）也是限制（無法處理訓練集未涵蓋的新型邊緣模式）。在訓練資料覆蓋充足的場景中這不是問題，但在分布外場景中可能導致品質下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-edge">3.3 Edge Detection Application — 邊緣偵測應用</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For edge detection, <span class="hl-method">input features are computed from 32x32 patches</span> with <span class="hl-evidence">13 channels (3 color, 2 gradient magnitude, 8 gradient orientation)</span> plus <span class="hl-method">pairwise difference features totaling approximately 7,200 candidate features</span>. The structured labels are <span class="hl-method">16x16 segmentation masks</span> derived from ground truth. Two key enhancements improve results: (1) <span class="hl-method">multi-scale processing (SE+MS)</span> applies the model at original, half, and double resolution; (2) <span class="hl-method">edge sharpening (SE+SH)</span> realigns predicted masks to image edges via iterative segment reassignment based on color and depth similarity. These enhancements bring the final system to <span class="hl-evidence">ODS=0.75, OIS=0.77, AP=0.80 on BSDS500</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                用於邊緣偵測時，輸入特徵從 32x32 區塊計算，包含 13 個通道（3 色彩、2 梯度幅度、8 梯度方向）加上成對差異特徵，共約 7,200 個候選特徵。結構化標籤為從真值推導的 16x16 分割遮罩。兩項關鍵增強改善了結果：(1) 多尺度處理（SE+MS）在原始、半倍與雙倍解析度下套用模型；(2) 邊緣銳化（SE+SH）透過基於色彩與深度相似性的迭代片段重新指派，將預測的遮罩對齊至影像邊緣。這些增強將最終系統提升至 BSDS500 上的 ODS=0.75、OIS=0.77、AP=0.80。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    工程細節——描述特徵設計與後處理增強。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將通用的結構化森林框架具體化到邊緣偵測任務上，展示了框架的靈活性與工程實踐的重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多尺度與銳化增強對最終結果的貢獻需要消融研究量化。7,200 個候選特徵中隨機選取子集的策略可能引入方差——不同的隨機種子是否產生不同的結果？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On the <span class="hl-evidence">BSDS500 benchmark</span>, our full model (SE+MS+SH) achieves <span class="hl-evidence">ODS=0.75, OIS=0.77, AP=0.80, R50=0.93</span>, outperforming <span class="hl-evidence">gPb (ODS=0.73), Sketch Tokens (ODS=0.73), and SCG (ODS=0.74)</span>. Critically, our method runs at <span class="hl-evidence">2.5 FPS for the full model and 12.5 FPS for the sharpened-only variant (SE+SH)</span>, compared to <span class="hl-evidence">gPb at approximately 240 seconds per image</span>. On the <span class="hl-evidence">NYU Depth dataset</span>, using RGBD features, we achieve <span class="hl-evidence">ODS=0.69, OIS=0.71, AP=0.72</span>. Cross-dataset experiments show that <span class="hl-evidence">models trained on BSDS generalize well to NYUD (within ~1 point)</span>, suggesting potential as a <span class="hl-thesis">general purpose edge detector</span>. Comprehensive parameter sweeps confirm <span class="hl-evidence">robustness across intermediate dimensions (m >= 64), discrete label counts (k=2 optimal), and tree parameters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 BSDS500 基準上，完整模型（SE+MS+SH）達到 ODS=0.75、OIS=0.77、AP=0.80、R50=0.93，超越 gPb（ODS=0.73）、Sketch Tokens（ODS=0.73）與 SCG（ODS=0.74）。關鍵的是，本方法以完整模型 2.5 FPS、僅銳化版本（SE+SH）12.5 FPS 的速度執行，而 gPb 每張影像約需 240 秒。在 NYU Depth 資料集上，使用 RGBD 特徵，達到 ODS=0.69、OIS=0.71、AP=0.72。跨資料集實驗顯示在 BSDS 上訓練的模型能良好泛化至 NYUD（差距約 1 個百分點以內），顯示其作為通用邊緣偵測器的潛力。全面的參數掃描確認了在中間維度（m >= 64）、離散標籤數（k=2 最佳）與樹參數方面的穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在準確度、速度、跨資料集泛化與參數穩健性四個維度上驗證方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證核心：準確度超越 gPb 且速度快兩個數量級（2.5 FPS vs. 240秒），這是「準確且快」宣稱的直接驗證。跨資料集泛化性進一步支持通用性論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    速度對比的呈現方式極具衝擊力（FPS vs. 分鐘），但 ODS 從 0.73 提升至 0.75 的幅度相對有限——主要優勢在速度而非準確度。作為即時應用（如視訊處理），速度優勢的意義遠大於 2% 的準確度提升。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Structured Edge (SE)</span> detection, a method that <span class="hl-thesis">achieves state-of-the-art edge detection accuracy at real-time speed</span> using <span class="hl-method">structured random forests</span>. The general framework of <span class="hl-thesis">predicting structured outputs with random forests</span> — via mapping to an intermediate space, discretization, and medoid retrieval — is <span class="hl-thesis">applicable beyond edge detection to other structured output problems</span> in vision. The dramatic speed advantage over gPb and other methods opens the door to <span class="hl-evidence">applications in video processing and time-sensitive recognition tasks</span>. Future work includes <span class="hl-rebuttal">integrating global context</span> and <span class="hl-rebuttal">extending to semantic edge detection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了結構化邊緣（SE）偵測——一種使用結構化隨機森林，以即時速度達到最先進邊緣偵測準確度的方法。以隨機森林預測結構化輸出的通用框架——透過映射至中間空間、離散化與中心體檢索——可應用於視覺中邊緣偵測之外的其他結構化輸出問題。相對於 gPb 等方法的顯著速度優勢，為視訊處理與時間敏感辨識任務中的應用敞開了大門。未來工作包括整合全域語境以及擴展至語意邊緣偵測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——強調框架的通用性與速度優勢的應用潛力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論超越邊緣偵測本身，將結構化森林定位為通用的結構化預測工具——這擴大了貢獻的影響範圍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「全域語境」的未來方向暗示了當前方法的關鍵限制：純局部的區塊式預測可能遺漏需要全域資訊的邊緣（如大尺度物件的輪廓）。gPb 的全域推理正是其準確度略高的原因之一。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                高品質邊緣偵測<br>速度過慢
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                結構化隨機森林<br>兼顧準確與速度
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                BSDS500 ODS=0.75<br>速度 2.5-12.5 FPS
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                純局部預測<br>缺乏全域語境
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                結構化森林是通用的<br>即時結構化預測框架
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將邊緣偵測公式化為結構化隨機森林的局部分割遮罩預測問題，可以在維持最先進準確度的同時實現即時處理速度。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>速度與準確度的同步達成：</strong>比 gPb 快兩個數量級（2.5 FPS vs. 240秒/影像）同時準確度更高（ODS 0.75 vs. 0.73），這在邊緣偵測領域是前所未有的。結構化映射的兩階段設計（成對特徵→PCA→離散化）將不可處理的問題轉化為標準分類，在理論上是優雅的。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>純局部處理的固有限制：</strong>每個預測僅基於 32x32 的局部區塊，無法捕捉需要大範圍語境的邊緣線索。此外，「預測必須被觀察過」的約束使模型無法泛化至訓練集未涵蓋的邊緣類型。ODS 的 2% 提升雖統計顯著，但在實際應用中的感知差異可能有限。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

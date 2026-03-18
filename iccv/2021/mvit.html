@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiscale Vision Transformers (MViT) — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Multiscale Vision Transformers (MViT)
+                <span class="course-tag">ICCV 2021</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2104.11227" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-pooling">3.2 池化注意力</a>
+        <a href="#sec-design">3.3 架構設計</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors present <span class="hl-concept">Multiscale Vision Transformers (MViT)</span> for video and image recognition, connecting <span class="hl-thesis">multiscale feature hierarchies with transformer models</span>. The architecture features <span class="hl-method">multiple channel-resolution scale stages</span> that <span class="hl-method">hierarchically expand channel capacity while reducing spatial resolution</span>. This enables early layers to operate on <span class="hl-method">high-resolution features with compact channel dimensions</span>, while deeper layers process <span class="hl-method">coarse, complex features with expanded channels</span>. A key innovation is <span class="hl-concept">Multi Head Pooling Attention (MHPA)</span>, which <span class="hl-method">applies pooling operators to query, key, and value tensors</span> for flexible resolution modeling within transformer blocks. MViT achieves <span class="hl-evidence">state-of-the-art results on Kinetics-400 video classification (81.2%) with 5-10x fewer FLOPs</span> than concurrent ViT-based models, and <span class="hl-evidence">competitive ImageNet performance (84.8%) with 1.7x fewer FLOPs</span> than DeiT, all without large-scale pre-training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提出多尺度視覺 Transformer (MViT) 用於視訊與影像辨識，將多尺度特徵層級與 Transformer 模型相連結。其架構具備多個通道-解析度尺度階段，以層級方式擴展通道容量同時降低空間解析度。這使得早期層在緊湊通道維度下處理高解析度特徵，而深層則以擴展的通道處理粗略、複雜的特徵。關鍵創新為多頭池化注意力 (MHPA)，它對查詢、鍵與值張量施加池化運算子，實現 Transformer 區塊內的靈活解析度建模。MViT 在 Kinetics-400 視訊分類上達到最先進的 81.2% 準確率，FLOPs 為同期 ViT 模型的 5-10 分之一，在 ImageNet 上達到具競爭力的 84.8% 準確率，FLOPs 為 DeiT 的 1.7 分之一，且無需大規模預訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從多尺度設計的原理到效率優勢，概述 MViT 的完整貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建構了「設計原理（多尺度）-> 技術實現（MHPA）-> 效率驗證（5-10x 更少 FLOPs）」的三段式論證，同時強調「無需大規模預訓練」以突顯方法的獨立價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「5-10x 更少 FLOPs」是極具衝擊力的數字，但需注意比較對象可能不是最優基線。同期 ViT 模型多半未針對視訊最佳化，因此 MViT 的效率優勢部分來自於任務匹配（多尺度天然適合視訊的時空結構）而非純粹的架構改進。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Vision Transformers (ViT)</span> have demonstrated impressive results on image classification, but their <span class="hl-rebuttal">columnar architecture processes all layers at the same spatial resolution and channel dimension</span>. This is <span class="hl-rebuttal">fundamentally at odds with the multiscale nature of visual signals</span>: natural images contain features at multiple scales, and biological visual systems process them hierarchically. In <span class="hl-concept">convolutional networks</span>, the <span class="hl-method">progressive reduction in spatial resolution alongside increase in channel capacity</span> — a <span class="hl-concept">multiscale pyramid</span> — has been a cornerstone of successful architectures from <span class="hl-concept">VGGNet</span> to <span class="hl-concept">ResNet</span>. The authors argue that <span class="hl-thesis">this multiscale principle should be the foundation of transformer architectures for vision</span>, not an afterthought.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺 Transformer (ViT) 在影像分類上展現了令人印象深刻的成果，但其柱狀架構在所有層級以相同的空間解析度與通道維度處理。這與視覺訊號的多尺度本質從根本上矛盾：自然影像包含多尺度的特徵，而生物視覺系統以層級方式處理它們。在摺積網路中，空間解析度的漸進降低伴隨通道容量的增加——多尺度金字塔——從 VGGNet 到 ResNet 一直是成功架構的基石。作者主張此多尺度原則應作為視覺 Transformer 架構的基礎，而非事後附加。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立動機——從視覺訊號的多尺度本質論證多尺度 Transformer 的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段的論證策略是將多尺度原則提升為視覺架構的「第一性原理」，使 ViT 的柱狀設計顯得不自然。引用生物視覺系統增強了直覺上的說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以生物視覺類比來支持多尺度設計是有效的修辭，但深度學習架構不必遵循生物設計——ViT 的成功恰恰證明了「非生物式」架構也能奏效。此外，「不是事後附加」的措辭暗指 PVT 等方法只是將多尺度「嫁接」到 Transformer 上，而 MViT 是更根本的整合。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">video understanding</span>, the multiscale principle is even more critical. Video data is <span class="hl-evidence">extremely dense — a short clip contains millions of spatiotemporal tokens</span>. Processing all tokens at full resolution through standard self-attention is <span class="hl-rebuttal">computationally prohibitive</span>. MViT addresses this by starting with <span class="hl-method">thin channel dimensions at high spatiotemporal resolution in early layers</span> and gradually <span class="hl-method">expanding channels while reducing resolution through pooling</span>. This creates a <span class="hl-concept">multiscale pyramid of features</span> where <span class="hl-thesis">computational complexity remains roughly constant across stages</span>, enabling efficient processing of dense visual data without sacrificing the ability to capture fine-grained patterns.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於視訊理解，多尺度原則更為關鍵。視訊資料極為密集——一個短片段包含數百萬個時空標記。以標準自注意力在全解析度下處理所有標記在計算上是不可行的。MViT 透過在早期層以高時空解析度的窄通道維度起始，逐步透過池化擴展通道同時降低解析度來解決此問題。這建立了一個多尺度特徵金字塔，其中計算複雜度在各階段間大致恆定，使密集視覺資料的高效處理成為可能，且不犧牲捕捉細粒度模式的能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    視訊場景動機——論證多尺度設計在視訊理解中的特殊重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將 MViT 的應用範圍從影像擴展到視訊，強調視訊的「極端密集性」使多尺度設計從「有益」升級為「必要」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「計算複雜度在各階段間大致恆定」是一個精心的工程設計，但此恆定性依賴於通道擴展率與解析度縮減率的精確匹配。在不同任務或輸入解析度下，是否仍能維持此平衡？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior vision transformers maintain <span class="hl-rebuttal">constant resolution throughout all layers</span>. <span class="hl-concept">ViT</span> and <span class="hl-concept">DeiT</span> process fixed-size tokens from patch embedding to output. For video, <span class="hl-concept">TimeSformer</span> and <span class="hl-concept">ViViT</span> extend ViT to spatiotemporal tokens but <span class="hl-rebuttal">maintain the same columnar design, requiring massive pre-training on ImageNet-21K</span>. Concurrent works like <span class="hl-concept">PVT</span> and <span class="hl-concept">Swin Transformer</span> introduce multiscale features for dense prediction, but they <span class="hl-rebuttal">focus on image tasks and do not address the spatiotemporal nature of video</span>. In the CNN domain, <span class="hl-concept">SlowFast networks</span> demonstrated the value of <span class="hl-method">multi-rate temporal processing</span> for video. MViT uniquely combines <span class="hl-thesis">multiscale spatial and temporal modeling within a pure transformer architecture</span>, without relying on large-scale pre-training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的視覺 Transformer 在所有層級中維持恆定解析度。ViT 與 DeiT 從圖塊嵌入到輸出處理固定大小的標記。在視訊方面，TimeSformer 與 ViViT 將 ViT 擴展至時空標記，但維持相同的柱狀設計，需要在 ImageNet-21K 上進行大規模預訓練。同期如 PVT 與 Swin Transformer 等工作為密集預測引入多尺度特徵，但聚焦於影像任務且未處理視訊的時空本質。在 CNN 領域，SlowFast 網路展示了多速率時間處理對視訊的價值。MViT 獨特地在純 Transformer 架構中結合了多尺度空間與時間建模，且不依賴大規模預訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——在影像 Transformer、視訊 Transformer 與 CNN 的三維座標中定位 MViT。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段的策略是在三個研究方向中各指出一個缺口：影像 Transformer 忽視多尺度、視訊 Transformer 需要大規模預訓練、CNN 缺乏全域注意力。MViT 被定位為同時填補三個缺口的方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「不依賴大規模預訓練」是 MViT 的重要差異化因素。但在同等預訓練條件下（都使用或都不使用 ImageNet-21K），MViT 與 ViViT 的公平比較結果如何？效率優勢是否完全來自架構，還是部分因為比較條件不對等？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Multiscale Architecture — 多尺度架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                MViT implements a <span class="hl-method">progressive channel-resolution trade-off across stages</span>. The network begins with a <span class="hl-method">small channel dimension (e.g., 96) at high spatiotemporal resolution</span> and progressively <span class="hl-method">doubles the channel dimension while halving the spatial resolution</span> at stage transitions. This design is motivated by the observation that <span class="hl-thesis">early visual processing requires high spatial resolution to capture fine-grained local patterns (edges, textures), while deeper processing requires rich channel capacity to encode complex semantic concepts</span>. The <span class="hl-method">normalized skip connections at stage transitions</span> accommodate the changing dimensions, and <span class="hl-method">separate space and time positional embeddings</span> (rather than joint spatiotemporal) provide position information with factored complexity.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MViT 實現了跨階段的漸進式通道-解析度取捨。網路從高時空解析度下的小通道維度（如 96）起始，在階段轉換處漸進地將通道維度加倍、空間解析度減半。此設計的動機基於觀察：早期視覺處理需要高空間解析度來捕捉細粒度的局部模式（邊緣、紋理），而深層處理需要豐富的通道容量來編碼複雜的語義概念。階段轉換處的正規化跳躍連接適應了維度的變化，而分離的空間與時間位置嵌入（而非聯合時空嵌入）以分解的複雜度提供位置資訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構設計——描述多尺度金字塔的具體實現方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將 CNN 的經典設計原則（低層高解析度窄通道、高層低解析度寬通道）正式引入 Transformer 架構。分離的時空位置嵌入是針對視訊的特殊考量。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 CNN 的設計原則「翻譯」至 Transformer 是合理的策略，但 Transformer 的全域注意力機制使得「早期層捕捉局部模式」的假設可能不成立——ViT 的早期層已能捕捉全域模式。多尺度設計在 Transformer 中的真正價值可能更多在於計算效率而非特徵品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 池化注意力 ====== -->
+    <h3 class="subsection-heading" id="sec-pooling">3.2 Multi Head Pooling Attention — 多頭池化注意力</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core innovation is <span class="hl-concept">Multi Head Pooling Attention (MHPA)</span>, which enables <span class="hl-thesis">flexible resolution modeling within a single transformer block</span>. Unlike standard <span class="hl-concept">Multi-Head Attention</span> that maintains constant sequence length, MHPA <span class="hl-method">applies learnable pooling operators to query (Q), key (K), and value (V) tensors</span> with configurable <span class="hl-method">kernel sizes, strides, and padding</span>. The pooling reduces the sequence length of K and V, <span class="hl-method">decreasing the attention computation cost</span>, while optionally also pooling Q to <span class="hl-method">produce downsampled output for stage transitions</span>. This mechanism serves dual purposes: <span class="hl-thesis">it reduces computational cost within stages and enables resolution changes across stages</span>, all within the attention mechanism itself rather than requiring separate downsampling layers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                核心創新為多頭池化注意力 (MHPA)，它在單一 Transformer 區塊內實現靈活的解析度建模。不同於維持恆定序列長度的標準多頭注意力，MHPA 對查詢 (Q)、鍵 (K) 與值 (V) 張量施加可學習的池化運算子，具有可配置的核大小、步幅與填充。池化縮減了 K 與 V 的序列長度，降低了注意力計算成本，同時可選地對 Q 進行池化以在階段轉換處產生降取樣輸出。此機制具有雙重目的：它在階段內降低計算成本，並在階段間實現解析度變化，全部在注意力機制本身內完成，無需單獨的降取樣層。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術——詳述 MHPA 的機制與雙重功能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    MHPA 是 MViT 的技術核心：它將「效率提升」與「解析度變化」整合到單一操作中，使多尺度設計成為注意力機制的固有屬性而非外加元件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 Q、K、V 分別應用不同的池化策略是精妙的設計——K、V 池化降低成本，Q 池化實現階段轉換。但此設計使得不同注意力頭可能處理不同解析度的資訊，頭間的資訊整合是否會因解析度不一致而受影響？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 架構設計 ====== -->
+    <h3 class="subsection-heading" id="sec-design">3.3 Design Principles — 架構設計原則</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The architecture follows a <span class="hl-method">channel-resolution scaling principle</span>: as spatial resolution decreases by factor s, channel dimension increases by factor s, keeping <span class="hl-evidence">the total computation per stage roughly constant</span>. The model is instantiated with <span class="hl-evidence">MViT-B (36.6M parameters)</span>, starting from <span class="hl-method">96 channels at 16x temporal and spatial resolution</span>, expanding to <span class="hl-method">768 channels at reduced resolution</span> through four stages. For <span class="hl-concept">video inputs</span>, the initial patch embedding produces <span class="hl-method">spatiotemporal tokens by non-overlapping 3D patches</span>. A wider variant (<span class="hl-evidence">MViT-B-24-wide</span>) achieves the best ImageNet accuracy. The entire design avoids <span class="hl-rebuttal">large-scale pre-training requirements</span> — MViT is trained from scratch on the target dataset, which is a significant practical advantage.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                架構遵循通道-解析度縮放原則：空間解析度降低 s 倍時，通道維度增加 s 倍，使每階段的總計算量大致恆定。模型實例化為 MViT-B（36.6M 參數），從 96 通道、16 倍時間與空間解析度起始，透過四個階段擴展至 768 通道的縮減解析度。對於視訊輸入，初始圖塊嵌入透過非重疊的三維圖塊產生時空標記。較寬的變體 MViT-B-24-wide 達到最佳的 ImageNet 準確率。整體設計避免了大規模預訓練的需求——MViT 在目標資料集上從頭訓練，這是顯著的實務優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計原則——說明通道-解析度縮放的數學原理與模型配置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供了可重現的具體數字（96->768 通道、36.6M 參數），使方法從概念走向實現。「從頭訓練」的強調突出了與 ViViT、TimeSformer 等需要預訓練方法的關鍵差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需大規模預訓練」是雙面刃——它降低了使用門檻，但也可能意味著在有預訓練資料可用時，MViT 的效能提升空間受限。MViTv2 後來確實透過預訓練獲得了進一步提升，削弱了「從頭訓練就夠好」的早期宣稱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">Kinetics-400 video classification</span>, MViT-B achieves <span class="hl-evidence">81.2% top-1 accuracy</span>, surpassing concurrent transformer models that require <span class="hl-evidence">ImageNet-21K pre-training, with 5-10x lower computation and parameters</span>. A crucial temporal modeling experiment reveals: <span class="hl-evidence">shuffling input frames causes a significant 7.1% accuracy decay for MViT</span>, but <span class="hl-evidence">only 0.1% for standard ViT</span>. This confirms that <span class="hl-thesis">MViT genuinely captures temporal dynamics</span> while standard ViT performs mere <span class="hl-rebuttal">"bag-of-frames" classification</span>. On <span class="hl-evidence">ImageNet image classification</span>, MViT-B-24-wide reaches <span class="hl-evidence">84.8% top-1 accuracy with 1.7x fewer FLOPs</span> than DeiT-B at higher resolution. Ablation studies confirm that <span class="hl-evidence">MHPA, separate positional embeddings, and the multiscale design each contribute essential improvements</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Kinetics-400 視訊分類上，MViT-B 達到 81.2% 的 top-1 準確率，超越了需要 ImageNet-21K 預訓練的同期 Transformer 模型，且計算量與參數量僅為 5-10 分之一。一項關鍵的時間建模實驗揭示：打亂輸入幀順序導致 MViT 準確率顯著下降 7.1%，但標準 ViT 僅下降 0.1%。這確認了 MViT 真正地捕捉了時間動態，而標準 ViT 僅進行「逐幀袋」式分類。在 ImageNet 影像分類上，MViT-B-24-wide 達到 84.8% 的 top-1 準確率，FLOPs 為高解析度 DeiT-B 的 1.7 分之一。消融研究確認 MHPA、分離位置嵌入與多尺度設計各自貢獻了關鍵的改進。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面的實驗驗證——在視訊與影像上提供定量結果與深入的行為分析。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段最引人注目的是幀打亂實驗（7.1% vs. 0.1%），它超越了單純的效能比較，提供了模型行為的深層洞察。這不僅證明 MViT 更好，更說明了它為什麼更好。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    幀打亂實驗是出色的分析手法——以簡單的操控揭示了模型的本質差異。但 7.1% 的下降是否完全歸因於時間建模？多尺度設計本身可能對幀間的局部空間一致性敏感，打亂幀也可能干擾了空間特徵的時間連貫性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">MViT</span> demonstrates that <span class="hl-thesis">multiscale feature hierarchies are essential for effective vision transformers</span>, particularly for dense, high-dimensional data like video. The <span class="hl-concept">Multi Head Pooling Attention</span> mechanism enables flexible resolution modeling within the attention framework, achieving <span class="hl-evidence">state-of-the-art video recognition with dramatically fewer resources</span> and <span class="hl-evidence">competitive image classification without pre-training</span>. The channel-resolution scaling principle aligns transformer architectures with <span class="hl-thesis">classical vision principles of multiscale processing</span>, suggesting that the most effective vision transformers will be those that embrace, rather than ignore, the multiscale nature of visual data.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MViT 證明了多尺度特徵層級對有效的視覺 Transformer 至關重要，尤其是對於像視訊這樣密集、高維度的資料。多頭池化注意力機制在注意力框架內實現靈活的解析度建模，以大幅更少的資源達到最先進的視訊辨識，並在無需預訓練下達到具競爭力的影像分類。通道-解析度縮放原則使 Transformer 架構與多尺度處理的經典視覺原則對齊，暗示最有效的視覺 Transformer 將是那些擁抱而非忽視視覺資料多尺度本質的架構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與宣言——重申核心貢獻並提出多尺度設計的普適性主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段將 MViT 從一個具體的方法提升為設計哲學的宣言：「擁抱多尺度本質」。這個論述後來被 MViTv2 以及眾多多尺度 Transformer 驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「擁抱而非忽視」的措辭帶有宣言性質。然而，多尺度是否真的是唯一正確的方向？後來的研究（如 plain ViT 的強大效能）表明，在足夠的資料與計算下，柱狀架構也能競爭。多尺度的優勢更多在於效率而非根本性的表示能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                ViT 柱狀架構忽視<br>視覺訊號的多尺度本質
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                多尺度特徵層級<br>+ 池化注意力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                Kinetics 81.2%<br>5-10x 更少 FLOPs
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                幀打亂實驗證明<br>真正的時間建模
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                多尺度原則是視覺<br>Transformer 的方向
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過多頭池化注意力實現的多尺度特徵層級，使視覺 Transformer 能以數量級更少的計算資源達到最先進的視訊辨識效能，且無需大規模預訓練。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>幀打亂實驗的洞察力：</strong>MViT 在幀打亂後下降 7.1% 而 ViT 僅下降 0.1% 的對比，是全文最具說服力的證據。它超越了效能數字，揭示了 MViT 真正捕捉了視訊的時間結構，而非僅進行逐幀分類。這種行為分析比單純的效能比較更有說明力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>效率優勢的比較條件：</strong>「5-10x 更少 FLOPs」的比較對象是需要 ImageNet-21K 預訓練的視訊 Transformer（如 ViViT），但這些模型在設計上未針對效率最佳化。若與同樣追求效率的視訊 Transformer 比較（如 Video Swin），FLOPs 優勢可能大幅縮小。此外，MViT 在影像任務上的優勢不如視訊任務顯著。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>
