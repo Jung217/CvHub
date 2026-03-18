@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Viewing Graph Solvability via Cycle Consistency — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .honorable-mention-badge { display: inline-block; background: linear-gradient(135deg, #c0c0c0, #a8a8a8); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge, .navbar-title .honorable-mention-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Viewing Graph Solvability via Cycle Consistency
+                <span class="course-tag">ICCV 2021</span>
+                <span class="honorable-mention-badge">Honorable Mention</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content/ICCV2021/html/Arrigoni_Viewing_Graph_Solvability_via_Cycle_Consistency_ICCV_2021_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-cycle">3.2 循環一致性</a>
+        <a href="#sec-classify">3.3 圖分類</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In <span class="hl-concept">structure-from-motion (SfM)</span>, the <span class="hl-concept">viewing graph</span> is a graph where <span class="hl-method">vertices correspond to cameras and edges represent fundamental matrices</span> encoding the <span class="hl-concept">epipolar geometry</span> between image pairs. A fundamental question is whether a given viewing graph is <span class="hl-concept">solvable</span> — that is, whether the <span class="hl-thesis">camera matrices can be uniquely recovered (up to a projective ambiguity) from the given fundamental matrices</span>. This paper advances the theoretical understanding of viewing graph solvability by <span class="hl-method">exploiting cycle consistency</span>. The authors complete <span class="hl-evidence">the classification of all previously undecided minimal graphs up to 9 nodes</span>, extend <span class="hl-evidence">practical solvability testing up to minimal graphs with 90 nodes</span>, and prove that <span class="hl-thesis">finite solvability is not equivalent to solvability</span>, resolving a long-standing open question in multi-view geometry.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在運動恢復結構 (SfM) 中，觀測圖是一個圖，其中頂點對應相機、邊代表編碼影像對之間對極幾何的基礎矩陣。一個根本問題是：給定的觀測圖是否可解——即相機矩陣是否能從給定的基礎矩陣中唯一恢復（在射影歧義範圍內）。本文透過利用循環一致性來推進對觀測圖可解性的理論理解。作者完成了所有先前未決定的最小圖（最多 9 個節點）的分類，將實務可解性測試擴展至具有 90 個節點的最小圖，並證明了有限可解性不等價於可解性，解決了多視圖幾何中一個長期存在的開放問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義觀測圖可解性問題並預告三項理論貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以嚴謹的數學定義開場（觀測圖、可解性），然後列出三項具體貢獻，展現了理論論文的典型結構：定義問題 -> 列舉成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「解決長期存在的開放問題」是極強的理論貢獻宣稱。有限可解性與可解性的不等價性結果具有根本性的重要性——它改變了研究者對觀測圖結構的基本認知。但此結果的實際應用影響需要更多闡述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Structure-from-motion</span> aims to recover <span class="hl-concept">3D scene structure and camera poses</span> from a collection of 2D images. The <span class="hl-concept">viewing graph</span> encodes which image pairs share <span class="hl-concept">epipolar relationships</span> (fundamental matrices). Before attempting reconstruction, a natural question arises: <span class="hl-thesis">is the viewing graph configuration solvable?</span> An <span class="hl-concept">unsolvable graph</span> means that even with perfect, noise-free fundamental matrices, the camera matrices <span class="hl-rebuttal">cannot be uniquely determined</span>. Understanding solvability is thus <span class="hl-thesis">essential for designing robust SfM pipelines</span> — it tells us whether a given set of pairwise relationships contains sufficient constraints to determine the global configuration. Prior work has classified solvability for small graphs but <span class="hl-rebuttal">left many cases undecided</span> and lacked efficient methods for larger graphs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                運動恢復結構旨在從二維影像集合中恢復三維場景結構與相機姿態。觀測圖編碼了哪些影像對共享對極關係（基礎矩陣）。在嘗試重建之前，一個自然的問題浮現：觀測圖的配置是否可解？不可解的圖意味著即使擁有完美無雜訊的基礎矩陣，相機矩陣也無法被唯一確定。因此，理解可解性對設計穩健的 SfM 管線至關重要——它告訴我們一組給定的成對關係是否包含足夠的約束來確定全域配置。先前工作已對小型圖進行了可解性分類，但留下了許多未決案例，且缺乏適用於較大圖的高效方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題建立——從 SfM 的實務需求出發，論證可解性理論的重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將抽象的數學問題（圖可解性）與具體的工程需求（穩健 SfM 管線）連結，為理論研究提供了實務動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「即使完美基礎矩陣也無法唯一確定」的反直覺陳述吸引讀者注意——大多數 SfM 從業者可能未意識到此根本性限制。但在實務中，SfM 系統通常依賴增量式重建，可能自然避免不可解的子圖配置。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The study of <span class="hl-concept">viewing graph solvability</span> originates from <span class="hl-concept">Trager et al.</span>, who formalized the problem using <span class="hl-method">algebraic geometry</span> and classified graphs up to 4 nodes. <span class="hl-concept">Duff et al.</span> extended this work using <span class="hl-method">numerical algebraic geometry techniques</span> to handle larger cases, but <span class="hl-rebuttal">left several graphs undecided</span> due to computational limitations. In parallel, <span class="hl-concept">cycle consistency</span> has been recognized as a fundamental property of <span class="hl-concept">multi-view geometry</span>: a set of fundamental matrices is <span class="hl-method">globally consistent if and only if certain conditions hold on every cycle in the viewing graph</span>. This paper is the first to <span class="hl-thesis">systematically exploit cycle consistency as a tool for solvability analysis</span>, enabling both theoretical classification and practical scalability.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                觀測圖可解性的研究源自 Trager 等人，他們使用代數幾何形式化了此問題並對最多 4 個節點的圖進行了分類。Duff 等人使用數值代數幾何技術擴展了此工作以處理更大的案例，但因計算限制而留下了數個未決定的圖。同時，循環一致性已被認知為多視圖幾何的根本性質：一組基礎矩陣是全域一致的，若且唯若在觀測圖中的每個循環上某些條件成立。本文首次系統性地利用循環一致性作為可解性分析的工具，同時實現理論分類與實務可擴展性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——追溯可解性研究的演進並引入循環一致性的理論背景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了 Trager -> Duff -> 本文 的學術譜系，每一步都擴展了可處理的圖規模。循環一致性作為新工具的引入是方法論上的關鍵突破。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將循環一致性從「已知的幾何性質」重新定位為「可解性分析工具」是概念上的創新。但此工具的適用範圍是否僅限於最小圖？對於冗餘（非最小）圖的可解性分析是否仍然有效？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Viewing Graph and Solvability — 觀測圖與可解性</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-concept">viewing graph</span> G = (V, E) consists of vertices V representing <span class="hl-method">n cameras with 3x4 projection matrices P_i</span>, and edges E representing <span class="hl-method">fundamental matrices F_ij</span> that encode the epipolar constraint between camera pairs. A viewing graph is <span class="hl-concept">solvable</span> if, for <span class="hl-method">generic camera matrices</span>, the corresponding fundamental matrices <span class="hl-thesis">uniquely determine the cameras up to a projective transformation</span>. It is <span class="hl-concept">finitely solvable</span> if the cameras can be recovered up to a <span class="hl-method">finite number of solutions</span>. A <span class="hl-concept">minimal graph</span> is one where removing any edge makes the graph unsolvable. The paper focuses on classifying which <span class="hl-method">minimal graph topologies are solvable</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                觀測圖 G = (V, E) 由代表 n 個相機（具有 3x4 投影矩陣 P_i）的頂點 V 與代表編碼相機對之間對極約束的基礎矩陣 F_ij 的邊 E 組成。若對於一般性的相機矩陣，對應的基礎矩陣能在射影變換範圍內唯一確定相機，則觀測圖是可解的。若相機可以被恢復至有限個解的範圍，則稱為有限可解。最小圖是移除任何邊都會使圖變為不可解的圖。本文聚焦於分類哪些最小圖拓撲是可解的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    精確定義——建立觀測圖、可解性、有限可解性與最小圖的數學定義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的形式化基礎。三個層次的定義（可解 > 有限可解 > 不可解）為後續的分類結果提供了精確的語言。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「一般性相機矩陣」的假設至關重要但在實務中未必成立——退化配置（如所有相機共面）可能使理論上可解的圖在實際中不可解。此外，「射影歧義」的容許度是否足以涵蓋實際應用中所需的度量重建？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 循環一致性 ====== -->
+    <h3 class="subsection-heading" id="sec-cycle">3.2 Cycle Consistency — 循環一致性</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key methodological innovation is <span class="hl-method">using cycle consistency constraints for solvability analysis</span>. For any cycle in the viewing graph (a closed sequence of edges), the <span class="hl-method">composition of the fundamental matrices along the cycle must satisfy certain algebraic conditions</span>. Specifically, <span class="hl-method">the product of epipolar transfers around a cycle must be consistent</span> — it must correspond to a valid projective transformation. The authors show that <span class="hl-thesis">checking cycle consistency conditions across all independent cycles in the graph provides a powerful criterion for solvability</span>. When all cycle consistency conditions are satisfied, the fundamental matrices are <span class="hl-method">globally compatible with a set of camera matrices</span>. When they fail, the graph is provably unsolvable. This approach <span class="hl-evidence">reduces the solvability problem to checking conditions on cycles rather than solving the full system of polynomial equations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                關鍵的方法論創新是使用循環一致性約束進行可解性分析。對於觀測圖中的任何循環（封閉的邊序列），沿循環的基礎矩陣組合必須滿足特定的代數條件。具體而言，圍繞循環的對極轉移乘積必須是一致的——它必須對應一個有效的射影變換。作者展示檢查圖中所有獨立循環的循環一致性條件提供了可解性的強力判據。當所有循環一致性條件滿足時，基礎矩陣與一組相機矩陣全域相容。當條件失敗時，圖可證明為不可解。此方法將可解性問題縮減為檢查循環上的條件，而非求解完整的多項式方程組。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——詳述循環一致性如何被用作可解性判據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的方法論支柱：將困難的全域可解性問題轉化為局部循環檢查問題，是計算複雜度大幅降低的關鍵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從全域多項式方程組到局部循環檢查的縮減是優雅的理論貢獻。但必要充分性需要仔細驗證——循環一致性是可解性的充分條件、必要條件還是兩者？若僅為必要條件，則存在循環一致但不可解的情況。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 圖分類 ====== -->
+    <h3 class="subsection-heading" id="sec-classify">3.3 Graph Classification — 圖分類結果</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Using the cycle consistency framework, the authors achieve three key results. First, they <span class="hl-evidence">complete the classification of all minimal graphs up to 9 nodes</span> — resolving all previously undecided cases. Second, they <span class="hl-evidence">extend practical solvability testing to minimal graphs with up to 90 nodes</span>, a dramatic improvement over prior methods limited to about 10 nodes. Third, and most significantly, they <span class="hl-thesis">prove that finite solvability is strictly weaker than solvability</span> — there exist graphs that are finitely solvable but not solvable. This means that <span class="hl-thesis">having a finite number of solutions does not guarantee uniqueness</span>, refuting a conjecture that the two notions might be equivalent. This result has implications for <span class="hl-evidence">SfM algorithms that rely on counting solution numbers to assess reconstruction quality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用循環一致性框架，作者達成了三項關鍵結果。首先，完成了所有最多 9 個節點的最小圖的分類——解決了所有先前未決定的案例。其次，將實務可解性測試擴展至具有最多 90 個節點的最小圖，相較先前方法（約限於 10 個節點）有了戲劇性的提升。第三，也是最為顯著的，證明了有限可解性嚴格弱於可解性——存在有限可解但不可解的圖。這意味著擁有有限個解並不保證唯一性，反駁了兩個概念可能等價的猜想。此結果對依賴計算解的數量來評估重建品質的 SfM 演算法具有重要意涵。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心成果——列舉三項理論貢獻及其意義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的高潮——三項結果從實務（圖分類）到理論（不等價性證明）逐步升高。第三項結果尤其深刻，因為它改變了對可解性本質的基本認知。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項結果的組織從具體到抽象，最後以最具理論深度的結果作為高潮，敘事張力十足。但「有限可解不等於可解」的反例是否在實務中常見？若僅為邊角案例，其實際影響可能有限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors validate their theoretical results with <span class="hl-evidence">experiments on both synthetic and real data</span>. On synthetic data, they verify the <span class="hl-evidence">correctness of their classification by generating random camera configurations</span> and checking whether reconstruction succeeds or fails as predicted by the theory. On <span class="hl-evidence">real datasets from standard SfM benchmarks</span>, they demonstrate that <span class="hl-evidence">unsolvable subgraph configurations do appear in practice</span> — these are not mere theoretical curiosities. Specifically, they identify viewing graph substructures that are provably unsolvable, confirming that <span class="hl-thesis">awareness of graph solvability is practically relevant for robust SfM pipeline design</span>. The experiments also demonstrate that <span class="hl-evidence">the cycle-consistency-based testing is computationally efficient enough for real-world graph sizes</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者以合成與真實資料上的實驗驗證其理論結果。在合成資料上，他們透過生成隨機相機配置並檢查重建是否如理論預測般成功或失敗，驗證了分類的正確性。在標準 SfM 基準的真實資料集上，他們展示了不可解的子圖配置確實出現在實務中——這些不僅是理論上的稀奇事物。具體而言，他們識別出可證明為不可解的觀測圖子結構，確認了觀測圖可解性的意識對穩健 SfM 管線設計具有實務相關性。實驗也展示了基於循環一致性的測試在真實世界的圖規模上具備足夠的計算效率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實務驗證——在合成與真實資料上確認理論結果的正確性與實用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段彌合了理論與實務的鴻溝：「不可解子圖確實出現在實務中」的發現使理論結果從數學練習升級為工程指引。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    在真實資料中找到不可解子圖是強有力的佐證。但需要量化其出現的頻率——若極為罕見，則實務影響有限。此外，現有 SfM 系統（如 COLMAP）是否已經隱式地避免了這些配置？若是，則理論結果的增值較少。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper advances the theory of <span class="hl-concept">viewing graph solvability</span> through three contributions: <span class="hl-evidence">completing the classification of minimal graphs up to 9 nodes</span>, <span class="hl-evidence">scaling practical testing to 90-node graphs</span>, and <span class="hl-thesis">proving that finite solvability is not equivalent to solvability</span>. The cycle consistency framework provides an <span class="hl-method">efficient and principled tool</span> for analyzing graph solvability. The practical experiments confirm that <span class="hl-evidence">unsolvable configurations occur in real SfM scenarios</span>, motivating the integration of solvability checks into reconstruction pipelines. Future work includes extending the analysis to <span class="hl-concept">non-minimal graphs</span> and developing <span class="hl-method">real-time solvability verification</span> for use in incremental SfM systems.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文透過三項貢獻推進了觀測圖可解性的理論：完成最多 9 個節點的最小圖分類、將實務測試擴展至 90 個節點的圖、以及證明有限可解性不等價於可解性。循環一致性框架提供了分析圖可解性的高效且有原則的工具。實務實驗確認了不可解配置在真實 SfM 場景中出現，為將可解性檢查整合入重建管線提供了動機。未來工作包括將分析擴展至非最小圖，以及開發用於增量式 SfM 系統的即時可解性驗證。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與展望——重申三項貢獻並指出未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段簡潔地呼應了摘要的三項宣稱，並以「整合至重建管線」的實務願景收尾，強化了理論研究的工程價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    未來方向的設定（非最小圖、即時驗證）展現了研究的延伸潛力。但從最小圖到一般圖的推廣可能面臨根本性的困難——非最小圖的冗餘邊使可解性分析更為複雜。此外，即時驗證在增量式 SfM 中的整合方式（何時檢查、如何處理不可解子圖）需要仔細的系統設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                觀測圖可解性分類<br>不完整且不可擴展
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                循環一致性是<br>可解性分析的有效工具
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                9 節點完整分類<br>90 節點實務擴展
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                有限可解性 ≠ 可解性<br>解決開放問題
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                可解性檢查應整合<br>至 SfM 管線中
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    循環一致性提供了一個高效且有原則的框架，用於分析觀測圖的可解性，使完整的最小圖分類與大規模實務測試成為可能，並證明了有限可解性與可解性的根本性區別。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論深度與實務驗證的結合：</strong>證明有限可解性不等價於可解性是深刻的理論貢獻，而在真實資料中發現不可解子圖則確保了理論結果的工程相關性。從 10 節點到 90 節點的可擴展性提升（9 倍）更展現了方法的實用價值。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>從理論到實務的最後一哩路：</strong>論文展示了不可解配置存在，但未提出具體的處理策略——當 SfM 管線遇到不可解子圖時應如何應對？移除邊？添加觀測？此外，分析限於射影重建，而實際 SfM 系統通常需要度量重建，可解性結論在度量情境下的適用性未被討論。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

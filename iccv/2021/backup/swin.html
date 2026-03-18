@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Swin Transformer: Hierarchical Vision Transformer using Shifted Windows — 雙欄批注</title>
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Swin Transformer: Hierarchical Vision Transformer using Shifted Windows
+                <span class="course-tag">ICCV 2021</span>
+                <span class="best-paper-badge">Marr Prize (Best Paper)</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2103.14030" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-shifted">3.2 移位視窗</a>
+        <a href="#sec-arch">3.3 架構變體</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents a new <span class="hl-concept">vision Transformer</span>, called <span class="hl-concept">Swin Transformer</span>, that capably serves as a <span class="hl-thesis">general-purpose backbone for computer vision</span>. Challenges in adapting Transformer from language to vision arise from differences between the two domains, such as <span class="hl-rebuttal">large variations in the scale of visual entities</span> and the <span class="hl-rebuttal">high resolution of pixels in images compared to words in text</span>. To address these differences, the authors propose a <span class="hl-method">hierarchical Transformer whose representation is computed with shifted windows</span>. The shifted windowing scheme brings greater efficiency by <span class="hl-method">limiting self-attention computation to non-overlapping local windows while also allowing for cross-window connection</span>. This hierarchical architecture has the flexibility to model at various scales and has <span class="hl-evidence">linear computational complexity with respect to image size</span>. Swin Transformer achieves <span class="hl-evidence">87.3% top-1 accuracy on ImageNet-1K, 58.7 box AP and 51.1 mask AP on COCO test-dev, and 53.5 mIoU on ADE20K val</span>, surpassing previous state-of-the-art by significant margins.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種新型視覺 Transformer，稱為 Swin Transformer，能夠作為電腦視覺的通用主幹網路。將 Transformer 從語言領域適配到視覺領域面臨多重挑戰，包括視覺實體的尺度變異極大，以及影像像素的解析度遠高於文字中的詞彙。為解決這些差異，作者提出一種以移位視窗計算表示的階層式 Transformer。移位視窗機制透過將自注意力運算限制在不重疊的局部視窗內，同時允許跨視窗連結，帶來更高的效率。此階層架構具備在不同尺度建模的彈性，且計算複雜度隨影像尺寸呈線性增長。Swin Transformer 在 ImageNet-1K 上達到 87.3% 的 top-1 準確率，在 COCO test-dev 上達到 58.7 box AP 與 51.1 mask AP，在 ADE20K 驗證集上達到 53.5 mIoU，以顯著差距超越先前最先進方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從「領域差異」出發，提出「移位視窗階層式 Transformer」的解決方案，最後以強力數據收尾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題界定 + 方案預告 + 實證摘要」的三重功能。先以語言與視覺的差異建立動機，再以移位視窗與階層結構回應問題，最後以三項基準的 SOTA 表現提供初步說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「通用主幹網路」的宏大定位開場，為後續多任務實驗鋪路。但「通用」一詞暗示 Swin 應適用於所有視覺任務——論文主要驗證了分類、偵測與分割三項，影片理解等尚未涵蓋（後續工作中才補充）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Convolutional neural networks (CNNs)</span> have served as the <span class="hl-evidence">dominant backbone architectures in computer vision</span> for the past decade. Beginning with <span class="hl-concept">AlexNet</span> and its revolutionary performance on ImageNet, CNN architectures have evolved to become increasingly powerful through <span class="hl-method">deeper layers, more extensive connections, and more sophisticated convolution forms</span>. Meanwhile, the <span class="hl-concept">Transformer</span> architecture, originally designed for natural language processing, has demonstrated <span class="hl-evidence">remarkable performance for sequence-to-sequence modeling</span>. Its adoption in vision—<span class="hl-concept">Vision Transformer (ViT)</span>—has shown <span class="hl-evidence">impressive results on image classification</span>, yet the architecture faces fundamental challenges when applied to <span class="hl-rebuttal">dense prediction tasks that require multi-scale feature maps</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                摺積神經網路（CNN）在過去十年中一直作為電腦視覺領域的主流主幹架構。從 AlexNet 在 ImageNet 上的突破性表現開始，CNN 架構透過更深的層數、更廣泛的連結以及更精巧的摺積形式不斷演進。與此同時，原為自然語言處理設計的 Transformer 架構已展現了卓越的序列到序列建模能力。其在視覺領域的應用——Vision Transformer (ViT)——在影像分類上展現了亮眼成果，但該架構在應用於需要多尺度特徵圖的密集預測任務時面臨根本性挑戰。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從 CNN 的十年主導地位過渡到 Transformer 在視覺領域的機遇與挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定 CNN 的歷史地位，再引入 Transformer 這個「挑戰者」，最後指出 ViT 在密集預測上的缺陷，為 Swin 的設計動機奠基。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「十年主導」的敘事營造 CNN 的不可動搖性，再以 Transformer 的崛起製造張力。但將 ViT 的局限歸結為「根本性挑戰」略顯絕對——DeiT 等工作已證明純 Transformer 在小型資料集上也能表現良好。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The dominant challenge lies in the <span class="hl-rebuttal">quadratic computational complexity of global self-attention with respect to image size</span>, which makes it <span class="hl-rebuttal">infeasible for high-resolution dense prediction tasks</span> such as object detection and semantic segmentation. Furthermore, <span class="hl-concept">ViT</span> produces <span class="hl-rebuttal">single-resolution feature maps</span>, lacking the <span class="hl-concept">multi-scale feature hierarchy</span> that has proven essential for <span class="hl-concept">Feature Pyramid Networks (FPN)</span> and similar dense prediction architectures. The authors argue that a <span class="hl-thesis">general-purpose vision backbone must produce hierarchical feature representations with manageable computational cost</span>, motivating the design of Swin Transformer.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最主要的挑戰在於全域自注意力機制的計算複雜度隨影像尺寸呈二次方增長，這使其在物件偵測與語意分割等高解析度密集預測任務中不具可行性。此外，ViT 僅產生單一解析度的特徵圖，缺乏已被證實對特徵金字塔網路（FPN）等密集預測架構至關重要的多尺度特徵階層。作者主張，通用的視覺主幹網路必須在可控的計算成本下產生階層式特徵表示，這正是 Swin Transformer 的設計動機。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題聚焦——精確指出 ViT 的兩大結構性缺陷：二次複雜度與單一尺度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將問題收窄到可解決的技術層面：(1) 效率問題指向「視窗注意力」，(2) 尺度問題指向「階層設計」。兩個缺陷恰好對應 Swin 的兩大創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 ViT 的「不可行性」與 FPN 的「已被證實」並置，暗示 CNN 的多尺度設計是經過長期驗證的正確方向。這是一個強有力的修辭策略，但也可能限制了對全新架構範式的想像空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">CNN backbones</span> such as <span class="hl-concept">VGG, ResNet, and EfficientNet</span> have demonstrated that <span class="hl-evidence">hierarchical feature extraction with progressively increasing receptive fields</span> is highly effective for a wide range of visual recognition tasks. These architectures inherently produce <span class="hl-method">multi-scale feature maps</span> through successive pooling or strided convolution. The <span class="hl-concept">Vision Transformer (ViT)</span> applied a standard Transformer encoder to <span class="hl-method">non-overlapping image patches</span>, achieving <span class="hl-evidence">state-of-the-art image classification</span> when pre-trained on very large datasets. However, ViT's <span class="hl-rebuttal">isotropic architecture — maintaining the same resolution and feature dimension throughout — is incompatible with multi-scale frameworks</span> like FPN. <span class="hl-concept">DeiT</span> improved ViT's data efficiency through <span class="hl-method">knowledge distillation</span>, but did not address the architectural limitations for dense tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                VGG、ResNet 與 EfficientNet 等 CNN 主幹網路已證明，具有逐步擴大感受野的階層式特徵提取對廣泛的視覺辨識任務極為有效。這些架構透過連續的池化或跨步摺積天然地產生多尺度特徵圖。Vision Transformer (ViT) 將標準 Transformer 編碼器應用於不重疊的影像區塊，在超大型資料集上預訓練時達成最先進的影像分類表現。然而，ViT 的等向架構——在整體網路中維持相同的解析度與特徵維度——與 FPN 等多尺度框架不相容。DeiT 透過知識蒸餾改善了 ViT 的資料效率，但並未解決其在密集任務上的架構限制。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 CNN 的多尺度優勢與 ViT 的等向限制並列比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立 Swin 的學術譜系：從 CNN 的多尺度成功經驗出發，指出 ViT 與 DeiT 在此面向的不足，為「階層式 Transformer」的設計提供歷史依據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「等向架構不相容多尺度框架」作為批判核心，有效地將問題從「Transformer 能否做視覺」轉移到「Transformer 架構是否需要修改」。但忽略了並行工作如 PVT、Twins 等也在探索階層式 Transformer 的事實。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Hierarchical Feature Maps via Patch Merging</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Swin Transformer</span> builds <span class="hl-method">hierarchical feature maps</span> through a four-stage architecture. In the first stage, input images are split into <span class="hl-method">non-overlapping 4x4 patches</span>, each treated as a "token" with a raw feature dimension of 4x4x3 = 48. A <span class="hl-method">linear embedding layer</span> projects these to dimension C. Subsequent stages employ <span class="hl-concept">patch merging layers</span> that <span class="hl-method">concatenate features of each group of 2x2 neighboring patches</span> and apply a linear layer to reduce the dimension to 2C, effectively <span class="hl-method">downsampling the feature map resolution by 2x while doubling the channel dimension</span>. This produces feature maps at resolutions of <span class="hl-evidence">H/4, H/8, H/16, and H/32</span>, mirroring the multi-scale structure of <span class="hl-concept">typical CNN backbones</span> like ResNet.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Swin Transformer 透過四階段架構建立階層式特徵圖。在第一階段，輸入影像被分割為不重疊的 4x4 區塊，每個區塊視為一個「token」，原始特徵維度為 4x4x3 = 48。一個線性嵌入層將其投射至維度 C。後續各階段採用區塊合併層，將每組 2x2 相鄰區塊的特徵串接後，以線性層將維度縮減至 2C，實際效果是將特徵圖解析度下降 2 倍，同時通道維度加倍。這產生了解析度分別為 H/4、H/8、H/16 與 H/32 的特徵圖，與 ResNet 等典型 CNN 主幹網路的多尺度結構相呼應。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——描述如何透過區塊合併實現階層式特徵圖。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    直接回應緒論提出的「單一解析度」問題。區塊合併機制是 Swin 與 ViT 的關鍵結構差異，使其能夠無縫接入 FPN 等下游框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將解析度層級刻意對齊 CNN 的 H/4 到 H/32 格式，使 Swin 可以作為 ResNet 的「drop-in replacement」，這是一個極具策略性的設計決策。但合併而非池化的方式可能引入不同的資訊損失模式，值得進一步分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 移位視窗 ====== -->
+    <h3 class="subsection-heading" id="sec-shifted">3.2 Shifted Window Self-Attention — 移位視窗自注意力</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core innovation of Swin Transformer is the <span class="hl-concept">shifted window partitioning scheme</span>. In standard <span class="hl-concept">window-based multi-head self-attention (W-MSA)</span>, the feature map is evenly partitioned into <span class="hl-method">non-overlapping MxM windows</span> (default M=7), and self-attention is computed <span class="hl-method">independently within each window</span>. This reduces computational complexity from <span class="hl-evidence">quadratic O(n^2) for global attention to linear O(n) when M is fixed</span>. Specifically, for a feature map of hw patches, <span class="hl-evidence">global MSA costs 4hwC^2 + 2(hw)^2C, while window MSA costs only 4hwC^2 + 2M^2hwC</span>. However, windowed attention <span class="hl-rebuttal">lacks connections across windows</span>, limiting the model's capacity.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Swin Transformer 的核心創新是移位視窗分割方案。在標準的視窗式多頭自注意力（W-MSA）中，特徵圖被均勻分割為不重疊的 MxM 視窗（預設 M=7），自注意力在每個視窗內獨立計算。這將計算複雜度從全域注意力的二次方 O(n^2) 降至 M 固定時的線性 O(n)。具體而言，對於含 hw 個區塊的特徵圖，全域 MSA 的成本為 4hwC^2 + 2(hw)^2C，而視窗 MSA 僅需 4hwC^2 + 2M^2hwC。然而，視窗化的注意力缺乏跨視窗連結，限制了模型的表達能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心機制第一部分——建立「視窗注意力」的效率優勢與「缺乏跨窗連結」的缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    先展示複雜度公式的數學優勢，再主動指出其缺陷，為下一段的「移位」機制創造邏輯需求。此「先建立再打破」的策略增強了說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以精確的複雜度公式量化效率增益，數學論證嚴謹。M=7 的選擇在消融研究中有驗證，但對於超高解析度影像（如醫學影像），固定的視窗大小是否仍為最優選擇值得商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To introduce <span class="hl-thesis">cross-window connections without increasing computational cost</span>, consecutive Swin Transformer blocks alternate between <span class="hl-method">regular and shifted window partitioning</span>. The shifted configuration <span class="hl-method">displaces the windows by (floor(M/2), floor(M/2)) pixels</span> from the regularly partitioned configuration. This design <span class="hl-thesis">"provides connections among non-overlapping windows in the preceding layer, significantly enhancing modeling power."</span> An <span class="hl-method">efficient batch computation approach using cyclic shifting</span> ensures that the number of batched windows remains the same, and a <span class="hl-method">masking mechanism</span> restricts self-attention within each sub-window to maintain correctness. Ablation studies confirm that shifted windows improve <span class="hl-evidence">ImageNet top-1 accuracy by 1.1%, COCO box AP by 2.8, and ADE20K mIoU by 2.8</span> compared to non-shifted baselines.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為在不增加計算成本的前提下引入跨視窗連結，連續的 Swin Transformer 區塊在常規與移位視窗分割之間交替。移位配置將視窗從常規分割的位置偏移 (floor(M/2), floor(M/2)) 個像素。此設計「為前一層中不重疊的視窗之間建立了連結，顯著增強建模能力。」一種利用循環移位的高效批次計算方法確保批次化視窗的數量維持不變，而遮罩機制則限制自注意力在每個子視窗內運算以維持正確性。消融研究證實，相較於非移位基準，移位視窗將 ImageNet top-1 準確率提升 1.1%、COCO box AP 提升 2.8、ADE20K mIoU 提升 2.8。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心機制第二部分——提出移位方案並以消融實驗驗證其效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    完成「問題-方案-驗證」的論證閉環。移位視窗在不增加 FLOPs 的前提下帶來跨任務的一致性改進，消融數據有力地支撐了設計動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    循環移位+遮罩的實作細節展現了工程上的巧思——避免因視窗偏移導致的不均勻分割。但此機制的實際 GPU 利用率與記憶體開銷並未被量化，留下了實作效率的疑問。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 架構變體 ====== -->
+    <h3 class="subsection-heading" id="sec-arch">3.3 Architecture Variants — 架構變體</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper defines four model variants: <span class="hl-concept">Swin-T</span> (tiny, C=96, layers={2,2,6,2}), <span class="hl-concept">Swin-S</span> (small, C=96, layers={2,2,18,2}), <span class="hl-concept">Swin-B</span> (base, C=128, layers={2,2,18,2}), and <span class="hl-concept">Swin-L</span> (large, C=192, layers={2,2,18,2}). The complexity of Swin-T is designed to be <span class="hl-evidence">similar to ResNet-50, and Swin-S/B are similar to ResNet-101</span>. Each variant uses a <span class="hl-method">window size of M=7</span>, the query dimension of each head is <span class="hl-method">d=32</span>, and an <span class="hl-method">expansion ratio of 4</span> is used in the MLP layers. <span class="hl-method">Relative position bias</span> is used instead of absolute position embeddings, which the authors show <span class="hl-evidence">consistently outperforms absolute position embeddings across all three tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                論文定義了四種模型變體：Swin-T（微型，C=96，層數={2,2,6,2}）、Swin-S（小型，C=96，層數={2,2,18,2}）、Swin-B（基礎，C=128，層數={2,2,18,2}）與 Swin-L（大型，C=192，層數={2,2,18,2}）。Swin-T 的複雜度設計為與 ResNet-50 相近，Swin-S/B 則與 ResNet-101 相近。每個變體使用視窗大小 M=7，每個注意力頭的查詢維度為 d=32，MLP 層使用擴展比率 4。採用相對位置偏置而非絕對位置嵌入，作者展示其在三項任務上皆一致優於絕對位置嵌入。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    規格展示——列出完整的架構配置族群。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「與 ResNet-50/101 複雜度相近」建立公平比較的前提，使後續的性能對比更具說服力。相對位置偏置的選擇也暗示了歸納偏置的重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將模型複雜度刻意對齊 ResNet 的做法極具策略性，使「Transformer vs CNN」的比較在同等條件下進行。但 FLOPs 相似並不意味著實際推論速度相近——Transformer 的記憶體存取模式可能導致更低的硬體利用率。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">ImageNet-1K image classification</span>, Swin-T achieves <span class="hl-evidence">81.3% top-1 accuracy</span>, surpassing <span class="hl-concept">DeiT-S</span> (79.8%) and <span class="hl-concept">ResNet-50</span> at comparable model sizes. With ImageNet-22K pre-training, Swin-L reaches <span class="hl-evidence">87.3% top-1 accuracy at 384x384 resolution</span>. On <span class="hl-evidence">COCO object detection</span> using the HTC++ framework, Swin-L achieves <span class="hl-evidence">58.7 box AP and 51.1 mask AP</span>, representing <span class="hl-evidence">+2.7 box AP and +2.6 mask AP improvements over previous state-of-the-art</span>. On <span class="hl-evidence">ADE20K semantic segmentation</span>, Swin-L reaches <span class="hl-evidence">53.5 mIoU, a +3.2 mIoU improvement</span>. Notably, using Cascade Mask R-CNN, <span class="hl-evidence">Swin-T achieves +3.4 to 4.2 box AP gains over ResNet-50</span>, and on ADE20K, <span class="hl-evidence">Swin-T obtains +5.3 mIoU higher than DeiT-S</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ImageNet-1K 影像分類上，Swin-T 達到 81.3% top-1 準確率，超越相近模型大小的 DeiT-S（79.8%）與 ResNet-50。經 ImageNet-22K 預訓練後，Swin-L 在 384x384 解析度下達到 87.3% top-1 準確率。在使用 HTC++ 框架的 COCO 物件偵測上，Swin-L 達到 58.7 box AP 與 51.1 mask AP，分別比先前最先進方法提升 +2.7 box AP 與 +2.6 mask AP。在 ADE20K 語意分割上，Swin-L 達到 53.5 mIoU，提升 +3.2 mIoU。值得注意的是，使用 Cascade Mask R-CNN 時，Swin-T 相對 ResNet-50 達到 +3.4 至 4.2 的 box AP 增益，而在 ADE20K 上，Swin-T 比 DeiT-S 高出 +5.3 mIoU。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證支撐——以三大基準的量化結果全面驗證 Swin 的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的核心實證，覆蓋三個維度：(1) 分類的直接比較，(2) 偵測的 SOTA 更新，(3) 分割的大幅領先。每個數據點都指向「通用主幹」的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    密集預測任務上的巨大增益（+3.2 mIoU、+2.7 AP）是最有力的論據，因為這些正是 ViT 無法勝任的任務。但 COCO 與 ADE20K 的結果使用了 ImageNet-22K 預訓練的 Swin-L，公平性取決於比較對象是否也使用了類似規模的預訓練資料。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Ablation studies</span> further validate key design choices. Comparing shifted vs. non-shifted windows on Swin-T: <span class="hl-evidence">ImageNet accuracy improves from 80.2% to 81.3% (+1.1%)</span>, <span class="hl-evidence">COCO box AP improves from 47.7 to 50.5 (+2.8 AP)</span>, and <span class="hl-evidence">ADE20K mIoU improves from 43.3 to 46.1 (+2.8 mIoU)</span>. The <span class="hl-method">relative position bias</span> consistently outperforms absolute position embeddings across all tasks, indicating that the model benefits from <span class="hl-thesis">"inductive bias that encourages certain translation invariance."</span> The shifted window approach also runs <span class="hl-evidence">4.1x faster than sliding window variants</span> while achieving comparable accuracy.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究進一步驗證了關鍵設計選擇。比較 Swin-T 的移位與非移位視窗：ImageNet 準確率從 80.2% 提升至 81.3%（+1.1%），COCO box AP 從 47.7 提升至 50.5（+2.8 AP），ADE20K mIoU 從 43.3 提升至 46.1（+2.8 mIoU）。相對位置偏置在所有任務上一致優於絕對位置嵌入，表明模型受益於「鼓勵特定平移不變性的歸納偏置」。移位視窗方法的速度也較滑動視窗方案快 4.1 倍，同時達到相當的準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融驗證——逐一分離核心設計選擇的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融數據使論證從「整體有效」深化到「每個元件都有貢獻」。移位帶來的跨任務一致性增益（特別是密集預測上的 +2.8）是最有說服力的證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    4.1 倍的速度優勢（vs. 滑動視窗）是一個常被忽略的重要賣點。但消融研究僅在 Swin-T 上進行，大型模型是否展現相同趨勢並未被驗證——通常較大模型的注意力模式可能有所不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents <span class="hl-concept">Swin Transformer</span>, a new <span class="hl-thesis">vision Transformer that produces a hierarchical feature representation and has linear computational complexity with respect to input image size</span>. Swin Transformer achieves <span class="hl-evidence">state-of-the-art performance on COCO object detection and ADE20K semantic segmentation</span>, significantly surpassing previous best methods. The key design element — <span class="hl-method">shifted window-based self-attention</span> — proves effective and efficient for visual modeling. The authors believe the <span class="hl-thesis">unified architecture across vision and language</span> could benefit both fields, potentially enabling joint modeling across domains. The strong performance across image classification, detection, and segmentation establishes Swin Transformer as a <span class="hl-thesis">general-purpose backbone for computer vision</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 Swin Transformer，一種能產生階層式特徵表示、且計算複雜度隨輸入影像尺寸呈線性增長的新型視覺 Transformer。Swin Transformer 在 COCO 物件偵測與 ADE20K 語意分割上達到最先進表現，以顯著差距超越先前最佳方法。其關鍵設計元素——移位視窗式自注意力——被證實對視覺建模既有效又高效。作者相信，跨視覺與語言的統一架構能使兩個領域共同受益，並有望實現跨領域的聯合建模。在影像分類、偵測與分割上的強勁表現，確立了 Swin Transformer 作為電腦視覺通用主幹網路的地位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望跨領域統一架構的願景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段以三層遞進收束：(1) 技術貢獻（移位視窗 + 階層結構），(2) 實證成就（三項 SOTA），(3) 願景展望（視覺-語言統一）。形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「視覺與語言統一架構」的展望極具前瞻性，但在本文中僅是修辭性的期許。更實際的局限在於：Swin 的歸納偏置（局部性、階層性）是否在大規模預訓練後仍然必要？後續研究表明，足夠大的 ViT 可能不需要這些設計也能表現良好。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                ViT 二次複雜度<br>且缺乏多尺度特徵
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                移位視窗 + 階層結構<br>實現通用視覺主幹
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ImageNet 87.3%<br>COCO 58.7 AP / ADE20K 53.5
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                消融證實移位視窗<br>與相對位置偏置的必要性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                Swin 確立為視覺<br>通用主幹的新典範
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過移位視窗自注意力與階層式特徵圖的設計，Swin Transformer 以線性計算複雜度實現了跨分類、偵測與分割三項任務的最先進表現，確立其作為電腦視覺通用主幹網路的地位。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>消融研究的說服力：</strong>移位視窗在三項不同任務上帶來一致且顯著的改進（分類 +1.1%、偵測 +2.8 AP、分割 +2.8 mIoU），且速度比滑動視窗快 4.1 倍。這不僅證明了設計的有效性，更展現了其在效率與表現間的最佳平衡。階層式結構使 Swin 可直接作為現有密集預測框架的主幹，大幅降低了遷移成本。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>「通用」定位的過度延伸：</strong>論文雖聲稱 Swin 是「通用主幹」，但驗證僅限於分類、偵測與分割三項任務。影片理解、點雲處理、多模態學習等重要視覺任務未被涵蓋。此外，引入的歸納偏置（局部視窗、階層結構）在超大規模預訓練的趨勢下，可能成為不必要的限制——後續的 ViT-G 等工作暗示，足夠的規模可能使這些設計變得多餘。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>
