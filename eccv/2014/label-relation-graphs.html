@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Large-Scale Object Classification using Label Relation Graphs — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Large-Scale Object Classification using Label Relation Graphs
+                <span class="course-tag">ECCV 2014</span>
+                <span class="best-paper-badge">Best Paper</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1412.4949" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-graph">3. 標籤關係圖</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Object recognition</span> has been studied for decades. Most existing approaches, however, focus on <span class="hl-rebuttal">a relatively small number of object categories</span>. In this paper we study the problem of <span class="hl-thesis">large-scale object classification with tens of thousands of categories</span>. At this scale, <span class="hl-concept">label relations</span> become critical for achieving good performance. We propose to capture these relations in a <span class="hl-method">label relation graph</span> and use this graph to <span class="hl-method">integrate information from multiple classifiers</span>. Specifically, we train deep convolutional neural networks on individual <span class="hl-concept">semantic parts</span> of the label space and combine their predictions using the graph structure. Our approach achieves <span class="hl-evidence">significant improvements on the ImageNet Large Scale Visual Recognition Challenge</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">物件辨識</span>已被研究了數十年，然而大多數現有方法僅專注於<span class="hl-rebuttal">相對較少的物件類別</span>。本文研究的是<span class="hl-thesis">含有數萬類別的大規模物件分類問題</span>。在此規模下，<span class="hl-concept">標籤關係</span>對於達成良好效能至關重要。我們提出以<span class="hl-method">標籤關係圖</span>來捕捉這些關係，並利用圖結構來<span class="hl-method">整合多個分類器的資訊</span>。具體而言，我們在標籤空間的各個<span class="hl-concept">語義子部分</span>上訓練深度摺積神經網路，並透過圖結構組合其預測結果。我們的方法在 <span class="hl-evidence">ImageNet 大規模視覺辨識挑戰賽上取得了顯著改進</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    摘要開宗明義指出問題的規模挑戰，並提出以標籤關係圖作為核心解法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「既有方法的局限」引出研究動機，再用「我們提出」帶出方法論，最後以實驗成果收尾，呈現經典的「問題→方法→結果」三段式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「數萬類別」的措辭強調了研究場景的獨特性。然而摘要並未具體量化「顯著改進」的幅度，讀者需閱讀實驗才能判斷實際增益。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our <span class="hl-concept">label relation graph</span> encodes multiple types of semantic relations: <span class="hl-method">exclusion (mutual exclusion between labels), hierarchy (is-a relations), and overlap (labels that can co-occur)</span>. These relations are derived from <span class="hl-evidence">the WordNet ontology and augmented with learned statistical relations from data</span>. The graph serves as a <span class="hl-thesis">principled framework for combining predictions from multiple expert classifiers</span>, each trained on a semantically coherent subset of the label space.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的<span class="hl-concept">標籤關係圖</span>編碼了多種語義關係：<span class="hl-method">互斥（標籤間的相互排斥）、階層（is-a 關係）以及重疊（可共同出現的標籤）</span>。這些關係源自 <span class="hl-evidence">WordNet 本體論，並以從資料中學習到的統計關係加以擴充</span>。此圖提供了一個<span class="hl-thesis">有原則性的框架，用以結合多個專家分類器的預測</span>，每個分類器都在標籤空間中語義一致的子集上訓練而成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深入說明標籤關係圖的三種關係類型，為後續技術細節奠基。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從抽象概念過渡到具體定義，建立讀者對核心資料結構的理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    借助 WordNet 這一成熟知識庫增強了方法的可信度，但也引入了對外部資源品質的依賴。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The number of <span class="hl-concept">object categories</span> in the real world is enormous. While traditional <span class="hl-concept">object recognition</span> benchmarks contain tens or hundreds of classes, <span class="hl-evidence">the ImageNet dataset alone organizes more than 21,000 synsets with over 14 million images</span>. Learning to classify such a large number of categories poses unique challenges: <span class="hl-thesis">classes are not independent but are related through semantic hierarchies, and confusions between classes are highly structured</span>. Ignoring these label relations leads to suboptimal classifiers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現實世界中<span class="hl-concept">物件類別</span>的數量極為龐大。傳統<span class="hl-concept">物件辨識</span>基準資料集僅包含數十或數百個類別，而<span class="hl-evidence">僅 ImageNet 資料集就組織了超過 21,000 個同義詞集及逾 1,400 萬張影像</span>。學習分類如此大量的類別帶來了獨特挑戰：<span class="hl-thesis">類別並非相互獨立，而是透過語義階層彼此關聯，且類別間的混淆具有高度結構性</span>。忽略這些標籤關係會導致分類器效能欠佳。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    引出問題——以 ImageNet 的規模數據說明大規模分類面臨的獨特挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從傳統基準到 ImageNet 的規模對比，自然導出「標籤關係不可忽視」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體數字（21,000 synsets、1,400 萬影像）增強說服力，屬於典型的「量化立論」手法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior work has explored <span class="hl-rebuttal">flat classification, where each class is treated independently, and hierarchical classification, which uses only the tree structure of a label taxonomy</span>. However, real-world label relations are <span class="hl-thesis">richer than a simple tree</span>: a Siberian Husky is both a dog and a sled dog; a convertible is both a car and a type of vehicle. We argue that <span class="hl-thesis">a graph structure that captures exclusion, hierarchy, and overlap is necessary for effective large-scale classification</span>. Our <span class="hl-method">label relation graph</span> provides exactly this.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前研究探索了<span class="hl-rebuttal">扁平分類（每個類別獨立處理）與階層式分類（僅使用標籤分類法的樹狀結構）</span>。然而，現實中的標籤關係<span class="hl-thesis">比簡單的樹狀結構豐富得多</span>：西伯利亞哈士奇既是狗也是雪橇犬；敞篷車既是汽車也是一種交通工具。我們主張，<span class="hl-thesis">一種能捕捉互斥、階層與重疊關係的圖結構對於有效的大規模分類是必要的</span>。我們的<span class="hl-method">標籤關係圖</span>正提供了此能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    對現有方法提出批評，凸顯本文方法的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「讓步再反駁」策略：先承認已有階層式方法，再指出其不足，從而為更豐富的圖結構正名。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用生動的具體例子（哈士奇、敞篷車）將抽象論點具象化，有效降低讀者的認知門檻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our approach consists of two stages. First, we <span class="hl-method">partition the label space into semantically coherent groups</span> using the label relation graph. Each group defines a <span class="hl-concept">sub-problem</span> that can be solved by a dedicated <span class="hl-concept">deep neural network classifier</span>. Second, we <span class="hl-method">combine the predictions of all sub-classifiers using inference on the label relation graph</span>. This combination takes into account mutual exclusion and hierarchy constraints to produce a globally consistent prediction.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的方法包含兩個階段。首先，利用標籤關係圖將<span class="hl-method">標籤空間劃分為語義一致的群組</span>。每個群組定義一個<span class="hl-concept">子問題</span>，可由一個專屬的<span class="hl-concept">深度神經網路分類器</span>來解決。其次，我們<span class="hl-method">利用標籤關係圖上的推論來結合所有子分類器的預測</span>。此結合過程考慮了互斥與階層約束，以產生全域一致的預測結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    概述方法論的兩階段流程：分割＋推論結合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從高層架構切入，為後續各子節的細節提供路線圖。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    兩階段管線的簡潔表述使方法易於理解，但管線式設計可能存在錯誤傳遞的風險——第一階段的分割品質直接影響第二階段的效能。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For the <span class="hl-method">label space partitioning</span>, we use a combination of the <span class="hl-evidence">WordNet hierarchy</span> and spectral clustering on the confusion matrix of a baseline classifier. The resulting partitions ensure that <span class="hl-thesis">semantically similar and frequently confused classes are grouped together</span>, allowing each expert classifier to focus on fine-grained distinctions within its group. Each expert is implemented as a <span class="hl-method">deep convolutional neural network fine-tuned from a pre-trained model</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-method">標籤空間劃分</span>方面，我們結合了 <span class="hl-evidence">WordNet 階層結構</span>與基線分類器混淆矩陣上的譜聚類。所得到的劃分確保了<span class="hl-thesis">語義相似且常被混淆的類別被歸為同組</span>，使每個專家分類器能夠專注於其群組內的細粒度區分。每個專家以<span class="hl-method">從預訓練模型微調的深度摺積神經網路</span>實現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    詳述第一階段的具體技術：WordNet 與譜聚類的結合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為「語義一致的群組」這一關鍵概念提供可操作的定義與實現細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    巧妙地將「混淆矩陣」與「語義階層」兩種互補的資訊來源結合，但這也意味著方法依賴於初始基線分類器的品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 標籤關係圖 ====== -->
+    <h2 class="section-heading" id="sec-graph">3. Label Relation Graph — 標籤關係圖</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">label relation graph</span> is a directed graph where nodes represent labels and edges encode three types of relations. <span class="hl-method">Exclusion edges</span> indicate that two labels cannot co-occur (e.g., "cat" and "dog" are mutually exclusive under "domestic animal"). <span class="hl-method">Hierarchy edges</span> represent is-a relations (e.g., "poodle" is-a "dog"). <span class="hl-method">Overlap edges</span> indicate potential co-occurrence (e.g., "vehicle" and "red object"). This graph is constructed from <span class="hl-evidence">WordNet and augmented with data-driven edges learned from the training set</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">標籤關係圖</span>是一個有向圖，其中節點代表標籤，邊則編碼三種類型的關係。<span class="hl-method">互斥邊</span>表示兩個標籤無法共同出現（例如「貓」和「狗」在「家畜」下互斥）。<span class="hl-method">階層邊</span>代表 is-a 關係（例如「貴賓犬」is-a「狗」）。<span class="hl-method">重疊邊</span>表示可能的共同出現（例如「交通工具」和「紅色物體」）。此圖由 <span class="hl-evidence">WordNet 建構，並以從訓練集學習到的資料驅動邊加以擴充</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    以形式化定義精確描述標籤關係圖的三種邊類型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    本段為論文的核心技術概念，後續所有推論與分類流程皆建立於此定義之上。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以直觀的動物與物體例子解釋抽象的圖論概念。資料驅動邊的學習可能引入訓練集偏差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given the graph, we perform <span class="hl-method">inference using a message-passing algorithm</span> that propagates predictions along edges. The hierarchy edges allow <span class="hl-thesis">coarse-to-fine classification</span>: a classifier confident about "dog" but uncertain about the breed can still make useful predictions. The exclusion edges enforce <span class="hl-thesis">consistency</span>: if "Husky" is predicted, "Poodle" is automatically suppressed. This inference procedure is <span class="hl-evidence">efficient and scales linearly with the number of edges</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於此圖，我們使用<span class="hl-method">訊息傳遞演算法</span>沿邊傳播預測結果進行推論。階層邊使<span class="hl-thesis">由粗到細的分類</span>成為可能：一個對「狗」有信心但對品種不確定的分類器仍能做出有用的預測。互斥邊則強制<span class="hl-thesis">一致性</span>：若預測為「哈士奇」，「貴賓犬」便自動被抑制。此推論程序<span class="hl-evidence">高效且其複雜度隨邊數線性增長</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明圖上推論的具體機制及其優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將圖結構從靜態定義推進到動態推論，展現其在分類流程中的功能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調線性複雜度有效消除了讀者對可擴展性的疑慮，這在大規模分類的語境下尤為重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on the <span class="hl-evidence">ImageNet Large Scale Visual Recognition Challenge (ILSVRC)</span>. Our baseline is a <span class="hl-evidence">single deep CNN trained on all 1,000 classes</span>. With our label relation graph approach, we train <span class="hl-method">multiple expert CNNs, each on a semantically coherent subset of approximately 100-200 classes</span>, and combine their outputs using graph inference. The combined system achieves a <span class="hl-evidence">top-5 error rate reduction of over 2 percentage points</span> compared to the single-model baseline.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">ImageNet 大規模視覺辨識挑戰賽（ILSVRC）</span>上進行評估。基線為<span class="hl-evidence">單一深度摺積神經網路，在全部 1,000 個類別上訓練</span>。使用我們的標籤關係圖方法，我們訓練了<span class="hl-method">多個專家摺積神經網路，每個在約 100-200 個語義一致類別的子集上訓練</span>，並透過圖推論組合其輸出。整合後的系統相較單模型基線，<span class="hl-evidence">top-5 錯誤率降低了超過 2 個百分點</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實驗設定與主要定量結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以ILSVRC這一業界標準基準驗證方法的有效性，從理論層面過渡到實證層面。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    2個百分點的改進在大規模挑戰賽中已屬可觀，但專家模型的訓練成本是否值得此增益，文中未充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further analyze the <span class="hl-evidence">impact of different relation types</span>. Ablation studies show that <span class="hl-evidence">hierarchy edges contribute the most improvement (1.3 points), followed by exclusion edges (0.5 points), while overlap edges provide a smaller but still significant gain (0.3 points)</span>. The combination of all three types yields the best performance, confirming our thesis that <span class="hl-thesis">rich label relations are beneficial for large-scale classification</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步分析了<span class="hl-evidence">不同關係類型的影響</span>。消融實驗顯示，<span class="hl-evidence">階層邊貢獻最大的改進（1.3 個百分點），其次是互斥邊（0.5 個百分點），而重疊邊提供較小但仍顯著的增益（0.3 個百分點）</span>。三種類型的結合產出最佳效能，證實了我們的論點：<span class="hl-thesis">豐富的標籤關係有益於大規模分類</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    透過消融實驗量化各組件的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融實驗是「最強證據」之一，直接回應了核心假說。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以遞減的數值清晰呈現各關係類型的重要性排序，使結論具有強烈的數據支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a framework for <span class="hl-thesis">large-scale object classification that leverages label relation graphs</span>. By encoding exclusion, hierarchy, and overlap relations, our approach <span class="hl-method">partitions the label space into manageable sub-problems and combines expert classifiers through graph-based inference</span>. Our experiments on <span class="hl-evidence">ImageNet demonstrate consistent improvements over baselines that ignore label relations</span>. We believe this framework opens up promising directions for <span class="hl-rebuttal">scaling object recognition to even larger and more complex label spaces</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一個<span class="hl-thesis">利用標籤關係圖進行大規模物件分類的框架</span>。透過編碼互斥、階層與重疊關係，我們的方法<span class="hl-method">將標籤空間劃分為可管理的子問題，並透過基於圖的推論組合專家分類器</span>。我們在 <span class="hl-evidence">ImageNet 上的實驗證明了相較忽略標籤關係的基線方法有持續的改進</span>。我們相信此框架為<span class="hl-rebuttal">將物件辨識擴展至更大且更複雜的標籤空間</span>開啟了有前景的方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文貢獻，並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以回顧式語調重申核心主張，並以前瞻性語句收尾，完成整體論證的閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論中提及「更大更複雜的標籤空間」暗示方法仍有進步空間，巧妙地設定了未來研究議題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 論證總覽 ====== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">大規模分類挑戰<br><small>數萬類別、語義豐富</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">標籤關係圖<br><small>互斥/階層/重疊</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">專家分類器集成<br><small>語義子空間訓練</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">圖推論結合<br><small>訊息傳遞演算法</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">ILSVRC 改進<br><small>top-5 降低 2+ 百分點</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>在大規模物件分類中，利用包含互斥、階層及重疊關係的標籤關係圖，可以有效整合多個專家分類器的預測，從而超越忽略標籤關係的方法。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>消融實驗清楚量化了三種關係類型各自的貢獻，為「豐富標籤關係有益」提供了直接的實證支持。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>方法高度依賴 WordNet 本體論的覆蓋範圍與品質，在缺乏完善本體論的領域中可能難以直接應用。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9713;</button>
+</div>
+
+</body>
+</html>

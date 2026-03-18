@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Exploring Weakly Supervised Pretraining — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Exploring the Limits of Weakly Supervised Pretraining
+                <span class="course-tag">ECCV 2018</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1805.00932" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#abstract">摘要</a>
+        <a href="#introduction">緒論</a>
+        <a href="#method">方法</a>
+        <a href="#experiments">實驗</a>
+        <a href="#conclusion">結論</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- 摘要 -->
+    <h2 class="section-heading" id="abstract">Abstract 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                State of the art visual perception models for a broad range of tasks rely on <span class="hl-concept">supervised pretraining</span>. <span class="hl-concept">ImageNet-1k</span> has enabled much of the progress to date. However, <span class="hl-thesis">the question of whether these models can benefit from even more data remains open</span>. In this work, we present a <span class="hl-method">study of transfer learning with large scale weakly-supervised pretraining</span>. We use up to <span class="hl-evidence">3.5 billion images from Instagram with noisy hashtag labels</span> and train models on this data, exploring transfer to a variety of vision tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在廣泛的視覺感知任務中，最先進的模型依賴於<span class="hl-concept">監督式預訓練</span>。<span class="hl-concept">ImageNet-1k</span> 促成了迄今為止的大部分進展。然而，<span class="hl-thesis">這些模型能否從更多資料中受益，仍是一個開放性問題</span>。本研究中，我們提出了一項<span class="hl-method">利用大規模弱監督預訓練進行遷移學習的研究</span>。我們使用高達 <span class="hl-evidence">35 億張來自 Instagram 並帶有雜訊標籤的影像</span>在此資料上訓練模型，探索遷移到多種視覺任務的效果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    以開放性問題框架定義研究方向
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立研究動機：探索資料規模的上限
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「3.5 billion images」的天文數字立即抓住讀者注意力，以規模本身製造學術興奮感
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our experiments show that <span class="hl-thesis">weakly supervised pretraining is a viable strategy that can surpass ImageNet pretraining on multiple downstream tasks</span>. We observe <span class="hl-evidence">consistent improvements on image classification, object detection, and instance segmentation when scaling up the amount of pretraining data</span>. With a <span class="hl-concept">ResNeXt-101 32x48d</span> model pretrained on <span class="hl-evidence">940 million images with 1.5k hashtag labels</span>, we achieve <span class="hl-evidence">85.4% top-1 accuracy on ImageNet, which is a new state of the art</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗表明，<span class="hl-thesis">弱監督預訓練是一種可行策略，能在多個下游任務上超越 ImageNet 預訓練</span>。我們觀察到<span class="hl-evidence">隨著預訓練資料量的擴大，影像分類、物體偵測和實例分割上均有一致的提升</span>。以在 <span class="hl-evidence">9.4 億張影像搭配 1,500 個標籤</span>上預訓練的 <span class="hl-concept">ResNeXt-101 32x48d</span> 模型，我們在 <span class="hl-evidence">ImageNet 上達到 85.4% top-1 精度，創下新的最先進紀錄</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    概述核心發現與亮眼成績
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 ImageNet SOTA 作為最醒目的成果預告
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    強調「consistent improvements」暗示發現的穩健性，不是偶然的單一任務提升
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論 -->
+    <h2 class="section-heading" id="introduction">1. Introduction 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">supervised pretraining paradigm</span> on <span class="hl-concept">ImageNet</span> has been remarkably successful across computer vision. However, <span class="hl-rebuttal">ImageNet contains only about 1.28 million training images spanning 1,000 classes</span>, which may be a limiting factor as model capacity continues to grow. <span class="hl-thesis">Can we do better by training on vastly larger datasets, even if the labels are noisy?</span> This is the central question we investigate.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">ImageNet</span> 上的<span class="hl-concept">監督式預訓練範式</span>在電腦視覺中取得了顯著成功。然而，<span class="hl-rebuttal">ImageNet 僅包含約 128 萬張訓練影像涵蓋 1,000 個類別</span>，隨著模型容量持續增長，這可能成為限制因素。<span class="hl-thesis">透過在遠為龐大的資料集上訓練（即使標籤有雜訊），我們能否做得更好？</span>這是我們研究的核心問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    質疑 ImageNet 的資料量是否足夠
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以修辭提問引出研究核心
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    將 ImageNet 的 128 萬張影像描述為「only」，巧妙地改變讀者對這個數字的認知框架
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We leverage <span class="hl-method">publicly available images from Instagram</span> where users annotate their photos with <span class="hl-concept">hashtags</span>. While these hashtags are noisy and not curated for visual recognition, they provide <span class="hl-thesis">a scalable and essentially free source of supervision</span>. We train <span class="hl-concept">ResNeXt</span> models of varying capacity on datasets of up to <span class="hl-evidence">3.5 billion images</span> and systematically study the effect of <span class="hl-method">data size, label noise, model capacity, and transfer learning methodology</span> on downstream task performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們利用 <span class="hl-method">Instagram 上公開可用的影像</span>，用戶以<span class="hl-concept">主題標籤</span>標注其照片。雖然這些標籤含有雜訊且非為視覺辨識策展，但它們提供了<span class="hl-thesis">一個可擴展且基本上免費的監督訊號來源</span>。我們在高達 <span class="hl-evidence">35 億張影像</span>的資料集上訓練不同容量的 <span class="hl-concept">ResNeXt</span> 模型，並系統性地研究<span class="hl-method">資料量、標籤雜訊、模型容量和遷移學習方法</span>對下游任務效能的影響。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明資料來源與研究變數
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    定義實驗的多維探索空間
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「scalable and essentially free」巧妙地將弱監督標籤的缺陷（雜訊）轉化為優勢（免費且可擴展）
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 -->
+    <h2 class="section-heading" id="method">3. Approach 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our approach consists of three stages. First, we <span class="hl-method">collect images from Instagram and map hashtags to a predefined label vocabulary</span>. We experiment with different vocabulary sizes: <span class="hl-evidence">1.5k, 8.5k, and 17k labels</span>. Second, we <span class="hl-method">pretrain ResNeXt models on this weakly-labeled dataset using standard cross-entropy loss</span>. We explore models ranging from <span class="hl-evidence">ResNeXt-50 to ResNeXt-101 32x48d</span> with varying width multipliers. Third, we <span class="hl-method">fine-tune the pretrained models on target datasets</span> for downstream tasks including image classification, object detection, and instance segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的方法包含三個階段。首先，<span class="hl-method">從 Instagram 收集影像並將主題標籤映射到預定義的標籤詞彙表</span>。我們實驗了不同的詞彙表大小：<span class="hl-evidence">1,500、8,500 和 17,000 個標籤</span>。其次，<span class="hl-method">使用標準交叉熵損失在此弱標籤資料集上預訓練 ResNeXt 模型</span>。我們探索了從 <span class="hl-evidence">ResNeXt-50 到 ResNeXt-101 32x48d</span> 等不同寬度倍數的模型。第三，<span class="hl-method">在目標資料集上微調預訓練模型</span>，涵蓋影像分類、物體偵測和實例分割等下游任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    以三步驟流程描述完整方法論
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立清晰的實驗管線，為後續的多維度分析奠基
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    方法刻意保持簡單（標準交叉熵、標準微調），避免引入新技術，使結論完全歸因於資料規模效應
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical aspect of our approach is the <span class="hl-method">hashtag-to-label mapping</span>. Instagram hashtags are free-form text and can be highly noisy. We use a <span class="hl-method">simple mapping strategy that maps each hashtag to the closest WordNet synset</span> in the target vocabulary. For multi-label images, we apply <span class="hl-method">a softmax over all matched labels</span>. Despite the simplicity of this approach, <span class="hl-rebuttal">we find that the noise in the labels does not prevent the models from learning useful visual representations</span>, as long as the dataset is sufficiently large.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們方法的一個關鍵面向是<span class="hl-method">主題標籤到標籤的映射</span>。Instagram 的主題標籤是自由文字，可能高度含雜訊。我們使用一個<span class="hl-method">簡單的映射策略，將每個主題標籤映射到目標詞彙表中最近的 WordNet 同義詞集</span>。對於多標籤影像，我們<span class="hl-method">對所有匹配的標籤應用 softmax</span>。儘管方法簡單，<span class="hl-rebuttal">我們發現只要資料集足夠大，標籤中的雜訊並不妨礙模型學習有用的視覺表徵</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    處理「標籤雜訊」這個最顯而易見的質疑
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    預防性回應審稿人可能的擔憂
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「as long as the dataset is sufficiently large」巧妙地將雜訊問題轉化為規模效應的又一佐證
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗 -->
+    <h2 class="section-heading" id="experiments">4. Experiments 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present results on multiple downstream tasks. For <span class="hl-concept">ImageNet classification</span>, our best model achieves <span class="hl-evidence">85.4% top-1 accuracy</span>, using a <span class="hl-concept">ResNeXt-101 32x48d</span> pretrained on <span class="hl-evidence">940M images with 1.5k hashtag labels</span>. This represents a <span class="hl-evidence">significant improvement over the 82.7% achieved by the same architecture pretrained on ImageNet-1k alone</span>. We observe a clear <span class="hl-thesis">log-linear relationship between the amount of pretraining data and transfer accuracy</span>, suggesting that further gains could be achieved with even more data.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們呈現多個下游任務上的結果。在<span class="hl-concept">ImageNet 分類</span>方面，我們的最佳模型達到 <span class="hl-evidence">85.4% top-1 精度</span>，使用在 <span class="hl-evidence">9.4 億張影像搭配 1,500 個標籤</span>上預訓練的 <span class="hl-concept">ResNeXt-101 32x48d</span>。這相較於同一架構僅在 ImageNet-1k 上預訓練所達到的 <span class="hl-evidence">82.7% 有顯著提升</span>。我們觀察到預訓練資料量與遷移精度之間存在清晰的<span class="hl-thesis">對數線性關係</span>，表明更多資料可能帶來進一步的增益。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告 ImageNet 分類的核心結果與規模效應
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以最具影響力的實驗結果回答核心研究問題
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「log-linear relationship」不僅是實驗觀察，更暗示了一個可預測的規模法則，提升發現的理論價值
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">object detection and instance segmentation</span> on <span class="hl-evidence">COCO</span>, weakly supervised pretraining consistently improves over ImageNet pretraining. Using <span class="hl-method">Mask R-CNN with Feature Pyramid Network (FPN)</span>, our pretrained models achieve <span class="hl-evidence">improvements of 1-2 AP points across different model sizes</span>. Importantly, <span class="hl-thesis">the improvements are more pronounced for larger models</span>, suggesting that <span class="hl-thesis">bigger models benefit more from larger pretraining datasets, and the capacity of current models may be a bottleneck</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 <span class="hl-evidence">COCO</span> 上的<span class="hl-concept">物體偵測和實例分割</span>方面，弱監督預訓練相較於 ImageNet 預訓練呈現一致性的提升。使用 <span class="hl-method">Mask R-CNN 搭配特徵金字塔網路（FPN）</span>，我們的預訓練模型在不同模型規模下<span class="hl-evidence">均有 1-2 AP 的提升</span>。重要的是，<span class="hl-thesis">較大的模型改善幅度更為顯著</span>，這表明<span class="hl-thesis">更大的模型從更大的預訓練資料集中受益更多，且當前模型的容量可能是瓶頸</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示在偵測與分割任務上的遷移學習效果
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    驗證弱監督預訓練在多任務上的普遍性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「bigger models benefit more」的發現具有重要的方法論啟示，暗示學術界的模型尺度戰爭有了新的資料維度支撐
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We also investigate the effect of <span class="hl-method">label vocabulary size</span> and find that <span class="hl-evidence">larger vocabularies generally lead to better transfer performance, but with diminishing returns beyond 8.5k labels</span>. Additionally, we study the <span class="hl-method">interaction between model capacity and data size</span>: <span class="hl-evidence">small models saturate quickly with increasing data, while large models continue to improve</span>. This suggests that <span class="hl-rebuttal">the common practice of using small models to validate ideas on small datasets may be misleading</span>, as the trends may not extrapolate to larger scales.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們也研究了<span class="hl-method">標籤詞彙表大小</span>的影響，發現<span class="hl-evidence">較大的詞彙表通常帶來更好的遷移效能，但超過 8,500 個標籤後收益遞減</span>。此外，我們研究了<span class="hl-method">模型容量與資料量的交互作用</span>：<span class="hl-evidence">小模型隨資料增加迅速飽和，而大模型則持續改善</span>。這表明<span class="hl-rebuttal">以小模型在小資料集上驗證想法的常見做法可能具有誤導性</span>，因為趨勢可能無法外推到更大的規模。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深入分析詞彙表大小和模型-資料交互效應
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    提供超越主要結果的診斷性洞見
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「may be misleading」對學術界的常規做法提出警告，使論文的貢獻從單純的實驗報告升級為方法論反思
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論 -->
+    <h2 class="section-heading" id="conclusion">5. Conclusion 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a comprehensive study of <span class="hl-thesis">transfer learning with large-scale weakly supervised pretraining</span>. Our results demonstrate that <span class="hl-thesis">training on billions of weakly labeled images significantly improves visual representations for a wide range of downstream tasks</span>. The improvements are consistent and follow a <span class="hl-evidence">log-linear scaling behavior</span>. We hope our work encourages the community to <span class="hl-thesis">rethink the role of data scale in visual representation learning</span> and to explore more scalable approaches to supervision.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們呈現了一項<span class="hl-thesis">關於大規模弱監督預訓練遷移學習的全面研究</span>。結果表明，<span class="hl-thesis">在數十億張弱標籤影像上訓練能顯著改善廣泛下游任務的視覺表徵</span>。改進是一致的，且遵循<span class="hl-evidence">對數線性的規模效應</span>。我們希望本研究促使學術社群<span class="hl-thesis">重新思考資料規模在視覺表徵學習中的角色</span>，並探索更具可擴展性的監督方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結核心發現並對領域提出展望
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將實驗發現昇華為對領域方向的建議
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「rethink the role of data scale」將論文定位為範式性的反思之作，而非僅是刷分報告，提升長期影響力
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>ImageNet 規模<br>是否已夠用？</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">方法<br>Instagram 35 億張<br>弱標籤影像</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">發現<br>對數線性規模<br>效應普遍成立</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">證據<br>ImageNet 85.4%<br>COCO +1-2 AP</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">結論<br>資料規模是<br>表徵品質的關鍵</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>在數十億張弱監督影像上預訓練能顯著超越 ImageNet 監督預訓練，且遷移效能與預訓練資料量呈對數線性關係，表明資料規模是視覺表徵品質的關鍵驅動力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>系統性地控制資料量（從百萬到數十億）、模型容量（ResNeXt-50 到 101 32x48d）、詞彙表大小（1.5k 到 17k），多維度的消融提供了極其豐富的定量洞見，且各維度結論一致。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>實驗所需的計算資源（數千 GPU 天）使結果幾乎不可被其他實驗室複現。此外，Instagram 資料的偏差（用戶群體、地理分佈）對遷移學習的潛在影響未被充分討論。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9881;</button>
+</div>
+
+</body>
+</html>

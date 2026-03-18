@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>PersonLab — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                PersonLab: Person Pose Estimation and Instance Segmentation with a Bottom-Up, Part-Based, Geometric Embedding Model
+                <span class="course-tag">ECCV 2018</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1803.08225" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#abstract">摘要</a>
+        <a href="#introduction">緒論</a>
+        <a href="#method">方法</a>
+        <a href="#experiments">實驗</a>
+        <a href="#conclusion">結論</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- 摘要 -->
+    <h2 class="section-heading" id="abstract">Abstract 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a <span class="hl-concept">box-free bottom-up approach</span> for the tasks of <span class="hl-concept">pose estimation and instance segmentation</span> of people in multi-person images, using an efficient <span class="hl-method">single-shot model</span>. The proposed method, called <span class="hl-concept">PersonLab</span>, <span class="hl-thesis">detects individual keypoints and predicts their relative displacements, allowing us to group keypoints into person pose instances and semantically segment person regions</span>, all without the need for a person detector.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種<span class="hl-concept">無邊界框的由下而上方法</span>，使用高效的<span class="hl-method">單次推論模型</span>來處理多人影像中的<span class="hl-concept">姿態估計與實例分割</span>任務。所提出的方法稱為 <span class="hl-concept">PersonLab</span>，<span class="hl-thesis">偵測個別關鍵點並預測其相對位移，使我們能將關鍵點分組為人體姿態實例並語意分割人體區域</span>，全程無需人體偵測器。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義方法的範式（由下而上）和涵蓋的任務範圍
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立核心主張：無需偵測器即可完成多人姿態估計與分割
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「box-free」和「without the need for a person detector」策略性地強調與主流由上而下方法的差異化優勢
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Using a <span class="hl-method">fully-convolutional neural network</span>, PersonLab predicts (1) <span class="hl-method">keypoint heatmaps</span> for all keypoint types, (2) <span class="hl-method">short-range offsets</span> to refine keypoint locations, (3) <span class="hl-method">mid-range pairwise offsets</span> to associate keypoints belonging to the same person, and (4) <span class="hl-method">person segmentation maps</span> with <span class="hl-method">long-range offsets</span> for instance-level segmentation. We demonstrate <span class="hl-evidence">state-of-the-art results for multi-person pose estimation and competitive results for instance segmentation</span> on the <span class="hl-evidence">COCO benchmark</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                PersonLab 使用<span class="hl-method">全摺積神經網路</span>預測：（1）所有關鍵點類型的<span class="hl-method">關鍵點熱力圖</span>；（2）用於精煉關鍵點位置的<span class="hl-method">短距偏移量</span>；（3）用於關聯同一人關鍵點的<span class="hl-method">中距成對偏移量</span>；（4）用於實例級分割的<span class="hl-method">人體分割圖</span>及<span class="hl-method">長距偏移量</span>。我們在 <span class="hl-evidence">COCO 標竿</span>上展示了<span class="hl-evidence">多人姿態估計的最先進結果以及實例分割的具競爭力結果</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統性列舉模型的四個輸出頭
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    展示方法的完整技術藍圖
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以短距/中距/長距的尺度漸進框架組織四類輸出，讓複雜的多頭預測看起來井然有序
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論 -->
+    <h2 class="section-heading" id="introduction">1. Introduction 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The standard approach to <span class="hl-concept">multi-person pose estimation</span> follows a <span class="hl-rebuttal">top-down paradigm</span>: first detect people using an off-the-shelf person detector, then apply a single-person pose estimator to each detection box. While effective, this approach has <span class="hl-rebuttal">several drawbacks: the runtime scales linearly with the number of people, errors in the person detector propagate to the pose estimation stage, and the person bounding boxes may overlap or be inaccurate</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">多人姿態估計</span>的標準方法遵循<span class="hl-rebuttal">由上而下的範式</span>：先使用現成的人體偵測器偵測人物，再對每個偵測框應用單人姿態估計器。雖然有效，但這種方法有<span class="hl-rebuttal">幾個缺點：執行時間隨人數線性增長、人體偵測器的錯誤會傳播到姿態估計階段，且人體邊界框可能重疊或不準確</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判由上而下範式的三大缺陷
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為由下而上方法的提出建立正當性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以「linearly with the number of people」等具體描述使缺陷可量化，比泛泛批評更有說服力
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In contrast, <span class="hl-concept">bottom-up approaches</span> first detect all keypoints in the image and then group them into individual person instances. Our method, <span class="hl-concept">PersonLab</span>, takes this approach further by <span class="hl-thesis">jointly predicting keypoint detection, keypoint grouping, and instance segmentation in a single forward pass</span>. The key innovation is the use of <span class="hl-method">geometric embedding vectors</span> that encode the spatial relationships between detected keypoints, enabling efficient and accurate person-instance assembly.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                相比之下，<span class="hl-concept">由下而上方法</span>先偵測影像中的所有關鍵點，再將其分組為個別人體實例。我們的方法 <span class="hl-concept">PersonLab</span> 進一步推進這一思路，<span class="hl-thesis">在單次前向傳播中聯合預測關鍵點偵測、關鍵點分組和實例分割</span>。核心創新在於使用<span class="hl-method">幾何嵌入向量</span>來編碼偵測關鍵點之間的空間關係，從而實現高效且準確的人體實例組裝。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡述由下而上範式的優勢與 PersonLab 的核心創新
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從問題批判過渡到解決方案提出
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「single forward pass」直接回應前段「runtime scales linearly」的缺陷，形成精確的問題-解決對應
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 -->
+    <h2 class="section-heading" id="method">3. Method 方法</h2>
+
+    <h3 class="subsection-heading">3.1 Keypoint Detection and Offset Refinement</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                PersonLab employs a <span class="hl-concept">ResNet backbone</span> to extract features, followed by prediction heads for each output type. For keypoint detection, the model produces <span class="hl-method">K heatmaps, one for each keypoint type</span> (e.g., nose, left shoulder, right knee). To improve localization precision, we additionally predict <span class="hl-method">short-range offset vectors</span> that point from each spatial position to the nearest keypoint of the corresponding type. The combination of <span class="hl-thesis">heatmap detection with offset refinement allows sub-pixel localization accuracy</span> while maintaining the efficiency of operating on a coarser feature map.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                PersonLab 採用 <span class="hl-concept">ResNet 骨幹</span>提取特徵，接著為每種輸出類型設置預測頭。在關鍵點偵測方面，模型產生 <span class="hl-method">K 張熱力圖，每種關鍵點類型一張</span>（如鼻子、左肩、右膝）。為了提升定位精度，我們另外預測<span class="hl-method">短距偏移向量</span>，從每個空間位置指向對應類型最近的關鍵點。<span class="hl-thesis">熱力圖偵測搭配偏移精煉的組合實現了次像素級的定位精度</span>，同時維持在較粗特徵圖上運作的效率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述關鍵點偵測與精煉機制
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立系統的第一個技術組件
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    將「精度」和「效率」的權衡呈現為互補而非矛盾，化解讀者對粗糙特徵圖可能降低精度的疑慮
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.2 Mid-Range Offsets for Grouping</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To associate detected keypoints belonging to the same person, we predict <span class="hl-method">mid-range pairwise offset fields</span>. For each pair of adjacent keypoint types in the kinematic tree (e.g., left shoulder to left elbow), the model predicts a <span class="hl-method">2D offset vector at each spatial position</span> pointing from one keypoint type to the paired keypoint type. Given a detected keypoint, we use these offset fields to <span class="hl-method">greedily assemble the remaining keypoints of the same person by following the kinematic chain</span>. This approach is <span class="hl-rebuttal">simpler than associative embedding approaches</span> that require solving a complex grouping problem, and more <span class="hl-thesis">geometrically interpretable</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為了關聯屬於同一人的偵測關鍵點，我們預測<span class="hl-method">中距成對偏移場</span>。對於運動樹中每對相鄰的關鍵點類型（如左肩到左肘），模型在每個空間位置預測一個 <span class="hl-method">2D 偏移向量</span>，從一個關鍵點類型指向配對的關鍵點類型。給定一個偵測到的關鍵點，我們利用這些偏移場<span class="hl-method">沿運動鏈貪婪地組裝同一人的其餘關鍵點</span>。相較於需要解決複雜分組問題的<span class="hl-rebuttal">關聯嵌入方法，這種方法更簡潔</span>，且具有更高的<span class="hl-thesis">幾何可解釋性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述關鍵點分組的偏移場機制
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    系統的第二個核心組件，解決由下而上方法的分組難題
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以「geometrically interpretable」將方法定位為比關聯嵌入更直觀的替代方案，利用可解釋性優勢進行差異化競爭
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗 -->
+    <h2 class="section-heading" id="experiments">4. Experiments 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate PersonLab on the <span class="hl-evidence">COCO 2017 benchmark</span> for both <span class="hl-concept">keypoint detection</span> and <span class="hl-concept">instance segmentation</span>. Using a <span class="hl-evidence">ResNet-152 backbone with input resolution 1401</span>, our model achieves <span class="hl-evidence">68.7 AP on the keypoint test-dev set</span>, outperforming all previous bottom-up methods including <span class="hl-concept">CMU-Pose</span> and <span class="hl-concept">Associative Embedding</span>. The inference speed is <span class="hl-evidence">approximately 200ms per image on a single GPU</span>, which is significantly faster than top-down methods that need to run a pose estimator for each detected person.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">COCO 2017 標竿</span>上評估 PersonLab 的<span class="hl-concept">關鍵點偵測</span>和<span class="hl-concept">實例分割</span>表現。使用 <span class="hl-evidence">ResNet-152 骨幹搭配 1401 輸入解析度</span>，模型在<span class="hl-evidence">關鍵點 test-dev 上達到 68.7 AP</span>，超越所有先前的由下而上方法，包括 <span class="hl-concept">CMU-Pose</span> 和<span class="hl-concept">關聯嵌入</span>。推論速度約為<span class="hl-evidence">單 GPU 上每張影像 200ms</span>，顯著快於需要對每個偵測到的人物執行姿態估計器的由上而下方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告關鍵點偵測的定量結果與速度比較
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以數據驗證由下而上方法在精度和速度上的雙重優勢
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    速度比較策略性地選擇由上而下方法作為對照，突顯由下而上範式的固有效率優勢
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">instance segmentation</span>, PersonLab achieves <span class="hl-evidence">37.1 AP on the COCO person category</span>, demonstrating that our <span class="hl-thesis">unified framework can jointly handle both pose estimation and instance segmentation effectively</span>. The <span class="hl-method">long-range offset fields</span> successfully assign pixels to their corresponding person instances. <span class="hl-rebuttal">While dedicated instance segmentation methods like Mask R-CNN achieve higher segmentation accuracy, PersonLab offers the advantage of jointly solving both tasks in a single forward pass</span> without requiring a region proposal network.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-concept">實例分割</span>方面，PersonLab 在 <span class="hl-evidence">COCO 人體類別上達到 37.1 AP</span>，展示了<span class="hl-thesis">我們的統一框架能有效地同時處理姿態估計和實例分割</span>。<span class="hl-method">長距偏移場</span>成功地將像素指派到對應的人體實例。<span class="hl-rebuttal">雖然專用的實例分割方法（如 Mask R-CNN）達到更高的分割精度，但 PersonLab 提供了在單次前向傳播中聯合解決兩項任務的優勢</span>，且無需區域提案網路。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告實例分割結果並進行公正的比較
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以讓步方式承認分割精度的差距，但以任務統一性優勢反駁
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    誠實承認 Mask R-CNN 在分割上更強，但巧妙地將比較維度從「分割精度」轉移到「統一框架」，改變了評價標準
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論 -->
+    <h2 class="section-heading" id="conclusion">5. Conclusion 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">PersonLab</span>, a <span class="hl-thesis">unified bottom-up approach for multi-person pose estimation and instance segmentation</span>. Our method uses a single-shot fully convolutional model to predict <span class="hl-method">keypoint heatmaps, short/mid/long-range offset fields</span>, enabling efficient person assembly and segmentation without relying on person detection. PersonLab achieves <span class="hl-evidence">state-of-the-art results among bottom-up methods on COCO keypoint detection</span> while simultaneously providing person instance segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 <span class="hl-concept">PersonLab</span>，一個<span class="hl-thesis">統一的由下而上多人姿態估計與實例分割方法</span>。我們的方法使用單次推論的全摺積模型來預測<span class="hl-method">關鍵點熱力圖、短距/中距/長距偏移場</span>，在不依賴人體偵測的情況下實現高效的人體組裝和分割。PersonLab 在 <span class="hl-evidence">COCO 關鍵點偵測中達到由下而上方法的最先進結果</span>，同時提供人體實例分割。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文核心貢獻
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回收緒論中的動機，形成完整論述弧線
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    結論精煉地重述三層偏移場架構，讓讀者離開時帶走清晰的技術印象
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>由上而下方法<br>依賴偵測器</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">論點<br>由下而上統一框架<br>更高效且靈活</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">方法<br>多尺度偏移場 +<br>幾何嵌入</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">證據<br>COCO 68.7 AP<br>分割 37.1 AP</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">結論<br>單次推論聯合<br>姿態+分割</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過預測短距/中距/長距三層偏移場，由下而上方法能在單次前向傳播中同時完成多人姿態估計與實例分割，無需人體偵測器且推論時間不隨人數線性增長。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>在 COCO 上超越所有先前的由下而上方法（68.7 AP），且推論速度（約 200ms/image）不隨場景中人數增加而變慢，完美驗證了效率主張。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>實例分割精度（37.1 AP）與專用方法 Mask R-CNN 仍有明顯差距，「統一框架」的多任務優勢是否值得分割精度的犧牲，論文未提供充分的應用場景分析來說服讀者。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9881;</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>ESPNet — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                ESPNet: Efficient Spatial Pyramid of Dilated Convolutions for Semantic Segmentation
+                <span class="course-tag">ECCV 2018</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1803.06815" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#abstract">摘要</a>
+        <a href="#introduction">緒論</a>
+        <a href="#method">方法</a>
+        <a href="#experiments">實驗</a>
+        <a href="#conclusion">結論</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- 摘要 -->
+    <h2 class="section-heading" id="abstract">Abstract 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce a <span class="hl-thesis">fast and efficient convolutional neural network, ESPNet, for semantic segmentation of high resolution images under resource constraints</span>. ESPNet is based on a new convolutional module, <span class="hl-concept">efficient spatial pyramid (ESP)</span>, which is <span class="hl-method">efficient in terms of computation, memory, and power</span>. The ESP module decomposes a standard convolution into a <span class="hl-method">point-wise convolution and a spatial pyramid of dilated convolutions</span>, which dramatically reduces the number of parameters and operations while maintaining a <span class="hl-thesis">large effective receptive field</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 <span class="hl-thesis">ESPNet，一個快速且高效的摺積神經網路，用於資源受限條件下高解析度影像的語意分割</span>。ESPNet 基於一個新的摺積模組——<span class="hl-concept">高效空間金字塔（ESP）</span>，在<span class="hl-method">計算、記憶體和功耗方面均具有高效性</span>。ESP 模組將標準摺積分解為<span class="hl-method">逐點摺積和擴張摺積的空間金字塔</span>，大幅降低了參數量和運算量，同時維持<span class="hl-thesis">較大的有效感受野</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心模組 ESP 及其設計理念
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以三維效率指標（計算、記憶體、功耗）定位研究的獨特性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    將摺積分解呈現為「大幅降低」+「維持感受野」的雙贏局面，預先化解「效率代價精度」的直覺擔憂
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our ESPNet model is <span class="hl-evidence">22 times faster than the state-of-the-art semantic segmentation network PSPNet while being only 8 percentage points lower in accuracy</span>. ESPNet has only <span class="hl-evidence">0.4 million parameters and requires only 4.5 GB memory on a standard GPU</span>. Our network can <span class="hl-evidence">process high resolution images (2048 x 1024) at 112 fps on a standard GPU and 9 fps on an edge device</span> (Jetson TX2), making it suitable for <span class="hl-thesis">real-time applications on resource-constrained devices</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的 ESPNet 模型<span class="hl-evidence">比最先進的語意分割網路 PSPNet 快 22 倍，精度僅低 8 個百分點</span>。ESPNet 僅有 <span class="hl-evidence">0.4 百萬參數且在標準 GPU 上只需 4.5 GB 記憶體</span>。我們的網路能<span class="hl-evidence">在標準 GPU 上以 112 fps 處理高解析度影像（2048 x 1024），在邊緣裝置（Jetson TX2）上以 9 fps 執行</span>，適用於<span class="hl-thesis">資源受限裝置上的即時應用</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    以量化數據展示 ESPNet 的效率優勢
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    用速度、參數量、記憶體三維指標支撐「高效」主張
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「22 times faster」搭配「only 8 percentage points lower」的不對稱比較非常有效——讀者會覺得速度提升的倍數遠大於精度的損失
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論 -->
+    <h2 class="section-heading" id="introduction">1. Introduction 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Semantic segmentation</span> requires assigning a class label to each pixel in an image. While significant progress has been made using <span class="hl-concept">deep convolutional neural networks</span>, most state-of-the-art models are <span class="hl-rebuttal">computationally expensive and require large amounts of memory</span>, making them unsuitable for deployment on <span class="hl-concept">edge devices</span> such as mobile phones, drones, and autonomous vehicles. The key challenge is to <span class="hl-thesis">design a network that is both accurate and efficient enough for real-time inference on resource-constrained platforms</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">語意分割</span>需要為影像中的每個像素指派一個類別標籤。雖然使用<span class="hl-concept">深度摺積神經網路</span>已取得顯著進展，但大多數最先進模型<span class="hl-rebuttal">計算成本高昂且需要大量記憶體</span>，使其不適合部署在手機、無人機和自動駕駛車輛等<span class="hl-concept">邊緣裝置</span>上。核心挑戰在於<span class="hl-thesis">設計一個既精確又足夠高效的網路，以在資源受限平台上實現即時推論</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義問題背景與核心挑戰
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將研究動機錨定在邊緣部署這個實際應用場景
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    列舉三類邊緣裝置（手機、無人機、自駕車）使問題具體化，讓讀者立即理解研究的實用價值
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing efficient segmentation networks such as <span class="hl-concept">ENet</span> and <span class="hl-concept">ICNet</span> either sacrifice too much accuracy or <span class="hl-rebuttal">still require significant computational resources</span>. Our approach is to design a new convolutional module that is <span class="hl-thesis">inherently efficient by construction</span>, rather than applying post-hoc compression techniques like pruning or quantization. The <span class="hl-concept">ESP module</span> achieves this by <span class="hl-method">factorizing convolutions into point-wise and dilated components</span>, with a hierarchical feature fusion strategy to address the <span class="hl-concept">gridding artifact</span> caused by dilated convolutions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有的高效分割網路如 <span class="hl-concept">ENet</span> 和 <span class="hl-concept">ICNet</span> 要麼犧牲太多精度，要麼<span class="hl-rebuttal">仍需大量計算資源</span>。我們的方法是設計一個<span class="hl-thesis">在結構上即具備內在效率</span>的新摺積模組，而非採用剪枝或量化等事後壓縮技術。<span class="hl-concept">ESP 模組</span>透過<span class="hl-method">將摺積分解為逐點和擴張組件</span>，搭配分層特徵融合策略來解決擴張摺積造成的<span class="hl-concept">網格偽影</span>問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    區分本方法與現有高效方法及壓縮技術的差異
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立「設計上高效」vs「壓縮後高效」的方法論框架
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「inherently efficient by construction」暗示事後壓縮是次優方案，從設計之初就考量效率才是正途
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 -->
+    <h2 class="section-heading" id="method">3. ESP Module 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">ESP module</span> is based on a <span class="hl-method">reduce-split-transform-merge</span> strategy. First, a <span class="hl-method">1x1 point-wise convolution</span> reduces the input feature maps from M channels to N channels (reduce step). Then, the N-channel feature maps are <span class="hl-method">split into K parallel branches</span>, where each branch applies a <span class="hl-method">3x3 dilated convolution with dilation rate 2^(k-1)</span> for k = 1, 2, ..., K (split-transform step). Finally, the outputs of all branches are <span class="hl-method">hierarchically fused using element-wise summation</span> before being concatenated (merge step).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">ESP 模組</span>基於<span class="hl-method">降維-分割-轉換-合併</span>策略。首先，<span class="hl-method">1x1 逐點摺積</span>將輸入特徵圖從 M 通道降至 N 通道（降維步驟）。然後，N 通道特徵圖被<span class="hl-method">分割為 K 個平行分支</span>，每個分支施加擴張率為 2^(k-1) 的 <span class="hl-method">3x3 擴張摺積</span>（k = 1, 2, ..., K）（分割-轉換步驟）。最後，所有分支的輸出在串接前以<span class="hl-method">分層逐元素求和進行融合</span>（合併步驟）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    詳述 ESP 模組的四步驟流程
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    本文最核心的技術貢獻
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以「reduce-split-transform-merge」四步驟的命名框架使複雜設計變得直觀可記憶，是優秀的技術傳播策略
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">hierarchical feature fusion (HFF)</span> is a key design choice to address the <span class="hl-concept">gridding artifact</span>. In standard spatial pyramid modules, <span class="hl-rebuttal">dilated convolutions with large dilation rates produce checkerboard-like patterns due to the sparse sampling of the input</span>. Our HFF strategy <span class="hl-method">adds the output of each branch to the output of the previous branch before applying the next dilated convolution</span>, effectively filling the gaps in the receptive field. This results in a <span class="hl-evidence">smooth and complete receptive field coverage without the gridding artifact</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">分層特徵融合（HFF）</span>是解決<span class="hl-concept">網格偽影</span>問題的關鍵設計。在標準空間金字塔模組中，<span class="hl-rebuttal">大擴張率的擴張摺積由於對輸入的稀疏取樣會產生棋盤格樣式</span>。我們的 HFF 策略<span class="hl-method">在施加下一個擴張摺積前，將每個分支的輸出加到前一個分支的輸出上</span>，有效填補了感受野中的空隙。這實現了<span class="hl-evidence">平滑且完整的感受野覆蓋，不含網格偽影</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解釋分層特徵融合如何解決網格偽影
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    處理擴張摺積的已知缺陷，展現設計的周全性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    先承認擴張摺積的已知問題（網格偽影），再提出解決方案，展現對技術限制的深入理解
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗 -->
+    <h2 class="section-heading" id="experiments">4. Experiments 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate ESPNet on the <span class="hl-evidence">Cityscapes dataset</span> for semantic segmentation. Our model achieves <span class="hl-evidence">60.3% mIoU on the test set with only 0.4M parameters</span>. Compared to <span class="hl-concept">ENet</span> which achieves <span class="hl-evidence">58.3% mIoU with 0.36M parameters</span>, ESPNet achieves <span class="hl-evidence">2 percentage points higher accuracy with comparable model size</span>. Compared to <span class="hl-concept">PSPNet</span> which achieves <span class="hl-evidence">81.2% mIoU</span>, ESPNet is <span class="hl-evidence">22x faster while being significantly smaller</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">Cityscapes 資料集</span>上評估 ESPNet 的語意分割效能。模型以<span class="hl-evidence">僅 0.4M 參數達到測試集上 60.3% mIoU</span>。與達到 <span class="hl-evidence">58.3% mIoU 且有 0.36M 參數</span>的 <span class="hl-concept">ENet</span> 相比，ESPNet 在<span class="hl-evidence">相近模型規模下精度高出 2 個百分點</span>。與達到 <span class="hl-evidence">81.2% mIoU</span> 的 <span class="hl-concept">PSPNet</span> 相比，ESPNet <span class="hl-evidence">快 22 倍且規模顯著更小</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    在 Cityscapes 上的精度-效率比較
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以兩組不同的比較對象展示 ESPNet 的定位
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    雙重比較策略精妙：與 ENet 比精度（勝），與 PSPNet 比速度（勝），讓 ESPNet 在兩個維度上都有優勢敘事
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further evaluate the <span class="hl-method">real-time capability</span> of ESPNet on <span class="hl-evidence">edge devices</span>. On the <span class="hl-evidence">NVIDIA Jetson TX2</span>, ESPNet processes <span class="hl-evidence">high-resolution Cityscapes images at 9 fps</span>, making it one of the fastest semantic segmentation networks deployable on edge hardware. On a <span class="hl-evidence">standard NVIDIA TitanX GPU, ESPNet runs at 112 fps</span>. The <span class="hl-evidence">model size is only 0.7 MB</span>, which is critical for deployment on devices with limited storage.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步評估 ESPNet 在<span class="hl-evidence">邊緣裝置</span>上的<span class="hl-method">即時能力</span>。在 <span class="hl-evidence">NVIDIA Jetson TX2</span> 上，ESPNet <span class="hl-evidence">以 9 fps 處理高解析度 Cityscapes 影像</span>，使其成為可部署在邊緣硬體上最快的語意分割網路之一。在 <span class="hl-evidence">標準 NVIDIA TitanX GPU 上，ESPNet 以 112 fps 運行</span>。<span class="hl-evidence">模型大小僅 0.7 MB</span>，這對於部署在儲存空間有限的裝置上至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示邊緣裝置上的實際部署效能
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將效率論述從理論指標延伸到實際硬體部署
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「0.7 MB」是極具衝擊力的數字，與動輒數百 MB 的大型模型形成強烈對比
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論 -->
+    <h2 class="section-heading" id="conclusion">5. Conclusion 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">ESPNet</span>, an efficient convolutional neural network for <span class="hl-thesis">real-time semantic segmentation on resource-constrained devices</span>. The core contribution is the <span class="hl-concept">ESP module</span>, which uses a <span class="hl-method">factorized convolution approach with hierarchical feature fusion</span> to achieve a large effective receptive field with minimal computational cost. ESPNet achieves a <span class="hl-evidence">compelling trade-off between accuracy and efficiency</span>, making it practical for edge deployment in applications such as autonomous driving and mobile augmented reality.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 <span class="hl-concept">ESPNet</span>，一個用於<span class="hl-thesis">資源受限裝置上即時語意分割</span>的高效摺積神經網路。核心貢獻是 <span class="hl-concept">ESP 模組</span>，採用<span class="hl-method">分解摺積方法搭配分層特徵融合</span>，以最小的計算成本實現大的有效感受野。ESPNet 達成了<span class="hl-evidence">精度與效率之間引人注目的權衡</span>，使其在自動駕駛和行動擴增實境等應用中可實際部署於邊緣裝置。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結核心貢獻與應用場景
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回收緒論的應用動機，形成完整的論述迴路
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    結尾再次列舉自駕和 AR 等具體應用場景，強化論文的實用價值定位
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>分割模型太重<br>無法邊緣部署</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">論點<br>從設計上即具備<br>內在效率</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">方法<br>ESP 模組：分解摺積<br>+ 分層融合</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">證據<br>0.4M 參數<br>112 fps / 60.3%</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">結論<br>邊緣即時分割<br>實際可行</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過 ESP 模組的摺積分解（逐點摺積 + 多尺度擴張摺積）和分層特徵融合策略，能以極少參數（0.4M）在邊緣裝置上實現即時語意分割。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>在 Jetson TX2 上的 9 fps 即時演示提供了邊緣部署的直接證據，搭配 0.7 MB 的極小模型大小，使「邊緣可部署」的主張不再是理論推測。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>60.3% mIoU 與 PSPNet 的 81.2% 仍有 21 個百分點的差距。論文主要以速度倍數來淡化這個差距，但在安全關鍵應用（如自動駕駛）中，這樣的精度損失可能是不可接受的。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9881;</button>
+</div>
+
+</body>
+</html>

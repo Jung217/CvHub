@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>BEVFormer — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                BEVFormer: Learning Bird's-Eye-View Representation from Multi-Camera Images via Spatiotemporal Transformers
+                <span class="course-tag">ECCV 2022</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2203.17270" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-experiments">3. 實驗</a>
+        <a href="#sec-conclusion">4. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                3D visual perception tasks, including <span class="hl-concept">3D detection and map segmentation</span>, are essential for autonomous driving. In this work, we present <span class="hl-concept">BEVFormer</span>, <span class="hl-thesis">a paradigm that learns unified Bird's-Eye-View (BEV) representations from multi-camera images to support multiple autonomous driving perception tasks</span>. BEVFormer exploits both <span class="hl-method">spatial and temporal information by interacting with spatial and temporal space through predefined grid-shaped BEV queries</span>. To aggregate spatial information, we design <span class="hl-method">spatial cross-attention</span> that enables each BEV query to extract spatial features from the regions of interest across camera views. For temporal information, we propose <span class="hl-method">temporal self-attention</span> to recurrently fuse the history BEV information. Our approach achieves <span class="hl-evidence">new state-of-the-art 56.9% in terms of NDS metric on the nuScenes test set</span>, which is <span class="hl-evidence">9.0 points higher than previous best arts</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三維視覺感知任務，包括<span class="hl-concept">三維偵測和地圖分割</span>，對自動駕駛至關重要。本文提出 <span class="hl-concept">BEVFormer</span>，<span class="hl-thesis">一種從多相機影像學習統一鳥瞰圖（BEV）表示的範式，以支援多種自動駕駛感知任務</span>。BEVFormer 透過<span class="hl-method">預定義的網格狀 BEV 查詢與空間和時間空間互動，以利用空間和時序資訊</span>。為彙聚空間資訊，我們設計了<span class="hl-method">空間交叉注意力</span>，使每個 BEV 查詢能從各相機視角的感興趣區域提取空間特徵。對於時序資訊，我們提出<span class="hl-method">時序自注意力</span>以遞迴式融合歷史 BEV 資訊。本方法在 <span class="hl-evidence">nuScenes 測試集上以 NDS 指標達到最新最優的 56.9%</span>，<span class="hl-evidence">較先前最佳方法高出 9.0 個百分點</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以統一 BEV 表示串聯空間與時序感知。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承諾了「統一表示」與「SOTA 表現」兩大核心貢獻，NDS 指標的大幅提升（9.0 點）是最有力的說服工具。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    9.0 百分點的提升幅度在自動駕駛領域非常顯著，但摘要未提及是否使用了額外資料或更大的骨幹網路，這些因素可能對公平比較有影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Camera-based 3D perception has attracted increasing attention in autonomous driving due to <span class="hl-evidence">the low cost of cameras compared to LiDAR</span>. However, <span class="hl-rebuttal">converting perspective-view image features to a unified 3D representation remains challenging</span>. Previous methods either use <span class="hl-concept">depth estimation to lift 2D features to 3D</span> (e.g., LSS, BEVDet) or employ <span class="hl-concept">transformer-based approaches with 3D reference points</span> (e.g., DETR3D). The former suffers from inaccurate depth prediction, while the latter <span class="hl-rebuttal">only attends to sparse reference points, losing dense scene information</span>. <span class="hl-thesis">We propose BEVFormer to address these limitations through a unified spatiotemporal transformer architecture</span> that generates BEV features from multi-view cameras.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於相機的三維感知因<span class="hl-evidence">相機成本遠低於光達</span>，在自動駕駛中日益受到關注。然而，<span class="hl-rebuttal">將透視視角影像特徵轉換為統一的三維表示仍是挑戰</span>。先前的方法要麼使用<span class="hl-concept">深度估計將二維特徵提升至三維</span>（如 LSS、BEVDet），要麼採用<span class="hl-concept">基於三維參考點的 Transformer 方法</span>（如 DETR3D）。前者受限於不精確的深度預測，後者<span class="hl-rebuttal">僅關注稀疏的參考點，損失了密集的場景資訊</span>。<span class="hl-thesis">我們提出 BEVFormer 透過統一的時空 Transformer 架構解決這些局限</span>，從多視角相機生成 BEV 特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題意識——對比現有方法的兩大路線及其不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「深度提升」vs.「稀疏參考點」的二分法框定現有方法的困境，為 BEVFormer 的「第三條路」建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將相機成本優勢作為開場是對產業界的有效訴求。但對 DETR3D「損失密集場景資訊」的批評是否公平，取決於具體任務的需求。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                BEVFormer consists of three core components. First, <span class="hl-method">BEV queries</span> are a set of grid-shaped learnable parameters <span class="hl-method">Q in R^{H x W x C}</span>, where H and W define the spatial resolution of the BEV plane and C is the channel dimension. These queries encode the <span class="hl-concept">prior knowledge of the BEV space</span> and serve as the carrier for aggregating information from camera features. Second, <span class="hl-method">Spatial Cross-Attention (SCA)</span> lifts each BEV query to a set of 3D reference points along the vertical axis (pillar sampling), projects them to 2D image planes via camera calibration, and uses <span class="hl-method">deformable attention</span> to aggregate features from the corresponding image locations across multiple camera views.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                BEVFormer 由三個核心組件組成。第一，<span class="hl-method">BEV 查詢</span>是一組網格狀的可學習參數 <span class="hl-method">Q 屬於 R^{H x W x C}</span>，其中 H 和 W 定義 BEV 平面的空間解析度，C 為通道維度。這些查詢編碼了 <span class="hl-concept">BEV 空間的先驗知識</span>，作為從相機特徵彙聚資訊的載體。第二，<span class="hl-method">空間交叉注意力（SCA）</span>將每個 BEV 查詢沿垂直軸提升為一組三維參考點（柱狀採樣），透過相機校正投影至二維影像平面，並使用<span class="hl-method">可變形注意力</span>從多個相機視角的對應影像位置彙聚特徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法論核心——詳述 BEV 查詢和空間交叉注意力機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「查詢-投影-彙聚」的三步流程清晰地描述了從多相機影像到 BEV 特徵的轉換過程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「柱狀採樣」是一個巧妙的設計——它隱式地處理了高度不確定性問題。但固定的垂直採樣策略可能不適合高度變化大的場景。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Third, <span class="hl-method">Temporal Self-Attention (TSA)</span> fuses the current BEV queries with the BEV features from the previous timestamp. We first <span class="hl-method">align the previous BEV features to the current coordinate system using ego-motion</span>, then apply deformable self-attention between the current queries and the aligned historical features. This mechanism enables the model to <span class="hl-thesis">capture temporal cues such as object velocity and occlusion patterns</span>, which are critical for accurate 3D detection. The entire architecture is trained <span class="hl-method">end-to-end with task-specific heads</span> for 3D object detection (following DETR-style set prediction) and BEV segmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第三，<span class="hl-method">時序自注意力（TSA）</span>將當前 BEV 查詢與前一時間戳的 BEV 特徵融合。我們首先<span class="hl-method">使用自車運動將先前的 BEV 特徵對齊至當前座標系</span>，然後在當前查詢與對齊的歷史特徵之間應用可變形自注意力。此機制使模型能<span class="hl-thesis">捕捉時序線索如物體速度和遮擋模式</span>，這對精確的三維偵測至關重要。整體架構以<span class="hl-method">端對端方式搭配任務專屬頭部</span>進行訓練，用於三維物體偵測（依循 DETR 風格的集合預測）和 BEV 分割。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    時序融合機制——完成方法論的最後一塊拼圖。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    時序自注意力是 BEVFormer 相較於靜態方法的核心差異化要素。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以自車運動進行對齊是實務上必要的設計。但僅使用單一前一幀可能不足以捕捉長程時序依賴。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">3. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate BEVFormer on the <span class="hl-evidence">nuScenes benchmark</span> for both 3D object detection and map segmentation. For 3D detection, BEVFormer with <span class="hl-evidence">ResNet-101-DCN backbone achieves 51.7% NDS and 41.6% mAP on the validation set</span>, and <span class="hl-evidence">56.9% NDS on the test set</span>, establishing a new state of the art among camera-only methods. Compared to DETR3D, BEVFormer improves <span class="hl-evidence">NDS by 9.0 points and mAP by 7.7 points</span>. The temporal self-attention contributes <span class="hl-evidence">+3.5% NDS improvement</span>, confirming the importance of temporal modeling. For BEV map segmentation, BEVFormer achieves <span class="hl-evidence">62.7% mIoU</span>, outperforming all previous camera-based methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">nuScenes 基準</span>上評估 BEVFormer 的三維物體偵測和地圖分割表現。在三維偵測方面，使用 <span class="hl-evidence">ResNet-101-DCN 骨幹的 BEVFormer 在驗證集上達到 51.7% NDS 和 41.6% mAP</span>，在<span class="hl-evidence">測試集上達到 56.9% NDS</span>，確立了純相機方法的新最優表現。相較於 DETR3D，BEVFormer <span class="hl-evidence">NDS 提升 9.0 個百分點，mAP 提升 7.7 個百分點</span>。時序自注意力貢獻了 <span class="hl-evidence">+3.5% NDS 的提升</span>，確認了時序建模的重要性。在 BEV 地圖分割方面，BEVFormer 達到 <span class="hl-evidence">62.7% mIoU</span>，超越所有先前的純相機方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗結果——全面的量化比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以多項指標和消融實驗完整支撐了方法的有效性，特別是時序注意力的消融研究。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融實驗（+3.5% NDS）精確地量化了時序組件的貢獻。但與光達方法的差距未被直接討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Ablation studies</span> reveal several insights. The <span class="hl-evidence">spatial cross-attention with pillar sampling outperforms both global attention and point-based sampling</span> by 2.1% and 1.3% NDS respectively, validating the pillar query design. <span class="hl-evidence">Using 4 vertical sampling points per pillar achieves the best trade-off between accuracy and efficiency</span>. The <span class="hl-evidence">BEV resolution of 200x200 (at 0.5m per grid) provides optimal performance</span>, with diminishing returns at higher resolutions. Qualitative results show that BEVFormer produces <span class="hl-evidence">more accurate velocity estimation and fewer false positives for occluded objects</span> compared to single-frame methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">消融研究</span>揭示了數項洞察。<span class="hl-evidence">柱狀採樣的空間交叉注意力分別以 2.1% 和 1.3% NDS 超越全域注意力和基於點的採樣</span>，驗證了柱狀查詢設計。<span class="hl-evidence">每柱使用 4 個垂直採樣點在精確度與效率間達到最佳平衡</span>。<span class="hl-evidence">200x200 的 BEV 解析度（每格 0.5 公尺）提供最佳表現</span>，更高解析度的收益遞減。定性結果顯示 BEVFormer 相較於單幀方法產生<span class="hl-evidence">更精確的速度估計且對遮擋物體的假陽性更少</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融分析——驗證各設計選擇的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    系統性的消融實驗展示了每個設計決策背後的實證基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    細緻的超參數分析增強了結果的可重現性。但 0.5m 解析度可能不足以偵測小型物體。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">4. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">BEVFormer</span>, <span class="hl-thesis">a spatiotemporal transformer framework that learns unified BEV representations from multi-camera images for autonomous driving perception</span>. Through spatial cross-attention and temporal self-attention, BEVFormer effectively aggregates multi-view and multi-frame information into a coherent BEV representation. The resulting model achieves <span class="hl-evidence">state-of-the-art performance on the nuScenes benchmark for both 3D detection and map segmentation</span>. We believe that the BEV representation paradigm will continue to advance camera-based autonomous driving systems toward closing the gap with LiDAR-based approaches.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了 <span class="hl-concept">BEVFormer</span>，<span class="hl-thesis">一個時空 Transformer 框架，從多相機影像學習統一的 BEV 表示以用於自動駕駛感知</span>。透過空間交叉注意力和時序自注意力，BEVFormer 有效地將多視角和多幀資訊彙聚為連貫的 BEV 表示。所得模型在 <span class="hl-evidence">nuScenes 基準的三維偵測和地圖分割上均達到最優表現</span>。我們相信 BEV 表示範式將持續推進基於相機的自動駕駛系統，縮小與光達方法的差距。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——重申貢獻並展望 BEV 範式的發展。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「縮小與光達差距」作為結語，將研究置於更大的產業願景中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論中提到「縮小差距」是謹慎的措辭，承認了相機方法與光達之間仍有差距。
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="main-container">
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>多相機到 BEV<br>轉換效果不佳</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>時空 Transformer<br>統一 BEV 表示</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>nuScenes NDS<br>56.9% SOTA</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>柱狀採樣優於<br>全域和點採樣</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>BEV 範式推進<br>純相機自駕感知</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過時空 Transformer 和 BEV 查詢機制，可以從多相機影像建構統一的鳥瞰圖表示，在多個自動駕駛感知任務上達到最優表現。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論點</h3>
+                <p>在 nuScenes 測試集上較先前最佳方法（DETR3D）大幅領先 9.0 NDS，且時序融合的消融研究清楚展示了各組件的貢獻。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>僅使用單一前幀的時序融合可能無法充分利用長程時序資訊，且固定的 BEV 解析度在不同場景下的適用性未充分探討。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9673;</button>
+</div>
+
+</body>
+</html>

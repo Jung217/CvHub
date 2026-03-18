@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Partial Distance Correlation in Deep Learning — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                On the Versatile Uses of Partial Distance Correlation in Deep Learning
+                <span class="course-tag">ECCV 2022</span>
+                <span class="best-paper-badge">Best Paper Award</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2207.09684" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-background">2. 背景</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">Comparing the functional behavior of neural network models</span>, whether it is a single network over time or two (or more) networks during or post-training, is an essential step in understanding what they are learning (and what they are not), and for identifying strategies for <span class="hl-concept">regularization</span> or efficiency improvements. Motivated by the need for a statistically grounded, robust, and scalable comparison tool, we propose using <span class="hl-method">Partial Distance Correlation (PDC)</span> as a general-purpose tool for <span class="hl-thesis">comparing representations in deep learning</span>. We describe how it can be used to <span class="hl-evidence">compare learned representations across networks, identify redundant layers, and guide network compression</span>. We also show that PDC provides a principled approach to <span class="hl-evidence">disentangling shared and unique information between representations</span>, and demonstrate its effectiveness on a variety of tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">比較神經網路模型的功能性行為</span>——無論是單一網路隨時間的變化，或兩個（及以上）網路在訓練中或訓練後的差異——是理解模型所學內容（以及未學內容）的關鍵步驟，同時也是辨識<span class="hl-concept">正則化</span>或效率提升策略的基礎。基於對統計上嚴謹、穩健且可擴展之比較工具的需求，本文提出將<span class="hl-method">偏距離相關性（PDC）</span>作為<span class="hl-thesis">深度學習中比較表示的通用工具</span>。我們描述了其如何<span class="hl-evidence">比較不同網路之間的學習表示、辨識冗餘層，並引導網路壓縮</span>。同時展示 PDC 提供了一種有原則的方法來<span class="hl-evidence">解耦表示之間的共享與獨特資訊</span>，並在多種任務上證實其有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——概述 PDC 工具的動機、用途與核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立了「需求（比較工具）→ 方案（PDC）→ 應用（壓縮、解耦等）」的完整論證預告。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者以「統計上嚴謹」的修辭強調 PDC 相較於 CKA 等啟發式方法的理論優勢，但實際上 PDC 的計算複雜度較高，在大規模模型上的可擴展性需要額外的近似策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Understanding the internal representations learned by <span class="hl-concept">deep neural networks</span> is a fundamental challenge in modern machine learning. A variety of tools have been proposed for this purpose, including <span class="hl-concept">Centered Kernel Alignment (CKA)</span>, <span class="hl-concept">Canonical Correlation Analysis (CCA)</span>, and <span class="hl-concept">projection-weighted CCA</span>. While these methods have proven useful, they each have <span class="hl-rebuttal">limitations in terms of statistical interpretability, sensitivity to sample size, or inability to account for confounding factors</span>. In this work, we argue that <span class="hl-thesis">Partial Distance Correlation provides a unified, statistically principled framework that addresses many of these limitations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                理解<span class="hl-concept">深度神經網路</span>所學習的內部表示是現代機器學習中的根本性挑戰。為此已有多種工具被提出，包括<span class="hl-concept">中心核對齊（CKA）</span>、<span class="hl-concept">典型相關分析（CCA）</span>及<span class="hl-concept">投影加權 CCA</span>。雖然這些方法已證明其實用性，但各自在<span class="hl-rebuttal">統計可解釋性、對樣本量的敏感度，或無法處理混淆因素</span>等方面存在局限。本文主張，<span class="hl-thesis">偏距離相關性提供了一個統一且具統計原則的框架，能解決上述多數限制</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題意識——回顧現有表示比較工具並指出其不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：透過列舉 CKA、CCA 等方法的缺陷，為 PDC 的引入建立合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「各有局限」一語概括現有方法的不足，但未深入討論這些方法在特定場景下的優勢，可能給讀者一種過度簡化的印象。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key idea behind <span class="hl-concept">distance correlation</span> is that it measures both <span class="hl-method">linear and nonlinear dependencies between random vectors</span>, unlike classical correlation which only captures linear associations. <span class="hl-concept">Partial distance correlation</span> extends this by <span class="hl-method">controlling for the influence of a third variable</span>, enabling more precise comparisons of representations. This property is particularly valuable when comparing <span class="hl-evidence">layers across different architectures where batch normalization, residual connections, or other structural elements may introduce confounding correlations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">距離相關性</span>的核心思想在於它能衡量<span class="hl-method">隨機向量之間的線性與非線性依賴關係</span>，不同於僅捕捉線性關聯的經典相關性。<span class="hl-concept">偏距離相關性</span>進一步延伸此概念，透過<span class="hl-method">控制第三變數的影響</span>實現更精確的表示比較。此特性在比較<span class="hl-evidence">不同架構的層時格外重要，因為批次正規化、殘差連接或其他結構元素可能引入混淆相關性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心概念引介——解釋距離相關性與偏距離相關性的基本原理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從「問題」過渡到「解方」：先建立距離相關性的理論優勢，再以「控制混淆變數」的特點突出 PDC 的獨特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 batch normalization 和殘差連接作為混淆因素的具體例子，增強了讀者對問題的具象理解。但作者假設這些結構元素必然構成「混淆」，這個前提是否成立取決於分析目的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 背景 ====== -->
+    <h2 class="section-heading" id="sec-background">2. Background — 背景</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Distance correlation</span>, introduced by Szekely, Rizzo, and Bakirov (2007), is a measure of dependence between random vectors of arbitrary dimensions. Given random vectors X and Y, the <span class="hl-method">distance covariance is computed by taking the Euclidean distances between all pairs of observations, double centering the resulting distance matrices, and computing their inner product</span>. A key property is that <span class="hl-thesis">distance correlation equals zero if and only if X and Y are statistically independent</span>, a guarantee that classical Pearson correlation cannot provide. The <span class="hl-method">partial distance correlation further conditions on a third variable Z, removing its confounding influence</span> through a projection operation in the space of doubly centered distance matrices.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">距離相關性</span>由 Szekely、Rizzo 與 Bakirov（2007）提出，是一種衡量任意維度隨機向量之間依賴性的度量。給定隨機向量 X 與 Y，<span class="hl-method">距離共變異數的計算方式為：先取所有觀測對之間的歐氏距離，對產生的距離矩陣進行雙中心化，再計算其內積</span>。一個關鍵性質是：<span class="hl-thesis">距離相關性等於零若且唯若 X 與 Y 在統計上獨立</span>——這是經典皮爾森相關性無法提供的保證。<span class="hl-method">偏距離相關性進一步以第三變數 Z 為條件，透過雙中心化距離矩陣空間中的投影操作移除其混淆影響</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論基礎建構——介紹距離相關性的數學定義與核心性質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續應用提供數學根基：先建立「距離相關性 = 零等價於獨立性」這一核心定理，使讀者理解 PDC 相較於啟發式方法的理論優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    引用 Szekely 等人的原始工作建立權威性。但雙中心化距離矩陣的計算複雜度為 O(n^2)，大規模資料集上的效率問題被暫時擱置。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Previous approaches for comparing neural network representations include <span class="hl-concept">CKA</span>, which computes the Hilbert-Schmidt Independence Criterion between kernel matrices of layer activations, and various forms of <span class="hl-concept">CCA</span> that project representations into a shared subspace. <span class="hl-rebuttal">CKA, while effective and widely adopted, lacks a formal mechanism to account for confounding variables</span>. CCA-based methods <span class="hl-rebuttal">require careful selection of the number of canonical components and can be sensitive to the choice of regularization</span>. <span class="hl-thesis">PDC addresses both issues simultaneously by operating directly on distance matrices and supporting conditional independence testing</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前用於比較神經網路表示的方法包括<span class="hl-concept">CKA</span>（計算層啟動之核矩陣間的 Hilbert-Schmidt 獨立性準則）以及各種形式的<span class="hl-concept">CCA</span>（將表示投影至共享子空間）。<span class="hl-rebuttal">CKA 雖然有效且被廣泛採用，但缺乏處理混淆變數的正式機制</span>。基於 CCA 的方法<span class="hl-rebuttal">需要謹慎選擇典型成分數量，且對正則化的選擇較為敏感</span>。<span class="hl-thesis">PDC 透過直接在距離矩陣上操作並支援條件獨立性檢定，同時解決了這兩個問題</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    比較分析——系統性地對比 PDC 與既有方法的優劣。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過指出 CKA 和 CCA 的具體缺陷，建立 PDC 的差異化優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「CKA 缺乏正式機制」這一明確的局限性建立對比，論證效果強烈。但 CKA 的實務表現往往足夠好，理論上的不足是否轉化為實際問題需要更多實證支持。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-method">three primary applications of PDC in deep learning</span>. First, <span class="hl-method">representation similarity analysis</span>: given two networks (or the same network at different training stages), we compute the PDC between corresponding layer representations to quantify their functional similarity while controlling for the input. Second, <span class="hl-method">layer redundancy detection</span>: by computing the PDC between consecutive layers while controlling for the input, we can identify layers that contribute minimal unique information, <span class="hl-evidence">providing principled guidance for network pruning</span>. Third, <span class="hl-method">disentanglement analysis</span>: PDC naturally decomposes the shared and unique contributions of representations, enabling the study of what information is shared versus unique across network components.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文介紹 <span class="hl-method">PDC 在深度學習中的三項主要應用</span>。第一，<span class="hl-method">表示相似性分析</span>：給定兩個網路（或同一網路在不同訓練階段），我們計算對應層表示之間的 PDC 以量化其功能相似性，同時控制輸入的影響。第二，<span class="hl-method">層冗餘偵測</span>：透過計算連續層之間的 PDC（控制輸入），我們可以辨識貢獻極少獨特資訊的層，<span class="hl-evidence">為網路剪枝提供有原則的指引</span>。第三，<span class="hl-method">解耦分析</span>：PDC 自然地分解表示的共享與獨特貢獻，使研究者能探究網路各組件之間哪些資訊是共享的、哪些是獨特的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法論展開——列舉 PDC 的三大應用方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將理論工具轉化為可操作的深度學習應用，建立「理論→實踐」的橋樑。三個應用涵蓋了模型理解、壓縮與分析的不同面向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以清晰的三段式結構呈現應用，增強可讀性。但每個應用的有效性高度依賴於實驗設定（如選擇哪些層、使用多少樣本），這些細節在此段尚未涉及。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For computational efficiency, we employ <span class="hl-method">an unbiased estimator of distance covariance</span> that operates on the U-centered distance matrices. Given n observations, the computational cost is <span class="hl-evidence">O(n^2) for computing pairwise distances and O(n^2) for the double centering</span>, which is manageable for typical batch sizes in deep learning. For larger datasets, we propose <span class="hl-method">a mini-batch approximation scheme</span> that computes PDC over random subsets and averages the results, providing <span class="hl-evidence">a trade-off between statistical accuracy and computational cost</span> that scales to modern architectures with millions of parameters.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為提升計算效率，我們採用<span class="hl-method">距離共變異數的無偏估計器</span>，其在 U 中心化距離矩陣上運作。給定 n 個觀測值，計算成本為<span class="hl-evidence">O(n^2)（計算成對距離）加上 O(n^2)（雙中心化）</span>，對深度學習中典型的批次大小而言是可承受的。對於更大的資料集，我們提出<span class="hl-method">小批次近似方案</span>，在隨機子集上計算 PDC 並取平均，<span class="hl-evidence">在統計精確度與計算成本之間取得平衡</span>，使其可擴展至擁有數百萬參數的現代架構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節補充——解決計算效率問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    預防性反駁：主動回應「PDC 計算成本高」的潛在質疑，透過小批次近似方案展示可行性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦誠承認 O(n^2) 的複雜度，並提出解決方案，增強了論文的可信度。但小批次近似帶來的統計偏差如何影響最終結論，需要更嚴格的理論分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate PDC across three experimental settings. In the <span class="hl-method">representation comparison setting</span>, we analyze <span class="hl-evidence">ResNet, VGG, and Vision Transformer architectures trained on ImageNet</span>. PDC reveals that <span class="hl-evidence">early layers across architectures show higher similarity than later layers</span>, consistent with the hypothesis that low-level features are more universal. Critically, when we control for the input using partial distance correlation, <span class="hl-thesis">the similarity between architecturally different networks decreases substantially, revealing that much of the apparent similarity is driven by shared input statistics rather than learned representations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在三個實驗設定中評估 PDC。在<span class="hl-method">表示比較設定</span>中，我們分析了<span class="hl-evidence">在 ImageNet 上訓練的 ResNet、VGG 和 Vision Transformer 架構</span>。PDC 顯示<span class="hl-evidence">不同架構的早期層呈現較高的相似性</span>，這與低階特徵更具通用性的假說一致。關鍵的是，當我們使用偏距離相關性控制輸入後，<span class="hl-thesis">架構不同的網路之間的相似性大幅下降，揭示了許多表面上的相似性是由共享的輸入統計量驅動，而非學習到的表示</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實證——以跨架構比較展示 PDC 的獨特洞察。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗驗證的核心：PDC 能揭示控制混淆後的「真實相似性」，這正是其理論優勢的實證體現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「控制輸入後相似性大幅下降」是一個引人注目的發現，有效展示了 PDC 的不可替代性。但「大幅下降」的程度是否因不同的控制變數選擇而異，值得深入探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In the <span class="hl-method">layer redundancy experiment</span>, we apply PDC to a pre-trained <span class="hl-evidence">ResNet-50</span> and compute the unique information contributed by each residual block. Our analysis identifies <span class="hl-evidence">several blocks in the middle stages that contribute near-zero unique information</span>, suggesting they can be pruned with minimal accuracy loss. When we remove these blocks, the resulting <span class="hl-evidence">pruned network retains 97.2% of the original accuracy while reducing parameters by 23%</span>. This demonstrates that <span class="hl-thesis">PDC provides actionable insights for model compression that go beyond existing heuristic pruning criteria</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-method">層冗餘實驗</span>中，我們將 PDC 應用於預訓練的 <span class="hl-evidence">ResNet-50</span>，計算每個殘差區塊貢獻的獨特資訊。分析辨識出<span class="hl-evidence">中間階段的數個區塊貢獻近乎零的獨特資訊</span>，表明它們可以在最小精確度損失下被剪枝。移除這些區塊後，<span class="hl-evidence">剪枝網路保留了原始精確度的 97.2%，同時減少了 23% 的參數</span>。這證明了<span class="hl-thesis">PDC 能提供超越現有啟發式剪枝準則的可操作模型壓縮洞察</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用驗證——展示 PDC 在模型壓縮中的實用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從理論分析工具延伸至實際應用：97.2% 精確度保留和 23% 參數減少提供了有說服力的量化證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    具體的數字（97.2%、23%）增強了說服力。但僅在 ResNet-50 上的實驗是否能推廣至其他架構，以及與更進階的結構化剪枝方法的比較，是讀者可能會追問的方向。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For the <span class="hl-method">disentanglement analysis</span>, we examine multi-task networks where a shared backbone feeds into task-specific heads. PDC allows us to <span class="hl-evidence">quantify how much information each head shares with others versus capturing task-unique patterns</span>. On a <span class="hl-evidence">joint detection and segmentation model</span>, we find that early heads share 60-80% of their information content, while later heads diverge significantly. This analysis <span class="hl-thesis">provides guidance for determining the optimal branching point in multi-task architectures</span>, an important design decision that is often made by trial and error.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-method">解耦分析</span>中，我們檢視多任務網路，其中共享骨幹網路分別饋入各任務專屬的頭部。PDC 使我們能<span class="hl-evidence">量化每個頭部與其他頭部共享的資訊量，以及各自捕捉的任務獨特模式</span>。在一個<span class="hl-evidence">聯合偵測與分割模型</span>上，我們發現早期頭部共享 60-80% 的資訊內容，而後期頭部則顯著分化。此分析<span class="hl-thesis">為確定多任務架構中的最佳分支點提供了指引</span>——這是一個通常透過反覆試驗決定的重要設計決策。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用驗證——展示 PDC 在多任務學習中的分析能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    第三個應用場景，完整支撐了「PDC 是通用工具」的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「通常透過反覆試驗」指出現狀的不足，突出 PDC 的系統性優勢。但多任務架構的最佳分支點是否僅由資訊共享量決定，可能還涉及梯度衝突等其他因素。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Partial Distance Correlation</span> as <span class="hl-thesis">a versatile, statistically grounded tool for analyzing and comparing representations in deep learning</span>. Through three complementary applications — representation comparison, layer redundancy detection, and disentanglement analysis — we have demonstrated that PDC provides insights that are <span class="hl-evidence">both theoretically principled and practically actionable</span>. The ability to control for confounding variables distinguishes PDC from existing tools and enables <span class="hl-evidence">more accurate and nuanced analyses of neural network behavior</span>. We believe that PDC will serve as <span class="hl-thesis">a valuable addition to the toolkit of researchers seeking to understand, compress, and improve deep neural networks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了<span class="hl-concept">偏距離相關性</span>作為<span class="hl-thesis">分析和比較深度學習表示的多功能、具統計基礎的工具</span>。透過三個互補的應用——表示比較、層冗餘偵測與解耦分析——我們展示了 PDC 提供的洞察<span class="hl-evidence">兼具理論原則性與實務可操作性</span>。控制混淆變數的能力使 PDC 有別於現有工具，能實現<span class="hl-evidence">更精確且細緻的神經網路行為分析</span>。我們相信 PDC 將成為<span class="hl-thesis">研究者理解、壓縮和改進深度神經網路時的珍貴工具</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——重申核心貢獻並展望未來影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「三個應用」對應先前的承諾，形成完整的論證閉環。以前瞻性語言結尾，暗示 PDC 的影響力將持續擴大。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論段保持了謹慎的措辭（「我們相信」），避免過度宣稱。然而未討論 PDC 的局限性（如特定高維空間中距離度量的退化問題），使結論略顯不完整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- main-container -->
+
+<!-- ==================== 論證結構總覽 ==================== -->
+<div class="main-container">
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>現有表示比較工具<br>缺乏統計嚴謹性</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>PDC 提供統計上<br>有原則的框架</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>三大應用場景<br>跨架構驗證</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>計算效率問題<br>以小批次近似解決</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>PDC 是深度學習<br>表示分析的通用工具</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>偏距離相關性是一個多功能且具統計基礎的工具，能解決現有方法在比較深度學習表示時的關鍵局限，特別是混淆變數的控制問題。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論點</h3>
+                <p>控制輸入後跨架構相似性大幅下降的發現，有力地證明了 PDC 能揭示被既有方法忽略的混淆效應，為模型理解提供了全新視角。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>實驗主要集中在 ImageNet 分類任務和有限的架構上（ResNet、VGG、ViT），PDC 在更大規模模型（如 LLM）或更多樣化任務中的表現尚未充分驗證。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 浮動顏色圖例 ==================== -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9673;</button>
+</div>
+
+</body>
+</html>

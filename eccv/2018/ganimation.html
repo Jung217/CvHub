@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>GANimation — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                GANimation: Anatomically-aware Facial Animation from a Single Image
+                <span class="course-tag">ECCV 2018</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1807.09251" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent advances in <span class="hl-concept">Generative Adversarial Networks (GANs)</span> have shown impressive results for the task of <span class="hl-concept">facial expression synthesis</span>. The most successful approaches are <span class="hl-rebuttal">conditioned on discrete expressions or action units</span>, which limits the variety of generated facial animations. In this paper, we introduce a novel <span class="hl-method">GAN conditioning scheme based on Action Units (AU) annotations</span>, which describes in a <span class="hl-concept">continuous manifold</span> the anatomical facial movements defining human expressions. Our approach allows <span class="hl-thesis">controlling the magnitude of activation of each AU and combining several of them</span>. We also propose a <span class="hl-method">fully unsupervised strategy</span> that only requires images annotated with their activated AUs and exploit <span class="hl-method">attention mechanisms</span> that make our network robust to changing backgrounds and lighting.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">生成對抗網路（GAN）</span>的最新進展在<span class="hl-concept">臉部表情合成</span>任務上展現了令人印象深刻的結果。最成功的方法<span class="hl-rebuttal">以離散表情或動作單元為條件</span>，這限制了生成臉部動畫的多樣性。本文引入一種基於<span class="hl-method">動作單元（AU）標註的新型 GAN 條件化方案</span>，在一個<span class="hl-concept">連續流形</span>上描述定義人類表情的解剖學臉部運動。我們的方法允許<span class="hl-thesis">控制每個 AU 的啟動幅度並組合多個 AU</span>。我們還提出一種<span class="hl-method">完全無監督的策略</span>，僅需帶有已啟動 AU 標註的影像，並利用<span class="hl-method">注意力機制</span>使網路對背景與光照變化具有穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——從離散表情的限制引出連續 AU 控制的創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要精準地定位了三個貢獻：連續 AU 條件化、無監督訓練、注意力機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「離散 vs. 連續」的對比清楚地突出了改進方向。但連續控制的品質是否在所有 AU 組合下都穩定，摘要中未涉及。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Facial expression generation</span> has been a long-standing problem in computer vision and graphics. Previous GAN-based methods like <span class="hl-concept">StarGAN</span> <span class="hl-rebuttal">treat facial expressions as discrete categories</span> (e.g., happy, sad, angry), which cannot capture the richness and subtlety of human expressions. In contrast, the <span class="hl-concept">Facial Action Coding System (FACS)</span> describes expressions through combinations of <span class="hl-concept">Action Units (AUs)</span> — elementary facial muscle movements that can vary in intensity.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">臉部表情生成</span>一直是電腦視覺與圖學中的長期問題。先前基於 GAN 的方法如 <span class="hl-concept">StarGAN</span> <span class="hl-rebuttal">將臉部表情視為離散類別</span>（如開心、悲傷、憤怒），無法擷取人類表情的豐富性與細微差異。相比之下，<span class="hl-concept">臉部動作編碼系統（FACS）</span>透過<span class="hl-concept">動作單元（AU）</span>的組合來描述表情——這些是可在強度上變化的基本臉部肌肉運動。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    背景鋪陳——從離散表情的限制引出 FACS 框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過與 StarGAN 的對比建立研究缺口：離散類別無法表達表情的連續性。FACS 系統提供了更精細的解剖學基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    引用 StarGAN（同為 ECCV/CVPR 的知名工作）作為對比標的，既承認其貢獻又指出改進空間，是有效的學術策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">GANimation</span>, a <span class="hl-thesis">GAN architecture that can generate anatomically-aware facial animations from a single image</span>. Our key contributions are: (1) a conditioning scheme based on <span class="hl-method">continuous AU activations</span> rather than discrete labels; (2) an <span class="hl-method">attention mechanism</span> that focuses changes on face regions while preserving the background; and (3) a <span class="hl-method">fully unsupervised training procedure</span> that does not require paired data of the same person with different expressions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 <span class="hl-concept">GANimation</span>，一種<span class="hl-thesis">能夠從單張影像生成解剖學感知臉部動畫的 GAN 架構</span>。主要貢獻包括：(1) 基於<span class="hl-method">連續 AU 啟動值</span>而非離散標籤的條件化方案；(2) 將變化聚焦於臉部區域同時保留背景的<span class="hl-method">注意力機制</span>；(3) 不需要同一人不同表情配對資料的<span class="hl-method">完全無監督訓練流程</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    貢獻陳述——三項核心創新的清單。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以條列式明確列出三個貢獻，使讀者快速掌握全文結構與價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三個貢獻分別對應「表徵」、「架構」與「訓練」三個層面，覆蓋面完整。但每個貢獻的獨立影響需要消融實驗來驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Conditional image generation</span> has advanced rapidly with models like <span class="hl-concept">Pix2Pix</span>, <span class="hl-concept">CycleGAN</span>, and <span class="hl-concept">StarGAN</span>. For facial expression manipulation, <span class="hl-rebuttal">most methods require paired training data or are limited to discrete expression categories</span>. The <span class="hl-concept">Facial Action Coding System (FACS)</span>, developed by Ekman and Friesen, defines 30+ Action Units that can describe virtually any anatomically possible facial expression. <span class="hl-concept">AU detection</span> has matured as a field, providing reliable AU annotations that we leverage as conditioning signals.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">條件式影像生成</span>隨著 <span class="hl-concept">Pix2Pix</span>、<span class="hl-concept">CycleGAN</span> 與 <span class="hl-concept">StarGAN</span> 等模型的出現而快速進步。對於臉部表情操控，<span class="hl-rebuttal">大多數方法需要配對訓練資料或受限於離散表情類別</span>。由 Ekman 與 Friesen 開發的<span class="hl-concept">臉部動作編碼系統（FACS）</span>定義了 30 多個動作單元，幾乎可以描述任何解剖學上可能的臉部表情。<span class="hl-concept">AU 偵測</span>作為一個領域已趨成熟，提供了可靠的 AU 標註供我們作為條件化信號使用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻綜述——定位本文在影像生成與臉部分析的交叉點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立兩個研究脈絡的交匯：GAN 影像生成 + FACS 臉部編碼，為 GANimation 的跨域結合提供基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 FACS 的成熟性作為方法可行性的背書，是借助領域知識的策略。但 AU 自動偵測的精度直接限制了生成品質的上限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The generator G takes as input an image I and a target AU vector y_t, and produces the output image <span class="hl-method">G(I | y_t)</span>. Critically, the generator produces two outputs: a <span class="hl-method">color mask C</span> and an <span class="hl-method">attention mask A</span>. The final image is computed as <span class="hl-method">I_out = A * C + (1 - A) * I</span>, where the attention mask determines which regions should change. This <span class="hl-thesis">attention mechanism preserves the background and focuses changes on the face</span>, resulting in more realistic and artifact-free results.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                生成器 G 接受影像 I 與目標 AU 向量 y_t 作為輸入，產出影像 <span class="hl-method">G(I | y_t)</span>。關鍵的是，生成器產出兩個輸出：一個<span class="hl-method">顏色遮罩 C</span> 與一個<span class="hl-method">注意力遮罩 A</span>。最終影像計算為 <span class="hl-method">I_out = A * C + (1 - A) * I</span>，其中注意力遮罩決定哪些區域應該改變。這種<span class="hl-thesis">注意力機制保留了背景並將變化聚焦於臉部</span>，產生更逼真且無偽影的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心架構——注意力導向的生成機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    注意力遮罩是全文的技術亮點：將「全域影像修改」簡化為「局部臉部編輯」，大幅提升生成品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    A * C + (1-A) * I 的公式簡潔直觀。但注意力遮罩的學習是否穩定、是否會出現注意力崩塌的問題值得探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The training objective combines four losses: (1) an <span class="hl-method">adversarial loss</span> with a conditional discriminator D(I, y) that evaluates both realism and AU consistency; (2) a <span class="hl-method">cycle consistency loss</span> that ensures applying the inverse AU transformation recovers the original image; (3) a <span class="hl-method">self-reconstruction loss</span> that enforces identity preservation when conditioning on the same AUs; and (4) an <span class="hl-method">attention regularization loss</span> that prevents the attention mask from becoming trivially all ones.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練目標結合了四個損失：(1) 帶有條件判別器 D(I, y) 的<span class="hl-method">對抗損失</span>，同時評估真實性與 AU 一致性；(2) <span class="hl-method">循環一致性損失</span>，確保施加反向 AU 變換可恢復原始影像；(3) <span class="hl-method">自重建損失</span>，當以相同 AU 為條件時強制保持身分；(4) <span class="hl-method">注意力正則化損失</span>，防止注意力遮罩退化為全一值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    損失函數設計——四項損失的組合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    每個損失對應一個具體的品質要求，形成多約束最佳化的完整框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    四個損失的權重平衡是實作的關鍵，但論文中可能未充分討論超參數敏感度。循環一致性損失借鑒自 CycleGAN 的已驗證概念。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate GANimation on the <span class="hl-evidence">EmotioNet dataset</span> containing over <span class="hl-evidence">one million in-the-wild face images</span> with AU annotations. Qualitative results demonstrate that our method generates <span class="hl-evidence">high-quality facial animations with smooth transitions between different AU activations</span>. Compared to StarGAN, our method produces <span class="hl-evidence">fewer visual artifacts, better preserves identity, and enables continuous expression control</span> rather than being limited to discrete categories.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">EmotioNet 資料集</span>上評估 GANimation，該資料集包含超過<span class="hl-evidence">一百萬張帶有 AU 標註的自然場景人臉影像</span>。定性結果顯示我們的方法能<span class="hl-evidence">生成高品質的臉部動畫，在不同 AU 啟動值之間有平滑的過渡</span>。與 StarGAN 相比，我們的方法<span class="hl-evidence">產生更少的視覺偽影、更好地保持身分，並能進行連續表情控制</span>，而非受限於離散類別。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    主要實驗——定性與對比結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以大規模自然場景資料集驗證方法的實用性，並直接與 StarGAN 進行視覺比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    定性結果雖直觀但主觀性較強。定量指標（如 FID、AU 偵測精度）的補充會使論證更具說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Quantitative evaluation using <span class="hl-evidence">Amazon Mechanical Turk user studies</span> shows that our method achieves <span class="hl-evidence">68.2% preference rate</span> over StarGAN in terms of expression accuracy and <span class="hl-evidence">73.1% preference rate</span> in terms of image quality. The <span class="hl-evidence">attention mechanism ablation</span> confirms its critical role: removing it increases background artifacts by <span class="hl-evidence">47%</span> and reduces identity preservation scores significantly.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用 <span class="hl-evidence">Amazon Mechanical Turk 使用者研究</span>的定量評估顯示，在表情準確度方面我們的方法達到 <span class="hl-evidence">68.2% 的偏好率</span>優於 StarGAN，在影像品質方面達到 <span class="hl-evidence">73.1% 的偏好率</span>。<span class="hl-evidence">注意力機制的消融實驗</span>確認了其關鍵作用：移除它使背景偽影增加 <span class="hl-evidence">47%</span>，並顯著降低身分保持分數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量評估——使用者研究與消融實驗。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以人類偏好為指標補充定量證據，消融實驗驗證注意力機制的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用者研究是生成模型評估的黃金標準，但樣本量與評估者品質可能影響結論的可靠性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have introduced <span class="hl-concept">GANimation</span>, a novel approach for <span class="hl-thesis">anatomically-aware facial animation that operates in a continuous AU space</span>. Our attention-based generator enables <span class="hl-thesis">fine-grained control over facial expressions while preserving identity and background</span>. The fully unsupervised training makes our method practical for real-world applications. Future work includes extending the framework to <span class="hl-rebuttal">video sequences and full-body animation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們介紹了 <span class="hl-concept">GANimation</span>，一種<span class="hl-thesis">在連續 AU 空間中運作的解剖學感知臉部動畫</span>新方法。基於注意力的生成器實現了<span class="hl-thesis">臉部表情的精細控制，同時保持身分與背景</span>。完全無監督的訓練使方法適用於真實世界的應用。未來工作包括將框架擴展至<span class="hl-rebuttal">影片序列與全身動畫</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申貢獻與未來展望。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論簡潔地回顧了三個核心貢獻，並以視訊與全身動畫的展望結尾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    未來方向的提出既展現了方法的擴展性，也坦誠了目前的局限（僅處理單張影像）。時間一致性是影片擴展的主要挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                離散表情控制<br>缺乏連續性與<br>精細度
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                連續 AU 條件化<br>+ 注意力機制<br>實現精細控制
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                使用者偏好 68-73%<br>注意力消融 +47%<br>偽影
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                AU 偵測品質<br>影響生成上限<br>僅限單張影像
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                解剖學感知的<br>連續臉部動畫<br>無監督可訓練
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過在連續動作單元空間中條件化 GAN 並結合注意力機制，GANimation 能從單張影像生成解剖學一致的、可精細控制的臉部動畫。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>注意力導向的局部編輯：</strong>A * C + (1-A) * I 的公式使得生成器只需學習臉部區域的變化，大幅降低了學習難度並消除了背景偽影。消融實驗中 47% 的偽影增加清楚地證明了此設計的關鍵性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>評估的主觀性：</strong>主要依賴使用者研究與定性比較，缺乏如 FID、IS 等標準生成品質指標的系統性評估。此外，連續 AU 控制在極端啟動值（非常強或非常弱）下的穩定性未被充分探討。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

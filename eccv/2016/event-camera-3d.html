@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Real-Time 3D Reconstruction and 6-DoF Tracking with an Event Camera — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Real-Time 3D Reconstruction and 6-DoF Tracking with an Event Camera
+                <span class="course-tag">ECCV 2016</span>
+                <span class="best-paper-badge">Best Paper Award</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://link.springer.com/chapter/10.1007/978-3-319-46466-4_21" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-event">2. 事件相機模型</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a method for simultaneous <span class="hl-thesis">real-time 3D reconstruction and 6-DoF camera tracking using a single event camera</span>. <span class="hl-concept">Event cameras</span> are novel bio-inspired vision sensors that output pixel-level brightness changes asynchronously, offering advantages such as <span class="hl-evidence">very high dynamic range (140 dB), microsecond-level temporal resolution, and very low power consumption</span>. Unlike standard cameras, they do not suffer from motion blur and can operate in extreme lighting conditions. We propose a <span class="hl-method">probabilistic framework that jointly estimates the camera motion and a semi-dense 3D map of the scene from a stream of events</span>. Our method operates in real-time at <span class="hl-evidence">over 300 Hz</span> and demonstrates robust performance in scenarios where conventional cameras fail, such as high-speed motion and high dynamic range scenes.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種使用單一事件相機同時進行<span class="hl-thesis">即時三維重建與六自由度相機追蹤</span>的方法。<span class="hl-concept">事件相機</span>是一種新型仿生視覺感測器，以非同步方式輸出像素級亮度變化，具有<span class="hl-evidence">極高動態範圍（140 dB）、微秒級時間解析度和極低功耗</span>等優勢。與標準相機不同，它不受運動模糊影響，且可在極端光線條件下運作。我們提出一個<span class="hl-method">從事件流中聯合估計相機運動和場景半稠密三維地圖的機率框架</span>。方法以<span class="hl-evidence">超過 300 Hz</span> 的速率即時運作，在傳統相機失效的場景（如高速運動和高動態範圍場景）中展現穩健性能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>介紹事件相機的獨特優勢並提出聯合三維重建與追蹤方法。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以事件相機的物理優勢作為方法論創新的基礎。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>140 dB 動態範圍和 300 Hz 的數據令人印象深刻，但事件相機的可得性和成本是實際應用的限制因素。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Simultaneous localization and mapping (SLAM) is a fundamental problem in robotics and computer vision. <span class="hl-rebuttal">Traditional frame-based SLAM systems are limited by the characteristics of conventional cameras: they suffer from motion blur at high speeds, have limited dynamic range, and consume significant power</span>. <span class="hl-concept">Event cameras</span>, such as the <span class="hl-concept">Dynamic Vision Sensor (DVS)</span>, represent a paradigm shift in visual sensing. Rather than capturing frames at a fixed rate, each pixel independently and asynchronously reports brightness changes as they occur. This results in a <span class="hl-thesis">continuous stream of events with microsecond resolution, enabling perception at speeds unattainable by standard cameras</span>. We present the first system that achieves real-time 3D reconstruction and full 6-DoF tracking using only events.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                同步定位與建圖（SLAM）是機器人學和電腦視覺中的基礎問題。<span class="hl-rebuttal">傳統基於幀的 SLAM 系統受限於傳統相機的特性：在高速下會產生運動模糊、動態範圍有限且功耗較高</span>。<span class="hl-concept">事件相機</span>，如<span class="hl-concept">動態視覺感測器（DVS）</span>，代表了視覺感知的範式轉移。每個像素獨立且非同步地報告亮度變化的發生，而非以固定速率擷取幀。這產生了一個<span class="hl-thesis">具有微秒解析度的連續事件流，使得標準相機無法達到的速度感知成為可能</span>。我們提出了第一個僅使用事件即可實現即時三維重建和完整六自由度追蹤的系統。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section"><span class="ann-label">段落功能</span>對比傳統相機的局限與事件相機的革命性優勢。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「範式轉移」定位事件相機的技術意義，為「第一個」系統的宣稱鋪路。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>「第一個」的宣稱建立在嚴格定義的範疇（僅事件+即時+3D+6DoF）上，具有學術嚴謹性。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-event">2. Event Camera Model — 事件相機模型</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                An <span class="hl-concept">event camera</span> generates events asynchronously whenever the change in log intensity at a pixel exceeds a threshold C: <span class="hl-method">an event e = (x, y, t, p) is triggered when |log I(x,y,t) - log I(x,y,t-dt)| >= C</span>, where p is the polarity (sign of the change). This model has several key properties: (i) <span class="hl-evidence">no redundant information is transmitted</span> — only changing pixels generate events; (ii) the temporal resolution is in the order of <span class="hl-evidence">microseconds</span>, independent of scene illumination; (iii) the dynamic range exceeds <span class="hl-evidence">140 dB</span>, compared to about 60 dB for standard cameras. These properties make event cameras ideal for robotics applications where fast, low-power, and robust perception is needed.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">事件相機</span>在像素的對數強度變化超過閾值 C 時非同步生成事件：<span class="hl-method">當 |log I(x,y,t) - log I(x,y,t-dt)| >= C 時觸發事件 e = (x, y, t, p)</span>，其中 p 是極性（變化的正負號）。此模型具有幾個關鍵特性：(i) <span class="hl-evidence">不傳輸冗餘資訊</span> — 只有變化的像素才會產生事件；(ii) 時間解析度在<span class="hl-evidence">微秒</span>量級，與場景照明無關；(iii) 動態範圍超過 <span class="hl-evidence">140 dB</span>，相比標準相機的約 60 dB。這些特性使事件相機非常適合需要快速、低功耗和穩健感知的機器人應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>形式化定義事件相機的數學模型與物理特性。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>為後續的演算法設計提供感測器模型的精確數學基礎。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以量化對比（140 dB vs 60 dB）清楚展示了事件相機的性能優勢。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our approach uses a <span class="hl-method">probabilistic generative model</span> that relates the observed events to the camera motion and scene structure. We formulate the problem as <span class="hl-method">maximum likelihood estimation</span>, where we jointly optimize the camera trajectory (parameterized as a continuous-time spline) and a semi-dense 3D map. The map is represented as a collection of <span class="hl-concept">3D points with associated normal vectors</span>. Events are processed in small batches, and for each batch we perform <span class="hl-method">interleaved optimization of the camera pose and the map</span>. The key insight is that event generation can be predicted from the camera motion and scene geometry, enabling a photometric-style error formulation adapted to the event stream.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的方法使用<span class="hl-method">機率生成模型</span>，將觀測到的事件與相機運動和場景結構關聯起來。將問題公式化為<span class="hl-method">最大似然估計</span>，聯合最佳化相機軌跡（以連續時間樣條參數化）和半稠密三維地圖。地圖表示為一組<span class="hl-concept">帶有關聯法向量的三維點</span>。事件以小批次處理，對每個批次執行<span class="hl-method">相機姿態和地圖的交替最佳化</span>。關鍵洞見在於事件生成可以從相機運動和場景幾何預測，使得適配事件流的光度式誤差公式化成為可能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>描述聯合最佳化框架的核心設計。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>將事件相機的非傳統資料格式轉化為可求解的最佳化問題。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>交替最佳化是成熟的策略，但收斂性保證在非凸問題中需要更多分析。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate our system on both <span class="hl-evidence">synthetic and real-world datasets</span>. On synthetic sequences, we achieve <span class="hl-evidence">sub-millimeter accuracy in 3D reconstruction and sub-degree accuracy in rotation estimation</span>. On real-world sequences captured with a DVS128 event camera, the system runs at <span class="hl-evidence">over 300 Hz on a single CPU core</span>, demonstrating true real-time performance. We show qualitative results on challenging scenarios including <span class="hl-evidence">rapid camera rotation and scenes with extreme lighting variations</span>. In comparison with frame-based methods, our approach maintains accuracy in conditions where <span class="hl-rebuttal">conventional cameras produce completely unusable images due to motion blur or over/under-exposure</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在<span class="hl-evidence">合成和真實世界資料集</span>上評估系統。在合成序列上，達到<span class="hl-evidence">亞毫米級三維重建精度和亞度數級旋轉估計精度</span>。在使用 DVS128 事件相機擷取的真實世界序列上，系統在<span class="hl-evidence">單一 CPU 核心上以超過 300 Hz</span> 運行，展現真正的即時性能。我們展示了包括<span class="hl-evidence">快速相機旋轉和極端光線變化場景</span>在內的挑戰性場景的定性結果。與基於幀的方法相比，我們的方法在<span class="hl-rebuttal">傳統相機因運動模糊或過曝/欠曝而產生完全不可用影像</span>的條件下仍能保持精度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>報告合成與真實資料的定量與定性結果。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以極端場景的成功表現驗證事件相機的獨特價值。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>選擇傳統相機「完全失敗」的場景進行對比，最大化了事件相機的優勢展示。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusions — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented the <span class="hl-thesis">first real-time system for simultaneous 3D reconstruction and 6-DoF tracking using only an event camera</span>. Our probabilistic framework effectively exploits the unique properties of event cameras — high temporal resolution, high dynamic range, and low latency — to achieve performance that is impossible with conventional cameras. The system opens new possibilities for <span class="hl-thesis">visual perception in extreme conditions that are relevant for fast-moving robots, autonomous vehicles, and other demanding applications</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了<span class="hl-thesis">第一個僅使用事件相機進行即時同步三維重建和六自由度追蹤的系統</span>。我們的機率框架有效利用了事件相機的獨特特性——高時間解析度、高動態範圍和低延遲——實現了傳統相機無法達到的性能。該系統為<span class="hl-thesis">快速移動機器人、自動駕駛車輛和其他高要求應用中極端條件下的視覺感知</span>開闢了新的可能性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>重申開創性貢獻並展望應用前景。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以應用場景（機器人、自駕車）提升論文的實際影響力。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>作為 Best Paper，其開創性在於將事件相機推向完整的 SLAM 應用，但事件相機的市場普及度仍是障礙。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>傳統相機在極端條件失效</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>事件相機+機率框架</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>300Hz即時+亞毫米精度</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>傳統相機完全失效場景</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>開拓極端視覺感知</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>利用事件相機的非同步、高時間解析度和高動態範圍特性，建構了第一個即時事件驅動的三維重建與六自由度追蹤系統。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>在傳統相機完全失效的極端場景（高速運動、極端光線）中仍能維持亞毫米精度，具有不可取代的應用價值。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>事件相機硬體的成本和普及度限制了方法的廣泛應用，且在靜態或緩慢變化場景中事件相機反而缺乏資訊。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9670;</button>
+</div>
+
+</body>
+</html>

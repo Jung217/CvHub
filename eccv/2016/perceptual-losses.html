@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Perceptual Losses for Real-Time Style Transfer and Super-Resolution — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Perceptual Losses for Real-Time Style Transfer and Super-Resolution
+                <span class="course-tag">ECCV 2016</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1603.08155" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-style">3. 風格遷移</a>
+        <a href="#sec-sr">4. 超解析度</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We consider <span class="hl-concept">image transformation problems</span>, where an input image is transformed into an output image. Recent methods for such problems typically train <span class="hl-concept">feed-forward convolutional neural networks</span> using a <span class="hl-rebuttal">per-pixel loss function</span> between the output and ground-truth images. Parallel work has shown that <span class="hl-thesis">high-quality images can be generated by defining and optimizing perceptual loss functions based on high-level features extracted from pretrained networks</span>. We combine the benefits of both approaches, and propose the use of <span class="hl-method">perceptual loss functions for training feed-forward networks for image transformation tasks</span>. We show results on two tasks: <span class="hl-evidence">style transfer, where we achieve comparable performance to the optimization-based method of Gatys et al. but are three orders of magnitude faster</span>, and <span class="hl-evidence">single-image super-resolution, where we show that replacing a per-pixel loss with a perceptual loss gives visually more pleasing results</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們考慮<span class="hl-concept">影像轉換問題</span>，其中輸入影像被轉換為輸出影像。此類問題的近期方法通常使用輸出與真實影像之間的<span class="hl-rebuttal">逐像素損失函數</span>來訓練<span class="hl-concept">前饋摺積神經網路</span>。平行研究已表明，<span class="hl-thesis">透過定義和最佳化基於預訓練網路提取的高階特徵的感知損失函數，可以生成高品質影像</span>。我們結合兩種方法的優勢，提出使用<span class="hl-method">感知損失函數來訓練用於影像轉換任務的前饋網路</span>。我們在兩項任務上展示結果：<span class="hl-evidence">風格遷移中，達到與 Gatys 等人基於最佳化方法相當的效能，但速度快三個數量級</span>；以及<span class="hl-evidence">單影像超解析度中，以感知損失取代逐像素損失能給出視覺上更令人滿意的結果</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>提出「感知損失 + 前饋網路」的統一框架，並列出兩項應用。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>整合兩個平行研究方向（前饋速度 vs 感知品質），建立本文的創新點。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>「三個數量級」的加速宣稱極具衝擊力，精確量化了速度優勢。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Many classic problems in computer vision can be framed as image transformation tasks, where a system receives some input image and transforms it into an output image. Each of these tasks can be addressed with convolutional neural networks. A common approach is to train a feed-forward CNN using a <span class="hl-rebuttal">per-pixel loss function that measures the difference between the output and ground-truth</span>. Although such approaches produce reasonable results, <span class="hl-thesis">per-pixel losses do not capture perceptual differences between output and ground-truth images</span>. Two images that are perceptually quite different may have a small per-pixel loss, and two images that are perceptually very similar may have a large per-pixel loss. Recently, <span class="hl-concept">Gatys et al.</span> showed that neural style transfer can be performed using optimization to find an image that minimizes a perceptual loss; however this optimization process is <span class="hl-rebuttal">very slow, requiring hundreds of iterations of forward and backward passes through a pretrained network</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                電腦視覺中的許多經典問題都可以被框架為影像轉換任務，系統接收某個輸入影像並將其轉換為輸出影像。每項任務都可以用摺積神經網路來處理。常見的方法是使用<span class="hl-rebuttal">逐像素損失函數來訓練前饋 CNN，衡量輸出與真實值之間的差異</span>。雖然此類方法能產生合理的結果，但<span class="hl-thesis">逐像素損失無法捕捉輸出與真實影像之間的感知差異</span>。兩張在感知上截然不同的影像可能有很小的逐像素損失，而兩張在感知上非常相似的影像可能有很大的逐像素損失。近期，<span class="hl-concept">Gatys 等人</span>展示了神經風格遷移可以透過最佳化找到最小化感知損失的影像來實現；然而，此最佳化過程<span class="hl-rebuttal">非常緩慢，需要預訓練網路數百次的前向和反向傳遞</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section"><span class="ann-label">段落功能</span>指出逐像素損失的根本缺陷與 Gatys 方法的速度瓶頸。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>建立雙重問題（品質 vs 速度），為統一解決方案鋪路。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以逐像素損失的反直覺案例（感知不同但損失小）有效說明了問題的嚴重性。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our system consists of two components: an <span class="hl-concept">image transformation network f_W</span> and a <span class="hl-concept">loss network phi</span> that is used to define several loss functions. The image transformation network is a deep residual CNN parameterized by weights W; it transforms input images x into output images y = f_W(x). The loss network phi is used to define a <span class="hl-method">feature reconstruction loss</span> l_feat and a <span class="hl-method">style reconstruction loss</span> l_style. For each input image x, we have a content target y_c and a style target y_s. For style transfer, the content target is the input image itself and the style target is a fixed style image. The <span class="hl-method">feature reconstruction loss is the (squared, normalized) Euclidean distance between feature representations</span>: l_feat = ||phi_j(y) - phi_j(y_c)||^2. The <span class="hl-method">style reconstruction loss is based on the Gram matrices</span> of the feature maps.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的系統由兩個組件構成：<span class="hl-concept">影像轉換網路 f_W</span> 和用於定義多個損失函數的<span class="hl-concept">損失網路 phi</span>。影像轉換網路是以權重 W 參數化的深度殘差 CNN，將輸入影像 x 轉換為輸出影像 y = f_W(x)。損失網路 phi 用於定義<span class="hl-method">特徵重建損失</span> l_feat 和<span class="hl-method">風格重建損失</span> l_style。對於每個輸入影像 x，我們有內容目標 y_c 和風格目標 y_s。在風格遷移中，內容目標就是輸入影像本身，風格目標是固定的風格影像。<span class="hl-method">特徵重建損失是特徵表示之間的（平方、正規化）歐氏距離</span>：l_feat = ||phi_j(y) - phi_j(y_c)||^2。<span class="hl-method">風格重建損失基於特徵圖的 Gram 矩陣</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>描述雙網路架構與兩種感知損失的數學定義。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>將抽象的「感知損失」概念落實為可計算的數學公式。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>損失網路（VGG）作為固定的感知評估器，巧妙地利用了預訓練特徵的語義表示能力。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-style">3. Style Transfer — 風格遷移</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For style transfer, we train one network per style. Once trained, the network can stylize any input image in a <span class="hl-evidence">single forward pass, taking approximately 20 milliseconds for a 256x256 image</span>, compared to the <span class="hl-evidence">tens of seconds required by the optimization-based approach of Gatys et al.</span>. The results are qualitatively comparable to those produced by the optimization approach. Our trained networks successfully capture the texture, color, and compositional patterns of the target style while maintaining the high-level structure of the content image. We use a <span class="hl-method">network architecture based on residual blocks</span>, with two stride-2 convolutions for downsampling, followed by five residual blocks and two fractionally-strided convolutions for upsampling.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在風格遷移中，我們為每種風格訓練一個網路。訓練完成後，網路能以<span class="hl-evidence">單次前向傳遞將任意輸入影像風格化，處理一張 256x256 影像約需 20 毫秒</span>，相比 <span class="hl-evidence">Gatys 等人基於最佳化方法所需的數十秒</span>。結果在品質上與最佳化方法產生的結果相當。我們訓練的網路成功捕捉了目標風格的紋理、色彩和構圖模式，同時保持了內容影像的高階結構。我們使用<span class="hl-method">基於殘差區塊的網路架構</span>，包含兩個步幅為 2 的摺積用於降取樣，接著五個殘差區塊和兩個分數步幅摺積用於升取樣。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>報告風格遷移的速度與品質結果。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以量化的速度對比（20ms vs 數十秒）驗證「三個數量級加速」的宣稱。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>「品質相當但快 1000 倍」是極強的實用性論證，但每種風格需要單獨訓練一個網路是明顯的局限。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-sr">4. Super-Resolution — 超解析度</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">single-image super-resolution</span>, we train networks with upsampling factors of <span class="hl-evidence">x4 and x8</span>. We compare our perceptual loss approach against standard per-pixel loss (MSE). While per-pixel loss achieves <span class="hl-evidence">higher PSNR values</span>, the results tend to be <span class="hl-rebuttal">blurry and lack fine detail</span>. In contrast, our perceptual loss produces <span class="hl-evidence">sharper images with more plausible high-frequency detail</span>, even though the PSNR may be slightly lower. This observation aligns with the growing recognition that <span class="hl-thesis">PSNR and per-pixel metrics do not always correlate well with human perceptual quality</span>. The super-resolution network uses the same architecture as the style transfer network but with different loss functions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-concept">單影像超解析度</span>中，我們訓練了升取樣因子為 <span class="hl-evidence">4 倍和 8 倍</span>的網路。將感知損失方法與標準逐像素損失（MSE）進行比較。雖然逐像素損失達到<span class="hl-evidence">更高的 PSNR 值</span>，但結果往往<span class="hl-rebuttal">模糊且缺乏精細細節</span>。相比之下，感知損失產生<span class="hl-evidence">更銳利且具有更合理高頻細節的影像</span>，即使 PSNR 可能略低。此觀察與越來越多的認知一致：<span class="hl-thesis">PSNR 和逐像素指標並不總是與人類感知品質有良好的相關性</span>。超解析度網路使用與風格遷移網路相同的架構，但損失函數不同。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>展示感知損失在超解析度任務中的優勢。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>第二項應用驗證了感知損失框架的通用性。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>挑戰 PSNR 作為品質指標的適切性，這一論點在後續的超解析度研究中得到了廣泛認同。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusions — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we have combined the benefits of <span class="hl-method">feed-forward image transformation networks and optimization-based image generation</span> by training feed-forward networks with <span class="hl-thesis">perceptual loss functions that depend on high-level features from a pretrained loss network</span>. We have demonstrated compelling results on <span class="hl-evidence">style transfer and single-image super-resolution</span>, showing that perceptual losses produce results that are visually superior to those trained with per-pixel losses alone. Our method enables <span class="hl-thesis">real-time style transfer and super-resolution</span>, making these techniques practical for interactive applications. We believe that the ideas presented here are applicable to a broad range of image transformation tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在本工作中，我們結合了<span class="hl-method">前饋影像轉換網路和基於最佳化的影像生成</span>的優勢，以<span class="hl-thesis">依賴預訓練損失網路高階特徵的感知損失函數</span>來訓練前饋網路。我們在<span class="hl-evidence">風格遷移和單影像超解析度</span>上展示了引人注目的結果，表明感知損失產生的結果在視覺上優於僅使用逐像素損失訓練的結果。我們的方法實現了<span class="hl-thesis">即時風格遷移與超解析度</span>，使這些技術在互動式應用中變得可行。我們相信此處提出的概念可應用於廣泛的影像轉換任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>總結統一框架的價值並展望廣泛應用。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「實用化」作為收束，強調從學術到應用的跨越。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>適當的泛化展望（廣泛影像轉換任務），但未深入討論方法的局限性。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>逐像素損失品質差<br>最佳化方法速度慢</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>感知損失+前饋網路</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>風格遷移快1000倍<br>超解析度更銳利</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>PSNR 略低但感知更佳</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>即時影像轉換框架</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>以預訓練網路的高階特徵定義感知損失函數來訓練前饋轉換網路，可同時達到高感知品質與即時處理速度。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>風格遷移三個數量級的加速（20ms vs 數十秒），在品質幾乎不妥協的前提下實現即時應用，數據有力支撐實用性主張。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>每種風格需要獨立訓練一個網路，無法處理任意風格的即時遷移，後續的 AdaIN 等方法解決了此限制。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9670;</button>
+</div>
+
+</body>
+</html>

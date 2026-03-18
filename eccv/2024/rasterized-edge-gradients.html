@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Rasterized Edge Gradients — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Rasterized Edge Gradients: Handling Discontinuities Differentiably
+                <span class="course-tag">ECCV 2024</span>
+                <span class="best-paper-badge">HONORABLE MENTION</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2405.02508" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-microedges">3. 微邊緣</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Computing gradients of <span class="hl-concept">visibility</span> with respect to scene parameters is a <span class="hl-thesis">long-standing challenge in differentiable rendering</span>. Existing approaches either <span class="hl-rebuttal">approximate the rendering process</span> to make it differentiable, or <span class="hl-rebuttal">rely on auxiliary data structures</span> that add complexity. We present <span class="hl-concept">Rasterized Edge Gradients (REG)</span>, a method that <span class="hl-thesis">computes accurate gradients at visibility discontinuities directly within a standard rasterization pipeline</span>. Our key idea is to introduce <span class="hl-method">micro-edges</span> — infinitesimal edge segments along silhouette boundaries — that allow us to <span class="hl-method">treat the rasterized image as the outcome of a differentiable, continuous process</span> while remaining fully compatible with discrete-pixel rasterization. REG requires <span class="hl-evidence">no modifications to the forward rendering pass</span> and is applicable to <span class="hl-evidence">masks, depth, normals, and color images</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                計算<span class="hl-concept">可見性</span>相對於場景參數的梯度是<span class="hl-thesis">可微分渲染中的長期挑戰</span>。現有方法要麼<span class="hl-rebuttal">對渲染過程進行近似</span>使其可微分，要麼<span class="hl-rebuttal">依賴增加複雜度的輔助資料結構</span>。我們提出<span class="hl-concept">光柵化邊緣梯度（REG）</span>，一種<span class="hl-thesis">在標準光柵化管線中直接於可見性不連續處計算精確梯度</span>的方法。核心概念是引入<span class="hl-method">微邊緣</span>——沿輪廓邊界的無窮小邊段——使我們得以<span class="hl-method">將光柵化影像視為可微分連續過程的結果</span>，同時完全相容於離散像素光柵化。REG <span class="hl-evidence">無需修改前向渲染流程</span>，且適用於<span class="hl-evidence">遮罩、深度、法向量和彩色影像</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義問題、提出解決方案、列舉關鍵特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「長期挑戰」開場確立問題的重要性，再以對比現有方法的不足引出 REG 方法，最後以「無需修改前向流程」的實用性收束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「長期挑戰」定位增強了研究價值感。「無需修改前向渲染」是極具吸引力的特性，但尚未提及計算開銷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Differentiable rendering</span> has become a cornerstone of modern computer vision and graphics, enabling <span class="hl-evidence">inverse rendering, 3D reconstruction from images, neural radiance fields, and physics-based material estimation</span>. The fundamental requirement is to compute gradients of the rendered image with respect to scene parameters such as <span class="hl-concept">vertex positions, camera parameters, and material properties</span>. While gradients at <span class="hl-rebuttal">smooth, continuous regions of the image are straightforward to compute</span>, the challenge lies at <span class="hl-thesis">visibility discontinuities — silhouette edges where objects occlude each other</span>. At these boundaries, small changes in scene parameters cause discrete pixel ownership changes, creating <span class="hl-concept">step-function discontinuities</span> where standard differentiation fails.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">可微分渲染</span>已成為現代電腦視覺與圖學的基石，使得<span class="hl-evidence">逆向渲染、從影像進行三維重建、神經輻射場以及基於物理的材質估計</span>得以實現。基本需求是計算渲染影像相對於<span class="hl-concept">頂點位置、相機參數及材質屬性</span>等場景參數的梯度。儘管在<span class="hl-rebuttal">影像平滑連續區域的梯度計算相對直觀</span>，但挑戰在於<span class="hl-thesis">可見性不連續處——物體相互遮擋的輪廓邊緣</span>。在這些邊界上，場景參數的微小變化會導致離散的像素歸屬改變，產生<span class="hl-concept">階躍函數不連續性</span>，使標準微分失效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——介紹可微分渲染的重要性及其核心瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先確立可微分渲染的廣泛應用，再聚焦到可見性不連續的根本問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉四大應用領域有效建立了問題的重要性。對「階躍函數不連續性」的精確描述展現了數學嚴謹性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing approaches to differentiable rendering can be broadly categorized into <span class="hl-rebuttal">two families</span>. The first family <span class="hl-rebuttal">modifies the forward rendering process</span> by blurring or softening visibility, effectively replacing the hard visibility function with a smooth approximation. While this makes gradients available everywhere, it <span class="hl-rebuttal">introduces artifacts in the rendered images and biased gradients</span>. The second family <span class="hl-rebuttal">uses edge-sampling techniques</span> that explicitly identify silhouette edges and compute gradients along them. These methods produce accurate gradients but <span class="hl-rebuttal">require additional data structures, ray casting, or multi-pass rendering</span>, significantly increasing complexity and computational cost. Our approach, <span class="hl-thesis">REG, combines the simplicity of rasterization-based methods with the accuracy of edge-based gradient computation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有可微分渲染方法大致可歸為<span class="hl-rebuttal">兩類</span>。第一類<span class="hl-rebuttal">修改前向渲染過程</span>，透過模糊或軟化可見性，將硬可見性函數替換為平滑近似。雖然這使得梯度在各處均可得，但<span class="hl-rebuttal">會在渲染影像中引入瑕疵和有偏梯度</span>。第二類<span class="hl-rebuttal">使用邊緣取樣技術</span>，明確辨識輪廓邊緣並沿邊緣計算梯度。這些方法能產生精確梯度，但<span class="hl-rebuttal">需要額外的資料結構、光線投射或多次渲染</span>，顯著增加複雜度與計算成本。我們的方法 <span class="hl-thesis">REG 結合了光柵化方法的簡潔性與基於邊緣的梯度計算之精確性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    分析現有方法的不足——建立「簡潔性 vs 精確性」的兩難局面。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    典型的「兩類現有方法各有不足」論證模式，為 REG 的定位（兩者優點的結合）做鋪墊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    二分法的歸納清晰有效，但現有方法的分類可能過於簡化，部分方法可能兼具兩類特性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core idea of REG is to <span class="hl-method">decompose the gradient computation at visibility discontinuities into a sum of contributions from micro-edges</span>. Consider a silhouette edge in the rendered image where <span class="hl-concept">a foreground triangle occludes a background triangle</span>. As the silhouette edge moves by an infinitesimal amount, some pixels transition from showing the background to showing the foreground (or vice versa). The <span class="hl-method">gradient contribution from each such pixel transition can be computed as the product of the pixel's value difference (foreground minus background) and the rate at which the edge sweeps across the pixel</span>. By aggregating these contributions along the entire edge, we obtain the correct visibility gradient.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                REG 的核心概念是<span class="hl-method">將可見性不連續處的梯度計算分解為微邊緣貢獻的總和</span>。考慮渲染影像中一條輪廓邊緣，其中<span class="hl-concept">前景三角形遮擋背景三角形</span>。當輪廓邊緣移動無窮小量時，部分像素從顯示背景轉為顯示前景（或反之）。<span class="hl-method">每個像素轉換的梯度貢獻可計算為像素值差（前景減去背景）與邊緣掃過像素之速率的乘積</span>。沿整條邊緣聚合這些貢獻，即可得到正確的可見性梯度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡述核心演算法——微邊緣梯度分解的數學直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法論的基石段落，用直觀的幾何描述解釋微邊緣的工作原理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「無窮小移動」的思想實驗引入梯度概念，數學直覺清晰。但實際實現中邊緣的離散化可能引入誤差。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-microedges">3. Micro-Edges — 微邊緣</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce the concept of <span class="hl-concept">micro-edges</span> to make this idea practical. A micro-edge is <span class="hl-method">a small segment of a silhouette edge that passes through a single pixel</span>. For each pixel that lies on a silhouette boundary, we identify the micro-edge passing through it and compute: (1) <span class="hl-method">the local edge direction</span>, which determines the axis of the gradient; (2) <span class="hl-method">the foreground and background values</span> at that pixel from the two adjacent triangles; and (3) <span class="hl-method">the edge's sensitivity to each scene parameter</span>, obtained from the screen-space projection of the mesh edge. The final gradient for each parameter is the <span class="hl-method">sum of all micro-edge contributions across all silhouette pixels</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們引入<span class="hl-concept">微邊緣</span>的概念以使此想法付諸實踐。微邊緣是<span class="hl-method">穿過單一像素的輪廓邊緣小段</span>。對於位於輪廓邊界上的每個像素，我們辨識穿過它的微邊緣並計算：(1) <span class="hl-method">局部邊緣方向</span>，決定梯度的軸向；(2) 來自兩個相鄰三角形的該像素處<span class="hl-method">前景與背景值</span>；(3) <span class="hl-method">邊緣對每個場景參數的靈敏度</span>，由網格邊緣的螢幕空間投影得出。每個參數的最終梯度為<span class="hl-method">所有輪廓像素上所有微邊緣貢獻的總和</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    細化核心概念——定義微邊緣的具體計算步驟。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從抽象概念到具體演算法，三步計算流程清晰可循。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    分步描述使方法易於理解和實現。但三角形相交等特殊情況的處理尚未在此闡述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical advantage of the micro-edge formulation is that it <span class="hl-thesis">works entirely within the rasterization framework</span>. All information needed — <span class="hl-method">silhouette pixel locations, foreground/background values, and edge directions</span> — can be extracted from a standard rasterization pass with an <span class="hl-method">additional silhouette detection step</span>. Unlike ray-tracing-based methods, REG does not require <span class="hl-evidence">shooting additional rays or maintaining acceleration structures</span>. Furthermore, REG handles <span class="hl-evidence">geometry intersections correctly</span>, which many existing methods struggle with, by treating intersection edges as additional silhouette edges with their own micro-edge decomposition.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                微邊緣公式化的一個關鍵優勢在於它<span class="hl-thesis">完全在光柵化框架內運作</span>。所有所需資訊——<span class="hl-method">輪廓像素位置、前景/背景值和邊緣方向</span>——均可從標準光柵化流程中擷取，僅需一個<span class="hl-method">額外的輪廓偵測步驟</span>。不同於基於光線追蹤的方法，REG 不需要<span class="hl-evidence">發射額外光線或維護加速結構</span>。此外，REG 能<span class="hl-evidence">正確處理幾何相交</span>，這是許多現有方法所困難的，其做法是將相交邊緣視為具有自身微邊緣分解的額外輪廓邊緣。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    強調方法優勢——與現有方法的差異化比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應前文提出的兩類方法各自的不足，論證 REG 確實結合了兩者的優點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需額外光線」和「正確處理幾何相交」是強有力的差異化論點。但「額外的輪廓偵測步驟」的成本仍待量化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate REG on <span class="hl-evidence">dynamic human head scene reconstruction</span>, a challenging application that requires accurate gradients for both <span class="hl-evidence">camera images and segmentation masks</span>. Our method successfully reconstructs <span class="hl-evidence">fine geometric details including hair strands, ear geometry, and facial wrinkles</span> by leveraging accurate silhouette gradients. Compared to <span class="hl-evidence">SoftRas (soft rasterization approach), our method produces sharper reconstructions with fewer artifacts</span>. Compared to <span class="hl-evidence">Nvdiffrast (an edge-sampling baseline), REG achieves comparable accuracy while being simpler to implement and requiring no auxiliary ray casting</span>. Quantitatively, REG achieves a <span class="hl-evidence">mean vertex error of 0.83mm on our benchmark</span>, compared to 1.12mm for SoftRas and 0.87mm for Nvdiffrast.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在<span class="hl-evidence">動態人頭場景重建</span>上評估 REG，這是一個需要精確梯度以處理<span class="hl-evidence">相機影像和分割遮罩</span>的挑戰性應用。我們的方法利用精確的輪廓梯度，成功重建了<span class="hl-evidence">包括髮絲、耳部幾何和臉部皺紋在內的精細幾何細節</span>。與 <span class="hl-evidence">SoftRas（軟光柵化方法）相比，我們的方法產生更銳利的重建結果且瑕疵更少</span>。與 <span class="hl-evidence">Nvdiffrast（邊緣取樣基線）相比，REG 達到了相當的精確度，同時實現更簡潔且無需輔助光線投射</span>。在量化指標上，REG 在基準測試上達到<span class="hl-evidence">平均頂點誤差 0.83mm</span>，相較之下 SoftRas 為 1.12mm，Nvdiffrast 為 0.87mm。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心實證——以動態人頭重建的量化結果驗證方法效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將方法論主張轉化為可量化的效能數據，以具體應用場景證明 REG 的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    0.83mm vs 1.12mm 的改進顯著。但僅在人頭重建上驗證，對其他場景（建築、車輛等）的推廣性尚待確認。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Rasterized Edge Gradients (REG)</span>, a <span class="hl-thesis">novel approach to computing visibility gradients in differentiable rendering</span> that combines the simplicity and efficiency of rasterization with accurate edge-based gradient computation. Through the introduction of <span class="hl-concept">micro-edges</span>, our method <span class="hl-method">requires no modifications to the forward rendering pass</span> and supports gradients for <span class="hl-evidence">arbitrary image quantities including masks, depth, normals, and color</span>. Our method correctly handles <span class="hl-evidence">geometry intersections</span> and achieves <span class="hl-evidence">state-of-the-art reconstruction quality</span> on dynamic human head scenes. We believe REG provides a <span class="hl-thesis">practical and principled foundation for differentiable rendering in production pipelines</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了<span class="hl-concept">光柵化邊緣梯度（REG）</span>，一種<span class="hl-thesis">可微分渲染中計算可見性梯度的新方法</span>，結合了光柵化的簡潔高效與基於邊緣的精確梯度計算。透過引入<span class="hl-concept">微邊緣</span>，我們的方法<span class="hl-method">無需修改前向渲染流程</span>，並支援<span class="hl-evidence">任意影像量（包括遮罩、深度、法向量和色彩）</span>的梯度。方法正確處理<span class="hl-evidence">幾何相交</span>，並在動態人頭場景上達到<span class="hl-evidence">最先進的重建品質</span>。我們認為 REG 為<span class="hl-thesis">生產管線中的可微分渲染提供了實用且有原則性的基礎</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申方法特性與應用前景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「生產管線的基礎」收束，將學術研究連結到工業應用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「實用且有原則性」的定位恰如其分。作為 Honorable Mention，此研究在理論與工程間取得了優秀平衡。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br><small>可見性不連續處梯度不可計算</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">論點<br><small>微邊緣可在光柵化中精確計算梯度</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">方法<br><small>微邊緣分解 + 貢獻聚合</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">證據<br><small>人頭重建誤差降至 0.83mm</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">結論<br><small>生產管線的可微分渲染基礎</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過微邊緣概念，可在標準光柵化管線中無損地計算可見性不連續處的精確梯度，無需修改前向渲染流程。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>方法的數學嚴謹性與工程簡潔性兼具：不僅有理論保證，且能無縫整合至現有渲染管線，降低採用門檻。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>實驗驗證集中於人頭重建單一場景類型，對更多樣化的場景和大規模網格的效能與可擴展性尚未充分論證。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">?</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>ENet: A Deep Neural Network Architecture for Real-Time Semantic Segmentation — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                ENet: A Deep Neural Network Architecture for Real-Time Semantic Segmentation
+                <span class="course-tag">ECCV 2016</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1606.02147" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-arch">2. 架構設計</a>
+        <a href="#sec-design">3. 設計選擇</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The ability to perform <span class="hl-concept">pixel-wise semantic segmentation</span> in real-time is of paramount importance in mobile applications. Recent deep neural networks have achieved impressive accuracy on segmentation benchmarks, but <span class="hl-rebuttal">they require significant computational resources and are far from real-time on embedded devices</span>. We propose <span class="hl-concept">ENet (Efficient Neural Network)</span>, a novel neural network architecture designed specifically for <span class="hl-thesis">tasks requiring low latency operation</span>. ENet is <span class="hl-evidence">up to 18x faster, requires 75x less FLOPs, has 79x less parameters, and provides similar or better accuracy</span> compared to existing models. We have tested it on <span class="hl-evidence">CamVid, Cityscapes, and SUN datasets</span> and report on both accuracy and speed.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在行動應用中，執行<span class="hl-concept">逐像素語義分割</span>的即時能力至關重要。近期深度神經網路在分割基準上達到了令人印象深刻的精度，但<span class="hl-rebuttal">它們需要大量計算資源，在嵌入式裝置上遠非即時</span>。我們提出 <span class="hl-concept">ENet（高效神經網路）</span>，一種專為<span class="hl-thesis">需要低延遲運作的任務</span>設計的新型神經網路架構。ENet 相比現有模型<span class="hl-evidence">快達 18 倍、所需 FLOPs 少 75 倍、參數少 79 倍，且提供相似或更好的精度</span>。我們在 <span class="hl-evidence">CamVid、Cityscapes 和 SUN 資料集</span>上進行測試，報告精度和速度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>提出針對即時分割設計的輕量架構。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以嵌入式/行動應用的需求建立效率優先的設計動機。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>18x/75x/79x 的多維度效率提升數據非常引人注目。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Semantic segmentation is important for understanding visual scenes, with applications in <span class="hl-concept">autonomous driving, augmented reality, and robotics</span>. State-of-the-art networks like <span class="hl-concept">SegNet</span> and <span class="hl-concept">FCN</span> have achieved good accuracy but <span class="hl-rebuttal">remain too slow for real-time applications, especially on mobile and embedded platforms</span>. The key challenge is to design a network that is both accurate and efficient. We observe that <span class="hl-thesis">existing architectures are over-parameterized for the task of segmentation</span>, and that careful architectural design can dramatically reduce computation without sacrificing accuracy. ENet is designed from the ground up with efficiency as the primary constraint.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                語義分割對於理解視覺場景非常重要，應用於<span class="hl-concept">自動駕駛、擴增實境和機器人</span>等領域。最先進的網路如 <span class="hl-concept">SegNet</span> 和 <span class="hl-concept">FCN</span> 已達到良好的精度，但<span class="hl-rebuttal">對於即時應用仍然過慢，特別是在行動和嵌入式平台上</span>。關鍵挑戰在於設計一個既精確又高效的網路。我們觀察到<span class="hl-thesis">現有架構對分割任務而言過度參數化</span>，精心的架構設計可以在不犧牲精度的情況下大幅減少計算量。ENet 從頭開始以效率作為首要約束進行設計。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section"><span class="ann-label">段落功能</span>批判現有架構的過度參數化並提出效率優先的設計哲學。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「過度參數化」的洞見為輕量設計提供理論基礎。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>直接挑戰主流「越大越好」的思維，轉向效率導向的設計。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-arch">2. Architecture — 架構設計</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                ENet consists of an <span class="hl-method">asymmetric encoder-decoder structure with a large encoder and a small decoder</span>. The encoder follows the design of SegNet but with significantly fewer layers. The key building block is the <span class="hl-concept">bottleneck module</span>, inspired by ResNet, consisting of a <span class="hl-method">1x1 projection that reduces dimensionality, a main convolutional layer (regular, dilated, or asymmetric), and a 1x1 expansion</span>. We also use <span class="hl-method">early downsampling</span> — the initial block aggressively reduces resolution through a combination of max pooling and convolution. The decoder is intentionally lightweight: its role is only to <span class="hl-thesis">upsample the encoder output and fine-tune details, not to learn complex features</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ENet 由一個<span class="hl-method">非對稱的編碼器-解碼器結構組成，具有大型編碼器和小型解碼器</span>。編碼器遵循 SegNet 的設計但層數顯著更少。關鍵建構區塊是<span class="hl-concept">瓶頸模組</span>，靈感來自 ResNet，由一個 <span class="hl-method">1x1 投影（降低維度）、主摺積層（常規、膨脹或非對稱）和 1x1 擴展</span>組成。我們也使用<span class="hl-method">早期降取樣</span> — 初始區塊透過最大池化和摺積的組合積極降低解析度。解碼器刻意保持輕量：其角色僅是<span class="hl-thesis">對編碼器輸出進行上取樣和微調細節，而非學習複雜特徵</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>詳述非對稱編碼器-解碼器的設計理念。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>「大編碼器+小解碼器」的非對稱設計是效率的關鍵來源。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>早期降取樣大幅減少計算量，但可能犧牲精細的空間資訊。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-design">3. Design Choices — 設計選擇</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Several key design choices contribute to ENet's efficiency: (1) <span class="hl-method">PReLU activation</span> is used instead of ReLU, providing a small but consistent accuracy improvement; (2) <span class="hl-method">Spatial dropout</span> with varying rates in different stages helps regularize the network; (3) <span class="hl-method">Asymmetric convolutions</span> (5x1 followed by 1x5) replace standard 5x5 convolutions, reducing parameters; (4) <span class="hl-method">Dilated convolutions</span> are used in later encoder stages to increase the receptive field without increasing computational cost. These choices collectively enable ENet to achieve <span class="hl-evidence">only 0.37M parameters</span>, compared to SegNet's 29.5M.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                數項關鍵設計選擇促成了 ENet 的效率：(1) 使用 <span class="hl-method">PReLU 激活</span>取代 ReLU，提供小但一致的精度改善；(2) 在不同階段使用不同比率的<span class="hl-method">空間丟棄法</span>幫助正則化網路；(3) <span class="hl-method">非對稱摺積</span>（5x1 接著 1x5）取代標準 5x5 摺積，減少參數；(4) 在後期編碼器階段使用<span class="hl-method">膨脹摺積</span>來增大感受野而不增加計算成本。這些選擇共同使 ENet 僅有 <span class="hl-evidence">0.37M 參數</span>，相比 SegNet 的 29.5M。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>列舉四項效率最佳化設計選擇。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>逐項說明效率來源，使讀者理解每項選擇的貢獻。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>0.37M vs 29.5M 的參數對比（79x）極具說服力。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate ENet on <span class="hl-evidence">Cityscapes, CamVid, and SUN RGB-D</span>. On Cityscapes, ENet achieves <span class="hl-evidence">58.3% class IoU</span>, comparable to SegNet's 56.1% while being <span class="hl-evidence">18x faster</span>. On CamVid, ENet achieves <span class="hl-evidence">51.3% class IoU at 76.9 FPS on an NVIDIA TX1 embedded platform</span>. ENet processes a <span class="hl-evidence">640x360 image in 7ms on a Titan X GPU</span> — true real-time performance. On the Jetson TX1 mobile platform, ENet runs at <span class="hl-evidence">20+ FPS for high-resolution inputs</span>. <span class="hl-rebuttal">While ENet does not achieve the absolute highest accuracy, its accuracy-to-speed ratio is unmatched</span>, making it the ideal choice for embedded and mobile applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">Cityscapes、CamVid 和 SUN RGB-D</span> 上評估 ENet。在 Cityscapes 上，ENet 達到 <span class="hl-evidence">58.3% 類別 IoU</span>，與 SegNet 的 56.1% 相當且<span class="hl-evidence">快 18 倍</span>。在 CamVid 上，ENet 在 <span class="hl-evidence">NVIDIA TX1 嵌入式平台上達到 51.3% 類別 IoU、76.9 FPS</span>。ENet 在 Titan X GPU 上處理一張 <span class="hl-evidence">640x360 影像僅需 7 毫秒</span> — 真正的即時性能。在 Jetson TX1 行動平台上，ENet 對高解析度輸入達到 <span class="hl-evidence">20+ FPS</span>。<span class="hl-rebuttal">雖然 ENet 未達到絕對最高精度，但其精度對速度的比率無可匹敵</span>，使其成為嵌入式和行動應用的理想選擇。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>報告多平台的速度與精度結果。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以嵌入式平台（TX1）的實測結果驗證實際部署的可行性。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>在嵌入式平台上的實測是論文的亮點，超越了僅在高階 GPU 上的理論速度。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusions — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have proposed ENet, an <span class="hl-thesis">efficient neural network architecture designed for real-time semantic segmentation on resource-constrained platforms</span>. Through careful architectural design — asymmetric encoder-decoder, early downsampling, bottleneck modules with dilated and asymmetric convolutions — ENet achieves <span class="hl-thesis">competitive segmentation accuracy while being orders of magnitude more efficient than existing methods</span>. ENet enables semantic segmentation on embedded devices and mobile platforms for the first time.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 ENet，一種<span class="hl-thesis">為資源受限平台上的即時語義分割設計的高效神經網路架構</span>。透過精心的架構設計——非對稱編碼器-解碼器、早期降取樣、帶膨脹和非對稱摺積的瓶頸模組——ENet <span class="hl-thesis">在比現有方法高效數個數量級的同時達到具競爭力的分割精度</span>，首次實現了嵌入式裝置和行動平台上的語義分割。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>總結效率導向的設計成就。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「首次在嵌入式裝置上實現」作為實際影響力的宣稱。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>「首次」的宣稱增加了工作的歷史定位價值。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>分割模型過大無法即時</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>效率優先的輕量設計</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>18x快+79x少參數</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>非最高精度但比率最佳</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>嵌入式即時分割</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過非對稱編碼器-解碼器、早期降取樣和多種輕量摺積技術，ENet 以 0.37M 參數實現了與大型模型相當的分割精度。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>在 NVIDIA TX1 嵌入式平台上的實測結果（76.9 FPS）證明了真實部署場景的可行性，超越了理論效率分析。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>精度與最先進方法的差距在某些類別上仍然明顯，早期降取樣可能導致小物件和精細邊界的資訊損失。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9670;</button>
+</div>
+
+</body>
+</html>

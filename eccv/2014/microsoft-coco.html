@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Microsoft COCO — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Microsoft COCO: Common Objects in Context
+                <span class="course-tag">ECCV 2014</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1405.0312" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-dataset">3. 資料集設計</a>
+        <a href="#sec-experiments">4. 實驗與評估</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a new large-scale dataset for <span class="hl-thesis">advancing the state of the art in object recognition by placing the question of recognition in the context of the broader question of scene understanding</span>. This is achieved by gathering images of complex everyday scenes containing <span class="hl-concept">common objects in their natural context</span>. Objects are labeled using <span class="hl-method">per-instance segmentations</span> to aid in precise object localization. Our dataset contains <span class="hl-evidence">photos of 91 object types that would be easily recognizable by a 4 year old</span>. With a total of <span class="hl-evidence">2.5 million labeled instances in 328k images</span>, the creation of our dataset drew upon extensive crowd worker involvement.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一個新的大規模資料集，旨在<span class="hl-thesis">將辨識問題置於場景理解的更廣泛脈絡中，以推進物件辨識的技術水準</span>。這是透過收集包含<span class="hl-concept">自然場景中常見物件</span>的複雜日常場景影像來實現的。物件使用<span class="hl-method">逐實例分割</span>進行標記，以輔助精確的物件定位。我們的資料集包含 <span class="hl-evidence">91 種連四歲小孩都能輕易辨識的物件類型</span>，共有<span class="hl-evidence">328,000 張影像中 250 萬個已標記實例</span>，資料集的建立倚賴了大量群眾工作者的參與。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    開宗明義宣示資料集的核心理念：將物件辨識放在場景理解的脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以數字說話——91 類物件、250 萬實例、328K 影像——建立規模上的信服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「四歲小孩都能辨識」是極具修辭力的比喻，暗示資料集聚焦於基礎視覺能力而非罕見物件。但 91 類相較 ImageNet 的 1,000+ 類仍然偏少。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                One of the primary goals of computer vision is the <span class="hl-thesis">understanding of visual scenes</span>. Scene understanding involves numerous tasks including <span class="hl-concept">recognizing what objects are present, localizing the objects in 2D and 3D, determining the objects' and scene's attributes, characterizing relationships between objects and providing a semantic description of the scene</span>. Current object recognition datasets <span class="hl-rebuttal">address some of these tasks, but not all, and they do not place object recognition in the context of scene understanding</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                電腦視覺的主要目標之一是<span class="hl-thesis">理解視覺場景</span>。場景理解涉及許多任務，包括<span class="hl-concept">辨識場景中存在哪些物件、在 2D 和 3D 中定位物件、確定物件和場景的屬性、描述物件之間的關係以及提供場景的語義描述</span>。現有的物件辨識資料集<span class="hl-rebuttal">處理了其中一些任務，但並非全部，且它們並未將物件辨識置於場景理解的脈絡中</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描繪場景理解的全貌，並指出現有資料集的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「大目標→子任務列表→現有不足」的結構鋪陳研究動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將多項子任務完整列出，既展現問題的複雜度，也為 COCO 的多面向標記提供合理性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We address this by collecting a dataset with the following properties: (1) <span class="hl-method">a large number of object instances per category</span>, (2) <span class="hl-method">a large number of categories</span>, (3) <span class="hl-method">a large number of instances with per-instance segmentation</span>, (4) <span class="hl-method">images showing objects in their natural contexts</span>, and (5) <span class="hl-method">five captions per image</span>. The combination of these properties makes the COCO dataset unique in its breadth and depth of annotation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們透過收集具有以下特性的資料集來解決此問題：(1) <span class="hl-method">每個類別有大量物件實例</span>；(2) <span class="hl-method">大量類別</span>；(3) <span class="hl-method">大量具有逐實例分割的實例</span>；(4) <span class="hl-method">展示物件在自然場景中的影像</span>；(5) <span class="hl-method">每張影像五個文字描述</span>。這些特性的組合使 COCO 資料集在標記的廣度與深度上獨一無二。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    以五項設計原則定義 COCO 的獨特定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    編號列表清晰呈現設計準則，為後續各節的技術決策提供準繩。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結構化的五點呈現方式讓讀者快速掌握資料集的差異化優勢，論述簡潔有力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Several datasets have been instrumental in advancing object recognition. <span class="hl-evidence">PASCAL VOC provides high-quality annotations for 20 categories</span>, while <span class="hl-evidence">ImageNet offers over 14 million images spanning more than 20,000 categories</span>. However, <span class="hl-rebuttal">PASCAL VOC has limited categories and ImageNet's annotations are primarily bounding boxes without segmentation masks</span>. <span class="hl-evidence">SUN provides scene-level annotations</span> but lacks per-instance segmentation. Our COCO dataset <span class="hl-thesis">bridges these gaps by combining rich per-instance annotations with natural scene contexts</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多個資料集在推進物件辨識方面發揮了重要作用。<span class="hl-evidence">PASCAL VOC 為 20 個類別提供高品質標記</span>，而 <span class="hl-evidence">ImageNet 提供超過 1,400 萬張影像，涵蓋逾 20,000 個類別</span>。然而，<span class="hl-rebuttal">PASCAL VOC 類別有限，ImageNet 的標記主要為邊界框而無分割遮罩</span>。<span class="hl-evidence">SUN 提供場景級標記</span>但缺乏逐實例分割。我們的 COCO 資料集<span class="hl-thesis">透過結合豐富的逐實例標記與自然場景脈絡來彌補這些差距</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    對比現有資料集的優缺點，定位 COCO 的獨特價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「各家之長與不足」的系統性比較，自然引出 COCO 的互補角色。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    公平呈現各資料集的優點後再指出不足，避免了「貶低他人」的學術禮儀問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-dataset">3. Dataset Design — 資料集設計</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The COCO dataset collection process involved several stages. First, we <span class="hl-method">selected 91 common object categories</span> that are easily recognizable and have a clear visual identity. Category selection was guided by the principle that <span class="hl-thesis">objects should be relevant to everyday life and should occur frequently in natural images</span>. We then used <span class="hl-method">Amazon Mechanical Turk (AMT) workers</span> to collect images and annotate them. Each image was annotated with <span class="hl-method">instance-level segmentation masks, bounding boxes, and five textual captions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                COCO 資料集的收集過程包含數個階段。首先，我們<span class="hl-method">選擇了 91 種常見物件類別</span>，這些類別易於辨識且具有明確的視覺特徵。類別選擇的指導原則是<span class="hl-thesis">物件應與日常生活相關且在自然影像中頻繁出現</span>。接著，我們使用 <span class="hl-method">Amazon Mechanical Turk（AMT）群眾工作者</span>來收集影像並進行標記。每張影像都標記了<span class="hl-method">實例級分割遮罩、邊界框及五段文字描述</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    詳述資料集的建構流程與標記規範。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    展現資料集建構的嚴謹性，為後續的可重現性與品質保證提供基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    AMT 群眾標記引入了品質控制的挑戰，文中需說明如何確保標記一致性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key design choice is our emphasis on <span class="hl-thesis">non-iconic images</span>. Unlike datasets that primarily contain iconic views of objects (centered, well-lit, unoccluded), <span class="hl-method">COCO images depict objects in natural, often cluttered environments</span>. This makes the recognition task more challenging but also <span class="hl-thesis">more representative of real-world visual understanding</span>. Statistics show that <span class="hl-evidence">COCO images contain an average of 7.7 object instances per image</span>, compared to fewer than 3 in PASCAL VOC.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個關鍵的設計選擇是我們對<span class="hl-thesis">非典型影像</span>的強調。不同於主要包含物件典型視角（居中、光線充足、未被遮擋）的資料集，<span class="hl-method">COCO 影像描繪的是自然且通常雜亂環境中的物件</span>。這使辨識任務更具挑戰性，但也<span class="hl-thesis">更能代表真實世界的視覺理解</span>。統計顯示，<span class="hl-evidence">COCO 影像平均每張包含 7.7 個物件實例</span>，相較 PASCAL VOC 的不到 3 個。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡述「非典型影像」這一核心設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將 COCO 與現有資料集在哲學層面區分開來，而非僅在數量上比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    7.7 vs 3 的統計對比簡明有力地支持了「更接近真實世界」的主張。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Dataset Analysis and Evaluation — 資料集分析與評估</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We provide extensive analysis of the dataset properties. <span class="hl-evidence">COCO contains 328,000 images with 2.5 million labeled instances across 91 categories</span>. The dataset is split into <span class="hl-evidence">training (83k images), validation (41k images), and test (81k images) sets</span>. We also establish <span class="hl-method">baseline results for detection and segmentation tasks</span> using state-of-the-art methods. The results show that <span class="hl-evidence">current methods perform significantly worse on COCO than on PASCAL VOC</span>, indicating the increased difficulty and room for improvement.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提供了資料集特性的詳盡分析。<span class="hl-evidence">COCO 包含 328,000 張影像，涵蓋 91 個類別中共 250 萬個已標記實例</span>。資料集分為<span class="hl-evidence">訓練集（83K 影像）、驗證集（41K 影像）和測試集（81K 影像）</span>。我們還使用最先進的方法建立了<span class="hl-method">偵測與分割任務的基線結果</span>。結果顯示，<span class="hl-evidence">現有方法在 COCO 上的表現顯著遜於 PASCAL VOC</span>，表明難度的提升與改進的空間。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供資料集規模統計與基線實驗結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「方法在 COCO 上表現更差」來論證資料集的挑戰性，間接證明其價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「表現更差 = 更有挑戰性 = 更有價值」的邏輯推理有說服力，但需注意這也可能源於標記標準的差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have introduced <span class="hl-concept">Microsoft COCO</span>, a new large-scale dataset for <span class="hl-thesis">object detection, segmentation, and captioning</span>. Through its emphasis on <span class="hl-thesis">non-iconic imagery, rich per-instance annotations, and natural scene contexts</span>, COCO provides a challenging benchmark that pushes the boundaries of current recognition systems. We believe COCO will be an <span class="hl-thesis">important resource for the computer vision community for years to come</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們介紹了 <span class="hl-concept">Microsoft COCO</span>，一個用於<span class="hl-thesis">物件偵測、分割與圖說生成</span>的新大規模資料集。透過強調<span class="hl-thesis">非典型影像、豐富的逐實例標記以及自然場景脈絡</span>，COCO 提供了一個具挑戰性的基準，推動了現有辨識系統的邊界。我們相信 COCO 將在<span class="hl-thesis">未來多年成為電腦視覺社群的重要資源</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結資料集的定位與願景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以前瞻性語句收尾，暗示 COCO 將成為長期影響力的基準。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從後見之明來看，「未來多年的重要資源」已被證實——COCO 確實成為了電腦視覺最重要的基準之一。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 論證總覽 ====== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">場景理解需求<br><small>超越單一辨識</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">現有資料集不足<br><small>缺乏場景脈絡</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">COCO 設計原則<br><small>非典型/逐實例/自然場景</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">大規模群眾標記<br><small>328K 影像/250 萬實例</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">挑戰性基準<br><small>推動辨識系統進步</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>將物件辨識置於場景理解的脈絡中，以非典型影像搭配豐富的逐實例標記，建構更貼近真實世界的基準資料集。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>詳盡的資料集統計與跨資料集比較（COCO vs PASCAL VOC）清楚展示了設計選擇的效果。COCO 已被驗證為領域中最重要的基準之一。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>91 個物件類別相較 ImageNet 的規模仍然有限；群眾標記的品質控制雖有描述但難以完全驗證標記一致性。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9713;</button>
+</div>
+
+</body>
+</html>

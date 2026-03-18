@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Simultaneous Detection and Segmentation — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Simultaneous Detection and Segmentation
+                <span class="course-tag">ECCV 2014</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1407.1808" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-refinement">3. 由上而下精煉</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We aim to detect all instances of a category in an image and, for each instance, <span class="hl-thesis">mark the pixels that belong to it</span>. We call this task <span class="hl-concept">Simultaneous Detection and Segmentation (SDS)</span>. Unlike classical bounding box detection, <span class="hl-rebuttal">SDS requires a segmentation and not just a box</span>. Unlike classical semantic segmentation, <span class="hl-rebuttal">we require individual object instances</span>. We build on recent work that uses <span class="hl-method">convolutional neural networks to classify category-independent region proposals (R-CNN)</span>, introducing a novel architecture tailored for SDS.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的目標是偵測影像中一個類別的所有實例，並對每個實例<span class="hl-thesis">標記屬於它的像素</span>。我們稱此任務為<span class="hl-concept">同步偵測與分割（SDS）</span>。不同於傳統的邊界框偵測，<span class="hl-rebuttal">SDS 需要分割而不僅僅是框</span>。不同於傳統的語義分割，<span class="hl-rebuttal">我們需要個別的物件實例</span>。我們基於近期使用<span class="hl-method">摺積神經網路分類與類別無關的區域候選（R-CNN）</span>的工作，引入了一種為 SDS 量身打造的新穎架構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義 SDS 任務，與偵測和語義分割做明確區分。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以雙重區分（非僅邊界框、非僅語義分割）精確定位任務的獨特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    任務定義清晰有力，SDS 成為後來「實例分割」研究的重要先驅。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Traditional object detection outputs a <span class="hl-rebuttal">bounding box for each detected object, which provides only a coarse localization</span>. Semantic segmentation assigns each pixel a class label but <span class="hl-rebuttal">does not distinguish between different instances of the same class</span>. The <span class="hl-concept">SDS</span> task bridges these two by requiring <span class="hl-thesis">instance-level segmentation: each detected object must be accompanied by a pixel-level mask</span>. This is critical for applications like <span class="hl-evidence">robotic manipulation, autonomous driving, and image editing</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統物件偵測為每個偵測到的物件輸出<span class="hl-rebuttal">邊界框，僅提供粗略的定位</span>。語義分割為每個像素指定類別標籤，但<span class="hl-rebuttal">不區分同類別的不同實例</span>。<span class="hl-concept">SDS</span> 任務橋接了這兩者，要求<span class="hl-thesis">實例級分割：每個偵測到的物件都必須伴隨像素級遮罩</span>。這對<span class="hl-evidence">機器人操作、自動駕駛和影像編輯</span>等應用至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡述 SDS 任務的實際應用價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以具體應用場景說明為何「實例級分割」是必需的，而非僅是學術上的精煉。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    應用場景的列舉增強了研究的實用價值論述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our approach has two stages. First, we use <span class="hl-method">MCG (Multiscale Combinatorial Grouping)</span> to generate candidate region proposals, and classify them using <span class="hl-method">CNN features extracted from both the bounding box region and the foreground region</span>. The concatenation of these two feature types provides complementary information: the <span class="hl-thesis">bounding box features capture context while the foreground features capture the object's appearance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的方法分為兩個階段。首先，我們使用 <span class="hl-method">MCG（多尺度組合分組）</span>生成候選區域提案，並利用<span class="hl-method">從邊界框區域和前景區域提取的 CNN 特徵</span>進行分類。這兩種特徵類型的串接提供了互補資訊：<span class="hl-thesis">邊界框特徵捕捉情境，而前景特徵捕捉物件的外觀</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述雙流特徵提取策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    邊界框 + 前景的雙流設計是本文的關鍵技術創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「情境 vs 外觀」的互補論述直觀合理，但雙流特徵的計算成本值得關注。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-refinement">3. Top-Down Refinement — 由上而下精煉</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                After initial detection, we refine the segmentation using <span class="hl-method">category-specific, top-down figure-ground predictions</span>. For each detected region, we train a <span class="hl-method">CNN to predict which pixels belong to the object (figure) versus background (ground)</span>. This refinement step is critical: it <span class="hl-evidence">improves segmentation quality by 7 points</span> in the SDS metric, a <span class="hl-evidence">16% relative improvement</span> over the baseline.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在初始偵測後，我們使用<span class="hl-method">類別特定的由上而下前景-背景預測</span>來精煉分割。對每個偵測到的區域，我們訓練一個<span class="hl-method">摺積神經網路來預測哪些像素屬於物件（前景）而哪些屬於背景</span>。此精煉步驟至關重要：它在 SDS 指標上<span class="hl-evidence">改進了 7 個百分點</span>，相對基線有 <span class="hl-evidence">16% 的相對改進</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示由上而下精煉的顯著效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    7 個百分點的改進凸顯了精煉步驟的不可或缺性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    同時提供絕對值（7 點）和相對值（16%）增強了數據的可解讀性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on <span class="hl-evidence">PASCAL VOC 2012</span> using the SDS metric (AP at IoU threshold of 0.5 measured on segmentations). Our method achieves <span class="hl-evidence">state-of-the-art results on both the SDS task and the classical semantic segmentation task</span>. On SDS, we obtain <span class="hl-evidence">a mean AP of 49.7%</span>. On semantic segmentation, our approach provides a <span class="hl-evidence">5 point boost (10% relative) over the previous state-of-the-art</span>. On object detection with bounding boxes, we also achieve competitive performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">PASCAL VOC 2012</span> 上使用 SDS 指標（在分割上以 IoU 閾值 0.5 測量的 AP）進行評估。我們的方法在 <span class="hl-evidence">SDS 任務和傳統語義分割任務上均達到了最先進的結果</span>。在 SDS 上，我們獲得 <span class="hl-evidence">49.7% 的平均 AP</span>。在語義分割上，我們的方法相較先前的技術水準提供了 <span class="hl-evidence">5 個百分點的提升（10% 相對改進）</span>。在邊界框物件偵測上，我們也達到了有競爭力的效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供三個任務上的定量結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在 SDS、語義分割和偵測三個任務上均有優異表現，展現方法的全面性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多任務評估增強了方法的可信度，但 49.7% 的絕對 AP 仍有很大改進空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have introduced the <span class="hl-concept">Simultaneous Detection and Segmentation (SDS)</span> task and proposed an effective approach combining <span class="hl-method">region-based CNN features with top-down figure-ground refinement</span>. Our results demonstrate that <span class="hl-thesis">jointly addressing detection and segmentation leads to better performance on both tasks</span>. We believe SDS will become an important task as the community moves <span class="hl-thesis">beyond bounding boxes toward pixel-level understanding</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們引入了<span class="hl-concept">同步偵測與分割（SDS）</span>任務，並提出了結合<span class="hl-method">基於區域的 CNN 特徵與由上而下前景-背景精煉</span>的有效方法。我們的結果證明了<span class="hl-thesis">同時處理偵測與分割能在兩個任務上都獲得更好的效能</span>。我們相信隨著社群<span class="hl-thesis">從邊界框邁向像素級理解</span>，SDS 將成為一項重要任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結貢獻並預言任務的未來重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    SDS 確實成為了「實例分割」的前身，後續 Mask R-CNN 等工作直接延續此方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「從邊界框到像素級」的願景精準預見了電腦視覺的發展方向，展現了作者的前瞻性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">邊界框不足<br><small>缺乏像素級精度</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">SDS 任務定義<br><small>偵測 + 實例分割</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">雙流 CNN 特徵<br><small>邊界框 + 前景</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">由上而下精煉<br><small>前景-背景預測</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">SDS/分割/偵測<br><small>三任務 SOTA</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>同步處理物件偵測與像素級分割（SDS）能比單獨處理任一任務獲得更好的整體效能，且由上而下精煉是提升分割品質的關鍵。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>由上而下精煉帶來的 7 點（16% 相對）改進為核心方法提供了有力的實證支持。在三個相關任務上的全面評估增強了方法的可信度。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>方法依賴 MCG 提供的區域候選品質，整體管線涉及多個階段，尚未實現端對端訓練。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9713;</button>
+</div>
+
+</body>
+</html>

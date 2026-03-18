@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Adversarial Diffusion Distillation — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; } .ann-concept { border-left: 4px solid #dc3545; } .ann-evidence { border-left: 4px solid #007bff; } .ann-rebuttal { border-left: 4px solid #28a745; } .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; } .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; } .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; } .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; } .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar"><div class="navbar-inner"><div class="navbar-top-row">
+    <div class="navbar-title">Adversarial Diffusion Distillation <span class="course-tag">ECCV 2024</span></div>
+    <div class="navbar-links"><a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a><a href="https://arxiv.org/abs/2311.17042" target="_blank" class="navbar-home-link">arXiv 原文連結</a></div>
+</div></div></nav>
+
+<div class="section-nav"><div class="section-nav-inner">
+    <a href="#sec-abstract">摘要</a><a href="#sec-intro">1. 緒論</a><a href="#sec-method">2. 方法</a><a href="#sec-experiments">3. 實驗</a><a href="#sec-conclusion">4. 結論</a><a href="#sec-overview">論證總覽</a>
+</div></div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text">We introduce <span class="hl-concept">Adversarial Diffusion Distillation (ADD)</span>, a novel training approach that efficiently <span class="hl-thesis">samples large-scale foundational image diffusion models in just 1-4 steps while maintaining high image quality</span>. ADD uses <span class="hl-method">score distillation to leverage large-scale off-the-shelf image diffusion models as a teacher signal</span> in combination with an <span class="hl-method">adversarial loss to ensure high image fidelity even in the low-step regime</span> of one or two sampling steps. Our analyses show that our model clearly <span class="hl-evidence">surpasses existing few-step methods (GANs, Latent Consistency Models) in a single step</span> and reaches the <span class="hl-evidence">performance of state-of-the-art diffusion models (SDXL) in only four steps</span>. ADD is <span class="hl-thesis">the first method to unlock single-step, real-time image synthesis with foundation models</span>.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text">我們提出<span class="hl-concept">對抗式擴散蒸餾（ADD）</span>，一種新穎的訓練方法，能有效地<span class="hl-thesis">僅用 1-4 步即從大規模基礎影像擴散模型進行取樣，同時維持高影像品質</span>。ADD 使用<span class="hl-method">分數蒸餾來利用大規模現成影像擴散模型作為教師信號</span>，並結合<span class="hl-method">對抗損失以確保在僅一至兩步取樣的低步數區間中仍具高影像保真度</span>。分析顯示我們的模型在單步中<span class="hl-evidence">明確超越現有少步方法（GAN、潛在一致性模型）</span>，並僅需四步即<span class="hl-evidence">達到最先進擴散模型（SDXL）的效能</span>。ADD 是<span class="hl-thesis">首個在基礎模型上實現單步即時影像合成的方法</span>。</div>
+    </div><div class="right-col"><div class="annotation-card ann-intro">
+        <div class="ann-section"><span class="ann-label">段落功能</span>全文總覽——定義 ADD 方法及其突破性成就。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>以「首個」的宣稱建立里程碑定位，用步數（1-4 步 vs 50 步）的對比量化加速幅度。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>「首個」的宣稱極為大膽，需要嚴格的實驗支撐。單步合成的品質是否真能匹配多步值得仔細檢驗。</div>
+    </div></div></div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text"><span class="hl-concept">Diffusion models</span> have emerged as the dominant paradigm for <span class="hl-evidence">high-quality image synthesis</span>, powering applications from <span class="hl-evidence">text-to-image generation to image editing and video synthesis</span>. However, their main limitation is <span class="hl-rebuttal">the requirement for many iterative denoising steps</span>, typically 20-50, making them <span class="hl-rebuttal">orders of magnitude slower than single-step generators like GANs</span>. This computational burden prevents real-time applications and increases serving costs for commercial deployments. <span class="hl-concept">Distillation methods</span> aim to compress the multi-step process into fewer steps, but existing approaches <span class="hl-rebuttal">either sacrifice significant quality or still require 4-8 steps</span>.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text"><span class="hl-concept">擴散模型</span>已成為<span class="hl-evidence">高品質影像合成</span>的主流典範，驅動從<span class="hl-evidence">文字生成影像到影像編輯和影片合成</span>的各種應用。然而，其主要限制在於<span class="hl-rebuttal">需要大量迭代去噪步驟</span>，通常 20-50 步，使其比 GAN 等單步生成器<span class="hl-rebuttal">慢數個數量級</span>。此計算負擔阻礙了即時應用並增加了商業部署的服務成本。<span class="hl-concept">蒸餾方法</span>旨在將多步流程壓縮為較少步驟，但現有方法<span class="hl-rebuttal">要麼犧牲顯著品質，要麼仍需 4-8 步</span>。</div>
+    </div><div class="right-col"><div class="annotation-card ann-intro">
+        <div class="ann-section"><span class="ann-label">段落功能</span>建立研究場域——擴散模型的速度瓶頸與蒸餾現狀。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>量化速度差距（20-50 步 vs 1 步）使問題的迫切性具體化，為 ADD 的突破定位鋪路。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>「商業部署成本」的提及將學術研究連結到產業需求，增強了研究動機。</div>
+    </div></div></div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text">ADD combines two complementary training signals. The first is <span class="hl-method">score distillation from a pretrained diffusion model teacher</span>. Given a student-generated image, we add noise at a random timestep and use the teacher model to predict the denoised version. The <span class="hl-method">difference between the teacher's prediction and the student's output provides a gradient signal</span> that steers the student toward the distribution learned by the teacher. The second signal is an <span class="hl-method">adversarial loss from a discriminator trained to distinguish real images from student-generated ones</span>. While score distillation captures the global structure and semantics, the adversarial loss <span class="hl-thesis">ensures local sharpness and perceptual quality, particularly in the extreme low-step regime</span> where score distillation alone tends to produce blurry results.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text">ADD 結合兩種互補的訓練信號。第一種是<span class="hl-method">來自預訓練擴散模型教師的分數蒸餾</span>。給定學生生成的影像，我們在隨機時間步添加噪聲並使用教師模型預測去噪版本。<span class="hl-method">教師預測與學生輸出之間的差異提供梯度信號</span>，引導學生趨向教師所學的分佈。第二種信號是<span class="hl-method">來自鑑別器的對抗損失，該鑑別器訓練以區分真實影像和學生生成的影像</span>。分數蒸餾捕捉全局結構和語意，而對抗損失<span class="hl-thesis">確保局部銳利度和感知品質，特別是在極低步數區間</span>，此區間中單獨使用分數蒸餾傾向產生模糊結果。</div>
+    </div><div class="right-col"><div class="annotation-card ann-method">
+        <div class="ann-section"><span class="ann-label">段落功能</span>闡述核心方法——雙信號訓練框架。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>分數蒸餾（全局）+ 對抗損失（局部）的互補設計是方法的精髓。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>雙損失的分工明確且有直覺支撐。但 GAN 訓練的不穩定性可能在蒸餾過程中造成困難。</div>
+    </div></div></div>
+
+    <h2 class="section-heading" id="sec-experiments">3. Experiments — 實驗</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text">We apply ADD to distill <span class="hl-concept">SDXL</span> into a model we call <span class="hl-concept">SDXL Turbo</span>. In <span class="hl-evidence">single-step generation, SDXL Turbo achieves an FID of 28.3 on COCO-2017 30K</span>, compared to <span class="hl-evidence">41.2 for StyleGAN-XL and 37.4 for LCM-LoRA</span>. In <span class="hl-evidence">four-step generation, SDXL Turbo achieves FID 23.4</span>, matching <span class="hl-evidence">SDXL's 50-step FID of 23.1</span>. Human preference studies show that <span class="hl-evidence">SDXL Turbo at 4 steps is preferred over SDXL at 50 steps in 48.2% of comparisons</span>, indicating near-parity in perceived quality. The speedup is dramatic: <span class="hl-evidence">single-step generation takes 0.34 seconds at 512x512 on a single A100 GPU</span>, enabling real-time interactive applications for the first time with a foundation-scale diffusion model.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text">我們將 ADD 應用於蒸餾 <span class="hl-concept">SDXL</span>，產出我們稱之為 <span class="hl-concept">SDXL Turbo</span> 的模型。在<span class="hl-evidence">單步生成中，SDXL Turbo 在 COCO-2017 30K 上達到 FID 28.3</span>，相較之下 <span class="hl-evidence">StyleGAN-XL 為 41.2，LCM-LoRA 為 37.4</span>。在<span class="hl-evidence">四步生成中，SDXL Turbo 達到 FID 23.4</span>，匹配 <span class="hl-evidence">SDXL 50 步的 FID 23.1</span>。人類偏好研究顯示 <span class="hl-evidence">SDXL Turbo 4 步在 48.2% 的比較中被偏好於 SDXL 50 步</span>，表明感知品質近乎等同。加速效果顯著：<span class="hl-evidence">單步生成在單個 A100 GPU 上以 512x512 解析度僅需 0.34 秒</span>，首次以基礎級擴散模型實現即時互動應用。</div>
+    </div><div class="right-col"><div class="annotation-card ann-evidence">
+        <div class="ann-section"><span class="ann-label">段落功能</span>提供核心實證——量化品質保持與速度提升。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>FID 和人類偏好雙重指標的驗證，加上絕對延遲數字，使論證無可辯駁。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>48.2% 的人類偏好率（接近 50%）證明品質近乎等同。但 FID 28.3（單步）vs 23.1（50 步）仍有差距。</div>
+    </div></div></div>
+
+    <h2 class="section-heading" id="sec-conclusion">4. Conclusion — 結論</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text">We have presented <span class="hl-concept">Adversarial Diffusion Distillation (ADD)</span>, <span class="hl-thesis">the first approach to achieve high-fidelity, single-step image synthesis from foundation-scale diffusion models</span>. By combining <span class="hl-method">score distillation with adversarial training</span>, ADD produces the <span class="hl-concept">SDXL Turbo</span> model that <span class="hl-evidence">matches SDXL quality in 4 steps and enables real-time generation in a single step</span>. Our work opens the door to <span class="hl-thesis">interactive, real-time creative applications powered by the full expressiveness of foundation diffusion models</span>.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text">我們提出了<span class="hl-concept">對抗式擴散蒸餾（ADD）</span>，<span class="hl-thesis">首個從基礎級擴散模型達成高保真單步影像合成的方法</span>。透過結合<span class="hl-method">分數蒸餾與對抗訓練</span>，ADD 產出 <span class="hl-concept">SDXL Turbo</span> 模型，<span class="hl-evidence">在 4 步中匹配 SDXL 品質，並在單步中實現即時生成</span>。我們的工作為<span class="hl-thesis">由基礎擴散模型完整表達力驅動的互動式即時創意應用</span>開啟了大門。</div>
+    </div><div class="right-col"><div class="annotation-card ann-intro">
+        <div class="ann-section"><span class="ann-label">段落功能</span>總結全文——重申里程碑地位與應用前景。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>以「開啟大門」的願景收束，連結學術突破與產業應用。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>ADD/SDXL Turbo 的實際產業影響已驗證了此論文的價值宣稱。</div>
+    </div></div></div>
+
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br><small>擴散模型需 20-50 步</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">論點<br><small>對抗蒸餾可壓縮至 1-4 步</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">方法<br><small>分數蒸餾 + 對抗損失</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">證據<br><small>4 步匹配 SDXL 50 步品質</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">結論<br><small>首個即時基礎模型影像合成</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card"><h3>核心主張</h3><p>透過結合分數蒸餾（全局語意）與對抗損失（局部品質），可將基礎級擴散模型壓縮至 1-4 步，首次實現即時影像合成。</p></div>
+            <div class="arg-detail-card"><h3>論證最強處</h3><p>4 步 SDXL Turbo 在人類偏好中與 50 步 SDXL 近乎等同（48.2%），以及 0.34 秒的絕對延遲，直接證明了即時應用的可行性。</p></div>
+            <div class="arg-detail-card"><h3>論證最弱處</h3><p>單步 FID（28.3）與多步（23.4）之間仍有差距，且 GAN 鑑別器的訓練可能引入模式崩潰風險。對更高解析度的擴展性尚未充分驗證。</p></div>
+        </div>
+    </div>
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">?</button>
+</div>
+</body>
+</html>

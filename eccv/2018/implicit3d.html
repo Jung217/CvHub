@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Implicit 3D Orientation Learning for 6D Object Detection — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Implicit 3D Orientation Learning for 6D Object Detection from RGB Images
+                <span class="course-tag">ECCV 2018</span>
+                <span class="best-paper-badge">Best Paper</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1902.01275" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose a <span class="hl-thesis">real-time RGB-based pipeline for object detection and 6D pose estimation</span>. Our novel <span class="hl-concept">3D orientation estimation</span> is based on a variant of the <span class="hl-method">Denoising Autoencoder</span> that is trained on <span class="hl-method">simulated views of a 3D model using Domain Randomization</span>. The so-called <span class="hl-concept">Augmented Autoencoder</span> has several advantages over existing methods: it does not require <span class="hl-rebuttal">real, pose-annotated training data</span>, generalizes to various test sensors and <span class="hl-thesis">inherently handles object and view symmetries</span>. Instead of learning an explicit mapping from input images to object poses, our method provides an <span class="hl-method">implicit representation of object orientations defined by samples in a latent space</span>. The pipeline achieves <span class="hl-evidence">state-of-the-art performance on the T-LESS dataset</span> both in the RGB and RGB-D domain.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一個<span class="hl-thesis">基於 RGB 的即時物件偵測與 6D 姿態估計管線</span>。其核心的<span class="hl-concept">3D 方向估計</span>方法建立在一種<span class="hl-method">去噪自編碼器</span>的變體之上，使用<span class="hl-method">域隨機化技術對 3D 模型的模擬視角</span>進行訓練。這個被稱為<span class="hl-concept">增強自編碼器</span>的架構具有多項優勢：不需要<span class="hl-rebuttal">真實的、帶姿態標註的訓練資料</span>，能泛化至各種測試感測器，並且<span class="hl-thesis">天然地處理物件與視角對稱性</span>。我們的方法不學習從輸入影像到物件姿態的顯式映射，而是提供一種<span class="hl-method">由潛在空間中的樣本所定義的物件方向隱式表徵</span>。此管線在 <span class="hl-evidence">T-LESS 資料集上達到了最先進的效能</span>，涵蓋 RGB 與 RGB-D 兩個領域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——一句話定位研究目標（6D 姿態估計），再陳述核心創新（增強自編碼器）及其優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立了「問題-方法-優勢-結果」四層架構：先指出 6D 姿態估計的需求，再提出基於去噪自編碼器的隱式學習方案，最後以 T-LESS 的實驗結果佐證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「不需要真實標註資料」是極具吸引力的賣點，但摘要未交代域隨機化在複雜場景下的表現上限。隱式表徵的解釋性也值得進一步探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Estimating the <span class="hl-concept">6D pose</span> (3D translation and 3D rotation) of objects is a fundamental task in <span class="hl-concept">robotic manipulation</span> and <span class="hl-concept">augmented reality</span>. Recent approaches predominantly rely on <span class="hl-rebuttal">deep learning methods trained on large amounts of annotated real data</span>, which is costly and time-consuming to obtain. Moreover, many methods <span class="hl-rebuttal">struggle with symmetric objects</span>, as multiple orientations can produce identical visual appearances.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                估計物件的<span class="hl-concept">6D 姿態</span>（3D 平移與 3D 旋轉）是<span class="hl-concept">機器人操作</span>與<span class="hl-concept">擴增實境</span>中的基礎任務。近期的方法主要依賴<span class="hl-rebuttal">在大量標註真實資料上訓練的深度學習方法</span>，但取得這些資料既昂貴又耗時。此外，許多方法<span class="hl-rebuttal">在處理對稱物件時面臨困難</span>，因為多個方向可能產生完全相同的視覺外觀。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    背景鋪陳——確立研究場景與動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    指出現有方法的兩大痛點（資料標註成本、對稱性處理），為後續方案建立需求基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以應用場景（機器人、AR）開場有效地建立實際意義。將「標註成本」與「對稱性」並列為核心挑戰是精準的問題分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we propose the <span class="hl-concept">Augmented Autoencoder (AAE)</span>, a novel approach that <span class="hl-thesis">learns 3D object orientations implicitly from synthetic data</span>. The key insight is that by training a <span class="hl-method">denoising autoencoder with domain randomization on the input</span>, the encoder learns to map different appearances of the same object orientation to a similar latent code, while mapping different orientations to distinct codes. This <span class="hl-thesis">implicit representation elegantly handles symmetries</span> without requiring explicit symmetry annotations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出<span class="hl-concept">增強自編碼器（AAE）</span>，一種<span class="hl-thesis">從合成資料中隱式學習 3D 物件方向</span>的新方法。核心洞見在於：透過在輸入上使用<span class="hl-method">域隨機化訓練去噪自編碼器</span>，編碼器學會將同一物件方向的不同外觀映射到相似的潛在編碼，同時將不同方向映射到不同的編碼。這種<span class="hl-thesis">隱式表徵優雅地處理了對稱性</span>，而無需明確的對稱性標註。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心方法——AAE 的設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題，給出解決方案的核心思路。「隱式學習」是串連全文的主軸概念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「隱式 vs. 顯式」的對比非常有說服力。將對稱性問題轉化為表徵學習問題，是一種優雅的重新定義。但潛在空間的可解釋性與連續性是否成立，值得進一步驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Traditional <span class="hl-concept">6D pose estimation</span> methods rely on <span class="hl-concept">feature matching</span> between the observed scene and known 3D models. Approaches such as <span class="hl-concept">point pair features (PPF)</span> and <span class="hl-concept">template matching</span> have shown success but typically require <span class="hl-rebuttal">depth information</span> and are <span class="hl-rebuttal">computationally expensive</span>. Recent deep learning approaches, including <span class="hl-concept">PoseCNN</span> and <span class="hl-concept">SSD-6D</span>, directly regress poses from RGB images but require large annotated training sets and <span class="hl-rebuttal">do not inherently handle object symmetries</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統的<span class="hl-concept">6D 姿態估計</span>方法依賴觀測場景與已知 3D 模型之間的<span class="hl-concept">特徵匹配</span>。如<span class="hl-concept">點對特徵（PPF）</span>與<span class="hl-concept">模板匹配</span>等方法已展現成效，但通常需要<span class="hl-rebuttal">深度資訊</span>且<span class="hl-rebuttal">計算成本高昂</span>。近期的深度學習方法，包括 <span class="hl-concept">PoseCNN</span> 與 <span class="hl-concept">SSD-6D</span>，直接從 RGB 影像迴歸姿態，但需要大量標註訓練集且<span class="hl-rebuttal">無法天然處理物件對稱性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻綜述——定位本方法在研究脈絡中的位置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    系統性地陳列傳統方法與深度學習方法的不足，為 AAE 的優勢建立對照基準。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將現有方法的缺陷與自身優勢逐一對應，是有效的差異化策略。但相關工作的覆蓋面可能不夠全面，尤其是對基於關鍵點的方法討論較少。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Domain Randomization</span> has emerged as a powerful technique for <span class="hl-method">bridging the sim-to-real gap</span>. By randomizing textures, lighting, and backgrounds during training, models learn to be robust to domain shifts. <span class="hl-concept">Autoencoders</span> and their variants have been used for representation learning, but their application to <span class="hl-thesis">6D pose estimation with implicit symmetry handling</span> is novel.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">域隨機化</span>已成為<span class="hl-method">彌合模擬到真實差距</span>的強大技術。透過在訓練過程中隨機化材質、光照與背景，模型學會對域偏移具有穩健性。<span class="hl-concept">自編碼器</span>及其變體已被用於表徵學習，但將其應用於<span class="hl-thesis">具有隱式對稱性處理能力的 6D 姿態估計</span>是全新的嘗試。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術背景——介紹兩個關鍵技術元件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將域隨機化與自編碼器這兩個已有概念組合，凸顯本文的「新穎組合」貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    巧妙地利用「已知技術的新組合」來降低讀者的認知門檻，同時強調創新性在於「應用場景」而非「基礎技術」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our pipeline consists of three stages: (1) <span class="hl-method">2D object detection</span> using a standard detector (e.g., SSD or RetinaNet) to localize objects; (2) <span class="hl-method">3D orientation estimation via the Augmented Autoencoder</span>; and (3) <span class="hl-method">translation estimation from the 2D bounding box</span>. The AAE is trained by rendering the target object at various orientations and augmenting the input with <span class="hl-method">domain randomization</span> — random backgrounds, lighting changes, and color jittering — while the reconstruction target remains the clean, canonical rendering.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的管線包含三個階段：(1) 使用標準偵測器（如 SSD 或 RetinaNet）進行 <span class="hl-method">2D 物件偵測</span>以定位物件；(2) <span class="hl-method">透過增強自編碼器進行 3D 方向估計</span>；(3) <span class="hl-method">從 2D 邊界框估計平移量</span>。AAE 的訓練方式是在各種方向上渲染目標物件，並使用<span class="hl-method">域隨機化</span>（隨機背景、光照變化、顏色抖動）增強輸入，而重建目標維持乾淨的標準渲染。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法總覽——三階段管線架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將複雜的 6D 姿態估計分解為三個可理解的子問題，降低方法的認知複雜度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三階段設計使得管線模組化，每個元件可獨立替換。但管線式架構意味著錯誤會逐級累積，2D 偵測的失敗會直接導致後續階段失敗。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                During inference, the encoder maps a <span class="hl-method">detected object crop to a latent code</span>. Orientation is then retrieved by finding the <span class="hl-method">nearest neighbor in a codebook</span> of pre-computed latent codes from uniformly sampled orientations. For <span class="hl-concept">symmetric objects</span>, multiple orientations that produce the same appearance will be mapped to the same or very similar latent codes — hence <span class="hl-thesis">symmetries are implicitly captured</span> without any special treatment. The <span class="hl-evidence">cosine similarity</span> metric is used for efficient codebook lookup.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在推論階段，編碼器將<span class="hl-method">偵測到的物件裁切區域映射至潛在編碼</span>。然後透過在由均勻取樣方向的預計算潛在編碼組成的<span class="hl-method">編碼簿中尋找最近鄰</span>來獲取方向。對於<span class="hl-concept">對稱物件</span>，產生相同外觀的多個方向會被映射到相同或非常相似的潛在編碼——因此<span class="hl-thesis">對稱性被隱式地擷取</span>，無需任何特殊處理。使用<span class="hl-evidence">餘弦相似度</span>指標進行高效的編碼簿查找。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推論流程——說明如何從潛在空間恢復姿態。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補完方法論的關鍵環節：編碼簿查找是連接潛在表徵與最終姿態輸出的橋樑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    編碼簿查找的精度受限於取樣密度，這在需要高精度姿態的應用中可能成為瓶頸。此外，餘弦相似度是否為最佳度量也未充分驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-method">loss function</span> trains the autoencoder to reconstruct the clean rendering from the augmented input: <span class="hl-method">L = ||D(E(x_aug)) - x_clean||^2</span>, where E is the encoder, D is the decoder, x_aug is the augmented input and x_clean is the canonical rendering. This forces the <span class="hl-thesis">encoder to learn domain-invariant features</span> that capture only the object's intrinsic appearance and orientation, while being robust to environmental variations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">損失函數</span>訓練自編碼器從增強輸入重建乾淨渲染：<span class="hl-method">L = ||D(E(x_aug)) - x_clean||^2</span>，其中 E 為編碼器，D 為解碼器，x_aug 為增強輸入，x_clean 為標準渲染。這迫使<span class="hl-thesis">編碼器學習域不變特徵</span>，僅擷取物件的固有外觀與方向，同時對環境變化具有穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練細節——數學化描述損失函數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以嚴謹的數學表述支撐前述的直覺解釋，增強方法的可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    簡潔的 MSE 損失使得方法易於實作。然而，像素級重建損失可能導致模糊的重建結果，是否影響潛在空間的品質值得探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate our approach on the challenging <span class="hl-evidence">T-LESS dataset</span>, which features <span class="hl-evidence">30 texture-less industrial objects</span> with many symmetries and mutual similarities. Our AAE pipeline achieves <span class="hl-evidence">state-of-the-art results with an average recall of 55.6%</span> using VSD metric in the RGB-only setting, significantly outperforming methods like SSD-6D. In the RGB-D setting, our approach reaches <span class="hl-evidence">recall of 67.2%</span>, competitive with methods that use much more complex post-processing.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在具挑戰性的 <span class="hl-evidence">T-LESS 資料集</span>上評估方法，該資料集包含 <span class="hl-evidence">30 個無材質的工業物件</span>，具有大量對稱性與相互相似性。我們的 AAE 管線達到<span class="hl-evidence">最先進的結果，在純 RGB 設定下使用 VSD 指標的平均召回率為 55.6%</span>，顯著優於 SSD-6D 等方法。在 RGB-D 設定下，我們的方法達到 <span class="hl-evidence">67.2% 的召回率</span>，與使用更複雜後處理的方法具有競爭力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    主要實驗結果——在 T-LESS 上的定量評估。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以具體數字支撐核心論點：隱式表徵在處理對稱性物件上具有優勢。T-LESS 是最適合驗證此主張的資料集。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇以對稱性物件著稱的 T-LESS 作為主要基準是策略性的選擇，能最大化展示方法優勢。55.6% 的絕對數值是否足夠實用，取決於具體應用場景。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Ablation studies</span> demonstrate the importance of each component: removing domain randomization drops performance by <span class="hl-evidence">12.3%</span>, while using explicit orientation regression instead of the codebook approach fails entirely on symmetric objects. The <span class="hl-evidence">inference speed of 42 FPS</span> on a single GPU confirms the real-time capability, with the autoencoder encoding step taking only <span class="hl-evidence">2ms per object</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-evidence">消融研究</span>證明了各元件的重要性：移除域隨機化使效能下降 <span class="hl-evidence">12.3%</span>，而使用顯式方向迴歸取代編碼簿方法則在對稱物件上完全失敗。<span class="hl-evidence">單 GPU 上 42 FPS 的推論速度</span>確認了即時能力，自編碼器的編碼步驟每個物件僅需 <span class="hl-evidence">2ms</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融實驗——驗證各設計選擇的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究是方法論論文的標準配備，用以證明每個設計決策都有貢獻，而非偶然的組合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「顯式迴歸在對稱物件上完全失敗」是極具說服力的對比。42 FPS 的速度聲稱需注意是否包含偵測階段的時間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented the <span class="hl-concept">Augmented Autoencoder</span>, a novel approach for <span class="hl-thesis">implicit 3D orientation learning</span> that naturally handles object symmetries without explicit symmetry annotations. Our method achieves <span class="hl-evidence">state-of-the-art results on the T-LESS benchmark</span> while requiring only synthetic training data. The <span class="hl-thesis">implicit representation paradigm offers a fundamentally different perspective</span> on 6D pose estimation, and we believe it opens promising directions for <span class="hl-rebuttal">category-level pose estimation and robotic grasping applications</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了<span class="hl-concept">增強自編碼器</span>，一種用於<span class="hl-thesis">隱式 3D 方向學習</span>的新方法，能自然地處理物件對稱性而無需明確的對稱性標註。我們的方法在 <span class="hl-evidence">T-LESS 基準上達到最先進的結果</span>，且僅需合成訓練資料。<span class="hl-thesis">隱式表徵範式為 6D 姿態估計提供了根本性的不同視角</span>，我們相信它為<span class="hl-rebuttal">類別級姿態估計與機器人抓取應用</span>開啟了有前景的方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申貢獻並展望未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應摘要形成閉環，從「問題」回到「解決方案的意義」。類別級姿態估計的展望暗示了更廣泛的應用潛力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論恰當地控制了聲稱範圍，但「根本性不同視角」的說法可能過於誇大。該方法在非工業場景（如自然環境中的物件）上的泛化能力仍需驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                6D 姿態估計需要<br>大量標註且難以<br>處理對稱性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                隱式方向學習<br>自然處理對稱性<br>僅需合成資料
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                T-LESS RGB 55.6%<br>RGB-D 67.2%<br>42 FPS 即時
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                編碼簿離散化<br>限制精度上限<br>域隨機化範圍
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                隱式表徵範式<br>為 6D 姿態估計<br>開啟新方向
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過增強自編碼器的隱式方向學習，能夠僅使用合成資料即實現即時且穩健的 6D 物件姿態估計，同時天然地處理物件對稱性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>對稱性處理的優雅性：</strong>不需要任何明確的對稱性標註或特殊處理機制，隱式表徵自然地將視覺等價的方向映射至相同的潛在區域。消融實驗中顯式方法在對稱物件上的完全失敗，有力地支撐了此設計的必要性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>泛化性驗證不足：</strong>主要結果僅在 T-LESS 一個資料集上報告，而 T-LESS 專注於工業環境中的無材質物件。在材質豐富、遮擋嚴重的日常場景中，方法的表現尚未充分驗證。此外，編碼簿的離散化精度與取樣策略對最終性能的影響值得更深入的分析。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

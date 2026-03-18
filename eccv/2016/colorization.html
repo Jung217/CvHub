@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Colorful Image Colorization — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Colorful Image Colorization
+                <span class="course-tag">ECCV 2016</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1603.08511" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-training">3. 分類損失與重新平衡</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given a grayscale photograph as input, this paper attacks the problem of <span class="hl-thesis">hallucinating a plausible color version of the photograph</span>. This problem is clearly underdetermined, so previous approaches have either relied on significant user interaction or resulted in desaturated colorizations. We propose a <span class="hl-method">fully automatic approach that produces vibrant and realistic colorizations</span>. We embrace the underlying uncertainty of the problem by <span class="hl-method">posing it as a classification task and use class-rebalancing at training time to increase the diversity of colors in the result</span>. The system is implemented as a <span class="hl-concept">feed-forward pass in a CNN</span> at test time and is trained on over a million color images. We evaluate our algorithm using a <span class="hl-evidence">"colorization Turing test," asking human observers to choose between a generated and ground truth color image. Our method successfully fools humans on 32% of the trials</span>, significantly higher than previous methods. Moreover, we show that colorization can be a powerful <span class="hl-thesis">pretext task for self-supervised feature learning</span>, acting as a cross-channel encoder.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                給定一張灰階照片作為輸入，本文攻克的問題是<span class="hl-thesis">幻想出該照片的合理彩色版本</span>。此問題顯然是不適定的，因此先前的方法要不依賴大量使用者互動，要不就會產生飽和度不足的著色結果。我們提出一種<span class="hl-method">全自動的方法，能產生色彩鮮豔且逼真的著色結果</span>。我們擁抱問題的內在不確定性，<span class="hl-method">將其建模為分類任務，並在訓練時使用類別重新平衡來增加結果中的色彩多樣性</span>。系統在測試時以<span class="hl-concept">CNN 的單次前饋傳遞</span>實現，並在超過一百萬張彩色影像上進行訓練。我們使用<span class="hl-evidence">「著色圖靈測試」來評估演算法，請人類觀察者在生成的彩色影像與真實彩色影像之間選擇。我們的方法在 32% 的測試中成功欺騙了人類</span>，顯著高於先前的方法。此外，我們展示著色可作為強大的<span class="hl-thesis">自監督特徵學習前置任務</span>，充當跨通道編碼器。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>定義問題、提出方法、報告核心結果。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「圖靈測試」作為評估標準極具說服力，同時開拓自監督學習的新應用。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>32% 的欺騙率作為指標既引人注目又量化可比，但該測試的設計是否存在偏差值得關注。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Automatic colorization of grayscale images has been a topic of interest since <span class="hl-concept">Sziranyi et al.</span> first proposed the problem. The problem is inherently ambiguous: a grayscale image corresponds to many plausible color images. <span class="hl-rebuttal">Despite this inherent ambiguity, most existing methods focus on producing a single "correct" colorization, often resulting in desaturated outputs</span> because the loss function (typically L2 in Lab space) encourages averaging over the possible colors. We take a fundamentally different approach: <span class="hl-thesis">we embrace the ambiguity by treating colorization as a classification problem over quantized color values</span>, rather than a regression problem. This allows the network to hedge its bets and produce multimodal distributions over possible colors, ultimately leading to more vivid and plausible results.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                灰階影像自動著色自 <span class="hl-concept">Sziranyi 等人</span>首次提出以來一直是備受關注的議題。此問題本質上是模糊的：一張灰階影像對應著許多合理的彩色影像。<span class="hl-rebuttal">儘管存在這種固有的模糊性，大多數現有方法仍專注於產生單一的「正確」著色，往往導致飽和度不足的輸出</span>，因為損失函數（通常是 Lab 空間中的 L2）鼓勵對可能的顏色取平均。我們採取根本不同的方法：<span class="hl-thesis">擁抱模糊性，將著色視為對量化色彩值的分類問題</span>，而非迴歸問題。這使得網路可以對沖押注，產生可能色彩的多模態分布，最終產生更鮮豔且合理的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section"><span class="ann-label">段落功能</span>指出現有方法的根本缺陷，提出分類替代迴歸的創新思路。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>透過批判 L2 損失的「平均化」效應，為分類式方法提供直觀的合理性論證。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>「擁抱模糊性」的論述轉化了問題的缺陷為方法的優勢，是巧妙的論述框架轉換。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Approach — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We train a CNN to map from a grayscale input to a distribution over quantized color value outputs using the <span class="hl-concept">CIE Lab color space</span>. Given the lightness channel L as input, our network learns to predict the corresponding a and b color channels. We <span class="hl-method">quantize the ab output space into bins with grid size 10 and keep the Q = 313 values which are in-gamut</span>. The architecture is based on <span class="hl-method">VGG-net</span>, with all pooling layers removed and replaced by strided convolutions, followed by a series of dilated convolutions. For each pixel, the network predicts a <span class="hl-concept">probability distribution over the 313 possible color bins</span>, and the final colorization is obtained by mapping these distributions to point estimates in ab space.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們訓練一個 CNN，使用 <span class="hl-concept">CIE Lab 色彩空間</span>，將灰階輸入映射到量化色彩值輸出的分布。給定亮度通道 L 作為輸入，網路學習預測對應的 a 和 b 色彩通道。我們<span class="hl-method">以網格大小 10 將 ab 輸出空間量化為區間，保留在色域內的 Q = 313 個值</span>。架構基於 <span class="hl-method">VGG-net</span>，移除所有池化層並以帶步幅摺積取代，隨後接上一系列膨脹摺積。對於每個像素，網路預測<span class="hl-concept">313 個可能色彩區間的機率分布</span>，最終的著色結果透過將這些分布映射到 ab 空間中的點估計來獲得。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>詳述網路架構與色彩空間的量化方案。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>將摘要中的「分類式著色」概念落實為具體的技術方案。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>Lab 空間的選擇使亮度與色度解耦，313 個量化區間平衡了精度與可行性。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-training">3. Classification Loss and Class Rebalancing — 分類損失與重新平衡</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Quantizing the color space and treating the prediction as a classification problem offers several advantages. We use a <span class="hl-method">multinomial cross-entropy loss</span> rather than L2 regression loss. However, the distribution of ab values in natural images is strongly biased towards desaturated values — <span class="hl-rebuttal">backgrounds like sky, ground, and walls dominate</span>. To address this, we <span class="hl-method">rebalance the loss based on the rarity of the color at training time</span>. We use a weighting term that is inversely proportional to the color class probability, smoothed by a temperature parameter lambda. This <span class="hl-thesis">class rebalancing is critical for producing colorful results</span>, as without it the network would converge to producing grayish outputs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                將色彩空間量化並以分類問題處理提供了多項優勢。我們使用<span class="hl-method">多項式交叉熵損失</span>而非 L2 迴歸損失。然而，自然影像中 ab 值的分布強烈偏向低飽和度的值——<span class="hl-rebuttal">天空、地面和牆壁等背景佔主導地位</span>。為解決此問題，我們<span class="hl-method">在訓練時根據色彩的稀有程度重新平衡損失</span>。使用一個與色彩類別機率成反比的加權項，並以溫度參數 lambda 進行平滑。<span class="hl-thesis">類別重新平衡對於產生色彩豐富的結果至關重要</span>，因為缺少它，網路會收斂到產生灰濛濛的輸出。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>說明類別重新平衡的動機與實現。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>解決從迴歸轉分類後出現的類別不平衡新問題，展現設計的完整性。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>誠實面對色彩分布偏差問題並提出解決方案，但溫度參數的調節對結果影響較大，屬超參數敏感點。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We train on <span class="hl-evidence">1.3M images from ImageNet</span> and evaluate with several metrics. For our "colorization Turing test," we show pairs of images — one real, one colorized — to AMT workers and ask them to identify the fake. Our method achieves a <span class="hl-evidence">fooling rate of 32.3%, compared to 22.1% for the baseline L2 regression approach</span>. A perfect colorization would achieve 50%. We also evaluate using <span class="hl-evidence">PSNR and perceptual metrics</span>. While L2 regression achieves higher PSNR (because it produces mean colors), our classification approach produces results that are perceptually preferred. Additionally, we demonstrate that features learned through colorization achieve <span class="hl-evidence">competitive performance on ImageNet classification (44.5% top-1 accuracy)</span> when used as a self-supervised pre-training task, outperforming several other self-supervised methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">ImageNet 的 130 萬張影像</span>上進行訓練，並以多項指標進行評估。在「著色圖靈測試」中，向 AMT 工作者展示成對的影像——一張真實、一張著色——請他們辨識偽造者。我們的方法達到 <span class="hl-evidence">32.3% 的欺騙率，相比基準 L2 迴歸方法的 22.1%</span>。完美著色將達到 50%。我們也使用 <span class="hl-evidence">PSNR 和感知指標</span>進行評估。雖然 L2 迴歸的 PSNR 更高（因為它產生的是平均色彩），但分類方法產生的結果在感知上更受偏好。此外，我們展示了透過著色學習的特徵在用作自監督預訓練任務時，在 <span class="hl-evidence">ImageNet 分類上達到具競爭力的表現（44.5% top-1 精度）</span>，超越了其他數種自監督方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>報告著色品質與自監督學習的雙重實驗結果。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>從人類感知（圖靈測試）和機器理解（特徵遷移）兩面向驗證方法的有效性。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>坦承 PSNR 不如迴歸方法，但用感知偏好反轉論述，巧妙地將「弱點」轉化為「指標不適切」的論證。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We conduct ablation studies to analyze the effect of each component. <span class="hl-evidence">Without class rebalancing, the fooling rate drops from 32.3% to 24.1%</span>. Using regression instead of classification reduces the fooling rate further. The <span class="hl-method">annealed-mean mapping</span> for converting probability distributions to point estimates in ab space provides a good balance between vividness and spatial consistency. We also analyze failure cases: the method sometimes produces <span class="hl-rebuttal">semantically incorrect colors (e.g., blue bananas) and struggles with scenes that have ambiguous object-color associations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進行消融研究以分析各元件的效果。<span class="hl-evidence">去除類別重新平衡後，欺騙率從 32.3% 降至 24.1%</span>。使用迴歸取代分類則進一步降低欺騙率。<span class="hl-method">退火均值映射</span>（annealed-mean mapping）用於將機率分布轉換為 ab 空間中的點估計，在鮮豔度與空間一致性之間提供了良好的平衡。我們也分析了失敗案例：該方法有時會產生<span class="hl-rebuttal">語義不正確的色彩（例如藍色香蕉），且在物件-色彩關聯模糊的場景中表現不佳</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section"><span class="ann-label">段落功能</span>消融實驗驗證各元件貢獻，並誠實揭示失敗案例。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>透過消融與失敗分析增強論文的可信度與完整性。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>主動展示失敗案例（藍色香蕉）是優秀的學術誠信表現，有助於讀者理解方法的適用邊界。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusions — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a system for <span class="hl-thesis">fully automatic image colorization that produces realistic and vibrant results by treating the problem as multinomial classification with class rebalancing</span>. Through a "colorization Turing test," we showed that our results fool human observers more often than previous methods. Importantly, we have also demonstrated that colorization is a viable <span class="hl-thesis">pretext task for self-supervised representation learning</span>, opening up new directions for learning visual features without manual annotation. Future work may explore the use of conditional generative models to handle the multimodality more explicitly.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一個<span class="hl-thesis">全自動影像著色系統，透過將問題視為帶有類別重新平衡的多項式分類，產生逼真且色彩鮮豔的結果</span>。透過「著色圖靈測試」，我們展示了結果比先前方法更頻繁地欺騙人類觀察者。更重要的是，我們也證明了著色是一種可行的<span class="hl-thesis">自監督表示學習的前置任務</span>，為無需手動標註的視覺特徵學習開闢了新方向。未來工作可能探索使用條件生成模型來更明確地處理多模態性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>總結雙重貢獻（著色品質與自監督學習）。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「前置任務」的延伸價值提升論文的長期影響力。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>將著色與自監督學習聯繫，擴展了論文的受眾與影響範圍。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>L2 迴歸產生灰濛色彩</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>分類+類別重新平衡</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>32% 圖靈測試欺騙率</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>偶發語義錯誤色彩</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>有效的著色與自監督任務</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>將著色建模為分類問題並使用類別重新平衡，可產生色彩鮮豔逼真的結果，同時所學特徵可作為自監督表示學習的有力工具。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>著色圖靈測試以人類感知作為最終評判標準，32.3% 的欺騙率（對比 22.1% 基準）提供了直觀且有力的品質證據。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>語義色彩錯誤（如藍色香蕉）揭示了模型缺乏高層語義理解的局限性，在色彩-物件關聯模糊的場景中表現不穩定。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9670;</button>
+</div>
+
+</body>
+</html>

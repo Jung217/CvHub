@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>SiT — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; } .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; } .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; } .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; } .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; } .ann-concept { border-left: 4px solid #dc3545; } .ann-evidence { border-left: 4px solid #007bff; } .ann-rebuttal { border-left: 4px solid #28a745; } .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; } .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; } .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; } .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; } .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; } .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; } .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; } .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+<nav class="top-navbar"><div class="navbar-inner"><div class="navbar-top-row">
+    <div class="navbar-title">SiT: Exploring Flow and Diffusion-based Generative Models with Scalable Interpolant Transformers <span class="course-tag">ECCV 2024</span></div>
+    <div class="navbar-links"><a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a><a href="https://arxiv.org/abs/2401.08740" target="_blank" class="navbar-home-link">arXiv 原文連結</a></div>
+</div></div></nav>
+<div class="section-nav"><div class="section-nav-inner"><a href="#sec-abstract">摘要</a><a href="#sec-intro">1. 緒論</a><a href="#sec-method">2. 方法</a><a href="#sec-experiments">3. 實驗</a><a href="#sec-conclusion">4. 結論</a><a href="#sec-overview">論證總覽</a></div></div>
+
+<div class="main-container">
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text">We introduce <span class="hl-concept">Scalable Interpolant Transformers (SiT)</span>, a family of generative models built on the backbone of <span class="hl-concept">Diffusion Transformers (DiT)</span>. The <span class="hl-concept">interpolant framework</span> allows for connecting two distributions in a more flexible way than standard diffusion models, making possible a <span class="hl-thesis">modular study of various design choices impacting generative models built on dynamical transport</span>: learning in <span class="hl-method">discrete or continuous time</span>, the <span class="hl-method">objective function</span>, the <span class="hl-method">interpolant that connects the distributions</span>, and <span class="hl-method">deterministic or stochastic sampling</span>. SiT surpasses DiT uniformly across model sizes on the <span class="hl-evidence">conditional ImageNet 256x256 and 512x512 benchmark</span>, achieving an <span class="hl-evidence">FID-50K score of 2.06 and 2.62</span> respectively.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text">我們提出<span class="hl-concept">可擴展內插變換器（SiT）</span>，一系列建構於<span class="hl-concept">擴散變換器（DiT）</span>骨幹之上的生成模型。<span class="hl-concept">內插框架</span>允許以比標準擴散模型更靈活的方式連接兩個分佈，使得對<span class="hl-thesis">建構在動態傳輸上的生成模型之各種設計選擇進行模組化研究</span>成為可能：<span class="hl-method">離散或連續時間</span>學習、<span class="hl-method">目標函數</span>、<span class="hl-method">連接分佈的內插方式</span>以及<span class="hl-method">確定性或隨機性取樣</span>。SiT 在模型各規模上均勻超越 DiT，在<span class="hl-evidence">條件式 ImageNet 256x256 和 512x512 基準</span>上分別達到 <span class="hl-evidence">FID-50K 分數 2.06 和 2.62</span>。</div>
+    </div><div class="right-col"><div class="annotation-card ann-intro">
+        <div class="ann-section"><span class="ann-label">段落功能</span>全文總覽——引入內插框架並展示其超越 DiT 的效能。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>以「模組化研究」定位，強調框架的靈活性與系統性，而非單一技巧。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>FID 2.06 是極具競爭力的數字。「均勻超越」的宣稱需所有模型規模的數據支撐。</div>
+    </div></div></div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text"><span class="hl-concept">Diffusion models</span> and <span class="hl-concept">flow-based models</span> are two prominent frameworks for generative modeling. Standard diffusion models define a <span class="hl-rebuttal">fixed forward process that progressively adds Gaussian noise</span>, and learn a reverse denoising process. Flow-based models instead learn a <span class="hl-method">deterministic mapping between a simple base distribution and the data distribution</span>. The <span class="hl-concept">stochastic interpolant framework</span> provides a <span class="hl-thesis">unified perspective that encompasses both diffusion and flow-based models as special cases</span>. By defining a general interpolation between noise and data, we can <span class="hl-method">independently vary the interpolation schedule, the objective function, and the sampling strategy</span>, enabling a systematic exploration of the design space.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text"><span class="hl-concept">擴散模型</span>和<span class="hl-concept">流模型</span>是生成建模的兩大主流框架。標準擴散模型定義<span class="hl-rebuttal">固定的前向過程逐步添加高斯噪聲</span>，並學習逆向去噪過程。流模型則學習<span class="hl-method">簡單基底分佈與資料分佈之間的確定性映射</span>。<span class="hl-concept">隨機內插框架</span>提供了<span class="hl-thesis">統一的視角，將擴散和流模型都涵蓋為特例</span>。透過定義噪聲與資料之間的一般化內插，我們可<span class="hl-method">獨立變化內插排程、目標函數和取樣策略</span>，實現設計空間的系統性探索。</div>
+    </div><div class="right-col"><div class="annotation-card ann-concept">
+        <div class="ann-section"><span class="ann-label">段落功能</span>建立理論場域——統一擴散與流模型的視角。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>「統一視角」的定位使 SiT 不僅是技術改進，更是理論框架。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>將兩大框架統一為特例是強有力的理論貢獻，但增加的設計自由度也意味著更大的調參空間。</div>
+    </div></div></div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text">SiT is built on the exact same architecture as <span class="hl-concept">DiT</span> — a <span class="hl-method">Transformer operating on latent patches with adaptive layer normalization conditioning</span>. The only changes are in the <span class="hl-method">training objective and sampling procedure</span>, which are governed by the interpolant framework. We systematically explore: (1) <span class="hl-method">linear vs. trigonometric interpolants</span>; (2) <span class="hl-method">velocity prediction vs. score prediction objectives</span>; (3) <span class="hl-method">continuous-time vs. discrete-time training</span>; and (4) <span class="hl-method">deterministic (ODE) vs. stochastic (SDE) sampling with varying diffusion coefficients</span>. Our key finding is that <span class="hl-thesis">by decoupling the diffusion coefficient from the learning process, we can tune it at inference time to find the optimal balance between sample quality and diversity</span>.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text">SiT 建構在與 <span class="hl-concept">DiT</span> 完全相同的架構上——<span class="hl-method">在潛在區塊上運作的 Transformer，使用自適應層正規化調節</span>。唯一的改變在於<span class="hl-method">訓練目標和取樣程序</span>，由內插框架控制。我們系統性地探索：(1) <span class="hl-method">線性 vs. 三角函數內插</span>；(2) <span class="hl-method">速度預測 vs. 分數預測目標</span>；(3) <span class="hl-method">連續時間 vs. 離散時間訓練</span>；(4) <span class="hl-method">確定性（ODE）vs. 隨機性（SDE）取樣，搭配不同擴散係數</span>。關鍵發現是<span class="hl-thesis">透過將擴散係數從學習過程中解耦，可在推論時調整以找到樣本品質與多樣性的最佳平衡</span>。</div>
+    </div><div class="right-col"><div class="annotation-card ann-method">
+        <div class="ann-section"><span class="ann-label">段落功能</span>闡述核心方法——四個獨立可調的設計維度。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>「相同架構、不同框架」的實驗設計使消融研究的結論極為清晰。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>系統性探索是本文的最大優勢。但四維設計空間的完整探索計算成本巨大。</div>
+    </div></div></div>
+
+    <h2 class="section-heading" id="sec-experiments">3. Experiments — 實驗</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text">On <span class="hl-evidence">conditional ImageNet 256x256</span>, SiT-XL/2 achieves an <span class="hl-evidence">FID-50K of 2.06</span>, compared to <span class="hl-evidence">DiT-XL/2's FID of 2.27</span> — a <span class="hl-evidence">9.3% improvement using the exact same model architecture, parameters, and GFLOPs</span>. On <span class="hl-evidence">ImageNet 512x512</span>, SiT achieves <span class="hl-evidence">FID 2.62 vs DiT's 3.04</span>. Critically, SiT's advantages are <span class="hl-evidence">consistent across all model sizes</span> (S, B, L, XL), confirming that the improvements stem from the interpolant framework rather than scale-dependent factors. Our ablation studies reveal that <span class="hl-evidence">velocity prediction with linear interpolation outperforms score prediction with standard diffusion noise schedules</span>, and that <span class="hl-evidence">SDE sampling with tuned diffusion coefficients outperforms deterministic ODE sampling</span>.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text">在<span class="hl-evidence">條件式 ImageNet 256x256</span> 上，SiT-XL/2 達到 <span class="hl-evidence">FID-50K 2.06</span>，相較於 <span class="hl-evidence">DiT-XL/2 的 FID 2.27</span>——<span class="hl-evidence">在完全相同的模型架構、參數量和 GFLOPs 下改進了 9.3%</span>。在 <span class="hl-evidence">ImageNet 512x512</span> 上，SiT 達到 <span class="hl-evidence">FID 2.62 對比 DiT 的 3.04</span>。關鍵的是，SiT 的優勢<span class="hl-evidence">在所有模型規模（S、B、L、XL）上一致</span>，確認改進源自內插框架而非規模相關因素。消融研究揭示<span class="hl-evidence">速度預測搭配線性內插優於分數預測搭配標準擴散噪聲排程</span>，且<span class="hl-evidence">調整擴散係數的 SDE 取樣優於確定性 ODE 取樣</span>。</div>
+    </div><div class="right-col"><div class="annotation-card ann-evidence">
+        <div class="ann-section"><span class="ann-label">段落功能</span>提供核心實證——量化改進與消融分析。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>「相同架構」的控制變量設計使改進歸因極為明確，消融結果為社群提供實用指南。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>9.3% 的免費改進（無額外計算成本）是極具吸引力的結果。但僅在 ImageNet 上驗證，對其他資料集的推廣性有待確認。</div>
+    </div></div></div>
+
+    <h2 class="section-heading" id="sec-conclusion">4. Conclusion — 結論</h2>
+    <div class="para-row"><div class="left-col">
+        <div class="en-text">We have introduced <span class="hl-concept">SiT</span>, demonstrating that the <span class="hl-thesis">interpolant framework provides a principled and effective approach to improving diffusion-based generative models</span>. By enabling independent control over interpolation schedules, objectives, and sampling strategies, SiT achieves <span class="hl-evidence">consistent improvements over DiT across all model scales</span> with <span class="hl-evidence">zero additional computational cost</span>. Our systematic study provides <span class="hl-thesis">practical guidelines for the design of future generative models based on dynamical transport</span>.</div>
+        <div class="lang-divider"></div>
+        <div class="zh-text">我們提出了 <span class="hl-concept">SiT</span>，展示<span class="hl-thesis">內插框架為改進基於擴散的生成模型提供了有原則且有效的方法</span>。透過實現對內插排程、目標和取樣策略的獨立控制，SiT 在<span class="hl-evidence">所有模型規模上一致超越 DiT</span>，且<span class="hl-evidence">無額外計算成本</span>。我們的系統性研究為<span class="hl-thesis">基於動態傳輸的未來生成模型設計提供了實用指南</span>。</div>
+    </div><div class="right-col"><div class="annotation-card ann-intro">
+        <div class="ann-section"><span class="ann-label">段落功能</span>總結全文——重申框架價值與實用指南。</div>
+        <div class="ann-section"><span class="ann-label">邏輯角色</span>以「實用指南」收束，強調研究對社群的直接價值。</div>
+        <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>SiT 的價值在於其理論清晰性和即插即用的改進，已被後續工作廣泛採用。</div>
+    </div></div></div>
+
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br><small>擴散模型設計選擇缺乏系統研究</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">論點<br><small>內插框架統一擴散與流模型</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">方法<br><small>四維設計空間的系統探索</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">證據<br><small>FID 2.06, 零額外計算成本</small></div><div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">結論<br><small>生成模型設計的實用指南</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card"><h3>核心主張</h3><p>透過內插框架將擴散係數從學習中解耦，可在不增加計算成本的情況下，在所有模型規模上一致超越標準 DiT。</p></div>
+            <div class="arg-detail-card"><h3>論證最強處</h3><p>完全相同的架構和計算量下的 9.3% FID 改進，以及跨四個模型規模的一致性，使結論極為可靠。</p></div>
+            <div class="arg-detail-card"><h3>論證最弱處</h3><p>僅在 ImageNet 類別條件生成上驗證，對文字條件生成等更複雜設定的推廣性尚未充分探索。</p></div>
+        </div>
+    </div>
+</div>
+<div class="floating-legend"><div class="legend-panel" id="legendPanel"><div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div><div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div><div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div><div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div><div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div></div><button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">?</button></div>
+</body>
+</html>

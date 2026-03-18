@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>SSD: Single Shot MultiBox Detector — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                SSD: Single Shot MultiBox Detector
+                <span class="course-tag">ECCV 2016</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1512.02325" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. SSD 架構</a>
+        <a href="#sec-training">3. 訓練策略</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a method for detecting objects in images using a <span class="hl-concept">single deep neural network</span>. Our approach, named SSD, <span class="hl-thesis">discretizes the output space of bounding boxes into a set of default boxes over different aspect ratios and scales per feature map location</span>. At prediction time, the network generates scores for the presence of each object category in each default box and produces adjustments to the box to better match the object shape. Additionally, the network <span class="hl-method">combines predictions from multiple feature maps with different resolutions</span> to naturally handle objects of various sizes. SSD is simple relative to methods that require object proposals because it <span class="hl-thesis">completely eliminates proposal generation and subsequent pixel or feature resampling stages</span> and encapsulates all computation in a single network. This makes SSD easy to train and straightforward to integrate into systems that require a detection component. Experimental results on the <span class="hl-evidence">PASCAL VOC, COCO, and ILSVRC datasets confirm that SSD has competitive accuracy to methods that utilize an additional object proposal step and is much faster</span>, while providing a unified framework for both training and inference. For <span class="hl-evidence">300x300 input, SSD achieves 74.3% mAP on VOC2007 test at 59 FPS on a Nvidia Titan X</span>, and for 512x512 input, SSD achieves 76.9% mAP, outperforming a comparable state-of-the-art Faster R-CNN model.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種使用<span class="hl-concept">單一深度神經網路</span>進行影像物件偵測的方法。我們的方法名為 SSD，其核心思想是<span class="hl-thesis">將邊界框的輸出空間離散化為一組在每個特徵圖位置上具有不同長寬比與尺度的預設框</span>。在預測階段，網路針對每個預設框產生各物件類別的存在機率分數，並生成對框的調整量以更好地匹配物件形狀。此外，網路<span class="hl-method">結合來自多個不同解析度特徵圖的預測結果</span>，以自然地處理不同大小的物件。SSD 相較於需要候選區域的方法更為簡潔，因為它<span class="hl-thesis">完全消除了候選區域生成以及後續的像素或特徵重取樣階段</span>，將所有計算封裝在單一網路中。在 <span class="hl-evidence">PASCAL VOC、COCO 和 ILSVRC 資料集上的實驗結果證實，SSD 具有與使用額外候選區域步驟的方法相當的精確度，且速度更快</span>。以 <span class="hl-evidence">300x300 的輸入而言，SSD 在 VOC2007 測試集上達到 74.3% mAP，在 Nvidia Titan X 上達到每秒 59 幀</span>；以 512x512 輸入則達到 76.9% mAP，超越了同級的 Faster R-CNN 模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>提出核心方法並總結主要貢獻與實驗結果。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>作為全文的濃縮摘要，確立了 SSD 的三大賣點：單次前向傳遞、多尺度特徵圖預測、無需候選區域。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>用速度與精度的雙重指標建立優勢敘事，但 mAP 與速度的比較基準（硬體、批次大小）需要讀者自行查驗。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Current state-of-the-art object detection systems are variants of the following approach: hypothesize bounding boxes, resample pixels or features for each box, and apply a high-quality classifier. This pipeline has prevailed on detection benchmarks since the <span class="hl-concept">Selective Search</span> work through the current leading results on PASCAL VOC, COCO, and ILSVRC detection achieved by <span class="hl-concept">Faster R-CNN</span>. Although accurate, <span class="hl-rebuttal">these approaches are too computationally intensive for embedded systems and, even with high-end hardware, too slow for real-time applications</span>. Often, detection speed for these approaches is measured in frames per second (FPS), and even the fastest high-accuracy detector, Faster R-CNN, operates at only 7 FPS.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                當前最先進的物件偵測系統基本上遵循以下流程：假設邊界框、對每個框重取樣像素或特徵、然後套用高品質分類器。自從<span class="hl-concept">選擇性搜尋</span>（Selective Search）的工作以來，這一流程一直主導著偵測基準測試，直至目前由 <span class="hl-concept">Faster R-CNN</span> 在 PASCAL VOC、COCO 與 ILSVRC 偵測上取得的領先成果。雖然精確度高，<span class="hl-rebuttal">但這些方法的計算量對嵌入式系統而言過於龐大，即使在高階硬體上也過慢而無法用於即時應用</span>。這些方法的偵測速度通常以每秒幀數（FPS）衡量，即使最快的高精度偵測器 Faster R-CNN 也僅能達到每秒 7 幀。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section"><span class="ann-label">段落功能</span>回顧現有偵測流程，指出速度瓶頸。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>透過批判既有範式（兩階段偵測器）的效率問題，為 SSD 的「單次偵測」動機建立鋪陳。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以 Faster R-CNN 僅 7 FPS 作為對比標竿，有效凸顯速度差距，但未提及同期也有人嘗試加速兩階段方法。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                There have been many attempts to build faster detectors by attacking each stage of the detection pipeline, but so far, significantly increased speed comes only at the cost of significantly decreased detection accuracy. Our work introduces <span class="hl-thesis">the first deep network based object detector that does not resample pixels or features for bounding box hypotheses and is as accurate as approaches that do</span>. This results in a significant improvement in speed for high-accuracy detection. The fundamental improvement in speed comes from <span class="hl-method">eliminating bounding box proposals and the subsequent pixel or feature resampling stage</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                過去已有許多嘗試透過攻克偵測流程各階段來建構更快的偵測器，但迄今為止，顯著的速度提升往往以顯著的偵測精度下降為代價。我們的工作提出了<span class="hl-thesis">第一個不對邊界框假設進行像素或特徵重取樣的深度網路物件偵測器，且其精度與需要重取樣的方法相當</span>。這在高精度偵測方面帶來了顯著的速度提升。速度的根本改善來自於<span class="hl-method">消除邊界框候選區域以及後續的像素或特徵重取樣階段</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>提出核心創新主張。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>在問題（速度慢）與解決方案（SSD）之間建立因果鏈。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以「第一個」的措辭宣稱開創性，但 YOLO 在此之前也是單次偵測器，SSD 的差異在於多尺度特徵圖。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. The SSD Architecture — SSD 架構</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The SSD approach is based on a <span class="hl-method">feed-forward convolutional network that produces a fixed-size collection of bounding boxes and scores for the presence of object class instances in those boxes</span>, followed by a <span class="hl-method">non-maximum suppression</span> step to produce the final detections. The early network layers are based on a standard architecture used for high quality image classification (truncated before any classification layers), which we call the <span class="hl-concept">base network</span>. We then add auxiliary structure to the network to produce detections with the following key features: <span class="hl-method">multi-scale feature maps for detection</span> — we add convolutional feature layers to the end of the truncated base network. These layers decrease in size progressively and allow predictions of detections at multiple scales.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SSD 方法基於一個<span class="hl-method">前饋摺積網路，該網路產生固定數量的邊界框以及各框中物件類別的存在機率分數</span>，隨後透過<span class="hl-method">非極大值抑制</span>（Non-Maximum Suppression）步驟產生最終偵測結果。網路的前段層基於用於高品質影像分類的標準架構（在分類層之前截斷），我們稱之為<span class="hl-concept">基礎網路</span>。接著在網路上添加輔助結構以產生偵測結果，其關鍵特徵包括：<span class="hl-method">多尺度特徵圖偵測</span> — 我們在截斷的基礎網路末端添加摺積特徵層。這些層的尺寸逐漸縮小，允許在多個尺度上進行偵測預測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>描述 SSD 的整體架構設計。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>技術方案的核心陳述，建立多尺度特徵圖偵測的概念。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>將基礎網路（VGG-16）視為現成元件，專注於新增結構的說明，使讀者容易理解增量式創新。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Convolutional predictors for detection</span> — each added feature layer (or optionally an existing feature layer from the base network) can produce a fixed set of detection predictions using a set of <span class="hl-method">convolutional filters</span>. For a feature layer of size m x n with p channels, the basic element for predicting parameters of a potential detection is a <span class="hl-method">3x3xp small kernel that produces either a score for a category, or a shape offset relative to the default box coordinates</span>. <span class="hl-concept">Default boxes and aspect ratios</span> — we associate a set of default bounding boxes with each feature map cell, for multiple feature maps at the top of the network. The default boxes tile the feature map in a convolutional manner, so that <span class="hl-thesis">the position of each box relative to its corresponding cell is fixed</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">用於偵測的摺積預測器</span> — 每個新增的特徵層（或可選擇基礎網路中的既有特徵層）可使用一組<span class="hl-method">摺積濾波器</span>產生固定數量的偵測預測。對於大小為 m x n、通道數為 p 的特徵層，用於預測潛在偵測參數的基本元素是一個 <span class="hl-method">3x3xp 的小核心，產生類別分數或相對於預設框座標的形狀偏移量</span>。<span class="hl-concept">預設框與長寬比</span> — 我們為每個特徵圖單元關聯一組預設邊界框，涵蓋網路頂部的多個特徵圖。預設框以摺積方式鋪設在特徵圖上，使得<span class="hl-thesis">每個框相對於其對應單元的位置是固定的</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>詳細說明預測機制與預設框設計。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>補充架構細節，說明如何從多尺度特徵圖中直接進行偵測。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>預設框的設計靈感來自 Faster R-CNN 的錨框，但透過在多層級特徵圖上部署，有效擴展了偵測範圍。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-training">3. Training — 訓練策略</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key difference between training SSD and training a typical detector that uses region proposals is that <span class="hl-thesis">ground truth information needs to be assigned to specific outputs in the fixed set of detector outputs</span>. Once this assignment is determined, the loss function and back propagation are applied end-to-end. Training also involves choosing the set of default boxes and scales for detection as well as the <span class="hl-method">hard negative mining</span> and <span class="hl-method">data augmentation</span> strategies. <span class="hl-concept">Matching strategy</span>: during training we need to determine which default boxes correspond to a ground truth detection. We begin by matching each ground truth box to the default box with the best jaccard overlap. Unlike MultiBox, we then match default boxes to any ground truth with <span class="hl-evidence">jaccard overlap higher than a threshold (0.5)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練 SSD 與訓練典型候選區域偵測器的關鍵差異在於，<span class="hl-thesis">真實標註資訊需要被指派到固定偵測輸出集合中的特定輸出</span>。一旦確定此指派，損失函數與反向傳播即以端對端方式進行。訓練還涉及選擇偵測用的預設框集合與尺度，以及<span class="hl-method">困難負樣本挖掘</span>（hard negative mining）和<span class="hl-method">資料擴增</span>策略。<span class="hl-concept">匹配策略</span>：訓練時需要確定哪些預設框對應真實偵測結果。首先將每個真實框與 Jaccard 重疊度最高的預設框匹配，不同於 MultiBox，我們接著將預設框與任何 <span class="hl-evidence">Jaccard 重疊度高於閾值（0.5）</span>的真實框匹配。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>說明訓練流程中的標籤指派與匹配策略。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>在架構設計之後，補充使其可訓練的關鍵技術細節。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>0.5 的 Jaccard 閾值為經驗選擇，放寬匹配條件有助於增加正樣本數量，但可能引入雜訊。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Hard negative mining</span>: after the matching step, most of the default boxes are negatives, especially when the number of possible default boxes is large. This introduces a significant imbalance between the positive and negative training examples. Instead of using all the negative examples, we <span class="hl-method">sort them using the highest confidence loss for each default box and pick the top ones so that the ratio between the negatives and positives is at most 3:1</span>. We found that this leads to faster optimization and more stable training. <span class="hl-concept">Data augmentation</span> is crucial to improving performance. We generate additional training examples by <span class="hl-method">random cropping, horizontal flipping, and photometric distortions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">困難負樣本挖掘</span>：匹配步驟之後，大多數預設框為負樣本，特別是當可能的預設框數量很大時，這會在正負訓練樣本之間造成顯著的不平衡。我們不使用全部負樣本，而是<span class="hl-method">按每個預設框的最高置信度損失進行排序，選取排名靠前的負樣本，使得負正樣本比率最多為 3:1</span>。我們發現這能帶來更快的最佳化和更穩定的訓練。<span class="hl-concept">資料擴增</span>對於提升性能至關重要，我們透過<span class="hl-method">隨機裁剪、水平翻轉和光度扭曲</span>來生成額外的訓練樣本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>說明解決正負樣本不平衡的關鍵技巧。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>補充訓練穩定性的工程細節，為後續的實驗結果提供可靠基礎。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>3:1 的比率為經驗法則，資料擴增的重要性在消融實驗中得到驗證。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To understand the performance of our SSD model in detail, we carried out a comprehensive analysis using <span class="hl-evidence">PASCAL VOC 2007</span>. In all experiments, we use <span class="hl-method">VGG-16 as the base network</span>, pre-trained on ILSVRC CLS-LOC dataset. We compare against <span class="hl-concept">Fast R-CNN</span> and <span class="hl-concept">Faster R-CNN</span>. Our <span class="hl-evidence">SSD300 model achieves 74.3% mAP at 59 FPS while SSD512 achieves 76.9% mAP at 22 FPS</span>. For reference, Faster R-CNN achieves 73.2% mAP at 7 FPS. This means SSD300 is <span class="hl-evidence">8.4x faster than Faster R-CNN while achieving higher mAP</span>. Our SSD512 model outperforms Faster R-CNN in both accuracy and speed.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為深入了解 SSD 模型的性能，我們使用 <span class="hl-evidence">PASCAL VOC 2007</span> 進行了全面分析。所有實驗中均使用在 ILSVRC CLS-LOC 資料集上預訓練的 <span class="hl-method">VGG-16 作為基礎網路</span>，並與 <span class="hl-concept">Fast R-CNN</span> 和 <span class="hl-concept">Faster R-CNN</span> 進行比較。<span class="hl-evidence">SSD300 模型達到 74.3% mAP、每秒 59 幀；SSD512 達到 76.9% mAP、每秒 22 幀</span>。作為參考，Faster R-CNN 達到 73.2% mAP、每秒 7 幀。這意味著 SSD300 <span class="hl-evidence">比 Faster R-CNN 快 8.4 倍，同時達到更高的 mAP</span>。SSD512 模型在精度和速度上均超越 Faster R-CNN。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>報告核心實驗結果並與基準方法比較。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以量化數據驗證摘要中的效能宣稱。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以倍數形式呈現速度優勢（8.4x）極具說服力，但須注意不同模型的 GPU 使用條件是否一致。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We also evaluate SSD on the <span class="hl-evidence">COCO dataset</span>. We compare against the state-of-the-art Faster R-CNN and ION on various metrics including <span class="hl-evidence">mAP@0.5 and mAP@[0.5:0.95]</span>. Our SSD300 achieves <span class="hl-evidence">23.2% mAP@[0.5:0.95]</span> compared to Faster R-CNN's 21.9%. However, <span class="hl-rebuttal">SSD has relatively worse performance on smaller objects compared to larger objects</span>. This is not surprising because those small objects may not even have any information at the very top layers. Increasing the input size (e.g., from 300x300 to 512x512) can help improve detecting small objects.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們也在 <span class="hl-evidence">COCO 資料集</span>上評估 SSD，與最先進的 Faster R-CNN 和 ION 在多項指標上進行比較，包括 <span class="hl-evidence">mAP@0.5 和 mAP@[0.5:0.95]</span>。SSD300 達到 <span class="hl-evidence">23.2% mAP@[0.5:0.95]</span>，對比 Faster R-CNN 的 21.9%。然而，<span class="hl-rebuttal">SSD 在小物件上的表現相對較差</span>。這並不意外，因為那些小物件在最頂層特徵圖上可能根本沒有足夠的資訊。增加輸入尺寸（例如從 300x300 到 512x512）有助於改善小物件的偵測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section"><span class="ann-label">段落功能</span>報告 COCO 結果並坦承小物件偵測的不足。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>展示跨資料集的泛化能力，同時誠實面對局限性。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>主動承認弱點（小物件偵測較弱）並提出簡單的緩解策略（增大輸入），增加論文的可信度。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusions — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper introduces SSD, a <span class="hl-thesis">fast single-shot object detector for multiple categories</span>. A key feature of our model is the use of <span class="hl-method">multi-scale convolutional bounding box outputs attached to multiple feature maps at the top of the network</span>. This representation allows us to efficiently model the space of possible object shapes. We demonstrate that given appropriate training strategies, a <span class="hl-thesis">larger number of carefully chosen default bounding boxes results in improved performance</span>. We build SSD models with at least an order of magnitude more box predictions sampling location, scale, and aspect ratio, than existing methods. We demonstrate that <span class="hl-evidence">SSD achieves accuracy that is competitive with state-of-the-art object detectors while being significantly faster</span>, making it the ideal candidate for real-time object detection systems.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了 SSD，一種適用於多類別的<span class="hl-thesis">快速單次物件偵測器</span>。模型的關鍵特徵是使用<span class="hl-method">連接到網路頂部多個特徵圖的多尺度摺積邊界框輸出</span>。此表示法使我們能夠有效地模擬可能的物件形狀空間。我們證明了在適當的訓練策略下，<span class="hl-thesis">精心選擇的更多預設邊界框能帶來性能提升</span>。我們構建的 SSD 模型在位置、尺度和長寬比的取樣上，其框預測數量至少比現有方法多一個數量級。實驗證明 <span class="hl-evidence">SSD 達到了與最先進物件偵測器相當的精度，同時顯著更快</span>，使其成為即時物件偵測系統的理想選擇。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>總結核心貢獻並強調實用價值。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>呼應摘要的主張，以「即時偵測的理想選擇」作為收尾。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以「至少多一個數量級」的框預測量作為差異化論述，強化了 SSD 方法的全面性。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>兩階段偵測器速度不足</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>單次偵測+多尺度特徵</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>VOC/COCO 精度與速度</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>小物件仍有不足</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>即時偵測理想方案</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過在多尺度特徵圖上直接預測邊界框與類別，SSD 消除了候選區域生成步驟，在保持高精度的同時大幅提升偵測速度。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>SSD300 以 59 FPS 達到 74.3% mAP，比 Faster R-CNN（7 FPS, 73.2% mAP）快 8.4 倍且更準確，量化數據有力地支撐了速度與精度的雙重優勢。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>小物件偵測表現相對較差，作者雖坦承此問題並提出增大輸入尺寸作為緩解方案，但缺乏更深入的結構性解決策略。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9670;</button>
+</div>
+
+</body>
+</html>

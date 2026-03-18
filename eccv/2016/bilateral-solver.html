@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>The Fast Bilateral Solver — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #c0c0c0, #808080); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                The Fast Bilateral Solver
+                <span class="course-tag">ECCV 2016</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1511.03296" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 雙邊求解器</a>
+        <a href="#sec-fast">3. 快速演算法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present the <span class="hl-concept">bilateral solver</span>, a novel algorithm for <span class="hl-thesis">edge-aware smoothing that combines the flexibility of optimization-based approaches with the speed of fast bilateral filtering</span>. Our technique is capable of <span class="hl-method">solving a broad class of optimization problems by working in a "bilateral space" defined by the input reference image</span>. The bilateral solver can be applied to numerous problems including <span class="hl-evidence">depth superresolution, stereo, colorization, and semantic segmentation</span>. The solver produces results that are <span class="hl-evidence">comparable to or better than state-of-the-art domain-specific techniques</span>, while being fast enough for real-time applications. Our <span class="hl-concept">fast bilateral solver</span> can process a 1-megapixel image in under <span class="hl-evidence">200 milliseconds</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出<span class="hl-concept">雙邊求解器</span>，一種用於<span class="hl-thesis">邊緣感知平滑的新演算法，結合了基於最佳化方法的靈活性與快速雙邊濾波的速度</span>。我們的技術能夠<span class="hl-method">在由輸入參考影像定義的「雙邊空間」中求解廣泛的最佳化問題</span>。雙邊求解器可應用於多項問題，包括<span class="hl-evidence">深度超解析度、立體視覺、著色和語義分割</span>。求解器產生的結果<span class="hl-evidence">與最先進的特定領域技術相當或更好</span>，且速度足以用於即時應用。我們的<span class="hl-concept">快速雙邊求解器</span>可在 <span class="hl-evidence">200 毫秒</span>內處理一張百萬像素影像。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>提出雙邊求解器的概念並強調其廣泛適用性和速度。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「通用工具」的定位建立方法的學術價值。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>列舉四種不同應用領域展示通用性，但每項的深度比較可能不如專用方法充分。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Many computer vision tasks require some form of <span class="hl-concept">edge-aware smoothing</span> — a process that smooths an image or signal while preserving sharp edges. The <span class="hl-concept">bilateral filter</span> is perhaps the most well-known edge-aware filter, but it is inherently limited: <span class="hl-rebuttal">it can only be applied as a fixed filter and cannot easily incorporate data-dependent constraints or regularization terms</span>. On the other hand, optimization-based methods like <span class="hl-concept">CRF-based approaches</span> can incorporate arbitrary constraints but <span class="hl-rebuttal">are typically slow and require problem-specific implementations</span>. We bridge this gap by formulating edge-aware smoothing as an optimization problem that can be solved efficiently in a <span class="hl-thesis">bilateral space using a compact representation derived from the bilateral grid</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                許多電腦視覺任務需要某種形式的<span class="hl-concept">邊緣感知平滑</span>——在平滑影像或信號的同時保留銳利邊緣的過程。<span class="hl-concept">雙邊濾波器</span>可能是最知名的邊緣感知濾波器，但它有固有的限制：<span class="hl-rebuttal">只能作為固定濾波器應用，無法輕易納入資料相依的約束或正則化項</span>。另一方面，如<span class="hl-concept">基於 CRF 的方法</span>等最佳化方法可以納入任意約束，但<span class="hl-rebuttal">通常較慢且需要特定問題的實作</span>。我們透過將邊緣感知平滑公式化為一個可在<span class="hl-thesis">雙邊空間中使用源自雙邊網格的緊湊表示來高效求解</span>的最佳化問題，彌合了這一鴻溝。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section"><span class="ann-label">段落功能</span>指出兩類方法各自的不足，定位雙邊求解器的橋梁角色。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>建立「速度 vs 靈活性」的二元對立，為統一解決方案提供動機。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>清楚地識別了兩類方法各自的瓶頸，使得提出的「折衷方案」顯得必要且有價值。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. The Bilateral Solver — 雙邊求解器</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The bilateral solver minimizes an objective that consists of a <span class="hl-method">data fidelity term and a bilateral smoothness term</span>. The key insight is to reformulate the problem in <span class="hl-concept">bilateral space</span>: instead of solving for a value at every pixel, we solve for values at <span class="hl-method">vertices of a simplified bilateral grid</span>, which has far fewer unknowns than the number of pixels. The bilateral smoothness term is defined as a quadratic form using the <span class="hl-method">bistochastic normalized bilateral affinity matrix</span>, which encodes edge-aware connections between pixels based on both spatial proximity and color similarity. This formulation allows us to express the optimization as a <span class="hl-method">sparse linear system that can be solved efficiently using preconditioned conjugate gradient</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                雙邊求解器最小化一個由<span class="hl-method">資料保真項和雙邊平滑項</span>組成的目標函數。關鍵洞見是在<span class="hl-concept">雙邊空間</span>中重新公式化問題：不是在每個像素上求解值，而是在<span class="hl-method">簡化雙邊網格的頂點</span>上求解值，其未知數遠少於像素數量。雙邊平滑項定義為使用<span class="hl-method">雙重隨機正規化雙邊親和矩陣</span>的二次形式，該矩陣基於空間鄰近性和色彩相似性編碼像素之間的邊緣感知連接。此公式允許我們將最佳化表示為一個<span class="hl-method">可使用預條件共軛梯度法高效求解的稀疏線性系統</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>描述雙邊求解器的數學框架。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「雙邊空間降維」作為核心技術洞見，解釋為何能兼顧速度與品質。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>將高維像素問題轉化為低維雙邊網格問題，是一種優雅的降維策略。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-fast">3. Fast Algorithm — 快速演算法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">fast bilateral solver</span> exploits the structure of the bilateral grid to achieve computational efficiency. The bilateral grid <span class="hl-method">reduces the dimensionality of the problem from the number of pixels (potentially millions) to the number of grid vertices (typically thousands)</span>. We use the <span class="hl-method">simplified bilateral grid</span> representation where the grid resolution is controlled by spatial and range parameters. The resulting sparse linear system is solved using <span class="hl-method">preconditioned conjugate gradient (PCG)</span> with a Jacobi preconditioner, typically converging in <span class="hl-evidence">25-50 iterations</span>. The total computational cost is <span class="hl-evidence">O(N) in the number of pixels</span>, making the solver practical for megapixel images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">快速雙邊求解器</span>利用雙邊網格的結構來實現計算效率。雙邊網格<span class="hl-method">將問題的維度從像素數量（可能數百萬）降低到網格頂點數量（通常數千）</span>。我們使用<span class="hl-method">簡化雙邊網格</span>表示，其中網格解析度由空間和範圍參數控制。所得的稀疏線性系統使用<span class="hl-method">帶 Jacobi 預條件器的預條件共軛梯度法（PCG）</span>求解，通常在 <span class="hl-evidence">25-50 次迭代</span>中收斂。總計算成本在像素數量上為 <span class="hl-evidence">O(N)</span>，使求解器適用於百萬像素影像。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>說明快速演算法的複雜度分析。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以線性複雜度 O(N) 證明方法的可擴展性。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>O(N) 的線性複雜度是強有力的效率保證。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We demonstrate the bilateral solver on four diverse applications. For <span class="hl-evidence">depth superresolution</span>, we upsample low-resolution depth maps guided by high-resolution RGB images, achieving lower error than domain-specific methods. For <span class="hl-evidence">stereo</span>, we use the solver as a post-processing step to refine disparity maps, improving quality while adding only <span class="hl-evidence">50ms of processing time</span>. For <span class="hl-evidence">colorization</span>, we solve for ab channels in Lab space given sparse user scribbles, producing high-quality results in real-time. For <span class="hl-evidence">semantic segmentation</span>, we use the solver as an alternative to dense CRF post-processing, achieving comparable IoU scores while being <span class="hl-evidence">significantly faster</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在四種不同的應用上展示雙邊求解器。在<span class="hl-evidence">深度超解析度</span>中，以高解析度 RGB 影像引導低解析度深度圖的上取樣，達到比特定領域方法更低的誤差。在<span class="hl-evidence">立體視覺</span>中，將求解器用作後處理步驟來精煉視差圖，在僅增加 <span class="hl-evidence">50 毫秒處理時間</span>的情況下提升品質。在<span class="hl-evidence">著色</span>中，根據稀疏的使用者筆觸在 Lab 空間中求解 ab 通道，即時產生高品質結果。在<span class="hl-evidence">語義分割</span>中，將求解器用作稠密 CRF 後處理的替代方案，在<span class="hl-evidence">顯著更快</span>的速度下達到相當的 IoU 分數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>報告四種應用的實驗結果。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以廣泛的應用範圍驗證方法的通用性主張。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>四種截然不同的應用展示了「通用工具」的定位，但每項比較的深度可能不如專用方法論文。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusions — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented the <span class="hl-concept">fast bilateral solver</span>, a <span class="hl-thesis">general-purpose edge-aware optimization technique that bridges the gap between fast bilateral filtering and flexible optimization-based approaches</span>. By operating in a compact bilateral space, the solver achieves linear computational complexity while producing results that respect image edges. The bilateral solver is a versatile tool that can improve the output of many computer vision algorithms as a simple post-processing step.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了<span class="hl-concept">快速雙邊求解器</span>，一種<span class="hl-thesis">通用的邊緣感知最佳化技術，彌合了快速雙邊濾波與靈活的基於最佳化方法之間的鴻溝</span>。透過在緊湊的雙邊空間中運作，求解器實現了線性計算複雜度，同時產生尊重影像邊緣的結果。雙邊求解器是一種多用途工具，可作為簡單的後處理步驟改善許多電腦視覺演算法的輸出。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>總結核心貢獻——通用、快速、邊緣感知。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「通用工具」的定位收束全文，強調實用價值。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>「簡單的後處理步驟」降低了採用門檻，增強了實際影響力。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>雙邊濾波不靈活<br>最佳化方法太慢</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>雙邊空間最佳化</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>四種應用 O(N)複雜度</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>通用性 vs 專用精度</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>通用邊緣感知工具</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>在雙邊空間中將邊緣感知平滑公式化為稀疏線性系統，同時獲得濾波器的速度和最佳化方法的靈活性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>在四種不同任務上均達到專用方法相當或更好的品質，且僅需線性時間複雜度，充分證明了方法的通用性與效率。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>雙邊網格的離散化可能在某些情況下引入量化偽影，且參數選擇（網格解析度）需要針對不同任務調整。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9670;</button>
+</div>
+
+</body>
+</html>

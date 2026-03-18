@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Grounding DINO — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object Detection
+                <span class="course-tag">ECCV 2024</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2303.05499" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-experiments">3. 實驗</a>
+        <a href="#sec-conclusion">4. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, we present an <span class="hl-concept">open-set object detector</span>, called <span class="hl-concept">Grounding DINO</span>, by <span class="hl-thesis">marrying Transformer-based detector DINO with grounded pre-training</span>, which can detect arbitrary objects with human inputs such as <span class="hl-method">category names or referring expressions</span>. The key solution of open-set object detection is introducing language to a closed-set detector for <span class="hl-method">open-set concept generalization</span>. To effectively fuse language and vision modalities, we conceptually divide a closed-set detector into <span class="hl-method">three phases and propose a tight fusion solution</span>, which includes a <span class="hl-method">feature enhancer, a language-guided query selection, and a cross-modality decoder</span> for cross-modality fusion. Grounding DINO achieves <span class="hl-evidence">52.5 AP on the COCO detection zero-shot transfer benchmark</span>, setting a new record on the <span class="hl-evidence">ODinW zero-shot benchmark with a mean 26.1 AP</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種<span class="hl-concept">開放集物件偵測器</span> <span class="hl-concept">Grounding DINO</span>，透過<span class="hl-thesis">結合基於 Transformer 的偵測器 DINO 與基底預訓練</span>，可根據人類輸入（如<span class="hl-method">類別名稱或指稱表達式</span>）偵測任意物件。開放集物件偵測的關鍵方案是將語言引入封閉集偵測器以實現<span class="hl-method">開放集概念泛化</span>。為有效融合語言與視覺模態，我們將封閉集偵測器概念性地劃分為<span class="hl-method">三個階段並提出緊密融合方案</span>，包括<span class="hl-method">特徵增強器、語言引導查詢選擇和跨模態解碼器</span>進行跨模態融合。Grounding DINO 在 <span class="hl-evidence">COCO 偵測零樣本遷移基準上達到 52.5 AP</span>，並在 <span class="hl-evidence">ODinW 零樣本基準上以平均 26.1 AP 創下新紀錄</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定位開放集偵測問題並提出三階段融合方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「結合 DINO 與基底預訓練」精確描述了方法的本質：站在兩個巨人的肩膀上。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    52.5 AP 的零樣本 COCO 結果極具說服力，但「任意物件」的宣稱可能受限於訓練資料的語言覆蓋範圍。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Object detection</span> has long been studied under the <span class="hl-rebuttal">closed-set setting</span>, where the detector is trained and evaluated on a <span class="hl-rebuttal">fixed set of object categories</span>. This setting severely limits the applicability of detectors in real-world scenarios where <span class="hl-thesis">novel objects appear frequently and cannot all be anticipated at training time</span>. <span class="hl-concept">Open-set object detection</span> addresses this limitation by allowing the detector to <span class="hl-thesis">recognize objects from categories not seen during training, guided by natural language descriptions</span>. Recent advances in <span class="hl-concept">vision-language pretraining</span> have opened new possibilities for open-set detection, but existing approaches often <span class="hl-rebuttal">struggle to achieve strong performance on both closed-set and open-set benchmarks simultaneously</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">物件偵測</span>長期以來在<span class="hl-rebuttal">封閉集設定</span>下被研究，偵測器在<span class="hl-rebuttal">固定的物件類別集合</span>上訓練和評估。此設定嚴重限制了偵測器在真實場景中的適用性，因為<span class="hl-thesis">新穎物件經常出現且無法在訓練時全部預見</span>。<span class="hl-concept">開放集物件偵測</span>透過允許偵測器<span class="hl-thesis">在自然語言描述的引導下辨識訓練期間未見過的類別物件</span>來解決此限制。<span class="hl-concept">視覺語言預訓練</span>的近期進展為開放集偵測開闢了新的可能，但現有方法往往<span class="hl-rebuttal">難以在封閉集和開放集基準上同時達到強勁效能</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從封閉集到開放集偵測的演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    先確立封閉集的限制，再引入開放集作為解決方案，最後指出現有開放集方法的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「封閉集 vs 開放集」的框架清晰地定義了研究動機。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our approach builds upon <span class="hl-concept">DINO</span>, a state-of-the-art Transformer-based detector, and introduces <span class="hl-method">tight cross-modality fusion at multiple stages</span>. We divide the detection pipeline into three phases: <span class="hl-method">feature extraction and enhancement</span>, <span class="hl-method">query initialization and selection</span>, and <span class="hl-method">box prediction and refinement</span>. In the first phase, we employ a <span class="hl-concept">feature enhancer</span> that performs <span class="hl-method">bidirectional cross-attention between image and text features</span>, allowing both modalities to be enriched by each other. Unlike approaches that only use language to query visual features, our <span class="hl-thesis">bidirectional fusion allows visual context to also improve language understanding</span>, leading to better grounding of ambiguous or context-dependent expressions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的方法建構於最先進的 Transformer 偵測器 <span class="hl-concept">DINO</span> 之上，並在<span class="hl-method">多個階段引入緊密的跨模態融合</span>。我們將偵測管線分為三個階段：<span class="hl-method">特徵提取與增強</span>、<span class="hl-method">查詢初始化與選擇</span>以及<span class="hl-method">框預測與精化</span>。在第一階段，我們採用<span class="hl-concept">特徵增強器</span>，在影像和文字特徵之間進行<span class="hl-method">雙向交叉注意力</span>，使兩種模態相互增強。不同於僅使用語言查詢視覺特徵的方法，我們的<span class="hl-thesis">雙向融合也允許視覺上下文改善語言理解</span>，從而更好地定位模糊或依賴上下文的表達。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡述核心方法——三階段管線與雙向跨模態融合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「雙向融合」是方法的差異化關鍵，解決了單向融合的資訊不對稱問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三階段的結構化描述使方法易於理解。但多層交叉注意力的計算成本可能顯著。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In the second phase, we introduce <span class="hl-concept">language-guided query selection</span>. Instead of using <span class="hl-rebuttal">learnable queries that are fixed regardless of the input text</span>, our approach <span class="hl-method">selects the most relevant features from the enhanced image features based on their similarity to the text input</span>. This ensures that the decoder focuses on image regions most likely to contain the objects described by the language input. In the third phase, a <span class="hl-concept">cross-modality decoder</span> iteratively refines the predicted boxes while maintaining <span class="hl-method">cross-attention between object queries and both image and text features</span>, enabling precise localization guided by linguistic context.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在第二階段，我們引入<span class="hl-concept">語言引導查詢選擇</span>。不同於使用<span class="hl-rebuttal">不論輸入文字為何均固定的可學習查詢</span>，我們的方法<span class="hl-method">根據增強影像特徵與文字輸入的相似度，從中選擇最相關的特徵</span>。這確保解碼器聚焦於最可能包含語言輸入所描述物件的影像區域。在第三階段，<span class="hl-concept">跨模態解碼器</span>迭代精化預測框，同時維持<span class="hl-method">物件查詢與影像和文字特徵之間的交叉注意力</span>，實現由語言上下文引導的精確定位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡述第二、三階段——語言引導查詢與跨模態解碼。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三階段逐步深入，從粗到細地融合語言與視覺資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    語言引導查詢選擇優雅地解決了「在哪裡看」的問題，但對長文字描述或複雜組合描述的處理能力可能受限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">3. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate Grounding DINO on <span class="hl-evidence">COCO, LVIS, ODinW, and RefCOCO/+/g benchmarks</span>. On COCO zero-shot detection, Grounding DINO achieves <span class="hl-evidence">52.5 AP without any COCO training data</span>, surpassing previous open-set detectors including <span class="hl-evidence">GLIP (49.8 AP) and DetCLIP (45.8 AP)</span>. On the challenging <span class="hl-evidence">LVIS benchmark with over 1,200 categories</span>, our method demonstrates strong performance on <span class="hl-evidence">rare categories (AP_r), achieving 32.7 compared to 26.9 for GLIP</span>. For referring expression comprehension on RefCOCO, RefCOCO+, and RefCOCOg, Grounding DINO achieves <span class="hl-evidence">state-of-the-art accuracy</span>, demonstrating its versatility in understanding diverse linguistic inputs from simple category names to complex spatial descriptions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">COCO、LVIS、ODinW 和 RefCOCO/+/g 基準</span>上評估 Grounding DINO。在 COCO 零樣本偵測上，Grounding DINO <span class="hl-evidence">在不使用任何 COCO 訓練資料的情況下達到 52.5 AP</span>，超越先前的開放集偵測器，包括 <span class="hl-evidence">GLIP（49.8 AP）和 DetCLIP（45.8 AP）</span>。在具挑戰性的<span class="hl-evidence">擁有超過 1,200 個類別的 LVIS 基準</span>上，我們的方法在<span class="hl-evidence">稀有類別（AP_r）上表現強勁，達到 32.7 對比 GLIP 的 26.9</span>。在 RefCOCO、RefCOCO+ 和 RefCOCOg 的指稱表達理解上，Grounding DINO 達到<span class="hl-evidence">最先進的精確度</span>，展現其從簡單類別名稱到複雜空間描述等多樣語言輸入的理解能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心實證——多基準的全面量化結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    COCO 零樣本、LVIS 稀有類別、RefCOCO 指稱理解三個維度全方位驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    稀有類別的改進（32.7 vs 26.9）特別說明了語言引導的價值。但不同語言或非英語輸入的效能未被測試。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">4. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Grounding DINO</span>, an <span class="hl-thesis">open-set object detector that effectively fuses language and vision through a three-phase tight fusion architecture</span>. By marrying the powerful <span class="hl-concept">DINO detector</span> with <span class="hl-concept">grounded pre-training</span>, our model can detect arbitrary objects specified through natural language, achieving <span class="hl-evidence">state-of-the-art results across multiple zero-shot, open-vocabulary, and referring expression benchmarks</span>. Our work demonstrates that <span class="hl-thesis">deep, multi-stage cross-modality fusion is key to bridging the gap between closed-set and open-set object detection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 <span class="hl-concept">Grounding DINO</span>，一個<span class="hl-thesis">透過三階段緊密融合架構有效融合語言與視覺的開放集物件偵測器</span>。透過結合強大的 <span class="hl-concept">DINO 偵測器</span>與<span class="hl-concept">基底預訓練</span>，我們的模型可偵測透過自然語言指定的任意物件，在<span class="hl-evidence">多個零樣本、開放詞彙和指稱表達基準上達到最先進結果</span>。我們的工作展示了<span class="hl-thesis">深度、多階段的跨模態融合是彌合封閉集與開放集物件偵測差距的關鍵</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申方法核心與廣泛適用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「彌合封閉集與開放集差距」收束，定位為該領域的重要里程碑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    Grounding DINO 已成為廣泛使用的開放集偵測基礎設施，其影響力已超越論文本身。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br><small>封閉集偵測限制應用</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">論點<br><small>語言融合實現開放集偵測</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">方法<br><small>三階段緊密跨模態融合</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">證據<br><small>COCO 零樣本 52.5 AP</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">結論<br><small>開放集偵測的新基準</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過在 Transformer 偵測器的多個階段進行緊密的語言-視覺雙向融合，可建構能偵測任意自然語言描述物件的開放集偵測系統。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>在 COCO 零樣本設定下達到 52.5 AP，且在 LVIS 稀有類別上顯著優於先前方法，證明語言引導偵測的強大泛化能力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>對計算成本的分析不足，多層交叉注意力的推論延遲可能限制即時應用。此外，對非英語語言輸入的支援程度未明確討論。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">?</button>
+</div>
+
+</body>
+</html>

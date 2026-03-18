@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Temporal Segment Networks (TSN) — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Temporal Segment Networks (TSN)
+                <span class="course-tag">ECCV 2016</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1608.00859" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 時間片段網路</a>
+        <a href="#sec-practices">3. 訓練策略</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Deep convolutional networks have achieved great success for visual recognition in still images. However, for action recognition in videos, the advantage over traditional methods is <span class="hl-rebuttal">not so evident</span>. This paper aims to discover the principles to design effective <span class="hl-concept">ConvNet architectures for action recognition in videos</span> and proposes <span class="hl-concept">temporal segment networks (TSN)</span>, a novel framework for <span class="hl-thesis">video-level action recognition based on the idea of long-range temporal structure modeling</span>. Our approach combines a <span class="hl-method">sparse temporal sampling strategy and video-level supervision</span> to enable efficient and effective learning using the whole action video. We achieve the state-of-the-art performance on the <span class="hl-evidence">HMDB51 (69.4%) and UCF101 (94.2%)</span> action recognition benchmarks, demonstrating the effectiveness of temporal segment networks and the proposed good practices.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度摺積網路在靜態影像的視覺辨識上取得巨大成功。然而，在影片動作辨識中，相對於傳統方法的優勢<span class="hl-rebuttal">並不那麼明顯</span>。本文旨在發現設計有效<span class="hl-concept">影片動作辨識 ConvNet 架構</span>的原則，並提出<span class="hl-concept">時間片段網路（TSN）</span>，一種基於<span class="hl-thesis">長程時間結構建模思想的影片級動作辨識</span>新框架。我們的方法結合<span class="hl-method">稀疏時間取樣策略和影片級監督</span>，使用整個動作影片進行高效且有效的學習。在 <span class="hl-evidence">HMDB51（69.4%）和 UCF101（94.2%）</span>動作辨識基準上達到最先進的性能，驗證了時間片段網路和所提出最佳實踐的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>指出影片理解的差距，提出 TSN 框架。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「深度學習在影片領域優勢不明顯」的問題意識出發，建立研究動機。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>坦承深度學習在影片領域的不足，增加了提出解決方案的說服力。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Action recognition is a challenging problem due to the <span class="hl-rebuttal">large variations in appearance, viewpoint, and temporal structure of actions</span>. The <span class="hl-concept">two-stream architecture</span> proposed by Simonyan and Zisserman processes RGB frames and optical flow separately through two ConvNets. However, this architecture <span class="hl-rebuttal">only considers short-term temporal information within a single frame or a short stack of optical flow</span>. It does not model the long-range temporal structure that is critical for distinguishing many action categories. We propose to address this limitation through a <span class="hl-thesis">temporal segment network that divides the video into segments and aggregates information across segments</span>, effectively capturing the temporal structure of the entire video.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                動作辨識是一個具有挑戰性的問題，因為動作在<span class="hl-rebuttal">外觀、視角和時間結構上有很大的變異</span>。<span class="hl-concept">雙流架構</span>由 Simonyan 和 Zisserman 提出，分別透過兩個 ConvNet 處理 RGB 幀和光流。然而，此架構<span class="hl-rebuttal">僅考慮單幀或一小疊光流中的短程時間資訊</span>，沒有建模對區分許多動作類別至關重要的長程時間結構。我們提出透過一個<span class="hl-thesis">將影片分割成片段並跨片段聚合資訊的時間片段網路</span>來解決此限制，有效捕捉整個影片的時間結構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section"><span class="ann-label">段落功能</span>批判雙流架構的短程時間建模限制。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>從「短程 vs 長程」的角度建立改進動機。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以雙流架構為基準進行改進，站在巨人的肩膀上推進技術邊界。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Temporal Segment Networks — 時間片段網路</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key idea of TSN is to <span class="hl-method">divide a video into K equal segments and randomly sample one snippet from each segment</span>. Each snippet is processed by a shared-weight ConvNet to produce a class prediction. These K predictions are then <span class="hl-method">aggregated using a consensus function (e.g., averaging) to produce a video-level prediction</span>. Formally, given a video V divided into K segments {S_1, S_2, ..., S_K}, we sample a snippet T_k from each segment. The class score is: G(T_1, T_2, ..., T_K) = g(F(T_1; W), F(T_2; W), ..., F(T_K; W)), where F is the ConvNet function, W the shared parameters, and g the <span class="hl-concept">segment consensus function</span>. This design enables <span class="hl-thesis">efficient modeling of the whole video using only a sparse set of frames</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                TSN 的核心思想是<span class="hl-method">將影片分成 K 個等長片段，並從每個片段中隨機取樣一個片段</span>。每個片段由共享權重的 ConvNet 處理以產生類別預測。這 K 個預測然後<span class="hl-method">使用共識函數（如平均）進行聚合，產生影片級預測</span>。形式上，給定分成 K 個片段 {S_1, S_2, ..., S_K} 的影片 V，從每個片段取樣一個片段 T_k。類別分數為：G(T_1, T_2, ..., T_K) = g(F(T_1; W), F(T_2; W), ..., F(T_K; W))，其中 F 是 ConvNet 函數，W 是共享參數，g 是<span class="hl-concept">片段共識函數</span>。此設計使得<span class="hl-thesis">僅使用稀疏幀集即可高效建模整個影片</span>成為可能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>定義 TSN 的數學框架與運作機制。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「分段取樣+共識聚合」的兩步驟設計解決長程建模問題。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>稀疏取樣大幅降低計算成本，但隨機性可能在某些邊界情況下漏掉關鍵動作瞬間。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-practices">3. Good Practices — 訓練策略</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We also study several good practices for training deep ConvNets for action recognition. These include: (1) <span class="hl-method">cross-modality pre-training</span> — initializing the optical flow ConvNet with RGB pre-trained weights by modifying the first convolution layer; (2) <span class="hl-method">regularization techniques</span> — using batch normalization with dropout and partial BN (freezing mean and variance of all BN layers except the first one); (3) <span class="hl-method">data augmentation</span> — corner cropping and multi-scale cropping to increase data diversity. These practices collectively address the <span class="hl-rebuttal">over-fitting problem that is common when training deep networks on relatively small action recognition datasets</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們還研究了數項訓練深度 ConvNet 進行動作辨識的最佳實踐。包括：(1) <span class="hl-method">跨模態預訓練</span> — 透過修改第一個摺積層，以 RGB 預訓練權重初始化光流 ConvNet；(2) <span class="hl-method">正則化技術</span> — 使用批次正規化搭配丟棄法和部分 BN（凍結除第一層外所有 BN 層的均值和方差）；(3) <span class="hl-method">資料擴增</span> — 角落裁剪和多尺度裁剪以增加資料多樣性。這些實踐共同解決了<span class="hl-rebuttal">在相對較小的動作辨識資料集上訓練深度網路時常見的過擬合問題</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section"><span class="ann-label">段落功能</span>總結防止過擬合的工程實踐。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>補充使 TSN 實際可訓練的關鍵工程細節。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>跨模態預訓練是巧妙的遷移學習應用，有效利用了 RGB 領域的豐富預訓練資源。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate TSN on <span class="hl-evidence">UCF101 and HMDB51</span> benchmarks. With BN-Inception as the base architecture, TSN achieves <span class="hl-evidence">94.2% on UCF101 and 69.4% on HMDB51</span>, setting new state-of-the-art results. Ablation studies confirm: (1) increasing K from 1 to 7 segments consistently improves performance; (2) <span class="hl-evidence">cross-modality pre-training improves the flow stream by 3.5%</span>; (3) the combination of RGB, optical flow, and warped flow modalities yields the best results. Compared to the original two-stream approach, TSN improves by <span class="hl-evidence">6.3% on UCF101 and 10.1% on HMDB51</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">UCF101 和 HMDB51</span> 基準上評估 TSN。以 BN-Inception 作為基礎架構，TSN 在 <span class="hl-evidence">UCF101 上達到 94.2%，HMDB51 上達到 69.4%</span>，創下新的最先進結果。消融研究確認：(1) 將 K 從 1 增加到 7 個片段持續改善性能；(2) <span class="hl-evidence">跨模態預訓練將光流流改善了 3.5%</span>；(3) RGB、光流和扭曲光流模態的組合產生最佳結果。與原始雙流方法相比，TSN 在 <span class="hl-evidence">UCF101 上改善了 6.3%，在 HMDB51 上改善了 10.1%</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section"><span class="ann-label">段落功能</span>報告基準結果與消融實驗。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>量化驗證 TSN 框架與各項最佳實踐的效果。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>對比原始雙流方法的改進幅度（6-10%）非常顯著，消融實驗也清楚分離了各貢獻。</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusions — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">temporal segment networks</span>, a <span class="hl-thesis">video-level framework for action recognition that effectively models long-range temporal structure through sparse sampling and segment consensus</span>. Together with a set of good practices for training, TSN achieves state-of-the-art results on major action recognition benchmarks. Our framework is general and can be applied with different base architectures and input modalities.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了<span class="hl-concept">時間片段網路</span>，一種<span class="hl-thesis">透過稀疏取樣和片段共識有效建模長程時間結構的影片級動作辨識框架</span>。結合一系列訓練最佳實踐，TSN 在主要動作辨識基準上達到最先進的結果。我們的框架具有通用性，可與不同的基礎架構和輸入模態搭配使用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section"><span class="ann-label">段落功能</span>總結 TSN 框架的核心貢獻與通用性。</div>
+                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「通用框架」的定位收束全文。</div>
+                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>強調框架的模組化特性，預見了後續工作以更強的基礎網路進一步提升性能。</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>雙流僅建模短程時間</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>稀疏取樣+片段共識</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>UCF101 94.2%</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>過擬合→最佳實踐</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>通用影片辨識框架</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過將影片分為多個片段並稀疏取樣後聚合預測，TSN 以低計算成本有效捕捉長程時間結構，大幅提升動作辨識精度。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>對比原始雙流方法在 HMDB51 上改善 10.1%，且消融實驗清楚地展示了片段數量與各訓練策略的個別貢獻。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>仍依賴預先計算的光流，計算瓶頸未被完全解決；稀疏取樣可能漏掉短暫但關鍵的動作瞬間。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9670;</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>DeepLabv3+ — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation
+                <span class="course-tag">ECCV 2018</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1802.02611" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#abstract">摘要</a>
+        <a href="#introduction">緒論</a>
+        <a href="#related">相關工作</a>
+        <a href="#method">方法</a>
+        <a href="#experiments">實驗</a>
+        <a href="#conclusion">結論</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- 摘要 -->
+    <h2 class="section-heading" id="abstract">Abstract 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Spatial pyramid pooling module</span> or <span class="hl-method">encode-decoder structure</span> are used in deep neural networks for semantic segmentation task. The former networks are able to <span class="hl-thesis">encode multi-scale contextual information by probing the incoming features with filters or pooling operations at multiple rates and multiple effective fields-of-view</span>, while the latter networks can <span class="hl-thesis">capture sharper object boundaries by gradually recovering the spatial information</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">空間金字塔池化模組</span>或<span class="hl-method">編碼器-解碼器結構</span>被用於深度神經網路的語意分割任務中。前者能夠<span class="hl-thesis">透過以不同擴張率和不同有效感受野的濾波器或池化操作來探測輸入特徵，從而編碼多尺度上下文資訊</span>，而後者則能<span class="hl-thesis">透過逐步恢復空間資訊來捕捉更清晰的物體邊界</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題背景鋪陳：點出語意分割中兩大主流架構的各自優勢
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續「結合兩者優勢」的核心主張鋪設動機
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以對比修辭（former vs. latter）明確定義問題空間，讓讀者快速理解兩種範式的互補關係
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we propose to <span class="hl-thesis">combine the advantages from both methods</span>. Specifically, our proposed model, <span class="hl-concept">DeepLabv3+</span>, extends <span class="hl-concept">DeepLabv3</span> by adding a simple yet effective <span class="hl-method">decoder module</span> to refine the segmentation results especially along object boundaries. We further explore the <span class="hl-method">Xception model</span> and apply <span class="hl-method">depthwise separable convolution</span> to both <span class="hl-concept">Atrous Spatial Pyramid Pooling</span> and decoder modules, resulting in a <span class="hl-evidence">faster and stronger encoder-decoder network</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在本研究中，我們提出<span class="hl-thesis">結合兩種方法的優勢</span>。具體而言，我們提出的模型 <span class="hl-concept">DeepLabv3+</span> 在 <span class="hl-concept">DeepLabv3</span> 的基礎上增加了一個簡潔而有效的<span class="hl-method">解碼器模組</span>，以改善分割結果，尤其是物體邊界處的精細度。我們進一步探索了 <span class="hl-method">Xception 模型</span>，並將<span class="hl-method">深度可分離摺積</span>應用於 <span class="hl-concept">Atrous 空間金字塔池化</span>及解碼器模組，從而實現了<span class="hl-evidence">更快速且更強大的編碼器-解碼器網路</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心方案：DeepLabv3+ 的技術全貌
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論文的核心主張與技術貢獻摘要
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以「simple yet effective」降低讀者對複雜度的疑慮，同時強調深度可分離摺積帶來速度與精度的雙重增益
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We demonstrate the effectiveness of the proposed model on the <span class="hl-evidence">PASCAL VOC 2012</span> and <span class="hl-evidence">Cityscapes</span> datasets, achieving the test set performance of <span class="hl-evidence">89.0% and 82.1%</span> without any post-processing. Our paper is accompanied with a publicly available reference implementation of the proposed models in <span class="hl-evidence">TensorFlow</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">PASCAL VOC 2012</span> 和 <span class="hl-evidence">Cityscapes</span> 資料集上驗證了所提模型的有效性，在測試集上分別達到 <span class="hl-evidence">89.0% 和 82.1%</span> 的表現，且未使用任何後處理技術。本文附帶以 <span class="hl-evidence">TensorFlow</span> 實作的公開參考程式碼。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實驗成果與可重現性保證
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以量化結果支撐核心主張，並以開源程式碼增強可信度
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    選擇兩個標竿資料集同時報告成績，強化泛化論點；公開程式碼則是學術透明的強力背書
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論 -->
+    <h2 class="section-heading" id="introduction">1. Introduction 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Semantic segmentation with the goal of <span class="hl-concept">assigning a semantic label to every pixel in an image</span> is one of the fundamental topics in computer vision. <span class="hl-concept">Deep convolutional neural networks</span> based on the <span class="hl-concept">Fully Convolutional Neural Network</span> show striking improvement over systems relying on hand-crafted features on benchmark tasks. In this work, we consider two types of neural networks that use <span class="hl-method">spatial pyramid pooling module</span> or <span class="hl-method">encoder-decoder structure</span> for semantic segmentation, where the <span class="hl-thesis">former captures rich contextual information by pooling features at different resolution while the latter is able to obtain sharp object boundaries</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                語意分割的目標是<span class="hl-concept">為影像中的每個像素指派一個語意標籤</span>，這是電腦視覺的基礎課題之一。基於<span class="hl-concept">全摺積神經網路</span>的<span class="hl-concept">深度摺積神經網路</span>在標竿任務上相較於依賴手工特徵的系統展現了顯著提升。本研究考慮兩類使用<span class="hl-method">空間金字塔池化模組</span>或<span class="hl-method">編碼器-解碼器結構</span>的神經網路進行語意分割，其中<span class="hl-thesis">前者透過在不同解析度下池化特徵來捕捉豐富的上下文資訊，而後者則能獲得清晰的物體邊界</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義問題範疇，回顧兩大技術路線
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在更廣闊的學術脈絡中定位本研究的起點
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    從最一般的問題定義逐步收斂到具體的技術選項，引導讀者自然接受後續的融合方案
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In order to <span class="hl-thesis">combine the advantages of both approaches</span>, we propose to add a <span class="hl-method">decoder module</span> to the existing encoder module, <span class="hl-concept">DeepLabv3</span>, to form an encoder-decoder architecture. The rich semantic information is encoded in the output of DeepLabv3, while the detailed object boundaries are recovered by the simple yet effective decoder module. The encoder module allows us to <span class="hl-method">extract features at an arbitrary resolution by applying atrous convolution</span>, and the decoder module refines the segmentation results along object boundaries.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為了<span class="hl-thesis">結合兩種方法的優勢</span>，我們提出在現有的編碼器模組 <span class="hl-concept">DeepLabv3</span> 上增加一個<span class="hl-method">解碼器模組</span>，形成編碼器-解碼器架構。豐富的語意資訊被編碼在 DeepLabv3 的輸出中，而精細的物體邊界則由簡潔而有效的解碼器模組恢復。編碼器模組使我們能透過<span class="hl-method">空洞摺積在任意解析度下提取特徵</span>，解碼器模組則沿物體邊界改善分割結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡述核心提案的動機與架構概觀
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將摘要中的主張展開為具體的技術方案描述
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「arbitrary resolution」強調空洞摺積的靈活性，暗示比傳統下採樣方案更具優勢
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further explore the <span class="hl-concept">Xception model</span> and <span class="hl-method">apply depthwise separable convolution to both ASPP and decoder modules</span>, resulting in a faster and stronger encoder-decoder network. We demonstrate the effectiveness of the proposed model on two competitive benchmark datasets: <span class="hl-evidence">PASCAL VOC 2012</span> and <span class="hl-evidence">Cityscapes</span>. The proposed model, called <span class="hl-concept">DeepLabv3+</span>, attains <span class="hl-evidence">new state-of-the-art performance on both datasets</span> without DenseCRF post-processing.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步探索 <span class="hl-concept">Xception 模型</span>，並<span class="hl-method">將深度可分離摺積應用於 ASPP 和解碼器模組</span>，從而得到更快速且更強大的編碼器-解碼器網路。我們在兩個具競爭性的標竿資料集上驗證了所提模型的有效性：<span class="hl-evidence">PASCAL VOC 2012</span> 和 <span class="hl-evidence">Cityscapes</span>。所提模型被稱為 <span class="hl-concept">DeepLabv3+</span>，在兩個資料集上均達成<span class="hl-evidence">新的最先進水準</span>，且無需 DenseCRF 後處理。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    預告主要貢獻與實驗成果
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    緒論的結論段，建立讀者對後續實驗的期待
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「without DenseCRF post-processing」刻意排除外部增強手段，突顯模型本身的競爭力
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作 -->
+    <h2 class="section-heading" id="related">2. Related Work 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Models based on <span class="hl-concept">Fully Convolutional Networks (FCNs)</span> have demonstrated significant improvements for semantic segmentation. Several model variants have been proposed to exploit the <span class="hl-method">contextual information for segmentation</span>, including those that employ <span class="hl-method">multi-scale inputs</span> or those that adopt <span class="hl-method">probabilistic graphical models</span> such as <span class="hl-concept">CRFs</span>. In this work, we mainly discuss four types of FCN-based approaches that are most closely related to our model: <span class="hl-concept">atrous convolution</span>, <span class="hl-concept">spatial pyramid pooling</span>, <span class="hl-concept">encoder-decoder</span>, and <span class="hl-concept">depthwise separable convolution</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於<span class="hl-concept">全摺積網路（FCN）</span>的模型在語意分割方面展現了顯著進展。為了利用<span class="hl-method">上下文資訊</span>，已有多種模型變體被提出，包括採用<span class="hl-method">多尺度輸入</span>或利用<span class="hl-method">機率圖模型</span>（如 <span class="hl-concept">CRF</span>）的方法。本研究主要討論與我們的模型最相關的四類基於 FCN 的方法：<span class="hl-concept">空洞摺積</span>、<span class="hl-concept">空間金字塔池化</span>、<span class="hl-concept">編碼器-解碼器</span>以及<span class="hl-concept">深度可分離摺積</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統性歸類相關文獻
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立技術譜系，幫助讀者理解 DeepLabv3+ 的學術定位
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    將相關工作精準分為四類，恰好對應 DeepLabv3+ 的四個技術組件，暗示本方法是各路線的最佳整合
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Atrous convolution</span>, also known as <span class="hl-concept">dilated convolution</span>, allows us to <span class="hl-method">repurpose ImageNet pretrained networks to extract denser feature maps by removing the downsampling operations from the last few layers and upsampling the corresponding filter kernels</span>. It is an <span class="hl-rebuttal">alternative to using deconvolution layers</span> and offers the advantage of being able to <span class="hl-thesis">control the resolution of features computed by deep CNNs and adjust the filter's field-of-view</span> in order to capture multi-scale information.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">空洞摺積</span>（又稱<span class="hl-concept">擴張摺積</span>）使我們能透過<span class="hl-method">移除最後幾層的下採樣操作並相應地上採樣濾波器核</span>，將 ImageNet 預訓練網路轉化為提取更密集特徵圖的工具。它是<span class="hl-rebuttal">反摺積層的替代方案</span>，具備<span class="hl-thesis">控制深度 CNN 所計算特徵的解析度以及調整濾波器感受野</span>來捕捉多尺度資訊的優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解釋空洞摺積的原理與優勢
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為 ASPP 模組的設計提供理論基礎
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    透過與反摺積的比較來凸顯空洞摺積的設計靈活性
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 -->
+    <h2 class="section-heading" id="method">3. Methods 方法</h2>
+
+    <h3 class="subsection-heading">3.1 Encoder-Decoder with Atrous Convolution</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Atrous convolution</span> is a powerful tool that allows us to <span class="hl-thesis">explicitly control the resolution of features computed by deep neural networks and adjust filter's field-of-view in order to capture multi-scale information</span>, generalizing standard convolution operation. In the case of <span class="hl-method">two-dimensional signals</span>, for each location i on the output feature map y and a convolution filter w, atrous convolution is applied over the input feature map x as: y[i] = sum_k x[i + r * k] * w[k], where <span class="hl-concept">the atrous rate r</span> determines the stride with which we sample the input signal.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">空洞摺積</span>是一個強大的工具，使我們能<span class="hl-thesis">明確控制深度神經網路所計算特徵的解析度，並調整濾波器的感受野以捕捉多尺度資訊</span>，是標準摺積操作的推廣。在<span class="hl-method">二維訊號</span>的情形中，對於輸出特徵圖 y 上的每個位置 i 和摺積濾波器 w，空洞摺積作用於輸入特徵圖 x 上的公式為：y[i] = sum_k x[i + r * k] * w[k]，其中<span class="hl-concept">空洞率 r</span> 決定了我們對輸入訊號的取樣步幅。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    正式定義空洞摺積的數學形式
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續 ASPP 模組的多擴張率設計提供數學基礎
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以數學公式增強嚴謹性，同時用「generalizing standard convolution」框架化概念，讓讀者看到空洞摺積是更一般化的操作
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We employ <span class="hl-concept">DeepLabv3</span> as the encoder module in our proposed encoder-decoder structure. DeepLabv3 employs <span class="hl-method">atrous convolution to extract the features computed by deep convolutional neural networks at an arbitrary resolution</span>. Specifically, we apply <span class="hl-concept">Atrous Spatial Pyramid Pooling (ASPP)</span> module which <span class="hl-method">probes convolutional features at multiple scales by applying atrous convolution with different rates</span>. The proposed decoder module consists of <span class="hl-evidence">1x1 convolution to reduce the number of channels of the low-level features</span>, followed by concatenation with the upsampled encoder features, and a few <span class="hl-evidence">3x3 convolutions to refine the features</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在所提出的編碼器-解碼器結構中採用 <span class="hl-concept">DeepLabv3</span> 作為編碼器模組。DeepLabv3 利用<span class="hl-method">空洞摺積以任意解析度提取深度摺積神經網路計算的特徵</span>。具體而言，我們使用 <span class="hl-concept">Atrous 空間金字塔池化（ASPP）</span>模組，<span class="hl-method">透過以不同擴張率施加空洞摺積來探測多尺度的摺積特徵</span>。所提出的解碼器模組包含 <span class="hl-evidence">1x1 摺積來減少低階特徵的通道數</span>，接著與上採樣後的編碼器特徵進行串接，再經過幾個 <span class="hl-evidence">3x3 摺積來改善特徵</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    詳述編碼器-解碼器架構的具體組件
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    本文最核心的方法論段落，完整呈現 DeepLabv3+ 的架構
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    解碼器設計刻意簡化（僅 1x1 + concat + 3x3），與複雜的 U-Net 系解碼器形成鮮明對比，強化「simple yet effective」的敘事
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.2 Modified Aligned Xception</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Xception model</span> has shown promising image classification results on ImageNet with fast computation. More recently, the <span class="hl-concept">MSRA team</span> modified the Xception model, called <span class="hl-concept">Aligned Xception</span>, and further pushed the performance. Motivated by these findings, we <span class="hl-method">adapt the Xception model for the task of semantic segmentation</span>. In particular, we make several changes: (1) <span class="hl-method">deeper Xception same as in the MSRA version</span> except that we do not modify the entry flow network structure; (2) <span class="hl-method">all max pooling operations are replaced by depthwise separable convolutions with striding</span>; (3) extra <span class="hl-method">batch normalization and ReLU activation are added after each 3x3 depthwise convolution</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">Xception 模型</span>在 ImageNet 影像分類上以快速計算展現了良好的結果。近期，<span class="hl-concept">MSRA 團隊</span>修改了 Xception 模型（稱為 <span class="hl-concept">Aligned Xception</span>）並進一步提升了效能。受這些成果啟發，我們<span class="hl-method">將 Xception 模型調整以適用於語意分割任務</span>。具體變更包括：（1）<span class="hl-method">採用與 MSRA 版本相同的更深 Xception</span>，但不修改入口流網路結構；（2）<span class="hl-method">所有最大池化操作均替換為帶步幅的深度可分離摺積</span>；（3）每個 3x3 深度摺積後<span class="hl-method">額外加入批次正規化和 ReLU 啟動函數</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述對 Xception 骨幹網路的三項關鍵修改
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    提供效率提升的技術細節，補充主要架構
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以編號列表清晰呈現修改項目，便於讀者逐一比對與複現
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗 -->
+    <h2 class="section-heading" id="experiments">4. Experimental Evaluation 實驗評估</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We employ <span class="hl-evidence">ImageNet-1k pretrained ResNet-101 or modified aligned Xception</span> as network backbones for our DeepLabv3+ model. Our implementation is built on <span class="hl-evidence">TensorFlow</span>. We evaluate the proposed model on the <span class="hl-evidence">PASCAL VOC 2012 semantic segmentation benchmark</span> which contains 20 foreground object classes and one background class. The original dataset contains <span class="hl-evidence">1,464 (train), 1,449 (val), and 1,456 (test)</span> pixel-level annotated images. We augment the dataset by the extra annotations provided by Hariharan et al., resulting in <span class="hl-evidence">10,582 (trainaug) training images</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們採用 <span class="hl-evidence">ImageNet-1k 預訓練的 ResNet-101 或修改版 Aligned Xception</span> 作為 DeepLabv3+ 模型的骨幹網路。實作基於 <span class="hl-evidence">TensorFlow</span> 框架。我們在 <span class="hl-evidence">PASCAL VOC 2012 語意分割標竿</span>上評估所提模型，該資料集包含 20 個前景物體類別和一個背景類別。原始資料集包含 <span class="hl-evidence">1,464（訓練）、1,449（驗證）和 1,456（測試）</span>張像素級標注影像。我們利用 Hariharan 等人提供的額外標注擴增資料集，得到 <span class="hl-evidence">10,582（trainaug）張訓練影像</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明實驗設定：骨幹、框架、資料集
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立實驗的可重現性基礎
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    詳列資料集劃分數量，展現實驗嚴謹性；提及資料擴增策略透明化訓練條件
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Using the proposed encoder-decoder structure, <span class="hl-evidence">DeepLabv3+ with the modified Xception as network backbone achieves the performance of 87.8% on the PASCAL VOC 2012 val set and 89.0% on the test set</span>. Compared with other state-of-the-art models, our <span class="hl-thesis">DeepLabv3+ outperforms PSPNet, Large Kernel Matters, and Multipath-RefineNet</span>. When employing the <span class="hl-method">depthwise separable convolution</span>, the model is significantly <span class="hl-evidence">faster (multiply-adds are reduced by 33% to 41%)</span> while maintaining similar or better accuracy.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用所提出的編碼器-解碼器結構，<span class="hl-evidence">DeepLabv3+ 以修改版 Xception 作為骨幹網路，在 PASCAL VOC 2012 驗證集上達到 87.8%，測試集上達到 89.0%</span>。與其他最先進模型相比，<span class="hl-thesis">DeepLabv3+ 超越了 PSPNet、Large Kernel Matters 和 Multipath-RefineNet</span>。當採用<span class="hl-method">深度可分離摺積</span>時，模型<span class="hl-evidence">速度顯著提升（乘加運算減少 33% 至 41%）</span>，同時維持相近甚至更好的精度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告核心定量結果
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以數字佐證 DeepLabv3+ 的 state-of-the-art 主張
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    同時呈現精度與速度數據，論證效率-精度的帕累托優勢，比單一維度的比較更具說服力
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We also evaluate DeepLabv3+ on the <span class="hl-evidence">Cityscapes dataset</span>, a large-scale dataset that contains <span class="hl-evidence">5,000 high quality pixel-level annotated images collected in street scenes from 50 different cities</span>. Our best model achieves <span class="hl-evidence">82.1% on the test set</span>, setting a new state-of-the-art. <span class="hl-rebuttal">We note that we do not employ DenseCRF post-processing or multi-scale testing for our submissions</span>, which may further improve the performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們也在 <span class="hl-evidence">Cityscapes 資料集</span>上評估 DeepLabv3+，這是一個大規模資料集，包含<span class="hl-evidence">來自 50 個不同城市的街景中收集的 5,000 張高品質像素級標注影像</span>。我們的最佳模型在測試集上達到 <span class="hl-evidence">82.1%</span>，創下新的最先進水準。<span class="hl-rebuttal">值得注意的是，我們的提交未使用 DenseCRF 後處理或多尺度測試</span>，這些技術或可進一步提升效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示跨資料集的泛化能力
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補強主張的泛化論證，並以自我約束展現公正性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    主動聲明未使用額外增強手段（DenseCRF、多尺度測試），暗示模型的「裸分」已足夠領先，這是一種巧妙的讓步策略
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論 -->
+    <h2 class="section-heading" id="conclusion">5. Conclusion 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our proposed model, <span class="hl-concept">DeepLabv3+</span>, employs the <span class="hl-method">encoder-decoder structure where DeepLabv3 is used to encode the rich contextual information and a simple yet effective decoder module is adopted to recover the object boundaries</span>. One could also apply the <span class="hl-method">atrous convolution to extract the encoder features at an arbitrary resolution</span>, depending on the available computation resources. We also explore the <span class="hl-concept">Xception model</span> and <span class="hl-method">atrous separable convolution</span> to make the proposed model <span class="hl-thesis">faster and stronger</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出的模型 <span class="hl-concept">DeepLabv3+</span> 採用<span class="hl-method">編碼器-解碼器結構，其中 DeepLabv3 用於編碼豐富的上下文資訊，而簡潔有效的解碼器模組則用於恢復物體邊界</span>。根據可用的計算資源，可以應用<span class="hl-method">空洞摺積在任意解析度下提取編碼器特徵</span>。我們也探索了 <span class="hl-concept">Xception 模型</span>和<span class="hl-method">空洞可分離摺積</span>，使所提模型<span class="hl-thesis">更快速且更強大</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文的核心技術貢獻
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回收緒論的動機，形成首尾呼應的完整論證迴路
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「depending on the available computation resources」暗示方法的實用靈活性，強化工程應用價值
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Finally, our experimental results show that the proposed model achieves <span class="hl-evidence">state-of-the-art performance on both PASCAL VOC 2012 and Cityscapes datasets</span>. Our <span class="hl-thesis">combination of encoder-decoder architecture with atrous separable convolution provides a principled approach that balances accuracy and efficiency</span> for semantic segmentation. We hope our simple yet effective method could serve as a strong baseline for future research in the field.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最後，實驗結果表明所提模型在 <span class="hl-evidence">PASCAL VOC 2012 和 Cityscapes 資料集上均達到最先進水準</span>。我們<span class="hl-thesis">將編碼器-解碼器架構與空洞可分離摺積結合的方式，提供了一種兼顧精度與效率的系統性方案</span>。我們希望這個簡潔而有效的方法能成為該領域未來研究的強力基線。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望未來影響力
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以謙遜的基線定位結尾，同時暗示方法的長期價值
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「principled approach」強調方法論的理論基礎而非僅是工程堆疊，提升學術格調
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>空間金字塔 vs 編碼器-解碼器<br>各有優缺</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">論點<br>結合兩者優勢<br>形成 DeepLabv3+</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">方法<br>DeepLabv3 編碼器 +<br>輕量解碼器 + Xception</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">證據<br>VOC 89.0%<br>Cityscapes 82.1%</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">結論<br>精度與效率的<br>系統性平衡方案</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過在 DeepLabv3 的空洞摺積編碼器上增加輕量解碼器模組，並採用深度可分離摺積，能同時達到精確的物體邊界恢復與高效的多尺度特徵提取。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>在兩個主流標竿資料集上同時達到 state-of-the-art 且未使用任何後處理，加上深度可分離摺積帶來 33-41% 的計算量減少，形成精度與效率的雙重說服力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>解碼器設計的「簡潔」雖是賣點，但缺乏對不同解碼器複雜度的系統性消融研究。讀者無法確定現有設計是否已達最優，或只是一個工程上的折衷選擇。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9881;</button>
+</div>
+
+</body>
+</html>

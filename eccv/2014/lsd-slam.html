@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>LSD-SLAM — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                LSD-SLAM: Large-Scale Direct Monocular SLAM
+                <span class="course-tag">ECCV 2014</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1407.4760" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-tracking">2. 追蹤</a>
+        <a href="#sec-mapping">3. 建圖</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose a <span class="hl-concept">direct (featureless) monocular SLAM algorithm</span> which, in contrast to current state-of-the-art regarding <span class="hl-rebuttal">direct monocular SLAM methods that operate on small-scale maps only</span>, allows to build <span class="hl-thesis">large-scale, consistent maps of the environment</span>. Along with a novel <span class="hl-method">direct tracking method based on semi-dense depth maps</span>, the method includes <span class="hl-method">map optimization using pose graph optimization</span> and <span class="hl-method">scale-drift aware loop closure detection</span>, which enables building consistent maps even over <span class="hl-evidence">long trajectories</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種<span class="hl-concept">直接式（無特徵）單目 SLAM 演算法</span>，相較於目前<span class="hl-rebuttal">僅在小規模地圖上運作的最先進直接式單目 SLAM 方法</span>，本方法能建構<span class="hl-thesis">大規模且一致的環境地圖</span>。除了一種新穎的<span class="hl-method">基於半稠密深度圖的直接追蹤方法</span>外，本方法還包括<span class="hl-method">使用位姿圖最佳化的地圖最佳化</span>以及<span class="hl-method">具尺度漂移感知的迴路閉合偵測</span>，使其即使在<span class="hl-evidence">長軌跡</span>上也能建構一致的地圖。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    概述 LSD-SLAM 的核心貢獻：將直接式 SLAM 從小規模擴展至大規模。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「對比現有方法的局限」開場，三個技術元件（追蹤、建圖、迴路閉合）逐一亮出。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「直接式」與「無特徵」的同義使用暗示了方法的簡潔性，但直接法對光照變化的敏感度可能是潛在弱點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Visual SLAM (Simultaneous Localization and Mapping)</span> is one of the fundamental problems in robotics and computer vision. Traditional approaches rely on <span class="hl-rebuttal">extracting and matching sparse feature points</span>, such as those used in <span class="hl-evidence">PTAM and ORB-SLAM</span>. While effective, these <span class="hl-concept">feature-based methods</span> <span class="hl-rebuttal">discard most of the information in the image and can fail in textureless regions</span>. <span class="hl-concept">Direct methods</span>, on the other hand, <span class="hl-thesis">operate directly on image intensities, using all available information and naturally providing semi-dense or dense reconstructions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">視覺 SLAM（同步定位與建圖）</span>是機器人學與電腦視覺中的基礎問題之一。傳統方法依賴<span class="hl-rebuttal">提取與匹配稀疏特徵點</span>，如 <span class="hl-evidence">PTAM 和 ORB-SLAM</span> 所使用的方法。雖然有效，這些<span class="hl-concept">基於特徵的方法</span><span class="hl-rebuttal">丟棄了影像中大部分資訊，且在無紋理區域可能失敗</span>。另一方面，<span class="hl-concept">直接法</span><span class="hl-thesis">直接在影像亮度上運作，利用所有可用資訊，自然地提供半稠密或稠密重建</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    介紹特徵法 vs 直接法的核心區別。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「特徵法的資訊浪費」為論據，為直接法的選擇提供合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「丟棄大部分資訊」的論點有力但過於簡化——稀疏特徵可能恰好保留了最具區分性的資訊。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-tracking">2. Tracking — 追蹤</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our tracking method estimates the <span class="hl-concept">rigid-body transformation</span> (rotation and translation) between the current frame and the active keyframe. This is done by <span class="hl-method">minimizing the photometric error</span> — the weighted sum of squared intensity differences — over all pixels with valid depth in the reference frame. The minimization is performed using a <span class="hl-method">coarse-to-fine scheme with a robust Huber norm</span> to handle outliers from occlusions and moving objects. The tracking operates on <span class="hl-method">semi-dense depth maps</span>, utilizing only pixels with sufficient image gradient.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的追蹤方法估計當前影格與活動關鍵影格之間的<span class="hl-concept">剛體變換</span>（旋轉與平移）。這透過<span class="hl-method">最小化光度誤差</span>來完成——即參考影格中所有具有效深度像素的加權亮度差平方和。最小化使用<span class="hl-method">由粗到細的方案搭配穩健的 Huber 範數</span>來處理遮擋與移動物體的離群值。追蹤在<span class="hl-method">半稠密深度圖</span>上運作，僅利用具有足夠影像梯度的像素。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    詳述追蹤模組的技術實現：光度誤差最小化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    追蹤是整個 SLAM 系統的前端，其穩健性決定了後續建圖的品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    Huber 範數提供了理論上的穩健性保證。「僅利用有梯度的像素」是務實的折衷——既保留直接法的優勢，又避免了無紋理區域的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-mapping">3. Mapping — 建圖</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For mapping, we maintain a <span class="hl-concept">pose graph</span> of keyframes. When a new keyframe is created, we <span class="hl-method">propagate depth information from the previous keyframe and refine it using stereo comparisons from subsequent frames</span>. The global map is optimized using <span class="hl-method">pose graph optimization with similarity transformations (Sim(3))</span>, which explicitly models and corrects for <span class="hl-concept">scale drift</span> — a unique challenge in monocular SLAM. This allows us to build <span class="hl-evidence">consistent maps over hundreds of meters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在建圖方面，我們維護關鍵影格的<span class="hl-concept">位姿圖</span>。當新的關鍵影格被建立時，我們<span class="hl-method">從前一個關鍵影格傳播深度資訊，並利用後續影格的立體比較加以精煉</span>。全域地圖使用<span class="hl-method">帶有相似變換（Sim(3)）的位姿圖最佳化</span>進行最佳化，此方法明確建模並修正<span class="hl-concept">尺度漂移</span>——單目 SLAM 中的獨特挑戰。這使我們能在<span class="hl-evidence">數百公尺的範圍內</span>建構一致的地圖。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明建圖模組的核心技術：Sim(3) 位姿圖最佳化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    尺度漂移是單目 SLAM 的根本挑戰，Sim(3) 的引入是本文的重要技術貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「數百公尺」的具體數字說明方法的規模能力，但未提及精度隨距離增長的衰減程度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate LSD-SLAM on the <span class="hl-evidence">TUM RGB-D benchmark</span> and on outdoor sequences. On the TUM benchmark, LSD-SLAM achieves <span class="hl-evidence">competitive accuracy with state-of-the-art feature-based methods</span> while providing <span class="hl-evidence">semi-dense depth maps</span> as a byproduct. On outdoor sequences, we demonstrate the ability to <span class="hl-evidence">build consistent maps over trajectories of several hundred meters</span>. The method runs in <span class="hl-evidence">real-time on a single CPU core</span>, making it practical for robotics applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">TUM RGB-D 基準</span>及戶外序列上評估 LSD-SLAM。在 TUM 基準上，LSD-SLAM <span class="hl-evidence">達到了與最先進特徵法相當的精度</span>，同時附帶產生<span class="hl-evidence">半稠密深度圖</span>。在戶外序列上，我們展示了在<span class="hl-evidence">數百公尺軌跡上建構一致地圖</span>的能力。該方法能在<span class="hl-evidence">單一 CPU 核心上即時運行</span>，使其適用於機器人應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供定量與定性的實驗結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    同時在室內基準和戶外場景上驗證，展現方法的泛用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「單一 CPU 核心即時運行」是極具實用價值的亮點。但「與特徵法相當的精度」暗示直接法在精度上並未超越特徵法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">LSD-SLAM</span>, the first <span class="hl-thesis">direct monocular SLAM method capable of operating at large scale</span>. By combining <span class="hl-method">semi-dense direct tracking, scale-aware pose graph optimization, and scale-drift-aware loop closure</span>, our method builds globally consistent maps from a single handheld camera. We believe that direct methods will play an increasingly important role in <span class="hl-thesis">visual SLAM, offering richer scene representations than traditional feature-based approaches</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 <span class="hl-concept">LSD-SLAM</span>，首個<span class="hl-thesis">能在大規模場景中運作的直接式單目 SLAM 方法</span>。透過結合<span class="hl-method">半稠密直接追蹤、尺度感知的位姿圖最佳化以及尺度漂移感知的迴路閉合</span>，我們的方法能從單一手持相機建構全域一致的地圖。我們相信直接法將在<span class="hl-thesis">視覺 SLAM 中扮演日益重要的角色，提供比傳統特徵法更豐富的場景表示</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結貢獻並展望直接法的未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「首個」的宣稱標記方法的里程碑地位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「更豐富的場景表示」確實是直接法的核心優勢，但後續研究表明直接法與特徵法的融合可能是更優路徑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">特徵法局限<br><small>資訊丟棄/稀疏重建</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">直接式追蹤<br><small>半稠密深度圖</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">Sim(3) 建圖<br><small>尺度漂移修正</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">迴路閉合<br><small>尺度感知偵測</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">大規模一致地圖<br><small>即時/單 CPU 核心</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>直接式單目 SLAM 能透過半稠密追蹤與 Sim(3) 位姿圖最佳化實現大規模場景的即時一致建圖，提供比特徵法更豐富的場景表示。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>在 TUM 基準上與特徵法精度相當，同時提供半稠密重建且能即時運行於單一 CPU 核心——三方面同時達標極具說服力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>直接法對光照劇烈變化的穩健性不足，且半稠密重建在高度動態或無紋理環境中的表現仍有待改進。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9713;</button>
+</div>
+
+</body>
+</html>

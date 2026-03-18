@@ -20,6 +20,8 @@ https://jung217.github.io/CvHub/
 
 ## CVPR (2013-2025, 13 屆, 156 篇)
 
+> 含經典論文 5 篇 + CVPR 156 篇 + ICCV 84 篇 + ECCV 72 篇 = 共 317 篇
+
 ## CVPR 2013
 
 | 論文 | 領域 |
@@ -363,3 +365,109 @@ https://jung217.github.io/CvHub/
 | LongSplat: Robust Unposed 3D Gaussian Splatting | 3D 重建 |
 | SceneSplat: Gaussian Splatting-based Scene Understanding | 3D 場景理解 |
 | From Image to Video: An Empirical Study of Diffusion Representations | 表示學習 |
+
+---
+
+## ECCV (2014-2024, 6 屆, 72 篇)
+
+## ECCV 2014
+
+| 論文 | 領域 |
+|------|------|
+| Large-Scale Object Classification using Label Relation Graphs | 物件分類 (Best Paper) |
+| Scene Chronology | 場景年代學 (Best Paper) |
+| Microsoft COCO: Common Objects in Context | 資料集 / 物件偵測 |
+| Spatial Pyramid Pooling in Deep Convolutional Networks (SPPNet) | 影像分類 / 偵測 |
+| Visualizing and Understanding Convolutional Networks (ZFNet) | 網路視覺化 |
+| Image Super-Resolution Using Deep Convolutional Networks (SRCNN) | 超解析度 |
+| LSD-SLAM: Large-Scale Direct Monocular SLAM | SLAM |
+| CNN Features Off-the-Shelf: An Astounding Baseline | 遷移學習 |
+| Edge Boxes: Locating Object Proposals from Edges | 物件候選框 |
+| Simultaneous Detection and Segmentation | 偵測與分割 |
+| Part-Based R-CNNs for Fine-Grained Category Detection | 細粒度偵測 |
+| Action Recognition with Stacked Fisher Vectors | 動作辨識 |
+
+## ECCV 2016
+
+| 論文 | 領域 |
+|------|------|
+| Real-Time 3D Reconstruction and 6-DoF Tracking with an Event Camera | 事件相機 (Best Paper) |
+| The Fast Bilateral Solver | 影像處理 (Honorable Mention) |
+| SSD: Single Shot MultiBox Detector | 物件偵測 |
+| Identity Mappings in Deep Residual Networks | 網路架構 |
+| Perceptual Losses for Real-Time Style Transfer and Super-Resolution | 風格轉換 / 超解析 |
+| Colorful Image Colorization | 影像上色 |
+| Fully-Convolutional Siamese Networks for Object Tracking (SiamFC) | 視覺追蹤 |
+| Stacked Hourglass Networks for Human Pose Estimation | 姿態估測 |
+| Learning to Track at 100 FPS with Deep Regression Networks (GOTURN) | 視覺追蹤 |
+| Wide Residual Networks (WRN) | 網路架構 |
+| ENet: A Deep Neural Network Architecture for Real-Time Semantic Segmentation | 語義分割 |
+| Temporal Segment Networks (TSN) | 影片動作辨識 |
+
+## ECCV 2018
+
+| 論文 | 領域 |
+|------|------|
+| Implicit 3D Orientation Learning for 6D Object Detection | 6D 偵測 (Best Paper) |
+| Group Normalization | 正規化 (Honorable Mention) |
+| GANimation: Anatomically-aware Facial Animation from a Single Image | 臉部動畫 (Honorable Mention) |
+| CBAM: Convolutional Block Attention Module | 注意力機制 |
+| CornerNet: Detecting Objects as Paired Keypoints | 物件偵測 |
+| Encoder-Decoder with Atrous Separable Convolution (DeepLabv3+) | 語義分割 |
+| Simple Baselines for Human Pose Estimation and Tracking | 姿態估測 |
+| ShuffleNet V2: Practical Guidelines for Efficient CNN Architecture Design | 高效網路 |
+| PersonLab: Person Pose Estimation and Instance Segmentation | 人體分析 |
+| Exploring the Limits of Weakly Supervised Pretraining | 弱監督預訓練 |
+| ESPNet: Efficient Spatial Pyramid of Dilated Convolutions | 即時語義分割 |
+| Rethinking ImageNet Pre-training | 預訓練策略 |
+
+## ECCV 2020
+
+| 論文 | 領域 |
+|------|------|
+| RAFT: Recurrent All-Pairs Field Transforms for Optical Flow | 光流估測 (Best Paper) |
+| NeRF: Representing Scenes as Neural Radiance Fields | 神經渲染 (Honorable Mention) |
+| Towards Streaming Perception | 串流感知 (Honorable Mention) |
+| DETR: End-to-End Object Detection with Transformers | 物件偵測 |
+| SOLO: Segmenting Objects by Locations | 實例分割 |
+| Object-Contextual Representations for Semantic Segmentation (OCRNet) | 語義分割 |
+| Rewriting a Deep Generative Model | 生成模型編輯 |
+| PointContrast: Unsupervised Pre-training for 3D Point Cloud Understanding | 3D 點雲 |
+| Rethinking Bottleneck Structure for Efficient Mobile Network Design | 行動網路 |
+| AR-Net: Adaptive Frame Resolution for Efficient Action Recognition | 動作辨識 |
+| Knowledge Distillation Meets Self-Supervision | 知識蒸餾 |
+| Unpaired Learning of Deep Image Denoising | 影像去噪 |
+
+## ECCV 2022
+
+| 論文 | 領域 |
+|------|------|
+| On the Versatile Uses of Partial Distance Correlation in Deep Learning | 深度學習理論 (Best Paper) |
+| Level Set Theory for Neural Implicit Evolution | 神經隱式表面 (Honorable Mention) |
+| Pose-NDF: Modelling Human Pose Manifolds with Neural Distance Fields | 人體姿態 (Honorable Mention) |
+| BEVFormer: Learning Bird's-Eye-View Representation | 自動駕駛 |
+| TensoRF: Tensorial Radiance Fields | 神經渲染 |
+| MaxViT: Multi-Axis Vision Transformer | 視覺 Transformer |
+| DaViT: Dual Attention Vision Transformers | 視覺 Transformer |
+| Panoptic Scene Graph Generation | 場景圖生成 |
+| PETR: Position Embedding Transformation for Multi-View 3D Detection | 3D 偵測 |
+| 2DPASS: 2D Priors Assisted Semantic Segmentation on LiDAR | 點雲分割 |
+| AnyDoor: Zero-shot Object-level Image Customization | 影像編輯 |
+| MaskGIT: Masked Generative Image Transformer | 影像生成 |
+
+## ECCV 2024
+
+| 論文 | 領域 |
+|------|------|
+| Minimalist Vision with Freeform Pixels | 計算攝影 (Best Paper) |
+| Rasterized Edge Gradients: Handling Discontinuities Differentiably | 可微分渲染 (Honorable Mention) |
+| Concept Arithmetics for Circumventing Concept Inhibition in Diffusion Models | 擴散模型安全 (Honorable Mention) |
+| Adversarial Diffusion Distillation | 擴散模型蒸餾 |
+| Concept Sliders: LoRA Adaptors for Precise Control | 可控生成 |
+| Grounding DINO: Marrying DINO with Grounded Pre-Training | 開放集偵測 |
+| LGM: Large Multi-View Gaussian Model for 3D Content Creation | 3D 生成 |
+| Sapiens: Foundation for Human Vision Models | 人體基礎模型 |
+| SEA-RAFT: Simple, Efficient, Accurate RAFT for Optical Flow | 光流估測 |
+| SiT: Exploring Flow and Diffusion-based Generative Models | 生成模型 |
+| VideoMamba: State Space Model for Efficient Video Understanding | 影片理解 |
+| DUSt3R: Geometric 3D Vision Made Easy | 3D 重建 |

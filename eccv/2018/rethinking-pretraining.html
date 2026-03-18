@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Rethinking ImageNet Pre-training — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Rethinking ImageNet Pre-training
+                <span class="course-tag">ECCV 2018</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1811.08883" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#abstract">摘要</a>
+        <a href="#introduction">緒論</a>
+        <a href="#method">實驗方法</a>
+        <a href="#experiments">實驗結果</a>
+        <a href="#conclusion">結論</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- 摘要 -->
+    <h2 class="section-heading" id="abstract">Abstract 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We report <span class="hl-thesis">surprising observations that challenge the conventional wisdom of ImageNet pre-training</span>. Our experiments show that <span class="hl-concept">ImageNet pre-training</span> <span class="hl-thesis">speeds up convergence early in training, but does not necessarily provide regularization or improve final target task accuracy</span> for object detection and instance segmentation. Models trained <span class="hl-method">from random initialization (from scratch)</span> on the target dataset can be <span class="hl-evidence">no worse than their pre-trained counterparts</span>, as long as they are trained for long enough.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們報告了<span class="hl-thesis">挑戰 ImageNet 預訓練傳統認知的驚人發現</span>。實驗表明，<span class="hl-concept">ImageNet 預訓練</span><span class="hl-thesis">加速了訓練初期的收斂，但不一定為物體偵測和實例分割提供正則化或改善最終目標任務精度</span>。只要訓練足夠長時間，以<span class="hl-method">隨機初始化（從頭訓練）</span>在目標資料集上訓練的模型可以<span class="hl-evidence">不遜於預訓練的對應模型</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    以「挑戰傳統認知」的高姿態開場
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立核心反直覺主張：ImageNet 預訓練可能並非必要
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「surprising observations」和「challenge the conventional wisdom」立即製造學術張力，吸引讀者繼續閱讀
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                These observations hold across multiple tasks (<span class="hl-evidence">object detection, instance segmentation, and keypoint detection</span>), multiple datasets (<span class="hl-evidence">COCO and PASCAL VOC</span>), and multiple network architectures. Our results are <span class="hl-rebuttal">not meant to discredit ImageNet pre-training</span>, which is still useful for speeding up convergence and for scenarios with limited target data. Rather, we aim to <span class="hl-thesis">recalibrate the community's understanding of what pre-training provides</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                這些觀察在多個任務（<span class="hl-evidence">物體偵測、實例分割和關鍵點偵測</span>）、多個資料集（<span class="hl-evidence">COCO 和 PASCAL VOC</span>）和多種網路架構上均成立。我們的結果<span class="hl-rebuttal">並非要否定 ImageNet 預訓練</span>——它在加速收斂和目標資料有限的場景中仍然有用。我們的目的是<span class="hl-thesis">重新校準社群對預訓練所提供效益的理解</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示發現的泛化性並進行讓步
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    預防過度解讀，精確界定論文的主張範圍
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「not meant to discredit」的讓步極為關鍵，避免論文被視為對 ImageNet 的攻擊，同時「recalibrate」暗示當前認知有偏
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論 -->
+    <h2 class="section-heading" id="introduction">1. Introduction 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">ImageNet pre-training</span> followed by <span class="hl-concept">fine-tuning</span> has become the de facto paradigm in computer vision. Since the pioneering work of <span class="hl-concept">Krizhevsky et al. (AlexNet)</span>, it has been commonly believed that <span class="hl-rebuttal">pre-training on ImageNet provides universal visual features that significantly benefit downstream tasks</span>. This belief has been reinforced by consistent empirical evidence across many tasks and datasets.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">ImageNet 預訓練</span>再<span class="hl-concept">微調</span>已成為電腦視覺的既定範式。自 <span class="hl-concept">Krizhevsky 等人（AlexNet）</span>的開創性工作以來，人們普遍認為<span class="hl-rebuttal">在 ImageNet 上的預訓練提供了對下游任務有顯著幫助的通用視覺特徵</span>。這一信念已被多個任務和資料集上一致的經驗證據所強化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述被挑戰的傳統認知及其歷史根基
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立靶子：越是根深蒂固的信念，挑戰它的價值越大
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以 AlexNet 這個里程碑追溯信念的起源，讓讀者意識到這個假設已有近十年歷史，暗示有重新檢驗的必要
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                However, <span class="hl-thesis">we question whether ImageNet pre-training is truly necessary</span> for achieving strong performance on target tasks, particularly when the <span class="hl-concept">target dataset is sufficiently large</span> (e.g., COCO). Recent advances in <span class="hl-method">normalization techniques (such as Group Normalization and Synchronized Batch Normalization)</span> have made training from scratch more feasible by addressing the <span class="hl-rebuttal">small batch size problem</span> that previously made random initialization impractical for detection and segmentation tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                然而，<span class="hl-thesis">我們質疑 ImageNet 預訓練對於在目標任務上達到強勁效能是否真正必要</span>，特別是當<span class="hl-concept">目標資料集足夠大</span>（如 COCO）時。近期在<span class="hl-method">正規化技術（如群組正規化和同步批次正規化）</span>方面的進展，透過解決之前使隨機初始化在偵測和分割任務中不實際的<span class="hl-rebuttal">小批次問題</span>，使從頭訓練變得更加可行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    識別使重新檢驗成為可能的技術前提
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    解釋為什麼「此刻」是質疑預訓練的適當時機
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    指出正規化技術的進展消除了過去的技術障礙，使「從頭訓練不行」的舊結論可能已過時
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗方法 -->
+    <h2 class="section-heading" id="method">3. Experimental Methodology 實驗方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We conduct experiments using <span class="hl-concept">Mask R-CNN</span> and <span class="hl-concept">Faster R-CNN</span> with <span class="hl-concept">Feature Pyramid Networks (FPN)</span> on the <span class="hl-evidence">COCO dataset</span>. For each configuration, we compare two training strategies: (1) <span class="hl-method">fine-tuning from ImageNet pre-trained weights</span>, the standard practice, and (2) <span class="hl-method">training from random initialization (scratch)</span> using appropriate normalization. For the scratch models, we use <span class="hl-method">Group Normalization (GN)</span> or <span class="hl-method">Synchronized Batch Normalization (SyncBN)</span> instead of frozen BN layers, which is critical for stable training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們使用 <span class="hl-concept">Mask R-CNN</span> 和 <span class="hl-concept">Faster R-CNN</span> 搭配<span class="hl-concept">特徵金字塔網路（FPN）</span>在 <span class="hl-evidence">COCO 資料集</span>上進行實驗。對於每個配置，我們比較兩種訓練策略：（1）<span class="hl-method">從 ImageNet 預訓練權重微調</span>，即標準做法；（2）使用適當正規化的<span class="hl-method">隨機初始化訓練（從頭訓練）</span>。對於從頭訓練的模型，我們使用<span class="hl-method">群組正規化（GN）</span>或<span class="hl-method">同步批次正規化（SyncBN）</span>取代凍結的 BN 層，這對穩定訓練至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立嚴格的對照實驗框架
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    確保比較的公平性，為後續結論提供方法論基礎
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    明確指出 GN/SyncBN 是成功從頭訓練的關鍵，避免讀者認為僅僅換成隨機初始化就能複現結果
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key aspect of our methodology is the <span class="hl-method">training schedule</span>. We observe that models trained from scratch require <span class="hl-evidence">significantly longer training schedules to converge</span>. While the standard fine-tuning schedule uses <span class="hl-evidence">90k iterations (1x schedule)</span>, we train from-scratch models for up to <span class="hl-evidence">6x longer (540k iterations)</span>. We also explore various hyperparameter settings including <span class="hl-method">learning rate warmup, gradient clipping, and data augmentation strategies</span> to ensure fair comparison.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                方法論的一個關鍵面向是<span class="hl-method">訓練排程</span>。我們觀察到從頭訓練的模型需要<span class="hl-evidence">顯著更長的訓練排程才能收斂</span>。標準微調排程使用 <span class="hl-evidence">9 萬次迭代（1x 排程）</span>，而我們將從頭訓練的模型訓練長達 <span class="hl-evidence">6 倍（54 萬次迭代）</span>。我們也探索了包括<span class="hl-method">學習率預熱、梯度裁剪和資料擴增策略</span>在內的各種超參數設定，以確保比較的公平性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明訓練排程的差異及其重要性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    預防「從頭訓練效果差是因為訓練不夠久」的反駁
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    承認需要 6x 更長的訓練是一種誠實的讓步，同時暗示預訓練的主要價值可能只是節省訓練時間
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗結果 -->
+    <h2 class="section-heading" id="experiments">4. Results 實驗結果</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our main finding is striking: with sufficient training time, <span class="hl-thesis">models trained from scratch can match the accuracy of ImageNet pre-trained models</span> on COCO. Specifically, <span class="hl-concept">Mask R-CNN</span> with <span class="hl-concept">ResNet-50 FPN</span> trained from scratch achieves <span class="hl-evidence">39.0 AP for object detection, compared to 38.9 AP for the pre-trained counterpart</span>. For instance segmentation, the scratch model achieves <span class="hl-evidence">35.0 AP vs. 35.4 AP</span>. The differences are within statistical noise.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的主要發現非常驚人：在足夠的訓練時間下，<span class="hl-thesis">從頭訓練的模型能在 COCO 上匹配 ImageNet 預訓練模型的精度</span>。具體而言，從頭訓練的 <span class="hl-concept">Mask R-CNN</span> 搭配 <span class="hl-concept">ResNet-50 FPN</span> 在物體偵測上達到 <span class="hl-evidence">39.0 AP，而預訓練對應模型為 38.9 AP</span>。在實例分割上，從頭訓練模型達到 <span class="hl-evidence">35.0 AP 對比 35.4 AP</span>。差異在統計雜訊範圍內。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告核心對比實驗結果
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以定量數據直接支撐「預訓練非必要」的主張
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    呈現幾乎相同的數字（39.0 vs 38.9）比宣稱「超越」更有說服力，因為它暗示兩者本質上等價
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We further observe that <span class="hl-thesis">ImageNet pre-training does not help if the target task has enough data</span>. On <span class="hl-evidence">COCO with its 118k training images</span>, from-scratch training matches pre-trained models. However, when we reduce the COCO training set to <span class="hl-evidence">10k or 35k images, pre-training provides a clear advantage</span>. This suggests that <span class="hl-thesis">the main benefit of pre-training is as a form of data augmentation when target data is scarce, rather than providing fundamentally better feature representations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們進一步觀察到，<span class="hl-thesis">當目標任務有足夠資料時，ImageNet 預訓練並無幫助</span>。在擁有 <span class="hl-evidence">118k 訓練影像的 COCO</span> 上，從頭訓練與預訓練模型匹敵。然而，當我們將 COCO 訓練集縮減至 <span class="hl-evidence">10k 或 35k 張影像時，預訓練提供了明顯優勢</span>。這表明<span class="hl-thesis">預訓練的主要效益是在目標資料稀缺時作為一種資料擴增，而非提供本質上更好的特徵表徵</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    分析資料量與預訓練效益的關係
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    精確界定預訓練有效的條件範圍
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    將預訓練重新詮釋為「資料擴增」而非「特徵遷移」，從根本上改變了社群對遷移學習機制的理解
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We also find that these observations hold across different architectures. With <span class="hl-concept">ResNet-101</span> backbone, the scratch model achieves <span class="hl-evidence">41.0 AP compared to 40.6 AP for the pre-trained model</span> in object detection on COCO. <span class="hl-rebuttal">We acknowledge that pre-training still provides substantial practical benefits: it reduces training time by roughly 3x-5x and requires less careful hyperparameter tuning</span>. These practical advantages should not be dismissed.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們也發現這些觀察在不同架構下均成立。使用 <span class="hl-concept">ResNet-101</span> 骨幹，從頭訓練模型在 COCO 物體偵測上達到 <span class="hl-evidence">41.0 AP，而預訓練模型為 40.6 AP</span>。<span class="hl-rebuttal">我們承認預訓練仍提供顯著的實務效益：它將訓練時間縮減約 3-5 倍，且需要較少的超參數調整</span>。這些實務優勢不應被忽視。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    跨架構驗證並進行重要讓步
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    平衡論述，避免過度宣稱
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    主動承認預訓練的實務價值（省時省力），展現科學客觀性，同時將討論從「精度」轉向「效率」這個不同的評價維度
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論 -->
+    <h2 class="section-heading" id="conclusion">5. Conclusion 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our experiments demonstrate that <span class="hl-thesis">ImageNet pre-training is not necessary for achieving strong performance on COCO object detection and segmentation when sufficient target data and training time are available</span>. The primary benefit of pre-training is <span class="hl-thesis">faster convergence rather than improved final accuracy</span>. These findings suggest that the <span class="hl-thesis">dominant role of ImageNet in the transfer learning paradigm should be reconsidered</span>, and that investing in larger target datasets and longer training schedules may be equally valuable.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗證明，<span class="hl-thesis">當有足夠的目標資料和訓練時間時，ImageNet 預訓練對於在 COCO 物體偵測和分割上達到強勁效能並非必要</span>。預訓練的主要效益是<span class="hl-thesis">加速收斂而非改善最終精度</span>。這些發現表明，<span class="hl-thesis">ImageNet 在遷移學習範式中的主導地位應被重新審視</span>，投資於更大的目標資料集和更長的訓練排程可能同等有價值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結核心發現並提出範式性建議
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將實驗發現昇華為對領域研究範式的反思
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「should be reconsidered」的措辭恰到好處——不是「should be abandoned」，保持了學術謙遜又傳達了重要訊息
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We hope our work <span class="hl-thesis">encourages the community to explore alternative approaches to the standard pre-training paradigm</span>. As normalization techniques continue to improve and target datasets grow larger, <span class="hl-rebuttal">the gap between pre-trained and from-scratch models may continue to narrow</span>. We believe that understanding the <span class="hl-thesis">true mechanisms of transfer learning</span> is crucial for advancing the field beyond empirical recipe-following.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們希望本研究<span class="hl-thesis">鼓勵社群探索標準預訓練範式的替代方案</span>。隨著正規化技術持續改進和目標資料集日益增大，<span class="hl-rebuttal">預訓練模型與從頭訓練模型之間的差距可能繼續縮小</span>。我們認為，理解<span class="hl-thesis">遷移學習的真正機制</span>對於推動領域超越經驗性的方法套用至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望未來方向與學術呼籲
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將論文的意義從具體實驗擴展到更宏觀的方法論層面
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「beyond empirical recipe-following」含蓄地批評了社群盲目使用 ImageNet 預訓練的「食譜式」研究方式，呼籲更深層的理解
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>ImageNet 預訓練<br>真的必要嗎？</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">方法<br>GN/SyncBN +<br>長排程從頭訓練</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">發現<br>從頭訓練可匹配<br>預訓練精度</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">分析<br>資料充足時<br>預訓練非必要</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">結論<br>預訓練的價值<br>在於加速收斂</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>ImageNet 預訓練對於 COCO 等大規模目標資料集上的物體偵測和分割並非必要；在足夠的訓練時間和適當的正規化技術下，從頭訓練可達到同等精度，預訓練的主要價值僅在於加速收斂。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>跨架構（ResNet-50/101）、跨任務（偵測/分割/關鍵點）、跨資料集（COCO/VOC）的一致性結果，搭配不同資料量的控制實驗，系統性極高。特別是資料量消融實驗精確定位了預訓練有效的邊界條件。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>從頭訓練需要 3-5 倍的訓練時間和更仔細的超參數調整，這在實際研究中是顯著的成本。論文未充分量化這些額外成本（GPU 時數、碳排放），使「是否值得從頭訓練」的實際決策缺乏完整的成本效益分析。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9881;</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Simple Baselines for Human Pose Estimation — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Simple Baselines for Human Pose Estimation and Tracking
+                <span class="course-tag">ECCV 2018</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1804.06208" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#abstract">摘要</a>
+        <a href="#introduction">緒論</a>
+        <a href="#method">方法</a>
+        <a href="#experiments">實驗</a>
+        <a href="#conclusion">結論</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- 摘要 -->
+    <h2 class="section-heading" id="abstract">Abstract 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                There has been significant progress on <span class="hl-concept">pose estimation and tracking</span> in recent years. Yet, much of the focus has been on developing <span class="hl-rebuttal">complex solutions involving multi-component systems, cascaded networks, and sophisticated loss functions</span>. In this work, we ask a simple question: <span class="hl-thesis">how good could a simple method be?</span> Specifically, we provide <span class="hl-method">simple baseline methods</span> for both <span class="hl-concept">pose estimation</span> and <span class="hl-concept">pose tracking</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近年來，<span class="hl-concept">姿態估計與追蹤</span>取得了顯著進展。然而，大多數研究聚焦於開發<span class="hl-rebuttal">涉及多元件系統、級聯網路和精巧損失函數的複雜方案</span>。在本研究中，我們提出一個簡單的問題：<span class="hl-thesis">一個簡單方法究竟能好到什麼程度？</span>具體而言，我們為<span class="hl-concept">姿態估計</span>和<span class="hl-concept">姿態追蹤</span>提供<span class="hl-method">簡單的基線方法</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    以反思性提問開場，挑戰領域內追求複雜化的趨勢
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立研究動機：質疑複雜方案的必要性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以修辭提問「how good could a simple method be?」引發好奇心，策略性地將「簡單」從劣勢轉化為研究亮點
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">pose estimation</span>, our method involves a <span class="hl-method">ResNet backbone augmented with a few deconvolutional layers</span> to generate heatmaps for joint detection. For <span class="hl-concept">pose tracking</span>, our method involves assigning poses based on <span class="hl-method">greedy matching of detected keypoints across frames using optical flow</span>. Despite the simplicity of these methods, <span class="hl-evidence">they achieve competitive or even superior results compared to state-of-the-art methods</span> on challenging benchmarks such as <span class="hl-evidence">COCO and PoseTrack</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於<span class="hl-concept">姿態估計</span>，我們的方法使用<span class="hl-method">以 ResNet 為骨幹並增加若干反摺積層</span>來生成關節偵測的熱力圖。對於<span class="hl-concept">姿態追蹤</span>，我們的方法採用<span class="hl-method">基於光流的貪婪匹配來跨幀指派偵測到的關鍵點</span>。儘管這些方法極為簡單，<span class="hl-evidence">它們在 COCO 和 PoseTrack 等挑戰性標竿上取得了與最先進方法相當甚至更優的成績</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    概述兩項任務的基線方案與核心結果
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    快速勾勒方法論並以結果驗證「簡單即有效」的主張
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「despite the simplicity」形成戲劇性反差，讓讀者對簡單方法的競爭力感到意外，強化論文的核心訊息
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論 -->
+    <h2 class="section-heading" id="introduction">1. Introduction 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Human pose estimation</span>, the task of determining the <span class="hl-concept">spatial locations of body joints or keypoints</span> from an image, has attracted significant attention due to its widespread applications in <span class="hl-concept">action recognition, human-computer interaction, and augmented reality</span>. Recent approaches to the problem have achieved impressive results by employing <span class="hl-rebuttal">increasingly complex network architectures and training strategies</span>. However, <span class="hl-thesis">the growing complexity makes it difficult to identify which design choices are truly essential for achieving high performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">人體姿態估計</span>是從影像中判定<span class="hl-concept">身體關節或關鍵點空間位置</span>的任務，由於其在<span class="hl-concept">動作辨識、人機互動和擴增實境</span>等領域的廣泛應用而備受關注。近期的方法透過採用<span class="hl-rebuttal">日益複雜的網路架構和訓練策略</span>取得了出色的成果。然而，<span class="hl-thesis">不斷增長的複雜度使得識別哪些設計選擇對於達到高效能真正不可或缺變得困難</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義問題背景並指出領域內的方法論危機
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為「回歸簡單」的研究方向提供正當性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    先肯定現有成果再指出問題，避免直接否定他人工作，展現學術外交手腕
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We believe that establishing <span class="hl-thesis">strong and simple baselines is important for understanding the core problem and for measuring progress in the field</span>. Our goal is not to propose a new state-of-the-art method but rather to <span class="hl-thesis">show that a straightforward approach, when implemented carefully with proper training procedures, can achieve surprisingly strong performance</span>. The key insight is that <span class="hl-method">a simple network architecture combined with proper training details</span> can match or exceed the performance of more complex designs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們認為建立<span class="hl-thesis">強大而簡單的基線對於理解核心問題及衡量領域進展至關重要</span>。我們的目標不是提出新的最先進方法，而是<span class="hl-thesis">展示一個直觀的方法在仔細實作並搭配適當訓練流程時，能達到令人驚訝的強大效能</span>。關鍵洞見在於，<span class="hl-method">簡單的網路架構搭配適當的訓練細節</span>能匹配甚至超越更複雜的設計。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    闡明研究目的與核心洞見
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    確立論文的哲學立場：簡約主義
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    刻意降低讀者預期（「not to propose a new state-of-the-art」），使後續超越 SOTA 的結果產生更大衝擊
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 -->
+    <h2 class="section-heading" id="method">3. Approach 方法</h2>
+
+    <h3 class="subsection-heading">3.1 Pose Estimation</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our pose estimation network adopts the structure of adding <span class="hl-method">a few deconvolutional layers over the last convolution stage</span> in the <span class="hl-concept">ResNet architecture</span>. Three <span class="hl-method">deconvolutional layers with batch normalization and ReLU activation</span> are used. Each layer has <span class="hl-evidence">256 filters with 4x4 kernel</span>. A <span class="hl-method">1x1 convolutional layer</span> is added at last to generate predicted <span class="hl-concept">heatmaps</span> for all k key points. The overall architecture is remarkably simple and it can be <span class="hl-thesis">generated by the ResNet backbone and a few transposed convolution layers with no bells and whistles</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的姿態估計網路採用在 <span class="hl-concept">ResNet 架構</span>的最後摺積階段上方<span class="hl-method">增加若干反摺積層</span>的結構。使用三個<span class="hl-method">帶批次正規化和 ReLU 啟動函數的反摺積層</span>，每層包含 <span class="hl-evidence">256 個 4x4 核的濾波器</span>。最後加入一個 <span class="hl-method">1x1 摺積層</span>來生成所有 k 個關鍵點的預測<span class="hl-concept">熱力圖</span>。整體架構極為簡潔，<span class="hl-thesis">僅由 ResNet 骨幹和幾個轉置摺積層構成，沒有任何花俏的附加設計</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述姿態估計網路的完整架構
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以最少的組件實現核心功能，支撐「簡單基線」的主張
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    「no bells and whistles」的口語化表達刻意強調方法的樸素性，與領域內追求複雜度的傳統形成鮮明對比
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.2 Pose Tracking</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">multi-person pose tracking</span> in videos, we adopt a simple approach based on <span class="hl-method">optical flow</span>. Given detected poses in a current frame, we propagate each keypoint to the next frame using optical flow and perform <span class="hl-method">greedy bipartite matching</span> between the propagated keypoints and the newly detected keypoints. The matching cost is computed as the <span class="hl-method">Object Keypoint Similarity (OKS)</span> between the propagated and detected poses. This simple strategy <span class="hl-rebuttal">avoids the need for complex tracking algorithms such as graph-based optimization or recurrent networks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於影片中的<span class="hl-concept">多人姿態追蹤</span>，我們採用基於<span class="hl-method">光流</span>的簡單方法。給定當前幀中偵測到的姿態，我們使用光流將每個關鍵點傳播到下一幀，然後在傳播的關鍵點與新偵測的關鍵點之間執行<span class="hl-method">貪婪二部匹配</span>。匹配成本以傳播姿態與偵測姿態之間的<span class="hl-method">物體關鍵點相似度（OKS）</span>來計算。這個簡單策略<span class="hl-rebuttal">避免了對複雜追蹤演算法（如圖優化或循環神經網路）的需求</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述姿態追蹤的基線方案
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將「簡單基線」的哲學延伸到追蹤任務
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    透過列舉被省略的複雜方法（圖優化、RNN），反襯自身方案的極簡特質
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗 -->
+    <h2 class="section-heading" id="experiments">4. Experiments 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate our approach on the <span class="hl-evidence">COCO keypoint detection benchmark</span>. Our models are trained on the <span class="hl-evidence">COCO train2017 dataset including 57K images and 150K person instances</span>. We report results on the <span class="hl-evidence">val2017 set with 5000 images and test-dev2017 set</span>. The evaluation metric is <span class="hl-concept">Object Keypoint Similarity (OKS)</span> based <span class="hl-concept">AP</span>. We use the <span class="hl-method">person detector from the two-stage top-down pipeline</span> and apply our pose estimation network on each detected person bounding box.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 <span class="hl-evidence">COCO 關鍵點偵測標竿</span>上評估我們的方法。模型在 <span class="hl-evidence">COCO train2017 資料集上訓練，包含 57K 張影像和 150K 個人體實例</span>。我們在 <span class="hl-evidence">val2017（5000 張影像）和 test-dev2017</span> 上報告結果。評估指標為基於<span class="hl-concept">物體關鍵點相似度（OKS）</span>的 <span class="hl-concept">AP</span>。我們使用<span class="hl-method">兩階段由上而下管線中的人體偵測器</span>，並對每個偵測到的人體邊界框應用姿態估計網路。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明實驗設定：資料集、指標、檢測管線
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立公平比較的基礎
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    詳列資料集規模和評估協定，確保與其他方法的可比性
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                With <span class="hl-concept">ResNet-152</span> as the backbone, our simple baseline achieves <span class="hl-evidence">73.7 AP on the COCO test-dev set</span>, which is <span class="hl-thesis">competitive with the state-of-the-art results from much more complex methods</span> such as <span class="hl-concept">CPN</span> which uses a cascaded network architecture with online hard keypoint mining. When using the same person detector and <span class="hl-evidence">ResNet-50 backbone, our method achieves 70.4 AP</span>, which already outperforms many existing approaches. The results clearly demonstrate that <span class="hl-thesis">most of the improvement in recent methods comes from better backbone networks and training strategies rather than architectural innovations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                以 <span class="hl-concept">ResNet-152</span> 為骨幹，我們的簡單基線在 <span class="hl-evidence">COCO test-dev 上達到 73.7 AP</span>，<span class="hl-thesis">與來自更複雜方法的最先進成果具有競爭力</span>，例如使用級聯網路架構搭配線上困難關鍵點挖掘的 <span class="hl-concept">CPN</span>。當使用相同的人體偵測器和 <span class="hl-evidence">ResNet-50 骨幹時，我們的方法達到 70.4 AP</span>，已超越許多現有方法。結果清楚表明，<span class="hl-thesis">近期方法的大部分提升來自更好的骨幹網路和訓練策略，而非架構創新</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告核心定量結果並推導洞見
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    用數據佐證「簡單即有效」的主張，並揭示效能提升的真正來源
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    與 CPN 的直接比較特別有說服力：同等效能下，架構複雜度差距巨大，完美支撐論文的核心訊息
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">pose tracking</span> on the <span class="hl-evidence">PoseTrack dataset</span>, our simple baseline with greedy matching achieves <span class="hl-evidence">competitive tracking accuracy compared to methods using more sophisticated temporal modeling</span>. Specifically, our approach obtains <span class="hl-evidence">multi-person pose tracking accuracy of 65.4 MOTA</span> on the PoseTrack validation set. <span class="hl-rebuttal">While more complex temporal models may offer marginal improvements, the gap is surprisingly small</span>, suggesting that the pose estimation quality is the primary bottleneck for tracking performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 <span class="hl-evidence">PoseTrack 資料集</span>上的<span class="hl-concept">姿態追蹤</span>方面，我們基於貪婪匹配的簡單基線<span class="hl-evidence">取得了與使用更精巧時序建模方法相當的追蹤精度</span>。具體而言，我們的方法在 PoseTrack 驗證集上達到 <span class="hl-evidence">65.4 MOTA 的多人姿態追蹤精度</span>。<span class="hl-rebuttal">雖然更複雜的時序模型可能帶來微小的提升，但差距小得令人驚訝</span>，這表明姿態估計品質才是追蹤效能的主要瓶頸。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告追蹤任務結果並提出瓶頸分析
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將「簡單基線」的論證擴展到第二個任務，並提供診斷性洞見
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    以讓步語氣（「may offer marginal improvements」）承認複雜方法的邊際優勢，但隨即將焦點導向真正的瓶頸，轉守為攻
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論 -->
+    <h2 class="section-heading" id="conclusion">5. Conclusion 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have provided <span class="hl-thesis">simple yet strong baseline methods for human pose estimation and tracking</span>. For pose estimation, we show that a <span class="hl-method">ResNet backbone with a few deconvolutional layers</span> can achieve surprisingly strong results. For pose tracking, a <span class="hl-method">simple greedy matching strategy based on optical flow</span> is sufficient to achieve competitive performance. Our results suggest that <span class="hl-thesis">the community should pay more attention to training details and baseline comparisons rather than solely focusing on architectural novelty</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提供了<span class="hl-thesis">簡單而強大的人體姿態估計與追蹤基線方法</span>。在姿態估計方面，我們展示了 <span class="hl-method">ResNet 骨幹搭配若干反摺積層</span>便能達到令人驚訝的強大結果。在姿態追蹤方面，<span class="hl-method">基於光流的簡單貪婪匹配策略</span>已足以達到具競爭力的效能。我們的結果表明，<span class="hl-thesis">學術社群應更加關注訓練細節和基線比較，而非僅僅聚焦於架構新穎性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結研究發現並對社群提出建議
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將技術發現昇華為方法論層次的反思
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    結論中對社群的「建議」具有溫和的批判性，呼應緒論的問題意識，形成完整的論述弧線
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We hope that our work can serve as a <span class="hl-thesis">reference point for future research</span>, providing a clear and reproducible baseline against which new methods can be evaluated. <span class="hl-rebuttal">We acknowledge that there is certainly room for improvement through more sophisticated approaches</span>, but we argue that <span class="hl-thesis">any new method should demonstrate significant advantages over these simple baselines to justify its added complexity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們希望本研究能作為<span class="hl-thesis">未來研究的參考點</span>，提供一個清晰且可重現的基線以評估新方法。<span class="hl-rebuttal">我們承認透過更精巧的方法確實還有改進空間</span>，但我們主張<span class="hl-thesis">任何新方法都應展示相對於這些簡單基線的顯著優勢，以證明其額外複雜度的合理性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望與謙遜的讓步
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以讓步+條件限定的方式結束，既承認局限又設立門檻
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧</span>
+                    最後的「justify its added complexity」像是對未來研究立下的評判標準，巧妙地將基線方法定位為領域的「試金石」
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 論證結構總覽 -->
+    <div class="argument-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>姿態估計方法<br>日益複雜化</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">論點<br>簡單方法也能<br>達到高效能</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">方法<br>ResNet + 反摺積<br>光流貪婪匹配</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">證據<br>COCO 73.7 AP<br>PoseTrack 65.4</div>
+            <div class="arg-arrow">&#8594;</div>
+            <div class="arg-step">結論<br>架構創新不如<br>訓練細節重要</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>人體姿態估計與追蹤的核心效能提升主要來自骨幹網路品質和訓練策略，而非複雜的架構設計；簡單的 ResNet + 反摺積方案已足夠作為強力基線。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>以極簡架構（僅三層反摺積）在 COCO test-dev 上達到 73.7 AP，與使用級聯網路的 CPN 相當，對比效果極具說服力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>論文未深入分析「訓練細節」的具體影響（如資料擴增、學習率排程等），僅泛泛提及其重要性，使「訓練比架構重要」的結論缺乏系統性消融支撐。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9881;</button>
+</div>
+
+</body>
+</html>

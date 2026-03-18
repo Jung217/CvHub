@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>SPPNet — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
+        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Spatial Pyramid Pooling in Deep Convolutional Networks for Visual Recognition
+                <span class="course-tag">ECCV 2014</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1406.4729" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-spp">2. 空間金字塔池化</a>
+        <a href="#sec-classification">3. 影像分類</a>
+        <a href="#sec-detection">4. 物件偵測</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing deep neural networks (DNNs) <span class="hl-rebuttal">require a fixed-size (e.g., 224x224) input image</span>. This requirement is "artificial" and may reduce the recognition accuracy for the images or sub-images of an arbitrary size/scale. In this work we equip the networks with another pooling strategy, <span class="hl-concept">"spatial pyramid pooling"</span>, to <span class="hl-thesis">eliminate the above requirement</span>. The new network structure, called <span class="hl-concept">SPP-net</span>, can <span class="hl-thesis">generate a fixed-length representation regardless of image size/scale</span>. Pyramid pooling is also <span class="hl-method">robust to object deformations</span>. With these advantages, SPP-net should improve all CNN-based image classification methods in general. SPP-net achieves <span class="hl-evidence">state-of-the-art accuracy on the datasets of ImageNet 2012, Pascal VOC 2007, and Caltech101</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有深度神經網路<span class="hl-rebuttal">要求固定尺寸（如 224x224）的輸入影像</span>。此要求是「人為的」，且可能降低任意尺寸/比例影像或子影像的辨識精度。本研究為網路配備了另一種池化策略——<span class="hl-concept">「空間金字塔池化」</span>，以<span class="hl-thesis">消除上述要求</span>。新的網路結構稱為 <span class="hl-concept">SPP-net</span>，能<span class="hl-thesis">無論影像尺寸/比例如何，皆能產生固定長度的表示</span>。金字塔池化亦<span class="hl-method">對物件形變具有穩健性</span>。憑藉這些優勢，SPP-net 理應普遍改進所有基於摺積神經網路的影像分類方法。SPP-net 在 <span class="hl-evidence">ImageNet 2012、Pascal VOC 2007 與 Caltech101 資料集上達到了最先進的精度</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    指出現有摺積神經網路的固定尺寸限制，並提出空間金字塔池化作為解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「限制→解決→優勢→證據」的四段遞進呈現完整論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「人為的」一詞巧妙地暗示此限制並非技術必然，而是設計缺陷，從而為 SPP-net 的存在正名。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We note that the requirement of <span class="hl-rebuttal">fixed input size comes only from the fully-connected layers</span> that demand fixed-length vectors. On the other hand, the <span class="hl-concept">convolutional layers</span> accept inputs of arbitrary sizes and produce outputs proportional to the input size. <span class="hl-thesis">If we can remove the fixed-size constraint from the fully-connected layers, we can build networks that accept variable-size inputs</span>. This observation is the motivation for our spatial pyramid pooling layer.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們注意到，<span class="hl-rebuttal">固定輸入尺寸的要求僅來自需要固定長度向量的全連接層</span>。另一方面，<span class="hl-concept">摺積層</span>接受任意尺寸的輸入並產生與輸入尺寸成比例的輸出。<span class="hl-thesis">若我們能移除全連接層的固定尺寸約束，便可建構接受可變尺寸輸入的網路</span>。此觀察正是我們空間金字塔池化層的動機。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    精準定位問題根源：固定尺寸限制源自全連接層而非摺積層。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此觀察是全文的核心洞見，後續所有技術設計皆建立於此之上。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的邏輯推理（摺積層不受限→問題在全連接層→解決全連接層即可）使讀者迅速接受論點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Spatial pyramid pooling</span> has a long history in computer vision, originating from <span class="hl-evidence">Lazebnik et al.'s spatial pyramid matching (SPM)</span> for bag-of-words models. SPM partitions the image into <span class="hl-method">divisions from finer to coarser levels and aggregates local features in each division</span>. We adopt this idea but apply it to <span class="hl-method">deep CNN features instead of traditional descriptors</span>, creating a bridge between traditional computer vision and deep learning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">空間金字塔池化</span>在電腦視覺中有悠久的歷史，源自 <span class="hl-evidence">Lazebnik 等人的空間金字塔匹配（SPM）</span>，用於詞袋模型。SPM 將影像<span class="hl-method">從精細到粗略的層級進行劃分，並在每個區域內聚合局部特徵</span>。我們採用此概念但將其應用於<span class="hl-method">深度摺積神經網路特徵而非傳統描述子</span>，在傳統電腦視覺與深度學習之間建立了橋梁。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    追溯空間金字塔池化的學術淵源。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將方法置於歷史脈絡中，展現其既有理論根基，又有創新延伸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「傳統與深度學習的橋梁」這一定位極具吸引力，但也可能被質疑僅是舊技術的簡單移植。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-spp">2. Spatial Pyramid Pooling — 空間金字塔池化</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">spatial pyramid pooling layer</span> is placed on top of the last convolutional layer. It <span class="hl-method">pools the features and generates fixed-length outputs</span>, which are then fed into the fully-connected layers. Specifically, we use a <span class="hl-method">multi-level pooling structure with bins of sizes 1x1, 2x2, 3x3, and 6x6</span>, yielding a fixed <span class="hl-evidence">concatenated vector of (1+4+9+36) x 256 = 12,800 dimensions</span> for a 256-channel feature map. This fixed-length representation <span class="hl-thesis">encodes both global and local spatial information</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">空間金字塔池化層</span>置於最後一個摺積層之上。它<span class="hl-method">對特徵進行池化並產生固定長度的輸出</span>，然後饋入全連接層。具體而言，我們使用<span class="hl-method">多層級池化結構，區塊大小為 1x1、2x2、3x3 和 6x6</span>，對 256 通道的特徵圖產出固定的<span class="hl-evidence">串接向量，維度為 (1+4+9+36) x 256 = 12,800</span>。此固定長度表示<span class="hl-thesis">同時編碼了全域與局部的空間資訊</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    精確描述空間金字塔池化的技術實現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以具體數字（區塊大小、維度計算）使方法從概念落實到可實作。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提供維度計算有助於讀者重現方法，但 12,800 維的向量在實際應用中的計算成本值得關注。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-classification">3. Image Classification — 影像分類</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For image classification, SPP-net provides two key benefits. First, it allows <span class="hl-thesis">multi-size training</span>: we can train the network on images of different sizes (e.g., 180x180 and 224x224), improving scale invariance. Second, at test time, we can <span class="hl-method">apply the network to the full image without cropping or warping</span>. On <span class="hl-evidence">ImageNet 2012, multi-size training with SPP-net improves the top-1 error by 0.5% over single-size training</span>, and <span class="hl-evidence">full-image testing further reduces error by 0.6%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在影像分類方面，SPP-net 提供兩項關鍵優勢。首先，它允許<span class="hl-thesis">多尺度訓練</span>：我們可以在不同尺寸的影像（例如 180x180 和 224x224）上訓練網路，提升尺度不變性。其次，在測試時，我們可以<span class="hl-method">將網路應用於完整影像而無需裁切或變形</span>。在 <span class="hl-evidence">ImageNet 2012 上，使用 SPP-net 的多尺度訓練相較單一尺度訓練改進了 0.5% 的 top-1 錯誤率</span>，而<span class="hl-evidence">全影像測試進一步降低 0.6% 的錯誤率</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示 SPP-net 在分類任務上的具體優勢與定量結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以兩階段的改進（多尺度訓練 + 全影像測試）逐步累積效能增益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    分步展示增益使論證更有說服力，但 0.5% 和 0.6% 的改進幅度需搭配顯著性測試才更完整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-detection">4. Object Detection — 物件偵測</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For object detection, SPP-net brings a dramatic speedup over <span class="hl-concept">R-CNN</span>. R-CNN <span class="hl-rebuttal">extracts features from each of the ~2,000 candidate regions independently, requiring ~2,000 forward passes through the CNN</span>. In contrast, SPP-net <span class="hl-method">computes the convolutional feature map for the entire image only once, then applies spatial pyramid pooling on each candidate region's sub-feature-map</span>. This shared computation makes SPP-net <span class="hl-evidence">24-102x faster than R-CNN at test time</span>. On <span class="hl-evidence">PASCAL VOC 2007, SPP-net achieves comparable accuracy to R-CNN while being dramatically faster</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在物件偵測方面，SPP-net 帶來了相較 <span class="hl-concept">R-CNN</span> 的大幅加速。R-CNN <span class="hl-rebuttal">從約 2,000 個候選區域各自獨立提取特徵，需要約 2,000 次摺積神經網路的前向傳播</span>。相比之下，SPP-net <span class="hl-method">僅對整張影像計算一次摺積特徵圖，然後在每個候選區域的子特徵圖上應用空間金字塔池化</span>。這種共享計算使 SPP-net <span class="hl-evidence">在測試時比 R-CNN 快 24 至 102 倍</span>。在 <span class="hl-evidence">PASCAL VOC 2007 上，SPP-net 達到了與 R-CNN 相當的精度，同時速度大幅提升</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示 SPP-net 在偵測任務上的速度優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    24-102 倍的加速是極具衝擊力的數字，使 SPP-net 在偵測領域的價值不言而喻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    速度比較令人印象深刻，但「相當的精度」需更精確量化。此外，SPP-net 的偵測管線仍為多階段，後續 Fast R-CNN 進一步簡化了此流程。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">SPP-net</span>, a deep network equipped with <span class="hl-concept">spatial pyramid pooling</span> that <span class="hl-thesis">removes the fixed-size input constraint of conventional CNNs</span>. SPP-net achieves <span class="hl-evidence">state-of-the-art results in classification and detection</span> while providing significant speedups for detection. The <span class="hl-thesis">spatial pyramid pooling layer is a flexible and general component</span> that can potentially benefit other CNN architectures and tasks. In <span class="hl-evidence">ILSVRC 2014, our SPP-net methods ranked #2 in object detection and #3 in image classification among all 38 teams</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了 <span class="hl-concept">SPP-net</span>，一個配備<span class="hl-concept">空間金字塔池化</span>的深度網路，<span class="hl-thesis">移除了傳統摺積神經網路的固定尺寸輸入約束</span>。SPP-net 在<span class="hl-evidence">分類與偵測上達到了最先進的結果</span>，同時為偵測帶來了顯著的加速。<span class="hl-thesis">空間金字塔池化層是一個靈活且通用的元件</span>，可能使其他摺積神經網路架構與任務受益。在 <span class="hl-evidence">ILSVRC 2014 中，我們的 SPP-net 方法在 38 支隊伍中於物件偵測排名第 2、影像分類排名第 3</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文貢獻並以競賽排名收尾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    ILSVRC 排名是最有力的外部驗證，為全文論證畫下圓滿句點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「通用元件」的定位暗示 SPP 的影響力將超越本文，事實上空間池化的思想確實影響了後續多項工作。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">固定尺寸限制<br><small>源自全連接層</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">空間金字塔池化<br><small>多層級區塊池化</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">可變尺寸輸入<br><small>固定長度輸出</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">分類/偵測改進<br><small>精度提升+速度加速</small></div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">ILSVRC 2014<br><small>偵測第2/分類第3</small></div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過空間金字塔池化層移除摺積神經網路的固定尺寸輸入限制，同時在分類中提升精度，在偵測中實現 24-102 倍加速。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論證</h3>
+                <p>偵測任務上 24-102 倍的加速數據極具說服力，且 ILSVRC 2014 的競賽排名提供了強力的外部驗證。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>分類精度的改進幅度較為溫和（約 1%），且多階段偵測管線未能實現端到端訓練，後續被 Fast R-CNN 所超越。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9713;</button>
+</div>
+
+</body>
+</html>

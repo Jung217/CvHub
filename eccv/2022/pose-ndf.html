@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <title>Pose-NDF — 雙欄批注</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #ffd700, #b8860b); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Pose-NDF: Modeling Human Pose Manifolds with Neural Distance Fields
+                <span class="course-tag">ECCV 2022</span>
+                <span class="best-paper-badge">Best Paper Honorable Mention</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2207.13807" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-training">3. 訓練</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">Pose-NDF</span>, a method that <span class="hl-thesis">learns a continuous model of plausible human poses as the zero level set of a neural implicit function</span>. We extend the idea of modeling <span class="hl-concept">implicit surfaces in 3D</span> to the high-dimensional domain <span class="hl-method">SO(3)^K</span>, where a human pose is defined by a single data point, represented by <span class="hl-method">K quaternions corresponding to K body joints</span>. The <span class="hl-concept">neural distance field</span> provides a smooth and continuous representation of the pose manifold, enabling <span class="hl-evidence">gradient-based optimization for pose estimation and generation tasks</span>. We demonstrate that Pose-NDF <span class="hl-evidence">outperforms existing pose priors on multiple downstream tasks including pose estimation from noisy observations, pose completion, and motion denoising</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 <span class="hl-concept">Pose-NDF</span>，此方法<span class="hl-thesis">將合理的人體姿態流形學習為神經隱式函數的零等位面集</span>。我們將<span class="hl-concept">三維隱式表面建模</span>的思想延伸至高維域 <span class="hl-method">SO(3)^K</span>，其中人體姿態由單一資料點定義，以<span class="hl-method">對應 K 個身體關節的 K 個四元數</span>表示。<span class="hl-concept">神經距離場</span>提供了姿態流形的平滑連續表示，使得<span class="hl-evidence">基於梯度的最佳化可用於姿態估計與生成任務</span>。我們展示 Pose-NDF <span class="hl-evidence">在多個下游任務上超越現有姿態先驗，包括從雜訊觀測進行姿態估計、姿態補全和運動去噪</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——將神經隱式表面的概念推廣至人體姿態空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要兼具「概念創新宣告」與「應用承諾」的雙重功能：先提出在 SO(3)^K 上建模姿態流形的新穎思路，再以多個下游任務的表現佐證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「3D 隱式表面到高維」的類比，巧妙地連結了 NeRF/SDF 社群的知識背景。但 SO(3)^K 的拓撲結構遠比歐氏空間複雜，讀者需要留意這種推廣是否引入了新的理論挑戰。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Modeling the space of <span class="hl-concept">plausible human poses</span> is fundamental to many applications in computer vision, including <span class="hl-evidence">human pose estimation, motion capture, animation, and action recognition</span>. Existing approaches typically represent pose priors as <span class="hl-concept">Gaussian Mixture Models (GMMs)</span>, <span class="hl-concept">Variational Autoencoders (VAEs)</span>, or <span class="hl-concept">normalizing flows</span>. While effective in certain settings, these methods <span class="hl-rebuttal">often struggle with the complex topology of the pose manifold, produce blurry or overly smooth samples, or require expensive sampling procedures</span>. We propose a fundamentally different approach: <span class="hl-thesis">representing the pose manifold as an implicit function that assigns a distance value to any point in the pose space</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                建模<span class="hl-concept">合理人體姿態</span>的空間是電腦視覺中許多應用的基礎，包括<span class="hl-evidence">人體姿態估計、動作捕捉、動畫和動作識別</span>。現有方法通常以<span class="hl-concept">高斯混合模型（GMM）</span>、<span class="hl-concept">變分自編碼器（VAE）</span>或<span class="hl-concept">正規化流</span>表示姿態先驗。雖然在特定場景下有效，這些方法<span class="hl-rebuttal">往往難以處理姿態流形的複雜拓撲、產生模糊或過度平滑的樣本，或需要昂貴的採樣程序</span>。本文提出一種根本不同的方法：<span class="hl-thesis">將姿態流形表示為一個隱式函數，為姿態空間中的任意點賦予距離值</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題意識——指出現有姿態先驗方法的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過列舉 GMM、VAE、正規化流的局限，引出「隱式函數」這一新範式的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「根本不同」的措辭強調方法的新穎性。但 VAE 等方法在特定任務上的表現未必如描述般不理想，這種概括可能過度簡化了現有文獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key insight of our work is that <span class="hl-thesis">the manifold of plausible human poses can be characterized by its distance field</span>. Given a query pose (potentially noisy or incomplete), the <span class="hl-method">neural distance field provides the distance to the nearest plausible pose on the manifold</span>. This distance field is <span class="hl-method">differentiable everywhere</span>, enabling efficient gradient-based projection onto the manifold. This is in contrast to explicit representations which require either <span class="hl-rebuttal">sampling from a learned distribution or solving a complex optimization problem</span> to find the nearest valid pose.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究的核心洞察在於：<span class="hl-thesis">合理人體姿態的流形可以由其距離場來描述</span>。給定一個查詢姿態（可能帶噪或不完整），<span class="hl-method">神經距離場提供到流形上最近合理姿態的距離</span>。此距離場<span class="hl-method">處處可微</span>，使得基於梯度的流形投影高效可行。相較之下，顯式表示要麼需要<span class="hl-rebuttal">從學習到的分布中採樣，要麼需求解複雜的最佳化問題</span>才能找到最近的有效姿態。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心洞察闡述——解釋隱式距離場表示的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從問題陳述過渡到解決方案：「處處可微」是連接「距離場表示」與「梯度最佳化」的關鍵橋樑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以隱式/顯式的對比清楚地凸顯了方法優勢。但「處處可微」在高維 SO(3)^K 空間中是否真正成立，取決於網路的具體設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We represent each human pose as a point in <span class="hl-method">SO(3)^K</span>, where K is the number of body joints. Each joint rotation is parameterized as a <span class="hl-method">unit quaternion q_i in S^3</span>. The full pose is then a point on the product manifold <span class="hl-method">p = (q_1, q_2, ..., q_K) in (S^3)^K</span>. We train a neural network <span class="hl-method">f_theta: (S^3)^K -> R</span> that maps any pose to its <span class="hl-concept">unsigned distance to the nearest plausible pose on the manifold</span>. The network is trained such that <span class="hl-thesis">f_theta(p) = 0 for plausible poses and f_theta(p) > 0 for implausible poses</span>, with the value indicating how far the pose deviates from plausibility.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將每個人體姿態表示為 <span class="hl-method">SO(3)^K</span> 中的點，其中 K 為身體關節數量。每個關節旋轉以 <span class="hl-method">S^3 上的單位四元數 q_i</span> 參數化。完整姿態即乘積流形上的一點 <span class="hl-method">p = (q_1, q_2, ..., q_K) 屬於 (S^3)^K</span>。我們訓練一個神經網路 <span class="hl-method">f_theta: (S^3)^K -> R</span>，將任意姿態映射至其<span class="hl-concept">到流形上最近合理姿態的無符號距離</span>。網路的訓練目標為：<span class="hl-thesis">合理姿態的 f_theta(p) = 0，不合理姿態的 f_theta(p) > 0</span>，數值表示姿態偏離合理性的程度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    形式化定義——建立數學框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將直覺性的「距離場」概念轉化為嚴格的數學表述，包含空間定義、映射函數和訓練目標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以清晰的數學符號建立形式框架。但四元數的不唯一性（q 和 -q 表示相同旋轉）需要特殊處理，此段未提及這一技術細節。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To leverage the <span class="hl-method">Riemannian structure of SO(3)</span>, we compute geodesic distances on the rotation manifold rather than Euclidean distances in the embedding space. Specifically, the distance between two quaternions is computed as <span class="hl-method">d(q_i, q_j) = 2 arccos(|q_i . q_j|)</span>, respecting the topology of the rotation group. For downstream tasks, we formulate pose estimation as an <span class="hl-method">optimization problem: minimize f_theta(p) subject to data consistency constraints</span>, using gradient descent on the manifold to project noisy observations onto plausible poses.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為利用 <span class="hl-method">SO(3) 的黎曼結構</span>，我們在旋轉流形上計算測地距離，而非嵌入空間中的歐氏距離。具體而言，兩個四元數之間的距離計算為 <span class="hl-method">d(q_i, q_j) = 2 arccos(|q_i . q_j|)</span>，尊重旋轉群的拓撲。對於下游任務，我們將姿態估計建構為<span class="hl-method">最佳化問題：在資料一致性約束下最小化 f_theta(p)</span>，使用流形上的梯度下降將雜訊觀測投影至合理姿態。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術深化——詳述黎曼幾何在距離計算中的應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    展示方法的數學嚴謹性：不是簡單地將歐氏空間方法搬到 SO(3)，而是真正利用了流形結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調測地距離而非歐氏距離，展現了對旋轉群幾何的深入理解。但流形上的梯度下降收斂速度可能較慢，實際效率需要實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-training">3. Training — 訓練</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We train Pose-NDF using the <span class="hl-evidence">AMASS dataset</span>, which contains <span class="hl-evidence">over 11,000 motion sequences spanning 40 hours of motion data</span>. We sample training poses both on the manifold (plausible poses from the dataset) and off the manifold (generated by <span class="hl-method">adding controlled noise to plausible poses</span>). For off-manifold points, the ground truth distance is computed as <span class="hl-method">the geodesic distance to the nearest on-manifold point using k-nearest neighbor search in the quaternion space</span>. The network is trained with an <span class="hl-method">L1 loss on the predicted distances, combined with an Eikonal regularization term</span> that encourages the gradient magnitude to be close to one, ensuring the learned function behaves like a proper distance field.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們使用 <span class="hl-evidence">AMASS 資料集</span>訓練 Pose-NDF，該資料集包含<span class="hl-evidence">超過 11,000 個運動序列，涵蓋 40 小時的運動資料</span>。訓練姿態來自流形上（資料集中的合理姿態）和流形外（透過<span class="hl-method">對合理姿態加入控制噪音</span>生成）。對於流形外的點，真實距離透過<span class="hl-method">在四元數空間中使用 k 近鄰搜尋計算到最近流形上點的測地距離</span>。網路以<span class="hl-method">預測距離的 L1 損失結合 Eikonal 正則化項</span>進行訓練，後者鼓勵梯度大小接近一，確保學習到的函數表現如正規的距離場。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練細節——描述資料、採樣策略和損失函數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從方法論轉向實作：AMASS 資料集的規模建立了可信度，Eikonal 正則化確保了距離場的數學性質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    Eikonal 正則化是從 3D 隱式表面（如 DeepSDF）借鑒的成熟技術，增強了方法的可信度。但真實距離的近似計算依賴 k-NN，在高維空間中可能不夠精確。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate Pose-NDF on three downstream tasks. For <span class="hl-method">pose estimation from noisy observations</span>, we compare against <span class="hl-evidence">VPoser, GMM-based priors, and normalizing flow priors</span>. Pose-NDF achieves <span class="hl-evidence">the lowest reconstruction error across all noise levels, with particularly significant improvements at high noise levels (above 30 degrees per joint)</span>. The smooth gradient field enables <span class="hl-thesis">robust convergence even from poor initializations</span>, where competing methods frequently get stuck in local minima.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在三個下游任務上評估 Pose-NDF。在<span class="hl-method">從雜訊觀測進行姿態估計</span>方面，我們與 <span class="hl-evidence">VPoser、基於 GMM 的先驗和正規化流先驗</span>進行比較。Pose-NDF <span class="hl-evidence">在所有噪音水準下達到最低重建誤差，在高噪音水準（每關節超過 30 度）下改善尤為顯著</span>。平滑的梯度場使得<span class="hl-thesis">即使從不佳的初始化開始也能穩健收斂</span>，而競爭方法在此條件下經常陷入局部最小值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實驗結果——展示姿態估計的量化比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以具體數據支持「距離場表示優於現有先驗」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調高噪音場景下的顯著改善，將方法定位在最具挑戰性的設定中。但未詳細報告計算時間的比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-method">pose completion</span> (recovering a full body pose from partial joint observations), Pose-NDF demonstrates <span class="hl-evidence">superior ability to infer occluded joint positions</span>. When only <span class="hl-evidence">50% of joints are observed, Pose-NDF achieves a mean error of 4.8 degrees compared to 7.2 degrees for VPoser and 6.1 degrees for the normalizing flow baseline</span>. For <span class="hl-method">motion denoising</span>, we apply Pose-NDF independently to each frame of a noisy motion sequence, projecting each pose onto the manifold. The resulting sequences are <span class="hl-evidence">temporally smoother and more physically plausible than those produced by frame-independent baseline methods</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-method">姿態補全</span>（從部分關節觀測恢復完整人體姿態）方面，Pose-NDF 展現了<span class="hl-evidence">推斷遮擋關節位置的卓越能力</span>。當僅<span class="hl-evidence">觀測 50% 的關節時，Pose-NDF 達到平均誤差 4.8 度，而 VPoser 為 7.2 度，正規化流基準為 6.1 度</span>。在<span class="hl-method">運動去噪</span>方面，我們將 Pose-NDF 獨立應用於噪音運動序列的每一幀，將每個姿態投影至流形上。結果序列<span class="hl-evidence">在時間上更加平滑，且比逐幀獨立處理的基準方法更符合物理合理性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    補充實驗——補全與去噪任務的量化結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    多任務驗證強化了 Pose-NDF 作為通用姿態先驗的定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    具體的數字比較（4.8 vs 7.2 vs 6.1）清楚地量化了優勢。但逐幀獨立處理忽略了時序一致性，運動去噪結果的「平滑」可能部分來自於距離場的固有特性而非有意設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have introduced <span class="hl-concept">Pose-NDF</span>, <span class="hl-thesis">a novel representation of human pose manifolds using neural distance fields</span>. By extending implicit surface modeling to the high-dimensional rotation space SO(3)^K, we provide a continuous, differentiable, and geometry-aware prior for human poses. Our experiments demonstrate <span class="hl-evidence">consistent improvements over existing pose priors across pose estimation, completion, and denoising tasks</span>. The distance field representation offers unique advantages: <span class="hl-thesis">it naturally supports gradient-based optimization, provides a meaningful measure of pose plausibility, and generalizes well to unseen poses</span>. Future work may extend this approach to dynamic pose manifolds and incorporate temporal coherence directly into the distance field formulation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了 <span class="hl-concept">Pose-NDF</span>，<span class="hl-thesis">一種使用神經距離場的人體姿態流形新表示</span>。透過將隱式表面建模擴展到高維旋轉空間 SO(3)^K，我們為人體姿態提供了連續、可微且幾何感知的先驗。實驗證明了其<span class="hl-evidence">在姿態估計、補全和去噪任務上相較於現有姿態先驗的一致性改善</span>。距離場表示提供了獨特優勢：<span class="hl-thesis">天然支援梯度最佳化、提供有意義的姿態合理性度量，並能良好地泛化至未見姿態</span>。未來工作可將此方法擴展至動態姿態流形，並直接在距離場公式中納入時序一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結與前瞻——重申貢獻並展望未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以三個優勢總結全文，並以「動態流形」和「時序一致性」提示未來研究空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論中提到的「時序一致性」正好呼應了運動去噪實驗中的不足，顯示作者對方法局限的自覺。
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="main-container">
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>現有姿態先驗難以<br>處理複雜拓撲</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>以神經距離場<br>建模姿態流形</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>三項任務上<br>超越現有方法</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>利用黎曼結構<br>處理 SO(3) 拓撲</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>NDF 是有效的<br>通用姿態先驗</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>人體姿態流形可以用神經距離場的零等位面來表示，此表示天然支援梯度最佳化且提供連續、可微的姿態合理性度量。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論點</h3>
+                <p>在高噪音場景（每關節 30 度以上）下的穩健收斂能力，展示了距離場平滑梯度的核心優勢，且是現有方法難以匹敵的領域。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>運動去噪任務中逐幀獨立處理缺乏時序一致性約束，限制了方法在時序應用中的直接適用性。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9673;</button>
+</div>
+
+</body>
+</html>
