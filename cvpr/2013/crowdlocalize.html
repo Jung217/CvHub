@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost! Leveraging the Crowd for Probabilistic Visual Self-Localization — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .honorable-badge { display: inline-block; background: linear-gradient(135deg, #a8d8ea, #5b9bd5); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .honorable-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Lost! Leveraging the Crowd for Probabilistic Visual Self-Localization
+                <span class="course-tag">CVPR 2013</span>
+                <span class="honorable-badge">Honorable Mention</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://www.cv-foundation.org/openaccess/content_cvpr_2013/html/Brubaker_Lost_Leveraging_the_2013_CVPR_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-inference">3.2 貝氏推論</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We address the problem of <span class="hl-thesis">vehicle self-localization using visual odometry and freely available, crowd-sourced street maps</span>. Given a <span class="hl-concept">short monocular video sequence</span> captured from a moving vehicle, our system estimates the vehicle's position on an <span class="hl-concept">OpenStreetMap road network</span> without GPS. We formulate this as a <span class="hl-method">probabilistic inference problem</span>, combining <span class="hl-method">visual odometry measurements with a prior over plausible routes on the road network</span>. Our approach achieves <span class="hl-evidence">median localization error of approximately 3 meters</span> in urban environments, demonstrating that <span class="hl-thesis">crowd-sourced geographic data can serve as a powerful prior for visual localization</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們探討使用視覺里程計與免費群眾外包街道地圖進行車輛自我定位的問題。給定從行駛中車輛拍攝的短段單目影像序列，我們的系統能在不依賴 GPS 的情況下，估計車輛在 OpenStreetMap 路網上的位置。我們將此問題公式化為機率推論問題，結合視覺里程計量測與路網上合理路線的先驗。我們的方法在都市環境中達到約 3 公尺的中位定位誤差，證明了群眾外包的地理資料可作為視覺定位的強大先驗。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——定義問題（無 GPS 定位）、方法（機率推論 + 群眾地圖）、成果（3 公尺精度）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「無 GPS」為核心限制條件，建立了一個有趣且實用的問題場景，隨即展示解決方案與量化成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「3 公尺」的精度在 GPS 可用的場景下並不突出，但在 GPS 失效時（隧道、城市峽谷等）則極具價值。作者巧妙地以「免費群眾外包資料」降低了系統的進入門檻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">GPS</span> is the dominant technology for vehicle localization, yet it <span class="hl-rebuttal">suffers from significant limitations in urban environments</span>: <span class="hl-rebuttal">multipath reflections from buildings, signal occlusion in tunnels and parking garages, and deliberate signal denial</span>. These scenarios motivate the development of <span class="hl-thesis">alternative localization methods that rely solely on onboard sensors</span>. <span class="hl-concept">Visual odometry</span> provides relative motion estimates from camera images but <span class="hl-rebuttal">accumulates drift over time</span>, making absolute localization impossible without additional constraints.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                GPS 是車輛定位的主流技術，但在都市環境中存在顯著侷限：建築物的多路徑反射、隧道及停車場中的訊號遮蔽、以及刻意的訊號阻斷。這些場景促使了僅依賴車載感測器的替代定位方法之開發。視覺里程計能從攝影機影像中提供相對運動估計，但隨時間累積漂移，使得在無額外約束的情況下不可能實現絕對定位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    動機建立——列舉 GPS 的失效場景，為替代方案提供正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：GPS 不可靠 + 視覺里程計有漂移 = 需要新的定位方案。兩個前提條件分別否定了兩種「簡單解法」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    列舉 GPS 失效場景具有實際說服力。但多數車輛可結合 GPS + IMU 等多感測器融合，純視覺方案的必要性在特定場景外可能較弱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our key insight is that <span class="hl-concept">freely available crowd-sourced maps</span>, such as <span class="hl-concept">OpenStreetMap</span>, encode rich <span class="hl-method">topological and geometric constraints on vehicle motion</span>. A vehicle must travel along roads, obey the road network topology, and its trajectory must be <span class="hl-method">geometrically consistent with the road geometry</span>. By <span class="hl-thesis">combining noisy visual odometry with these map constraints in a principled probabilistic framework</span>, we can achieve accurate absolute localization. Unlike methods that require <span class="hl-rebuttal">pre-built visual databases (e.g., Google Street View)</span>, our approach uses only <span class="hl-evidence">lightweight vector maps that are available globally</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的核心洞見是，免費的群眾外包地圖（如 OpenStreetMap）編碼了豐富的拓撲與幾何約束。車輛必須沿道路行駛、遵守路網拓撲，且其軌跡必須與道路幾何一致。透過在嚴謹的機率框架中結合帶有雜訊的視覺里程計與這些地圖約束，我們可以實現準確的絕對定位。不同於需要預建視覺資料庫（如 Google Street View）的方法，我們的方法僅使用全球可取得的輕量級向量地圖。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心洞見呈現——將群眾外包地圖定位為解題的關鍵先驗資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在 GPS 失效與視覺里程計漂移的雙重問題之間，群眾地圖作為「第三方資訊源」提供了解決路徑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「免費且全球可用」對比「需要 Google Street View」，有效降低了方法的部署門檻。但 OpenStreetMap 的品質在不同地區差異極大，在地圖品質差的地方效能可能顯著下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Visual localization</span> methods can be broadly categorized into <span class="hl-concept">image retrieval-based</span> and <span class="hl-concept">structure-based</span> approaches. Image retrieval methods match query images to a <span class="hl-rebuttal">geo-tagged database, requiring extensive prior data collection</span>. Structure-based methods use <span class="hl-concept">3D point clouds</span> from <span class="hl-concept">Structure-from-Motion (SfM)</span> for precise localization but <span class="hl-rebuttal">require dense 3D reconstructions of the environment</span>. <span class="hl-concept">Map matching</span> in the GPS/navigation community constrains GPS traces to road networks, but has not been combined with visual odometry for GPS-free localization.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺定位方法可大致分為基於影像檢索與基於結構的方法。影像檢索方法將查詢影像與帶有地理標籤的資料庫配對，需要大量的事前資料收集。基於結構的方法使用從運動恢復結構（SfM）得到的三維點雲進行精確定位，但需要環境的密集三維重建。GPS/導航社群中的地圖匹配將 GPS 軌跡約束至路網，但尚未與視覺里程計結合用於無 GPS 定位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻分類——系統性地回顧三類定位方法及其侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    每類方法都有其「依賴的資料源」限制，而本文方法巧妙地使用了最輕量的資料源（向量地圖）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三分法的文獻回顧清晰明瞭。「地圖匹配未結合視覺里程計」的觀察精準地指出了本文的創新空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Problem Formulation</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We model the vehicle's trajectory as a <span class="hl-method">path on a directed graph representing the road network</span>. Each edge in the graph corresponds to a road segment with known <span class="hl-method">geometry (polyline shape) and attributes (one-way, speed limit)</span>. The vehicle state at time t is defined by <span class="hl-method">which edge it occupies and its position along that edge</span>. Visual odometry provides <span class="hl-method">noisy measurements of inter-frame translation and rotation</span>. The goal is to compute the <span class="hl-thesis">posterior distribution over vehicle states given the sequence of visual odometry measurements and the road network graph</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將車輛軌跡建模為路網有向圖上的一條路徑。圖中每條邊對應一個具有已知幾何（折線形狀）和屬性（單行道、速限）的道路段。車輛在時間 t 的狀態由其所在邊及沿該邊的位置定義。視覺里程計提供了幀間平移與旋轉的帶雜訊量測。目標是計算給定視覺里程計量測序列與路網圖的情況下，車輛狀態的後驗分布。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題公式化——將定位問題轉化為圖上的機率推論。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將模糊的「在哪裡」問題轉化為精確的數學形式：圖結構 + 狀態空間 + 觀測模型 + 後驗推論。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以有向圖建模路網既直覺又嚴謹。但假設車輛始終在路網上行駛，對於停車場、未繪製道路等場景會失效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-inference">3.2 Bayesian Inference — 貝氏推論</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We perform inference using a <span class="hl-method">particle filter adapted to the graph structure</span>. Each particle represents a hypothesis about the vehicle's position on the road network. The <span class="hl-method">transition model propagates particles along graph edges</span> according to the measured velocity, respecting road connectivity and turn constraints. The <span class="hl-method">observation model evaluates the likelihood of each particle by comparing the expected road geometry (curvature, heading changes) with the visual odometry measurements</span>. Over time, particles on inconsistent routes are <span class="hl-method">pruned by resampling</span>, and the posterior concentrates on the correct location.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們使用適應於圖結構的粒子濾波器進行推論。每個粒子代表一個關於車輛在路網上位置的假設。轉移模型根據量測到的速度沿圖的邊傳播粒子，同時遵守道路連通性與轉彎約束。觀測模型透過比較預期的道路幾何（曲率、航向變化）與視覺里程計量測來評估每個粒子的似然度。隨時間推移，位於不一致路線上的粒子被重取樣剪枝，後驗分布集中至正確位置。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    推論機制——描述基於圖結構的粒子濾波器。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    核心演算法描述：粒子濾波天然適合非線性、多模態的後驗分布，且易於整合圖拓撲約束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    粒子濾波的選擇恰當，因為初始位置的不確定性使後驗高度多模態。但粒子數量與路網規模直接影響計算成本——大型城市路網可能需要大量粒子。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical component is the <span class="hl-method">road geometry likelihood</span>. As the vehicle traverses a road, the <span class="hl-method">sequence of heading changes measured by visual odometry creates a distinctive "fingerprint"</span> that can be matched against the road network geometry. Straight roads, sharp turns, gentle curves, and intersections each produce <span class="hl-evidence">characteristic odometry patterns</span>. The likelihood model captures these patterns using a <span class="hl-method">Gaussian noise model on heading and speed measurements</span>. This geometric matching is <span class="hl-thesis">the primary mechanism by which ambiguity is resolved</span> — even without recognizing landmarks, the shape of the road itself provides strong localization cues.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個關鍵組件是道路幾何似然度。當車輛在道路上行駛時，視覺里程計量測到的航向變化序列會產生一個獨特的「指紋」，可與路網幾何進行比對。直路、急轉彎、緩曲線和交叉路口各自產生特徵性的里程計模式。似然度模型使用航向與速度量測上的高斯雜訊模型來捕捉這些模式。此幾何匹配是消除模糊性的主要機制——即使不辨識地標，道路本身的形狀也能提供強大的定位線索。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心洞見深化——道路幾何本身即為定位「指紋」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此觀察是全文最具創意之處：不依賴視覺外觀特徵（地標、建築），而是利用運動軌跡與道路形狀的幾何一致性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「指紋」的比喻極為傳神，使抽象概念具象化。但在路網幾何重複性高的區域（如棋盤式街道），此「指紋」的區分能力會大幅下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on <span class="hl-evidence">driving sequences in downtown Toronto</span>, covering <span class="hl-evidence">over 30 km of urban roads with diverse geometries</span>. Using only a monocular dashboard camera and the OpenStreetMap road network, our system achieves a <span class="hl-evidence">median localization error of 3.2 meters after 100 meters of driving</span> and <span class="hl-evidence">converges to sub-5-meter accuracy within 200 meters in 90% of test cases</span>. The system correctly identifies the <span class="hl-evidence">road segment within the first few turns</span>, with ambiguity rapidly decreasing at intersections.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在多倫多市中心的駕駛序列上進行評估，涵蓋超過 30 公里具有多樣幾何的都市道路。僅使用單目行車紀錄器與 OpenStreetMap 路網，我們的系統在行駛 100 公尺後達到 3.2 公尺的中位定位誤差，且在 90% 的測試案例中於 200 公尺內收斂至 5 公尺以內的精度。系統在最初幾個轉彎處即可正確識別所在道路段，模糊性在交叉路口處迅速降低。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量驗證——展示系統在真實都市環境中的定位精度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以具體的公尺級精度與收斂速度兌現摘要的承諾，數據令人信服。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「幾個轉彎即可定位」的觀察直覺上合理——轉彎提供了最強的幾何約束。但僅在多倫多一個城市測試，泛化至其他城市（尤其是棋盤式布局的城市）的能力尚未驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We analyze <span class="hl-evidence">failure cases</span> and find that the main sources of error are <span class="hl-rebuttal">long straight roads with few distinctive features</span> (where multiple hypotheses remain plausible) and <span class="hl-rebuttal">OpenStreetMap inaccuracies</span> (missing roads or incorrect geometry). We also compare against a <span class="hl-evidence">GPS baseline, showing that our visual approach achieves comparable accuracy in open areas and significantly outperforms GPS in urban canyons where GPS error can exceed 50 meters</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們分析了失敗案例，發現主要的誤差來源為缺乏顯著特徵的長直道路（多個假設保持合理）以及 OpenStreetMap 的不準確（缺失道路或不正確的幾何）。我們同時與 GPS 基準進行比較，顯示我們的視覺方法在開闊區域達到可比的精度，而在 GPS 誤差可能超過 50 公尺的都市峽谷中則顯著優於 GPS。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    誠實分析——揭示失敗模式並與 GPS 對比。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    自我批評增強了論文的可信度，同時「在城市峽谷中優於 GPS」的比較結果精準地支持了論文的核心動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動分析失敗案例是優秀的學術實踐。但 OpenStreetMap 品質問題是系統性風險，在資料品質差的區域可能導致完全失敗。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have demonstrated that <span class="hl-thesis">accurate vehicle self-localization is possible using only visual odometry and crowd-sourced street maps</span>, without GPS, 3D models, or visual databases. The <span class="hl-method">probabilistic formulation on the road network graph</span> naturally handles uncertainty and multi-modal hypotheses, converging to accurate estimates as geometric evidence accumulates. Our work suggests that <span class="hl-thesis">the "wisdom of the crowd" — encoded in freely available geographic databases — provides a powerful complement to onboard perception for autonomous navigation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們已證明僅使用視覺里程計與群眾外包街道地圖，即可實現準確的車輛自我定位，無需 GPS、三維模型或視覺資料庫。路網圖上的機率公式化自然地處理不確定性與多模態假設，隨著幾何證據的累積而收斂至準確估計。我們的研究顯示，編碼在免費地理資料庫中的「群眾智慧」為自主導航的車載感知提供了強大的互補資訊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與願景——重申無 GPS 定位的可行性並展望自主駕駛應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「群眾智慧」的概念性語言提升研究的影響力，從技術方法昇華至更廣泛的啟示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「群眾智慧」的修辭富有感染力，且正好呼應論文標題中的「Crowd」。但自主導航需要的精度和即時性可能超出當前系統的能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>GPS 在都市環境<br>中不可靠</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>群眾地圖 + 視覺里程計<br>可替代 GPS 定位</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>3.2 公尺中位誤差<br>200 公尺內收斂</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>直路/地圖品質<br>為已知限制</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>群眾智慧是<br>自主導航的互補</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過將視覺里程計量測與免費群眾外包路網地圖在機率框架中結合，車輛可在不依賴 GPS 的情況下達到公尺級的自我定位精度。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>道路幾何作為定位指紋：</strong>這一洞見既新穎又直覺——車輛行駛軌跡的幾何特徵（轉彎序列、曲率變化）本身即為強大的定位線索，完全不依賴視覺外觀特徵，因此對光照、天氣等變化具有天然的穩健性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>對地圖品質的依賴：</strong>系統的效能與 OpenStreetMap 的精確度直接掛鉤。在地圖品質參差不齊的地區（特別是發展中國家），系統可能完全失效。此外，僅在單一城市測試的實驗設計難以證明方法的普適性，尤其是棋盤式街道布局的城市中「指紋」區分能力存疑。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

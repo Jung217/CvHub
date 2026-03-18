@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deformable Convolutional Networks — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Deformable Convolutional Networks
+                <span class="course-tag">CVPR 2017</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1703.06211" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-deformconv">3. 可變形摺積</a>
+        <a href="#sec-deformroi">3.2 可變形 RoI 池化</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Convolutional neural networks (CNNs)</span> are inherently limited to model <span class="hl-rebuttal">geometric transformations due to the fixed geometric structures</span> in their building modules. In this work, we introduce two new modules to enhance the <span class="hl-thesis">transformation modeling capability of CNNs</span>, namely <span class="hl-concept">deformable convolution</span> and <span class="hl-concept">deformable RoI pooling</span>. Both are based on the idea of <span class="hl-method">augmenting the spatial sampling locations in the modules with additional offsets</span> and learning the offsets from the target tasks, <span class="hl-method">without additional supervision</span>. The new modules can readily replace their plain counterparts in existing CNNs and can be easily trained end-to-end by <span class="hl-method">standard backpropagation</span>. Extensive experiments validate the effectiveness of our approach on <span class="hl-evidence">object detection and semantic segmentation</span> tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                摺積神經網路（CNN）因其構建模組中的固定幾何結構，本質上在建模幾何變換方面受到限制。本研究引入兩個新模組來增強 CNN 的變換建模能力，分別為可變形摺積和可變形 RoI 池化。兩者皆基於以額外偏移量增強模組中的空間取樣位置的概念，並從目標任務中學習偏移量，無需額外監督。新模組可直接取代現有 CNN 中的對應模組，並透過標準反向傳播輕鬆地端到端訓練。廣泛的實驗驗證了此方法在物件偵測與語意分割任務上的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——指出 CNN 的固定幾何限制，引出可變形摺積與可變形 RoI 池化作為解方。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「限制-解決方案-驗證」結構推進，核心主張清晰：固定的幾何結構限制了 CNN 的表示能力，可學習的偏移量是解方。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調「無需額外監督」和「標準反向傳播」降低了採用門檻。但「固定幾何結構」是否真的是 CNN 的核心瓶頸？對於不涉及大幅幾何變形的任務，此論點的說服力可能較弱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key challenge in visual recognition is how to accommodate <span class="hl-concept">geometric variations or transformations</span> in object scale, pose, viewpoint, and part deformation. There are generally two approaches: building <span class="hl-rebuttal">training datasets with sufficient variation</span> (data augmentation), or using <span class="hl-rebuttal">transformation-invariant features and algorithms</span>. Both are <span class="hl-rebuttal">limited</span>: data augmentation is costly and cannot cover all transformations, while hand-crafted invariances may not generalize. The authors argue that <span class="hl-thesis">the geometric transformation modeling should be internal and adaptive</span>, learned from the data rather than fixed by design.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺辨識中的關鍵挑戰是如何適應物件尺度、姿態、視角和部件變形等幾何變化或變換。通常有兩種方法：建構具有足夠變化的訓練資料集（資料擴增），或使用變換不變的特徵與演算法。兩者皆有局限：資料擴增成本高昂且無法涵蓋所有變換，而手工設計的不變性可能無法泛化。作者主張，幾何變換建模應該是內部的且自適應的，從資料中學習而非由設計固定。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立動機——從幾何變換的挑戰出發，批判現有兩種策略的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建構了一個二元對立再超越的論證：資料擴增（外部策略）vs 不變特徵（靜態策略）-> 兩者皆不足 -> 需要「內部自適應」的新策略（可變形摺積）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「資料擴增無法涵蓋所有變換」的論點在理論上成立，但在實務中，大規模資料集配合豐富的資料擴增已被證明極為有效。可變形摺積的增量效益需要在實驗中明確量化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                CNNs are built on <span class="hl-concept">fixed-structure modules</span>: convolutions sample at <span class="hl-rebuttal">fixed grid locations</span>, pooling reduces over <span class="hl-rebuttal">fixed spatial bins</span>, and RoI pooling separates features into <span class="hl-rebuttal">fixed spatial partitions</span>. This fixed structure <span class="hl-rebuttal">limits their capacity to handle unknown geometric transformations</span>. The authors propose to <span class="hl-thesis">make these structures adaptive by learning spatial offsets</span>. <span class="hl-concept">Deformable convolution</span> adds <span class="hl-method">2D offsets to each sampling position</span> of the regular grid, enabling <span class="hl-method">free-form deformation of the sampling pattern</span>. <span class="hl-concept">Deformable RoI pooling</span> adds <span class="hl-method">offsets to each bin position</span>, enabling adaptive part localization. Both modules are <span class="hl-method">lightweight</span>, adding <span class="hl-evidence">minimal parameters and computation overhead</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                CNN 建構在固定結構的模組上：摺積在固定的網格位置取樣，池化在固定的空間格內縮減，RoI 池化將特徵分離到固定的空間分區中。這種固定結構限制了它們處理未知幾何變換的能力。作者提議透過學習空間偏移量使這些結構自適應。可變形摺積對正規網格的每個取樣位置添加二維偏移量，實現取樣模式的自由形式變形。可變形 RoI 池化對每個格位添加偏移量，實現自適應的部件定位。兩個模組都是輕量化的，僅添加極少的參數和計算開銷。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——概述可變形摺積與可變形 RoI 池化的核心思想。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將前段的抽象問題（「固定結構」）具體化為三個實例（摺積、池化、RoI），再逐一提出對應的解方。「輕量化」的強調預先回應了「增加複雜度是否值得」的潛在質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「自由形式變形」的能力聽起來強大，但也引入了一個問題：模型如何避免學習到退化的偏移量模式（如所有偏移歸零，退化為標準摺積）？此正規化問題未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The work is distinguished from several related approaches. Unlike <span class="hl-concept">Spatial Transformer Networks (STN)</span>, which perform <span class="hl-rebuttal">global parametric warping</span>, deformable convolution performs <span class="hl-method">local, dense, per-position sampling</span>. Unlike <span class="hl-concept">Active Convolution</span>, which learns <span class="hl-rebuttal">static offsets shared across all locations</span>, deformable convolution uses <span class="hl-method">dynamic, input-dependent offsets</span> that vary for each spatial position. The approach <span class="hl-method">generalizes atrous (dilated) convolution</span> as a special case where offsets are fixed integers. Compared to <span class="hl-concept">Deformable Part Models (DPM)</span>, the proposed method is <span class="hl-thesis">simpler, more end-to-end trainable, and integrated into modern deep architectures</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此研究與數種相關方法有所區隔。不同於執行全域參數化扭曲的空間變換網路（STN），可變形摺積執行局部的、密集的、逐位置取樣。不同於學習跨所有位置共享的靜態偏移量的 Active Convolution，可變形摺積使用動態的、依輸入而變的偏移量，隨空間位置而異。此方法將空洞（擴張）摺積泛化為一個特例，其中偏移量為固定整數。相較於可變形部件模型（DPM），所提出的方法更簡潔、更端到端可訓練，且整合在現代深度架構中。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——透過四組精確的對比界定可變形摺積的獨特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段系統性地排除了可能的混淆：STN（全域 vs 局部）、Active Conv（靜態 vs 動態）、Atrous Conv（固定 vs 學習）、DPM（傳統 vs 端到端）。每組對比都強化了「可變形摺積是局部、動態、可學習的」定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將空洞摺積視為可變形摺積的特例是精妙的泛化論述。但與 STN 的比較可能不完全公平——STN 設計用於全域變換（如旋轉、縮放），而可變形摺積針對局部變形，兩者解決的是不同粒度的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-deformconv">3. Deformable Convolutional Networks — 可變形摺積網路</h2>
+    <h3 class="subsection-heading">3.1 Deformable Convolution — 可變形摺積</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In standard convolution, the sampling grid <span class="hl-method">R</span> defines a fixed set of offsets (e.g., R = {(-1,-1), (-1,0), ..., (1,1)} for a 3x3 kernel). <span class="hl-concept">Deformable convolution</span> augments each position p_n in R with a <span class="hl-method">learnable offset Delta_p_n</span>, so the output becomes: <span class="hl-method">y(p_0) = sum_{p_n in R} w(p_n) * x(p_0 + p_n + Delta_p_n)</span>. Since the offsets are <span class="hl-method">typically fractional</span>, <span class="hl-method">bilinear interpolation</span> is used: <span class="hl-method">x(p) = sum_q G(q, p) * x(q)</span>, where G is a bilinear interpolation kernel. The offsets are learned through a <span class="hl-method">separate convolutional layer</span> applied to the input feature map, producing <span class="hl-method">2N offset values</span> (x and y for N sampling positions). This is <span class="hl-thesis">fully differentiable and trained end-to-end</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在標準摺積中，取樣網格 R 定義了一組固定的偏移量（例如 3x3 核的 R = {(-1,-1), (-1,0), ..., (1,1)}）。可變形摺積對 R 中的每個位置 p_n 增加一個可學習偏移量 Delta_p_n，因此輸出變為：y(p_0) = sum_{p_n in R} w(p_n) * x(p_0 + p_n + Delta_p_n)。由於偏移量通常為分數值，使用雙線性插值：x(p) = sum_q G(q, p) * x(q)，其中 G 為雙線性插值核。偏移量透過施加於輸入特徵圖的單獨摺積層學習，產生 2N 個偏移值（N 個取樣位置的 x 和 y）。此機制完全可微分且端到端訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——以數學形式定義可變形摺積的運算機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術核心。從標準摺積出發，僅增加一個 Delta_p_n 項便實現了「固定到自適應」的跨越。雙線性插值確保了分數偏移量的可微性，是端到端訓練的關鍵技術保障。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    公式推導從標準摺積到可變形摺積僅差一步，使方法的概念門檻極低。但雙線性插值在大偏移量時可能引入不準確的近似，且偏移量的學習是否收斂到有意義的幾何模式需要視覺化驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-deformroi">3.2 Deformable RoI Pooling — 可變形 RoI 池化</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Deformable RoI pooling</span> extends the same idea to region-of-interest pooling. In standard <span class="hl-concept">RoI pooling</span>, an input region is divided into <span class="hl-rebuttal">k x k fixed bins</span>. Deformable RoI pooling <span class="hl-method">adds offsets to the center of each bin</span>, enabling the network to <span class="hl-thesis">adaptively focus on the most discriminative parts of an object</span>. The offsets are computed by a <span class="hl-method">small FC network</span> that takes the standard pooled features as input and outputs 2k^2 normalized offsets. This also extends to <span class="hl-concept">position-sensitive (PS) RoI pooling</span>, where offsets enable <span class="hl-method">adaptive part localization</span> beyond the fixed grid partition. Both variants show that learned offsets <span class="hl-evidence">correlate with object scale and shape</span>, confirming the adaptive receptive field behavior.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                可變形 RoI 池化將同一概念擴展至感興趣區域池化。在標準 RoI 池化中，輸入區域被劃分為 k x k 個固定格。可變形 RoI 池化對每個格的中心添加偏移量，使網路能夠自適應地聚焦於物件最具鑑別力的部位。偏移量由一個小型全連接網路計算，以標準池化特徵為輸入並輸出 2k^2 個歸一化偏移量。此方法也擴展至位置敏感（PS）RoI 池化，偏移量使自適應部件定位超越了固定的網格分割。兩種變體均顯示學習到的偏移量與物件的尺度和形狀相關，印證了自適應感受野的行為。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法擴展——將可變形概念從摺積推廣到 RoI 池化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示了「可變形」作為通用設計原則的泛化能力：不僅適用於摺積，也適用於池化。偏移量與物件尺度/形狀的相關性提供了可解釋性的初步證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從摺積到池化的推廣增強了方法的一致性和完整性。但偏移量的視覺化分析主要是定性的——缺乏對偏移量學習動態和收斂行為的定量分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments integrate deformable modules into <span class="hl-evidence">ResNet-101 with Faster R-CNN, R-FCN, and DeepLab</span>. On <span class="hl-evidence">COCO object detection</span>, deformable convolution achieves <span class="hl-evidence">11-13% relative improvement</span> across methods. On <span class="hl-evidence">PASCAL VOC semantic segmentation</span>, significant <span class="hl-evidence">mIoU gains</span> are observed. The computational overhead is <span class="hl-evidence">minimal</span>: adding deformable layers to 1-6 convolutional layers adds negligible parameters and runtime. <span class="hl-evidence">Ablation studies</span> confirm that: (1) more deformable layers yield better results up to a saturation point; (2) the improvements are particularly strong for <span class="hl-evidence">large and deformable object categories</span>; (3) the learned offsets <span class="hl-evidence">visually correspond to object structure</span>, expanding for large objects and contracting for small ones.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗將可變形模組整合到 ResNet-101 搭配 Faster R-CNN、R-FCN 和 DeepLab 中。在 COCO 物件偵測上，可變形摺積跨方法達到 11-13% 的相對改善。在 PASCAL VOC 語意分割上，觀察到顯著的 mIoU 增益。計算開銷極小：在 1-6 個摺積層添加可變形層僅增加可忽略的參數和執行時間。消融研究確認：(1) 更多可變形層帶來更好的結果直至飽和；(2) 改善在大型和可變形物件類別上尤為顯著；(3) 學習到的偏移量在視覺上對應物件結構，對大物件擴張、對小物件收縮。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實證——在多個框架與任務上驗證可變形模組的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段覆蓋三個驗證維度：(1) 跨框架的一致改善（泛化性）；(2) 低開銷的實用性；(3) 偏移量的可解釋性。「大物件和可變形類別」的特別改善直接驗證了方法的設計動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    偏移量的視覺化分析是極為有力的可解釋性證據。但 11-13% 的相對改善具體數值為何？相對改善的百分比可能掩蓋絕對值上的有限改善。此外，在小物件和剛體類別上的改善是否顯著，值得進一步審視。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents the first demonstration that <span class="hl-thesis">learning dense spatial transformations in deep CNNs is effective for sophisticated vision tasks</span>. <span class="hl-concept">Deformable convolution</span> and <span class="hl-concept">deformable RoI pooling</span> are <span class="hl-method">simple, lightweight modules</span> that <span class="hl-thesis">augment existing networks with adaptive geometric transformation modeling</span>. The learned offsets show meaningful correspondence with object geometry, and the approach achieves <span class="hl-evidence">consistent improvements across detection and segmentation frameworks</span> with minimal overhead. The work opens a new direction for <span class="hl-thesis">building transformation-adaptive neural network components</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文首次展示了在深度 CNN 中學習密集空間變換對於複雜視覺任務是有效的。可變形摺積和可變形 RoI 池化是簡潔、輕量的模組，以自適應幾何變換建模增強現有網路。學習到的偏移量展現出與物件幾何的有意義對應，且此方法以最小開銷在偵測和分割框架中取得了一致改善。此研究為建構變換自適應的神經網路元件開啟了新方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申「首次展示」的開創性並展望新方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應摘要，強調三個關鍵訊息：(1) 首次驗證；(2) 簡潔輕量；(3) 一致改善。「新方向」的措辭暗示此研究是一系列後續工作的起點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首次展示」的宣稱需要謹慎——STN 已在此方向上有所探索。此外，結論未討論可變形摺積的潛在風險：偏移量可能學習到取樣遠離相關區域的退化模式，以及在小資料集上可能的過擬合問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>CNN 固定幾何結構<br>限制變換建模能力</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>可學習偏移量<br>自適應空間取樣</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>COCO/VOC 一致改善<br>偏移量對應物件結構</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>輕量模組最小開銷<br>即插即用端到端訓練</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>變換自適應元件<br>開啟新研究方向</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過對摺積和 RoI 池化的取樣位置添加可學習的二維偏移量，能使 CNN 自適應地建模幾何變換，以極小的額外開銷在物件偵測與語意分割上取得一致且顯著的改善。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>即插即用的實用性：</strong>可變形模組可直接替換現有 CNN 中的對應模組，無需修改訓練流程或添加額外監督。跨越 Faster R-CNN、R-FCN、DeepLab 三個框架的一致改善，以及偏移量與物件幾何的視覺對應，同時提供了實用價值和可解釋性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>偏移量的正規化與穩定性：</strong>偏移量的學習缺乏明確的正規化約束——如何避免退化模式（偏移歸零或發散）？在小物件和剛體類別上的改善幅度有限，暗示方法的效益可能侷限於特定的物件類型。後續的 Deformable ConvNets v2 引入了調節機制來解決此問題，間接印證了 v1 的不足。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

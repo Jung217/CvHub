@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Florence-2: Advancing a Unified Representation for a Variety of Vision Tasks — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Florence-2: Advancing a Unified Representation for a Variety of Vision Tasks
+                <span class="course-tag">CVPR 2024</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2311.06242" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-rethinking">2. 重新思考預訓練</a>
+        <a href="#sec-model">3. 模型架構</a>
+        <a href="#sec-data-engine">4. 資料引擎</a>
+        <a href="#sec-dataset">5. 資料集</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-related">7. 相關工作</a>
+        <a href="#sec-conclusion">8. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-concept">Florence-2</span>, <span class="hl-thesis">a novel vision foundation model with a unified, prompt-based representation for a variety of computer vision tasks</span>. While existing large vision models excel in transfer learning, they struggle to perform <span class="hl-rebuttal">a diversity of tasks with simple instructions</span>, a capability that implies handling the <span class="hl-concept">spatial hierarchy</span> and <span class="hl-concept">semantic granularity</span> required by different tasks. We adopt <span class="hl-method">a sequence-to-sequence architecture</span> that integrates all tasks under a common language modeling objective, enabling the model to handle diverse vision tasks through <span class="hl-method">text-based prompt instructions</span> without task-specific architectural modifications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 <span class="hl-concept">Florence-2</span>，一個以統一的<span class="hl-method">提示</span>驅動表示法處理多種電腦視覺任務的新型視覺<span class="hl-thesis">基礎模型</span>。儘管現有的大型視覺模型在遷移學習上表現優異，卻難以透過簡單指令執行多樣化的任務——而這需要模型具備處理不同任務所要求的空間層級與語義粒度的能力。本文採用序列到序列架構，將所有任務整合於統一的語言建模目標下，使模型無需針對特定任務修改架構，即可透過文字提示指令處理各類視覺任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文定位——開宗明義提出 Florence-2 的核心定位與技術路線，界定「統一視覺基礎模型」的概念框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要首段承擔「問題界定 + 方案預告」的雙重功能：先點出現有模型在多任務統一性上的不足，再以序列到序列架構作為解決方案的核心支柱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將自然語言處理中「以指令驅動多任務」的成功模式類比到視覺領域，具有強烈的說服力。但視覺任務的輸出型態差異（文字 vs. 座標 vs. 遮罩）遠大於 NLP 任務，此類比的有效性需後續章節驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To achieve this, we propose to use <span class="hl-concept">FLD-5B</span>, a dataset of <span class="hl-evidence">5.4 billion comprehensive visual annotations on 126 million images</span>, using an <span class="hl-method">iterative strategy of automated annotation and model refinement</span>. We adopt a <span class="hl-method">multitask learning approach with the FLD-5B dataset</span>, incorporating a <span class="hl-thesis">diverse range of annotation types</span> to train the model to handle spatial hierarchy and semantic granularity. <span class="hl-evidence">Extensive evaluations on numerous tasks demonstrated Florence-2 to be a strong vision foundation model contender</span> with unprecedented zero-shot and fine-tuning capabilities across tasks including <span class="hl-evidence">captioning, object detection, visual grounding, and referring expression segmentation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為達成此目標，本文建構了 <span class="hl-concept">FLD-5B</span> <span class="hl-method">資料集</span>，涵蓋 1.26 億張影像上的 54 億筆全面視覺標註，並透過自動標註與模型迭代精煉的策略生成。研究採用多任務學習方法，以 FLD-5B 資料集中多樣化的標註類型訓練模型，使其能處理空間層級與語義粒度的需求。大量任務上的廣泛評估證實，Florence-2 是極具競爭力的視覺<span class="hl-evidence">基礎模型</span>，在圖像描述、物件偵測、視覺定位及指稱表達<span class="hl-evidence">分割</span>等任務上展現出前所未有的零樣本與微調能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料策略與成果預告——揭示「資料驅動」的核心方法論，並以量化證據預告實驗成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段補全摘要的論證閉環：架構 (seq2seq) + 資料 (FLD-5B) + 結果 (多任務零樣本) 三位一體，使讀者在閱讀全文前即能掌握完整的貢獻圖景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「54 億筆標註」的數字極具震撼力，但這些標註來自自動化管線而非人工，其品質與多樣性仍需在資料引擎章節中接受檢驗。以量取勝的策略是否伴隨雜訊問題，是讀者應留意的關鍵。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">Universal representation for diverse vision-related tasks presents unique challenges</span>, notably the need for comprehensive perceptual abilities. In natural language processing, <span class="hl-concept">task-agnostic foundation models</span> such as GPT and BERT have achieved remarkable success by handling diverse tasks through <span class="hl-method">simple text instructions</span>. However, the vision domain has yet to achieve the same level of <span class="hl-rebuttal">task universality</span>. Vision tasks span a broad spectrum from <span class="hl-concept">image-level understanding</span> (classification, captioning) to <span class="hl-concept">region-level localization</span> (detection, grounding) and <span class="hl-concept">pixel-level prediction</span> (segmentation), each demanding distinct output formats and spatial reasoning capabilities.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                建立適用於多種視覺相關任務的通用表示法，面臨獨特的挑戰，尤其需要全面的感知能力。在自然語言處理領域，GPT 與 BERT 等任務無關的<span class="hl-concept">基礎模型</span>已透過簡單的文字指令成功處理多樣化的任務。然而，視覺領域尚未達到同等程度的任務通用性。視覺任務涵蓋廣泛的範疇，從影像層級的理解（分類、圖像描述）到區域層級的定位（偵測、定位），再到像素層級的預測（分割），每一種都要求不同的輸出格式與空間推理能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——以 NLP 的成功為參照，揭示視覺領域在「任務通用性」上的差距。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以 NLP 的成功樹立標竿（GPT/BERT），再指出視覺領域的落後，為 Florence-2 的必要性建立動機。三層任務分類（影像/區域/像素）也為後續多任務架構設計奠定框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 NLP 類比視覺是常見但有風險的修辭策略——視覺任務的空間結構性與 NLP 的序列性本質上不同，強行類比可能遮蔽兩者的根本差異。但此策略有效地喚起讀者對「統一模型」的期待。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：現有方法的挑戰 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Two critical challenges hinder the development of a universal vision foundation model. First, existing <span class="hl-rebuttal">vision datasets provide specialized annotations but lack comprehensiveness</span> for unified learning — <span class="hl-evidence">ImageNet focuses on classification labels, COCO provides detection boxes, and Flickr30k offers image-text pairs</span>, yet no single dataset covers the full spectrum of visual annotations needed. Second, there is an <span class="hl-rebuttal">absence of a unified pre-training framework</span> that can seamlessly integrate <span class="hl-concept">spatial hierarchy</span> (from image-level to pixel-level) and <span class="hl-concept">semantic granularity</span> (from coarse categories to fine-grained descriptions) without requiring <span class="hl-rebuttal">task-specific architectural modifications</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                兩項關鍵挑戰阻礙了通用視覺基礎模型的發展。首先，現有視覺<span class="hl-rebuttal">資料集</span>僅提供專門的標註而缺乏統一學習所需的全面性——ImageNet 專注於<span class="hl-evidence">分類</span>標籤、COCO 提供偵測框、Flickr30k 提供影像文字配對，但沒有任何單一資料集涵蓋所需的完整視覺標註範疇。其次，目前缺乏一個統一的<span class="hl-rebuttal">預訓練</span>框架，能夠在無需針對特定任務修改架構的前提下，無縫整合空間層級（從影像層級到像素層級）與語義粒度（從粗略類別到細粒度描述）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    精準定義缺口——將宏觀問題拆解為「資料」與「架構」兩個具體挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接首段的宏觀動機，此段扮演「問題聚焦」的角色：兩個挑戰恰好對應 Florence-2 的兩大貢獻（FLD-5B 資料集 + seq2seq 統一架構），形成嚴密的問題-解決方案對應關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 ImageNet、COCO、Flickr30k 三個經典資料集的局限性作為具體例證，增強說服力。但作者未提及 Visual Genome 等已嘗試多層級標註的資料集，這一省略可能使問題陳述顯得比實際更為極端。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：Florence-2 方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To address these challenges, we present <span class="hl-concept">Florence-2</span>, which employs <span class="hl-method">a sequence-to-sequence learning paradigm, integrating all tasks under a common language modeling objective</span>. The model takes <span class="hl-method">text-based prompts as task instructions</span> and generates <span class="hl-method">text-based outputs including region coordinates and segmentation polygons expressed as location tokens</span>. To provide the comprehensive training data required, we construct <span class="hl-concept">FLD-5B</span> through an <span class="hl-method">automated data engine</span> that combines <span class="hl-method">specialist models for initial annotation, data filtering with quality heuristics, and iterative model-based refinement</span>. This <span class="hl-thesis">data-centric approach enables training a compact yet versatile foundation model that achieves strong performance across the full spectrum of vision tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為解決上述挑戰，本文提出 <span class="hl-concept">Florence-2</span>，採用序列到序列學習範式，將所有任務整合於統一的語言建模目標之下。模型以文字<span class="hl-method">提示</span>作為任務指令，並生成文字形式的輸出，包括以位置標記表示的區域座標與<span class="hl-method">分割</span>多邊形。為提供所需的全面訓練資料，研究透過自動化資料引擎建構 <span class="hl-concept">FLD-5B</span>，結合專家模型的初始標註、品質啟發式規則的資料過濾，以及基於模型的迭代精煉。這種以資料為核心的方法，使得訓練出的緊湊而多功能的<span class="hl-thesis">基礎模型</span>，能在全範圍的視覺任務上達成優異表現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——概述 Florence-2 的架構選擇與資料建構策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證的轉折點：從「現有方法不足」過渡到「本文方案」。序列到序列架構回應「統一框架」的需求，FLD-5B 回應「全面標註」的需求，形成完整的雙軌解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「以位置標記表示座標」是關鍵的技術創新——將空間資訊轉換為離散語言標記，使 seq2seq 架構得以處理偵測與分割任務。但座標量化必然引入精度損失，這一取捨在緒論中未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 重新思考視覺模型預訓練 ====== -->
+    <h2 class="section-heading" id="sec-rethinking">2. Rethinking Vision Model Pre-training — 重新思考視覺模型預訓練</h2>
+
+    <!-- 2.0 預訓練範式回顧 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate three dominant pre-training paradigms for vision models. <span class="hl-concept">Supervised pre-training</span> on ImageNet classification excels at <span class="hl-evidence">recognition but lacks adaptability</span> to diverse downstream tasks. <span class="hl-concept">Self-supervised methods</span> such as <span class="hl-concept">SimCLR</span> and <span class="hl-concept">MAE</span> reveal intricate visual features but <span class="hl-rebuttal">may overemphasize certain attributes while neglecting spatial reasoning</span>. <span class="hl-concept">Weakly supervised approaches</span> like <span class="hl-concept">CLIP</span> and <span class="hl-concept">SAM</span> yield <span class="hl-rebuttal">only image-level understanding or single-task specialization</span>, failing to capture the full range of visual perception required for universal tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文評估了三種主流的視覺模型<span class="hl-concept">預訓練</span>範式。ImageNet 分類上的監督式預訓練擅長辨識但缺乏對多樣下游任務的適應性。<span class="hl-concept">SimCLR</span> 與 <span class="hl-concept">MAE</span> 等自監督方法能揭示精細的視覺特徵，但可能過度強調某些屬性而忽略空間推理。<span class="hl-concept">CLIP</span> 與 <span class="hl-concept">SAM</span> 等弱監督方法僅產出影像層級的理解或單一任務的專精，無法涵蓋通用任務所需的完整視覺感知範疇。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    範式批判——系統性回顧三種預訓練路線的各自局限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「排除法」的邏輯，逐一指出監督式、自監督、弱監督三條路線的不足，為接下來提出的「全面多任務學習」清掃障礙，建立唯一合理的替代方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三種範式的評價略顯簡化——CLIP 的零樣本遷移能力與 SAM 的空間理解能力其實遠超「僅影像層級理解」的描述。作者為突顯多任務學習的必要性，可能低估了現有方法的潛力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2.1 全面多任務學習 -->
+    <h3 class="subsection-heading">2.1 Comprehensive Multitask Learning — 全面多任務學習</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We formulate three interrelated learning objectives addressing different granularities of visual understanding. The first objective targets <span class="hl-method">image-level understanding</span>, training the model on classification and captioning tasks to develop <span class="hl-concept">holistic semantic comprehension</span>. The second objective focuses on <span class="hl-method">region/pixel-level recognition</span>, incorporating detection, grounding, and segmentation tasks to build <span class="hl-concept">spatial localization capabilities</span>. The third objective addresses <span class="hl-method">fine-grained visual-semantic alignment</span>, training on phrase-to-region correspondence to enable <span class="hl-concept">precise mapping between language and visual regions</span>. <span class="hl-thesis">By combining these three learning objectives in a multitask framework, our foundation model learns to handle different levels of detail and semantic understanding.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文制定了三個相互關聯的學習目標，分別針對不同粒度的視覺理解。第一個目標針對影像層級的理解，透過分類與圖像描述任務訓練模型，培養整體語義理解能力。第二個目標聚焦於區域/像素層級的辨識，納入偵測、定位與分割任務以建立空間定位能力。第三個目標處理細粒度的視覺語義對齊，透過短語到區域的對應關係訓練，實現語言與視覺區域之間的精確映射。透過在多任務框架中結合這三個學習目標，<span class="hl-thesis">基礎模型</span>得以學習處理不同層次的細節與語義理解。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論框架建構——定義三層學習目標的完整體系。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文方法論的基石：影像層級 / 區域像素層級 / 細粒度對齊的三層架構，直接對應緒論中提出的「空間層級」與「語義粒度」雙重挑戰，形成嚴密的邏輯閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三層目標的設計優雅且直覺，但多任務學習中不同目標間的潛在衝突（如分類偏好全域特徵而分割偏好局部特徵）未被討論。如何平衡三者的損失權重對最終效能影響甚鉅，卻留待實驗章節才間接呈現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 模型架構 ====== -->
+    <h2 class="section-heading" id="sec-model">3. Model — 模型架構</h2>
+
+    <!-- 模型段落 1：視覺編碼器與多模態架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Florence-2</span> employs a <span class="hl-method">sequence-to-sequence architecture</span> consisting of two main components. The <span class="hl-concept">vision encoder</span> uses <span class="hl-concept">DaViT (Dual Attention Vision Transformer)</span> to convert input images into <span class="hl-method">flattened visual token embeddings</span>, maintaining spatial information through transformer-based encoding. The <span class="hl-concept">multi-modality encoder-decoder</span> is a standard transformer that processes <span class="hl-method">concatenated visual and prompt embeddings</span>: the visual tokens V' and text prompt embeddings T_prompt are merged to form multi-modality input X = [V', T_prompt], which is then processed through transformer layers with <span class="hl-method">cross-attention mechanisms</span> to generate the output sequence.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">Florence-2</span> 採用序列到序列架構，包含兩個主要組件。視覺<span class="hl-concept">編碼器</span>使用 DaViT（雙<span class="hl-method">注意力</span>視覺 <span class="hl-concept">Transformer</span>）將輸入影像轉換為扁平化的視覺標記<span class="hl-method">嵌入</span>，透過 Transformer 編碼保留空間資訊。多模態編碼器-<span class="hl-concept">解碼器</span>是一個標準 Transformer，處理串接的視覺與<span class="hl-method">提示</span>嵌入：視覺標記 V' 與文字提示嵌入 T_prompt 合併形成多模態輸入 X = [V', T_prompt]，接著透過具有交叉注意力機制的 Transformer 層處理，生成輸出序列。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構描述——詳述模型的兩大組件與資訊流路徑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將抽象的「序列到序列」具體化為可實作的架構：DaViT 負責視覺編碼，標準 Transformer 負責多模態融合。選擇 DaViT 而非 ViT 或 Swin 暗示對局部-全域雙注意力的偏好。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    架構設計刻意保持簡潔（標準 Transformer + 標準交叉注意力），暗示創新重心在資料而非模型本身。但未解釋為何選擇 DaViT 而非其他視覺骨幹，讀者可能質疑此選擇是否經過充分的消融驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模型段落 2：任務統一公式化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A crucial innovation is the <span class="hl-thesis">unified task formulation</span>: all 13 tasks are reformulated as <span class="hl-method">sequence-to-sequence translation problems</span>. For spatial tasks, the tokenizer vocabulary is extended to include <span class="hl-concept">location tokens</span> representing <span class="hl-method">quantized coordinates</span>: bounding boxes use the format (x_0, y_0, x_1, y_1), text detection uses <span class="hl-method">quadrilateral representations</span>, and segmentation employs <span class="hl-method">polygon representations</span>. The optimization uses a standard <span class="hl-method">cross-entropy loss</span> applied uniformly: L = -sum_i log P(y_i | y_{&lt;i}, x), <span class="hl-thesis">eliminating the need for task-specific prediction heads</span> and enabling a truly unified training pipeline.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一項關鍵創新在於統一的任務公式化：全部 13 項任務被重新制定為序列到序列的翻譯問題。針對空間任務，分詞器詞彙表擴展加入位置標記以表示量化座標：邊界框使用 (x_0, y_0, x_1, y_1) 格式，文字偵測使用四邊形表示，分割則採用多邊形表示。最佳化使用統一的標準<span class="hl-method">交叉熵</span>損失：L = -sum_i log P(y_i | y_{&lt;i}, x)，消除了對任務特定預測頭的需求，實現真正統一的訓練管線。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——揭示如何將異質的視覺輸出統一為文字序列。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文技術論證的核心支柱。位置標記的引入解決了「如何以文字表示空間資訊」的根本問題，使 seq2seq 架構不僅能處理文字輸出（如圖像描述），也能處理空間輸出（如偵測框與分割遮罩）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    統一損失函數的設計極為簡潔有力——所有任務共享同一個交叉熵損失，大幅降低了系統的複雜度。然而，座標量化的精度（取決於位置標記的粒度）直接影響偵測與分割的效能上限，此取捨未在本段充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 資料引擎 ====== -->
+    <h2 class="section-heading" id="sec-data-engine">4. Data Engine — 資料引擎</h2>
+
+    <!-- 資料引擎段落 1：影像收集與標註流程 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The construction of <span class="hl-concept">FLD-5B</span> begins with curating <span class="hl-evidence">126 million images from five sources: ImageNet-22k, Object 365, Open Images, Conceptual Captions, and LAION</span>, targeting diverse visual content. The annotation process follows a <span class="hl-method">three-phase pipeline</span>. In the <span class="hl-method">initial annotation phase</span>, specialist models (both offline and cloud-based) generate <span class="hl-concept">synthetic labels</span> across annotation types, which are merged with pre-existing human annotations where available. The <span class="hl-method">data filtering phase</span> applies text parsing using SpaCy to extract semantic elements, removes images with excessive objects, filters bounding boxes by confidence thresholds, and applies <span class="hl-method">non-maximum suppression</span> to eliminate redundant detections.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">FLD-5B</span> 的建構始於從五個來源策展 1.26 億張影像：<span class="hl-evidence">ImageNet</span>-22k、Object 365、Open Images、Conceptual Captions 與 LAION，以確保視覺內容的多樣性。標註過程遵循三階段管線。在初始標註階段，專家模型（離線與雲端服務）跨標註類型生成合成標籤，並在可取得之處合併既有的人工標註。資料過濾階段使用 SpaCy 進行文本解析以擷取語義元素，移除包含過多物件的影像，以信賴度門檻過濾邊界框，並施加非極大值抑制以消除冗餘偵測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料管線詳述——描述從原始影像到高品質標註的前兩個階段。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應緒論中「缺乏全面標註資料集」的挑戰。三階段管線的設計展現了工程上的系統思維：先以專家模型大量生產，再以規則過濾品質，最後迭代精煉。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    五個來源的選擇涵蓋了學術資料集（ImageNet）與網路規模資料集（LAION），確保了多樣性。但合成標籤的品質高度依賴專家模型的能力——若專家模型本身有系統性偏差，這些偏差將被放大到整個 FLD-5B 資料集中。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 資料引擎段落 2：迭代精煉 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The third phase employs <span class="hl-method">iterative refinement</span>, where <span class="hl-method">model predictions are used to progressively improve annotation quality</span>. In each refinement cycle, the current model generates predictions on the training set; these <span class="hl-method">refined predictions are merged with original annotations</span> and used for the next training iteration. For tasks with <span class="hl-rebuttal">sparse initial annotations</span>, the pipeline employs <span class="hl-method">task-specific fine-tuning followed by specialist re-annotation</span> to bootstrap coverage. This self-improving loop is inspired by <span class="hl-concept">data flywheel</span> concepts, where <span class="hl-thesis">better models produce better annotations, which in turn train even better models</span> — enabling annotation quality to scale beyond the capabilities of any individual specialist model.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第三階段採用迭代精煉，利用模型預測逐步提升標註品質。在每一輪精煉循環中，當前模型對訓練集產生預測；這些精煉後的預測與原始標註合併，作為下一輪訓練的輸入。對於初始標註稀疏的任務，管線採用特定任務<span class="hl-method">微調</span>後再由專家模型重新標註的方式來擴充涵蓋範圍。這種自我改善的循環借鑑了「資料飛輪」的概念：更好的模型產生更好的標註，更好的標註反過來訓練出更好的模型——使標註品質能超越任何單一專家模型的能力上限。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——描述使標註品質持續自我提升的迭代精煉機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「資料飛輪」概念是本文資料策略的理論核心。此段將工程實作提升至方法論層次：不僅是建構一個資料集，而是建構一個能持續改善的資料生產系統。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「資料飛輪」的敘事極具吸引力，但迭代精煉存在已知風險：模型可能強化自身偏差（confirmation bias），導致多輪迭代後標註趨向同質化。作者未提供收斂性分析或品質上限的討論，讀者需留意這一潛在的惡性循環。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 資料集 ====== -->
+    <h2 class="section-heading" id="sec-dataset">5. Dataset — 資料集</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The resulting <span class="hl-concept">FLD-5B</span> dataset comprises <span class="hl-evidence">5.4 billion annotations across 126 million images</span>, organized into three annotation categories. <span class="hl-evidence">Text annotations include 500 million entries</span> spanning brief descriptions (~8 tokens), detailed descriptions (~32 tokens), and more detailed descriptions (~71 tokens), providing multi-granularity textual coverage. <span class="hl-evidence">Region-text pairs total 1.3 billion annotations</span> with an average of <span class="hl-evidence">5.42 regions per image</span>, linking spatial regions to semantic descriptions. <span class="hl-evidence">Text-phrase-region triplets contribute 3.6 billion annotations</span>, enabling fine-grained <span class="hl-concept">phrase grounding</span> — the mapping from individual phrases within a caption to their corresponding visual regions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                所建構的 <span class="hl-concept">FLD-5B</span> 資料集包含 1.26 億張影像上的 54 億筆標註，組織為三大標註類別。文字標註涵蓋 5 億筆條目，包括簡短描述（約 8 個標記）、詳細描述（約 32 個標記）與更詳細的描述（約 71 個標記），提供多粒度的文字涵蓋。區域-文字配對共計 13 億筆標註，平均每張影像有 5.42 個區域，將空間區域與語義描述相連結。文字-短語-區域三元組貢獻了 36 億筆標註，實現細粒度的短語定位——將描述中的個別短語映射到其對應的視覺區域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料量化——以具體數字展示 FLD-5B 的規模與組成結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以硬資料支撐前述資料引擎的設計合理性：54 億標註的規模遠超現有任何公開資料集，三類標註的層次結構直接對應第 2 節提出的三層學習目標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數字的呈現方式經過精心設計——先總量（54 億），再逐項細分（5 億 + 13 億 + 36 億），給讀者以壓倒性的規模印象。但標註數量不等於標註品質，且三元組佔比最大（67%）意味著模型的學習信號可能偏向細粒度對齊任務。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Analysis of the dataset reveals several noteworthy characteristics. The <span class="hl-evidence">description length distribution shows a long tail</span>, with more detailed annotations providing substantially richer semantic content. The <span class="hl-evidence">region annotations achieve broad coverage across object categories</span>, with the iterative refinement process improving both spatial accuracy and semantic consistency compared to initial specialist predictions. Compared to existing datasets, FLD-5B offers <span class="hl-evidence">orders of magnitude more annotations than COCO (2.5M annotations) or Visual Genome (108M region descriptions)</span>, while maintaining <span class="hl-rebuttal">competitive annotation quality as validated through human evaluation on sampled subsets</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                資料集分析揭示了幾項值得注意的特性。描述長度分布呈現長尾特徵，更詳細的標註提供了實質上更豐富的語義內容。區域標註在物件類別上達到了廣泛的涵蓋範圍，迭代精煉過程相較於初始專家模型的預測，在空間精確度與語義一致性上均有改善。與現有資料集相比，FLD-5B 提供的標註量級遠超 <span class="hl-evidence">COCO</span>（250 萬筆標註）或 Visual Genome（1.08 億筆區域描述），同時透過對抽樣子集的人工評估驗證，維持了具競爭力的標註品質。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    品質驗證——以統計分析與人工評估證實 FLD-5B 的資料品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段預防性地回應「量大質差」的潛在質疑：透過與 COCO/Visual Genome 的量級對比展現規模優勢，再以人工評估補充品質保證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「抽樣子集的人工評估」是關鍵但可能不充分的品質保證——在 1.26 億張影像中，抽樣評估的涵蓋率極低。此外，人工評估的標準與量表未在此處詳述，讀者難以判斷「具競爭力的品質」的具體含義。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <h3 class="subsection-heading">6.1 Zero-shot Evaluation — 零樣本評估</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Florence-2</span> is evaluated in three settings: <span class="hl-method">zero-shot evaluation across tasks, generalist model performance with public supervised data, and downstream task fine-tuning</span>. In zero-shot evaluation, the model demonstrates <span class="hl-thesis">remarkable capabilities without any task-specific training data</span>. On <span class="hl-evidence">COCO captioning, Florence-2-L achieves 135.6 CIDEr</span>, substantially outperforming <span class="hl-evidence">Flamingo (84.3 CIDEr) despite the latter having 80 billion parameters</span>. On <span class="hl-evidence">Flickr30k grounding, the model achieves 84.4 Recall@1</span>, a <span class="hl-evidence">5.7-point improvement over Kosmos-2</span>. For <span class="hl-evidence">RefCOCO referring expression comprehension, Florence-2 demonstrates 4-8% absolute improvements</span> over prior models, and uniquely provides <span class="hl-evidence">referring expression segmentation capability (35.8% mIOU)</span> that was absent in previous foundation models.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">Florence-2</span> 在三種設定下進行評估：跨任務零樣本評估、結合公開監督資料的通用模型效能，以及下游任務<span class="hl-method">微調</span>。在零樣本評估中，模型展現出不需任何特定任務訓練資料的卓越能力。在 <span class="hl-evidence">COCO</span> 圖像描述上，Florence-2-L 達到 135.6 CIDEr，大幅超越擁有 800 億<span class="hl-evidence">參數</span>的 Flamingo（84.3 CIDEr）。在 Flickr30k 定位上，模型達到 84.4 Recall@1，比 Kosmos-2 提升 5.7 個百分點。在 RefCOCO 指稱表達理解上，Florence-2 展現 4-8% 的絕對改善幅度，並獨特地提供了指稱表達<span class="hl-evidence">分割</span>能力（35.8% mIOU），這在先前的基礎模型中是不存在的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實證——以零樣本結果證明模型的通用能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應全文的核心主張「統一基礎模型」：零樣本結果橫跨圖像描述、定位與分割三大類任務，證明單一模型確實能處理多樣化的視覺任務。與 Flamingo 的對比（小模型勝大模型）更凸顯資料策略的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    與 Flamingo 的對比極具戲劇性（800 億 vs. 遠小的參數量），但兩者的預訓練資料性質截然不同——Flamingo 使用影像-文字配對，Florence-2 使用多層級標註。這不僅是架構差異，更是資料差異的體現，應謹慎歸因。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">6.2 Generalist &amp; Downstream Performance — 通用與下游效能</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                When fine-tuned as a <span class="hl-concept">generalist model</span> with public supervised data, Florence-2 achieves <span class="hl-evidence">143.3 CIDEr on COCO captioning</span>, competitive with models having <span class="hl-evidence">7.8 to 80 billion parameters</span>. On <span class="hl-evidence">TextVQA, the model reaches 73.5% accuracy without external OCR modules</span>, and on <span class="hl-evidence">RefCOCO referring expression comprehension, it achieves 95.3% accuracy, surpassing PolyFormer by 3.0 points</span>. These results are achieved with only <span class="hl-evidence">0.77 billion parameters</span>, demonstrating <span class="hl-thesis">the effectiveness of comprehensive multi-task pre-training in producing compact yet powerful models</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                以公開監督資料微調為通用模型後，Florence-2 在 <span class="hl-evidence">COCO</span> 圖像描述上達到 143.3 CIDEr，與擁有 78 億至 800 億<span class="hl-evidence">參數</span>的模型具有競爭力。在 TextVQA 上，模型在不使用外部 OCR 模組的情況下達到 73.5% 準確率；在 RefCOCO 指稱表達理解上達到 95.3% 準確率，超越 PolyFormer 3.0 個百分點。這些成果僅以 7.7 億參數實現，展示了全面多任務<span class="hl-thesis">預訓練</span>在產出緊湊而強大模型方面的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    效能擴展——展示微調後模型在公開基準上的競爭力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段補全了零樣本評估的論證：若零樣本證明「通用性」，微調結果則證明「上限」。7.7 億參數超越數十倍大的模型，強力支持「資料品質重於模型規模」的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    參數效率的對比非常有說服力——0.77B vs. 80B 的差距使讀者不得不承認預訓練資料的價值。但「不使用外部 OCR」的 TextVQA 結果暗示模型從 FLD-5B 中學到了 OCR 能力，這進一步凸顯了資料引擎的重要性，但也引發了對合成標註可能引入的偏差的擔憂。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                As a <span class="hl-concept">pre-trained backbone</span> for downstream tasks, Florence-2 shows substantial improvements over standard baselines. Using <span class="hl-concept">Mask R-CNN</span> for COCO object detection, the Florence-2 backbone achieves <span class="hl-evidence">53.6 AP_box with 1x training schedule, compared to 46.7 AP for ImageNet-1k supervised initialization</span> — a gain of <span class="hl-evidence">6.9 AP</span>. With the <span class="hl-concept">DINO</span> detector, the model reaches <span class="hl-evidence">59.2 AP, a 4.2-point improvement over ViT-B</span>. For <span class="hl-concept">ADE20K semantic segmentation</span>, Florence-2 achieves <span class="hl-evidence">54.9 mIOU, a 4.9-point improvement with 4x training efficiency</span> compared to ImageNet pre-training. Notably, even with a <span class="hl-method">frozen backbone</span>, the model achieves competitive results with only <span class="hl-evidence">1.6-2.4 point drops</span>, demonstrating strong generic visual representations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作為下游任務的預訓練<span class="hl-concept">骨幹</span>，Florence-2 展現出相較於標準基線的大幅改善。以 <span class="hl-concept">Mask R-CNN</span> 進行 COCO 物件偵測時，Florence-2 骨幹在 1 倍訓練排程下達到 53.6 AP_box，相較於 <span class="hl-evidence">ImageNet</span>-1k 監督式初始化的 46.7 AP，提升了 <span class="hl-evidence">6.9 AP</span>。搭配 <span class="hl-concept">DINO</span> 偵測器，模型達到 59.2 AP，比 <span class="hl-evidence">ViT</span>-B 改善 4.2 個百分點。在 ADE20K 語義<span class="hl-concept">分割</span>上，Florence-2 達到 54.9 mIOU，以 4 倍的訓練效率改善了 4.9 個百分點。值得注意的是，即使在凍結骨幹的條件下，模型僅下降 1.6-2.4 個百分點仍具競爭力，展示了強健的通用視覺表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    骨幹遷移驗證——證明 Florence-2 的表示學習品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了 Florence-2 超越「端到端模型」的價值：其學到的視覺表示可直接作為通用骨幹，提升各種下游任務的效能。6.9 AP 的偵測改善與 4.9 mIOU 的分割改善均為顯著提升。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「凍結骨幹僅下降 1.6-2.4 點」是一個極有力的論據——它證明 Florence-2 的視覺表示已足夠通用，無需微調即可適應不同任務。但 4 倍訓練效率的聲稱需謹慎解讀：這可能部分歸因於預訓練已見過類似的標註任務，而非純粹的表示品質優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">6.3 Ablation Studies — 消融研究</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Ablation studies validate the key design decisions. For <span class="hl-method">multitask transfer</span>, models trained with all three learning objectives (image + region + pixel) <span class="hl-evidence">consistently outperform variants trained on subsets</span>. An image-only model performs well on classification but poorly on detection; adding region objectives improves detection at the cost of classification; <span class="hl-thesis">only the full three-tier model excels across all tasks simultaneously</span>. <span class="hl-method">Model scaling</span> experiments show that <span class="hl-evidence">Florence-2-L significantly outperforms Florence-2-B across all benchmarks</span>, indicating capacity for further scaling. <span class="hl-method">Data scaling</span> analysis reveals <span class="hl-evidence">consistent performance improvements as dataset size increases from 0.12M to 12M images</span>, though with <span class="hl-rebuttal">diminishing returns at larger scales</span>, suggesting an eventual saturation point.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究驗證了關鍵的設計決策。在多任務遷移方面，以全部三個學習目標（影像 + 區域 + 像素）訓練的模型持續優於僅使用部分目標的變體。僅影像模型在分類上表現良好但偵測不佳；加入區域目標改善偵測但犧牲分類效能；唯有完整的三層模型能在所有任務上同時表現優異。模型規模實驗顯示 Florence-2-L 在所有<span class="hl-evidence">基準</span>上顯著超越 Florence-2-B，暗示進一步擴展的潛力。資料規模分析揭示，隨著<span class="hl-evidence">資料集</span>從 12 萬張增至 1,200 萬張影像，效能持續改善，但在更大規模時呈現邊際遞減效應，暗示最終存在飽和點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計驗證——透過系統性消融確認各組件的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究在論證結構中扮演「反事實驗證」的角色：不僅證明完整方案有效，更證明每個組件都不可或缺。三層目標的逐步消融直接呼應第 2.1 節的理論框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「邊際遞減效應」是一個值得深究的發現——它暗示純粹增加資料量並非萬能，模型架構的容量可能成為瓶頸。作者誠實地報告此現象，但未探討如何突破飽和，留下了未來工作的空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">7. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Vision-language foundation models</span> can be broadly categorized into <span class="hl-concept">contrastive approaches</span> and <span class="hl-concept">autoregressive approaches</span>. Contrastive methods such as <span class="hl-concept">CLIP</span> and <span class="hl-concept">Florence-1</span> align visual and textual representations through contrastive learning, excelling at <span class="hl-evidence">zero-shot classification and retrieval</span> but <span class="hl-rebuttal">lacking generative capabilities for tasks like captioning or spatial prediction</span>. Autoregressive methods including <span class="hl-concept">GIT</span>, <span class="hl-concept">CoCa</span>, and <span class="hl-concept">Flamingo</span> generate textual outputs conditioned on visual inputs. <span class="hl-rebuttal">Flamingo relies on frozen vision encoders and a Perceiver Resampler, limiting its ability to learn task-specific visual features.</span> Florence-2 distinguishes itself through a <span class="hl-thesis">fully trainable unified seq2seq architecture without frozen components</span>, enabling end-to-end optimization across all modalities and tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺語言<span class="hl-concept">基礎模型</span>大致可分為對比式方法與自迴歸方法。對比式方法如 <span class="hl-concept">CLIP</span> 與 <span class="hl-concept">Florence-1</span> 透過對比學習對齊視覺與文字表示，在<span class="hl-evidence">零樣本</span>分類與檢索上表現優異，但缺乏圖像描述或空間預測等生成能力。自迴歸方法包括 <span class="hl-concept">GIT</span>、<span class="hl-concept">CoCa</span> 與 <span class="hl-concept">Flamingo</span>，以視覺輸入為條件生成文字輸出。Flamingo 依賴凍結的視覺<span class="hl-rebuttal">編碼器</span>與 Perceiver Resampler，限制了其學習特定任務視覺特徵的能力。Florence-2 以完全可訓練的統一 seq2seq 架構為特點，不含任何凍結組件，實現了跨所有模態與任務的端到端最佳化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 Florence-2 放置於視覺語言模型的演進脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了清晰的學術譜系：對比式（CLIP）-> 自迴歸式（Flamingo）-> 統一式（Florence-2），將本文定位為兩條路線的自然融合與超越。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「完全可訓練、無凍結組件」的定位清晰有力，但這也意味著更高的訓練成本。Flamingo 的凍結策略部分出於工程效率考量，Florence-2 的全訓練方案能否在更大規模上保持可行性，是一個未被討論的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On the <span class="hl-concept">dataset front</span>, prior work ranges from <span class="hl-concept">curated academic datasets</span> like <span class="hl-evidence">COCO (330K images, 2.5M annotations) and Visual Genome (108K images, 108M region descriptions)</span> to <span class="hl-concept">web-scale datasets</span> such as <span class="hl-evidence">LAION (5B image-text pairs) and WIT (400M pairs)</span>. Academic datasets offer high-quality annotations but limited scale; web-scale datasets provide vast quantities but only <span class="hl-rebuttal">image-level text associations without spatial annotations</span>. <span class="hl-concept">FLD-5B</span> bridges this gap by combining <span class="hl-thesis">large-scale autonomous annotations with iterative refinement</span>, exceeding prior work in both <span class="hl-evidence">annotation density (5.4B across 126M images) and diversity (text + region + triplet annotations)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-concept">資料集</span>方面，先前的工作涵蓋從精心策展的學術資料集如 <span class="hl-evidence">COCO</span>（33 萬張影像、250 萬筆標註）與 Visual Genome（10.8 萬張影像、1.08 億筆區域描述），到網路規模的資料集如 LAION（50 億影像-文字配對）與 WIT（4 億配對）。學術資料集具有高品質標註但規模有限；網路規模資料集量級龐大，但僅有影像層級的文字關聯而無空間標註。<span class="hl-concept">FLD-5B</span> 結合大規模自主標註與迭代精煉，彌合了此鴻溝，在標註密度（1.26 億張影像上的 54 億筆）與多樣性（文字 + 區域 + 三元組標註）上均超越先前工作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料集文獻對比——將 FLD-5B 定位於現有資料集景觀中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「學術品質 vs. 網路規模」的二分法構建論述，再以 FLD-5B 的「兼具兩者」定位作為第三條路線。這與模型架構的「統一」敘事形成呼應：資料也需要「統一」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 FLD-5B 定位為學術資料集與網路資料集的「橋樑」是巧妙的敘事策略。但 FLD-5B 的標註品質終究來自模型而非人工，這使其與 COCO 的人工標註在品質上存在本質差異——數量上的壓倒性優勢是否能補償個體標註品質的差距，仍值得商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 8. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">8. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Florence-2</span>, a <span class="hl-thesis">unified vision foundation model</span> that handles a diverse range of computer vision tasks through <span class="hl-method">prompt-based instructions and a sequence-to-sequence architecture</span>. The model is enabled by <span class="hl-concept">FLD-5B</span>, a comprehensive dataset of <span class="hl-evidence">126 million images paired with 5.4 billion comprehensive annotations</span> constructed via an <span class="hl-method">automated data engine with iterative refinement</span>. Our multitask learning framework addresses both <span class="hl-concept">spatial hierarchy</span> and <span class="hl-concept">semantic granularity</span>, training the model to excel across image-level, region-level, and pixel-level tasks simultaneously.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了 <span class="hl-concept">Florence-2</span>，一個透過<span class="hl-method">提示</span>指令與序列到序列架構處理多樣化電腦視覺任務的統一視覺<span class="hl-thesis">基礎模型</span>。此模型以 <span class="hl-concept">FLD-5B</span> 為基礎——一個涵蓋 1.26 億張影像與 54 億筆全面標註的資料集，透過自動化資料引擎與迭代精煉建構而成。多任務學習框架同時處理空間層級與語義粒度，訓練模型在影像層級、區域層級與像素層級的任務上同時展現卓越表現。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    貢獻回顧——以精煉語言重申三大核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論首段以「模型 + 資料 + 框架」的三位一體結構回顧貢獻，與摘要形成首尾呼應。每個貢獻都有明確的章節對應：模型（第 3 節）、資料（第 4-5 節）、框架（第 2 節）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論的措辭審慎，未誇大成果。但缺少對方法局限性的討論——如座標量化的精度限制、合成標註的潛在偏差、以及模型在開放域場景中的泛化能力，這些是讀者期待在結論中看到的反思。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Florence-2</span> has exhibited <span class="hl-evidence">remarkable zero-shot capabilities that extend across a wide spectrum of visual tasks, such as captioning, object detection, visual grounding, and referring expression segmentation</span>. The <span class="hl-thesis">universal representation pre-trained by Florence-2</span> substantially enhances downstream tasks across detection, segmentation, and vision-language alignment through efficient, unified training. These results establish that <span class="hl-thesis">comprehensive multitask pre-training on diverse, high-quality annotations is a viable and effective path toward universal vision foundation models</span>, analogous to the progress achieved by large language models in NLP.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">Florence-2</span> 展現了跨越廣泛視覺任務範疇的卓越<span class="hl-evidence">零樣本</span>能力，涵蓋圖像描述、物件偵測、視覺定位與指稱表達分割。Florence-2 <span class="hl-thesis">預訓練</span>的通用表示透過高效統一的訓練，大幅提升了偵測、分割與視覺語言對齊等下游任務的效能。這些結果確立了在多樣且高品質標註上進行全面多任務預訓練，是通往通用視覺<span class="hl-thesis">基礎模型</span>的可行且有效路徑，類比於大型語言模型在自然語言處理中所取得的進展。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望啟示——將成果提升至典範轉移的高度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論末段完成論證閉環：從「NLP 已成功」（緒論）到「視覺亦可效法」（結論），以 NLP 類比收束全文，形成完美的修辭對稱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 NLP 的大型語言模型類比結尾，具有很強的前瞻性暗示——將 Florence-2 定位為視覺領域的「GPT 時刻」。但 NLP 與視覺在資料生態、任務結構上的差異意味著此類比可能過於樂觀。模型在真正的開放域任務上是否能達到 LLM 般的通用性，仍有待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺模型缺乏 NLP 般的<br>多任務統一能力
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                seq2seq 統一架構<br>+ FLD-5B 全面標註
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                零樣本/微調/骨幹遷移<br>三維度全面驗證
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                小模型 (0.77B) 勝<br>大模型 (80B) 的效率論證
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                全面多任務預訓練是<br>通用視覺模型的可行路徑
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過在自動化建構的大規模多層級標註資料集上進行統一的序列到序列多任務預訓練，可以訓練出緊湊而通用的視覺基礎模型，在從圖像描述到像素級分割的全範疇視覺任務上達到甚至超越大型專家模型的表現。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>資料驅動的效率優勢：</strong>以 0.77B 參數在零樣本圖像描述（135.6 CIDEr）上超越 800 億參數的 Flamingo（84.3 CIDEr），以及在下游偵測上以 6.9 AP 的改善幅度大幅領先 ImageNet 預訓練基線。三層消融研究更直接證明了多任務學習框架中每一層目標的不可或缺性。實證論據橫跨零樣本、微調與骨幹遷移三個維度，形成無死角的驗證體系。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>合成標註的品質與偏差問題：</strong>FLD-5B 的 54 億標註全部來自模型生成而非人工標註，迭代精煉機制可能強化專家模型的系統性偏差而非修正它們。資料飛輪在缺乏充分的收斂性分析下，存在「回音室效應」的風險。此外，座標量化為離散位置標記的設計引入了不可避免的空間精度損失，但論文未提供量化分析。方法的局限性討論也顯得不足。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

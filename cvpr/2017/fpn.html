@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Pyramid Networks for Object Detection (FPN) — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; gap: 16px; align-items: center; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Feature Pyramid Networks for Object Detection (FPN)
+                <span class="course-tag">CVPR 2017</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1612.03144" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. FPN 架構</a>
+        <a href="#sec-topdown">3.2 由上而下路徑</a>
+        <a href="#sec-lateral">3.3 橫向連接</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Feature pyramids</span> are a basic component in recognition systems for detecting objects at different scales. But recent deep learning object detectors have <span class="hl-rebuttal">avoided pyramid representations, in part because they are compute and memory intensive</span>. In this paper, we exploit the <span class="hl-thesis">inherent multi-scale, pyramidal hierarchy of deep convolutional networks to construct feature pyramids with marginal extra cost</span>. A <span class="hl-method">top-down architecture with lateral connections</span> is developed for building <span class="hl-thesis">high-level semantic feature maps at all scales</span>. This architecture, called a <span class="hl-concept">Feature Pyramid Network (FPN)</span>, shows significant improvement as a generic feature extractor in several applications. Using FPN in a basic <span class="hl-concept">Faster R-CNN</span> system, our method achieves <span class="hl-evidence">state-of-the-art single-model results on the COCO detection benchmark</span> without bells and whistles.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                特徵金字塔是辨識系統中用於偵測不同尺度物件的基本組件。但近期的深度學習物件偵測器已避免使用金字塔表示，部分原因是其計算和記憶體成本高昂。本文利用深度摺積網路固有的多尺度金字塔式階層結構，以邊際額外成本建構特徵金字塔。我們開發了一種由上而下的架構，搭配橫向連接，在所有尺度上建立高階語義特徵圖。此架構稱為特徵金字塔網路（FPN），作為通用特徵提取器在多項應用中展現了顯著的改進。將 FPN 應用於基本的 Faster R-CNN 系統中，我們的方法在 COCO 偵測基準上達到了最先進的單一模型結果，且無需任何額外技巧。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——重新定位特徵金字塔的價值，提出低成本的建構方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以經典視覺概念（特徵金字塔）的回歸為主線：傳統方法用它但太貴 -> 深度學習丟棄了它 -> FPN 以幾乎零額外成本重新引入它。這種「舊概念+新實現」的敘事極具吸引力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「marginal extra cost」和「without bells and whistles」是極具說服力的措辭——暗示 FPN 的提升來自架構本身而非工程技巧。但「邊際成本」在不同骨幹網路上的實際量化需要具體數據支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">Recognizing objects at vastly different scales is a fundamental challenge in computer vision</span>. Historically, <span class="hl-concept">featurized image pyramids</span> (i.e., feature pyramids built upon image pyramids) were standard practice. These image pyramids have a key advantage: <span class="hl-thesis">all levels of the pyramid are semantically strong</span>, including the high-resolution levels. But featurized image pyramids have a critical limitation: <span class="hl-rebuttal">inference time increases considerably (e.g., by four times), making this approach impractical for real applications. Moreover, training deep networks end-to-end on an image pyramid is infeasible in terms of memory</span>. Deep ConvNets compute <span class="hl-concept">a feature hierarchy layer by layer</span> with inherent pyramidal structure. However, this introduces <span class="hl-rebuttal">large semantic gaps caused by different depths</span> — high-resolution maps have low-level features that reduce representational capacity for object detection.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在極端不同的尺度下辨識物件是電腦視覺中的基本挑戰。歷史上，特徵化影像金字塔（即建立在影像金字塔上的特徵金字塔）是標準做法。這些影像金字塔有一個關鍵優勢：金字塔的所有層級在語義上都很強，包括高解析度層級。但特徵化影像金字塔有一個關鍵限制：推論時間大幅增加（例如四倍），使此方法在實際應用中不切實際。此外，在影像金字塔上端到端訓練深度網路在記憶體方面不可行。深度摺積網路逐層計算特徵階層結構，具有固有的金字塔式結構。然而，這引入了因不同深度而產生的大型語義差距——高解析度特徵圖包含低階特徵，降低了物件偵測的表示能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題場域——追溯特徵金字塔的歷史並指出深度學習時代的困境。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立雙重困境：影像金字塔語義強但太貴，ConvNet 特徵階層免費但語義不均。FPN 的設計目標正是結合兩者的優勢：免費的金字塔結構 + 均勻的語義強度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「所有層級語義都強」vs.「高解析度層語義弱」的對比精準地定義了問題的本質。但作者未提及 BatchNorm 和更好的訓練策略是否能部分緩解語義差距問題——這些技術進步可能降低了 FPN 在某些場景中的相對優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Single Shot Detector (SSD)</span> attempted leveraging the ConvNet hierarchy as a pyramid representation but <span class="hl-rebuttal">foregoes reusing already computed layers and instead builds the pyramid starting from high up in the network</span>, missing opportunities for detecting small objects. Our goal is to naturally leverage the pyramidal shape of a ConvNet's feature hierarchy while creating a feature pyramid that has <span class="hl-thesis">strong semantics at all scales</span>. To achieve this, we develop an architecture that <span class="hl-method">combines low-resolution, semantically strong features with high-resolution, semantically weak features via a top-down pathway and lateral connections</span>. The result is an <span class="hl-concept">in-network feature pyramid</span> that can <span class="hl-thesis">replace featurized image pyramids without sacrificing representational power, speed, or memory</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                單次偵測器（SSD）嘗試利用 ConvNet 階層結構作為金字塔表示，但放棄了重用已計算的層，轉而從網路的高層開始建構金字塔，錯失了偵測小物件的機會。我們的目標是自然地利用 ConvNet 特徵階層的金字塔形狀，同時建立一個在所有尺度上都具有強語義的特徵金字塔。為此，我們開發了一種架構，透過由上而下路徑與橫向連接，將低解析度、語義強的特徵與高解析度、語義弱的特徵結合。結果是一個網路內特徵金字塔，能在不犧牲表示能力、速度或記憶體的情況下取代特徵化影像金字塔。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以 SSD 的不足為跳板，引出 FPN 的設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    批評 SSD「從高層開始」的策略，暗示其浪費了低層的高解析度資訊。FPN 的「由上而下+橫向連接」設計正是對此缺陷的直接回應——將高階語義「下傳」至高解析度特徵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 SSD 作為反面教材非常有效。但「不犧牲表示能力、速度或記憶體」是一個極強的主張——實際上 FPN 確實增加了額外的摺積層和記憶體消耗，只是相對於影像金字塔而言是「邊際」的。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Hand-engineered features</span> such as <span class="hl-concept">SIFT</span> and <span class="hl-concept">HOG</span> were <span class="hl-evidence">computed densely over entire image pyramids</span> in the era of traditional object detection. Modern deep ConvNet detectors like <span class="hl-concept">Fast R-CNN</span> and <span class="hl-concept">Faster R-CNN</span> advocate <span class="hl-rebuttal">single-scale features as an accuracy-speed tradeoff</span>. Recent work employs lateral/skip connections including <span class="hl-concept">U-Net</span>, <span class="hl-concept">SharpMask</span>, and <span class="hl-concept">Stacked Hourglass</span> networks. However, these methods <span class="hl-rebuttal">differ fundamentally from FPN: they produce a single high-level feature map rather than independently making predictions at all pyramid levels</span>. Methods like <span class="hl-concept">SSD</span> and <span class="hl-concept">MS-CNN</span> predict objects at multiple layers of the feature hierarchy but <span class="hl-rebuttal">without combining features or scores across levels</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在傳統物件偵測時代，SIFT 和 HOG 等手工設計特徵在整個影像金字塔上進行密集計算。現代深度 ConvNet 偵測器如 Fast R-CNN 和 Faster R-CNN 主張以單尺度特徵作為精度-速度的折衷。近期研究採用橫向/跳躍連接，包括 U-Net、SharpMask 和堆疊沙漏網路。然而，這些方法與 FPN 存在根本差異：它們產生單一高階特徵圖，而非在所有金字塔層級上獨立進行預測。SSD 和 MS-CNN 等方法在特徵階層的多個層上預測物件，但未跨層級合併特徵或分數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——區分 FPN 與各類多尺度方法的核心差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立 FPN 的獨特定位：既不是 U-Net 式的單輸出融合，也不是 SSD 式的無融合多輸出，而是「融合後的多輸出」。這個精確的定位使 FPN 的創新點清晰可辨。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 U-Net 與 SSD 的差異描述得非常精確。但 FPN 的「在每個層級獨立預測」設計是否真的優於 U-Net 的融合策略，取決於具體任務——在語義分割中，U-Net 的策略可能更優。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. FPN 架構 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Feature Pyramid Networks — FPN 架構</h2>
+    <h3 class="subsection-heading">3.1 Bottom-up Pathway — 由下而上路徑</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-method">bottom-up pathway is the feedforward computation of the backbone ConvNet</span>, which computes a <span class="hl-concept">feature hierarchy consisting of feature maps at several scales with a scaling step of 2</span>. There are often many layers producing output maps of the same size and we say these layers are in the same network <span class="hl-concept">stage</span>. For our feature pyramid, we define one pyramid level for each stage. We choose the output of the last layer of each stage as our reference set of feature maps to create the pyramid. For <span class="hl-concept">ResNets</span>, we use the feature activations output by each stage's last residual block, denoting the outputs of <span class="hl-method">{C_2, C_3, C_4, C_5} with strides of {4, 8, 16, 32} pixels</span> relative to the input image.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由下而上路徑是骨幹摺積網路的前饋計算，它計算出由多個尺度之特徵圖組成的特徵階層結構，縮放步幅為 2。通常有許多層產生相同大小的輸出圖，我們稱這些層處於同一網路階段。對於我們的特徵金字塔，我們為每個階段定義一個金字塔層級。我們選擇每個階段最後一層的輸出作為建構金字塔的參考特徵圖集。對於 ResNet，我們使用每個階段最後一個殘差區塊輸出的特徵啟動值，表示為 {C_2, C_3, C_4, C_5}，相對於輸入影像的步幅分別為 {4, 8, 16, 32} 像素。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構第一部分——定義由下而上路徑如何從骨幹網路提取多尺度特徵。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段確立「免費的特徵金字塔」的來源：骨幹網路的前饋計算本身就產生了多尺度特徵，FPN 只需利用它們，不需額外的影像金字塔。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 ResNet 的階段結構為例，使概念具體化。但選擇每個階段「最後一層」的輸出是一個設計決策——中間層的特徵可能包含不同的語義資訊，此選擇的最佳性未經系統驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 由上而下路徑 -->
+    <h3 class="subsection-heading" id="sec-topdown">3.2 Top-down Pathway — 由上而下路徑</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-method">top-down pathway hallucinates higher resolution features by upsampling spatially coarser, but semantically stronger, feature maps from higher pyramid levels</span>. These features are then <span class="hl-method">enhanced with features from the bottom-up pathway via lateral connections</span>. Each lateral connection merges feature maps of the same spatial size from the bottom-up pathway and the top-down pathway. The bottom-up feature map undergoes a <span class="hl-method">1x1 convolution to reduce channel dimensions</span>, and the top-down map is <span class="hl-method">upsampled by 2x using nearest neighbor interpolation</span>. These two maps are then <span class="hl-method">merged by element-wise addition</span>. A <span class="hl-method">3x3 convolution is appended to each merged map to reduce the aliasing effect of upsampling</span>, producing the final feature maps <span class="hl-method">{P_2, P_3, P_4, P_5}</span>. All pyramid levels share <span class="hl-method">the same channel dimension d = 256</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由上而下路徑透過上取樣空間上較粗糙但語義上較強的高層金字塔特徵圖，來「幻想」出更高解析度的特徵。這些特徵接著透過橫向連接與來自由下而上路徑的特徵進行增強。每個橫向連接合併來自由下而上路徑和由上而下路徑中具有相同空間尺寸的特徵圖。由下而上的特徵圖經過 1x1 摺積以降低通道維度，由上而下的特徵圖則使用最近鄰插值進行 2 倍上取樣。這兩個特徵圖接著透過逐元素相加合併。每個合併後的特徵圖後附加一個 3x3 摺積以減少上取樣的混疊效應，產生最終的特徵圖 {P_2, P_3, P_4, P_5}。所有金字塔層級共享相同的通道維度 d = 256。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心架構——詳述由上而下路徑與橫向連接的具體實現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術核心。三步驟管線（1x1 降維 -> 最近鄰上取樣+加法合併 -> 3x3 反混疊）的每一步都有明確的功能性理由，展現了工程設計的精煉性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    設計的每個選擇都以簡潔性為優先：最近鄰（而非反摺積）、加法（而非串接）、固定 256 通道。這些選擇在後續消融實驗中被驗證為穩健的。但使用加法合併而非串接可能丟失部分高解析度細節——後續的 PANet 以此為改進方向。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 橫向連接 -->
+    <h3 class="subsection-heading" id="sec-lateral">3.3 Design Simplicity — 設計簡潔性</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We emphasize that our design is <span class="hl-thesis">deliberately kept simple, and we have found that our model is robust to many design choices</span>. We have experimented with more sophisticated blocks (e.g., using multi-layer perceptrons in lateral connections) and achieved marginally better results, but the added complexity is <span class="hl-rebuttal">not worth the cost</span>. The shared <span class="hl-method">classifiers and regressors operate at all pyramid levels with the same parameters</span>, similar to traditional featurized image pyramids. This weight sharing also works because <span class="hl-thesis">all levels of the pyramid use shared semantics from the enriched feature maps</span>. The simplicity of FPN makes it a <span class="hl-thesis">generic component that can be readily plugged into various detection and segmentation frameworks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們強調我們的設計是刻意保持簡潔的，且我們發現模型對許多設計選擇具有穩健性。我們已實驗了更精密的區塊（例如在橫向連接中使用多層感知器），獲得了略微更好的結果，但增加的複雜度不值得。共享的分類器和迴歸器以相同參數在所有金字塔層級上運作，類似於傳統的特徵化影像金字塔。此權重共享之所以可行，是因為金字塔的所有層級從豐富的特徵圖中使用共享的語義。FPN 的簡潔性使其成為一個通用組件，可以輕易地嵌入到各種偵測和分割框架中。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計哲學——以「簡潔至上」原則為設計選擇辯護。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    預防性地回應「為何不用更複雜的設計」的質疑：更複雜的橫向連接帶來的邊際收益不值得增加的複雜度。這強化了 FPN 作為「即插即用」通用組件的定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「刻意簡潔」是一個非常聰明的定位策略——它將可能的弱點（設計較簡單）轉化為優勢（通用性與穩健性）。後續 FPN 被廣泛採用為偵測和分割框架的標準組件，驗證了此策略的正確性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">RPN experiments show FPN improved Average Recall (AR_1k) to 56.3, an 8.0 point increase over single-scale RPN baseline. Small object AR improved by 12.9 points</span>. Ablation studies confirmed that <span class="hl-evidence">removing top-down pathways severely degrades performance; removing lateral connections reduces AR_1k by 10 points</span>. For object detection, <span class="hl-evidence">FPN improved AP by 2.3 points and AP@0.5 by 3.8 points over single-scale Faster R-CNN baselines on COCO minival</span>. The method <span class="hl-evidence">surpassed 2016 COCO challenge winners without image pyramids</span> or techniques like iterative regression or hard negative mining. For segmentation proposals, <span class="hl-evidence">FPN achieved 48.1 AR for mask generation, outperforming previous methods by over 8.3 points while running at 6-7 FPS</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                RPN 實驗顯示 FPN 將平均召回率（AR_1k）提升至 56.3，比單尺度 RPN 基線高出 8.0 個百分點。小物件 AR 提升了 12.9 個百分點。消融研究確認移除由上而下路徑會嚴重降低效能；移除橫向連接使 AR_1k 降低 10 個百分點。在物件偵測方面，FPN 在 COCO minival 上相比單尺度 Faster R-CNN 基線提升了 AP 2.3 個百分點和 AP@0.5 3.8 個百分點。該方法在不使用影像金字塔或迭代迴歸、困難負樣本挖掘等技巧的情況下，超越了 2016 年 COCO 挑戰賽冠軍。在分割提案方面，FPN 達到 48.1 的遮罩生成 AR，比先前方法高出 8.3 個百分點以上，同時以 6-7 FPS 的速度運行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證驗證——以多角度實驗數據支持 FPN 在偵測與分割上的全面優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    四維度驗證：(1) RPN 召回率大幅提升（尤其小物件）；(2) 消融確認各組件必要性；(3) 超越競賽冠軍；(4) 分割提案也有效。小物件 AR +12.9 的數據直接驗證了「高解析度層語義增強」的設計目標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究特別有力——橫向連接的移除導致 10 點 AR 下降，清楚證明了「由下而上特徵的補充」不可或缺。但實驗主要基於 ResNet 骨幹，在其他架構（如 VGG、MobileNet）上的表現未充分探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-thesis">clean and simple framework for building feature pyramids inside ConvNets</span>. Our method shows <span class="hl-evidence">significant improvements over several strong baselines and competition winners</span>. Thus, it provides <span class="hl-thesis">a practical solution for research and applications of feature pyramids, without the need of computing image pyramids</span>. We have demonstrated that <span class="hl-thesis">despite the strong representational power of deep ConvNets and their implicit robustness to scale variation, it is still critical to explicitly address multi-scale problems using pyramid representations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一個在摺積網路內部建構特徵金字塔的簡潔框架。我們的方法相比多個強基線和競賽冠軍展現了顯著改進。因此，它為特徵金字塔的研究與應用提供了實用的解決方案，無需計算影像金字塔。我們展示了儘管深度摺積網路具有強大的表示能力及其對尺度變化的隱式穩健性，使用金字塔表示來顯式地處理多尺度問題仍然至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申 FPN 的實用價值並提出多尺度處理的重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的核心論述是反直覺的：即使深度網路「理論上」對尺度具有穩健性，「顯式」的多尺度處理仍然不可或缺。這為整個多尺度偵測研究方向提供了強有力的辯護。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論以「despite...still critical」的轉折句式強調了研究的核心價值。但未討論 FPN 的局限性——如在極端尺度差異或密集小物件場景下的表現瓶頸。作為後來幾乎所有偵測框架的標準組件，此論文的影響力已遠超結論中的謙遜措辭。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                多尺度偵測需金字塔<br>但影像金字塔太昂貴
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                利用 ConvNet 階層<br>建構語義強的特徵金字塔
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                COCO SOTA<br>小物件 AR +12.9
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                消融驗證各組件必要性<br>簡潔設計即穩健
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                即插即用的通用<br>多尺度特徵提取器
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過由上而下路徑和橫向連接，FPN 以邊際額外成本在 ConvNet 內部建構了所有尺度都具有強語義的特徵金字塔，取代了昂貴的影像金字塔並成為通用的多尺度特徵提取框架。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>小物件偵測的劇烈改善：</strong>小物件 AR 提升 12.9 個百分點是全文最具衝擊力的數據，直接證明了「將高階語義傳遞至高解析度層」的設計目標。消融實驗進一步確認了每個組件（由上而下路徑、橫向連接）的不可或缺性，形成了完整的因果論證。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>骨幹架構依賴性的探討不足：</strong>實驗主要基於 ResNet-50/101 骨幹，對其他架構的適用性缺乏系統驗證。此外，FPN 的加法合併策略在高解析度層可能不足以充分融合語義資訊——後續的 PANet（路徑聚合網路）以額外的由下而上路徑改進了此問題，暗示 FPN 的單向融合存在改進空間。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

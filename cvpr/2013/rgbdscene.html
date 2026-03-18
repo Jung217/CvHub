@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perceptual Organization and Recognition of Indoor Scenes from RGB-D Images — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Perceptual Organization and Recognition of Indoor Scenes from RGB-D Images
+                <span class="course-tag">CVPR 2013</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_cvpr_2013/papers/Gupta_Perceptual_Organization_and_2013_CVPR_paper.pdf" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-contour">3. 輪廓偵測</a>
+        <a href="#sec-grouping">4. 階層式分組</a>
+        <a href="#sec-semantic">5. 語意分割</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We address the problems of <span class="hl-concept">contour detection</span>, <span class="hl-concept">bottom-up grouping</span> and <span class="hl-concept">semantic segmentation</span> of <span class="hl-concept">RGB-D images</span> from indoor environments. We propose algorithms for <span class="hl-thesis">object boundary detection and hierarchical segmentation</span> that <span class="hl-method">generalize the gPb-ucm approach by leveraging depth information</span>. We label contours by type: depth, normal, or albedo discontinuities, and introduce a <span class="hl-method">long-range amodal completion mechanism</span> for grouping. For semantic segmentation, we classify superpixels into <span class="hl-evidence">40 object categories</span> on the <span class="hl-evidence">NYUD2 dataset</span> using both <span class="hl-method">generic and class-specific features</span> capturing appearance and geometry. We demonstrate the effectiveness of our approach for scene understanding and show that <span class="hl-thesis">contextual information further enhances object recognition, achieving significant improvements over the state-of-the-art</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文處理室內環境中 RGB-D 影像的輪廓偵測、由下而上分組及語意分割問題。我們提出物件邊界偵測與階層式分割的演算法，藉由深度資訊擴展 gPb-ucm 方法。我們依據類型標記輪廓：深度不連續、法線不連續或反照率不連續，並引入長距離非模態補全機制以改善分組效果。在語意分割方面，我們使用兼顧外觀與幾何的通用特徵及類別專屬特徵，在 NYUD2 資料集上將超像素分類為 40 種物件類別。我們展示了此方法在場景理解上的有效性，並說明情境資訊能進一步提升物件辨識，達成顯著優於現有最佳方法的成果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式呈現從低階視覺（輪廓偵測）到中階（分組）再到高階（語意分割）的完整管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要扮演「問題定義與貢獻預告」的雙重角色：先界定 RGB-D 場景理解的三大子問題，再概述統一的解決框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者以「顯著優於現有最佳方法」作為結尾，但未在摘要中給出具體數值。此外，三個子問題的耦合程度——它們是否真正相互受益——需要在實驗中驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The availability of affordable <span class="hl-concept">RGB-D sensors</span> such as the <span class="hl-concept">Microsoft Kinect</span> has opened up new possibilities for <span class="hl-thesis">indoor scene understanding</span>. Unlike traditional RGB images, <span class="hl-evidence">depth maps provide explicit geometric information</span> about the scene, enabling algorithms to reason about <span class="hl-method">3D structure, surface orientations, and spatial relationships</span> between objects. However, most existing approaches for <span class="hl-rebuttal">scene recognition and object detection have been developed primarily for RGB data</span> and do not fully exploit the rich geometric cues available in depth images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                價格親民的 RGB-D 感測器（如 Microsoft Kinect）的問世，為室內場景理解開啟了新的可能性。有別於傳統 RGB 影像，深度圖提供了場景的顯式幾何資訊，使演算法能推理三維結構、表面朝向以及物件間的空間關係。然而，大多數現有的場景辨識與物件偵測方法主要是為 RGB 資料所設計，並未充分利用深度影像中豐富的幾何線索。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——以 Kinect 的普及作為時代背景，引出 RGB-D 場景理解的重要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定深度感測器的潛力，再指出現有方法未能充分利用深度資訊，為本文的方法鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以硬體革新（Kinect）作為研究動機具有很強的時效性。但「未充分利用」的論斷需更精確——部分先前工作已嘗試融合深度資訊，此處可能過度簡化了現有研究。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, we take a <span class="hl-thesis">principled approach to indoor scene understanding from RGB-D images</span>, addressing three interrelated tasks. First, we extend the <span class="hl-concept">gPb contour detector</span> and <span class="hl-concept">UCM hierarchical segmentation</span> framework to incorporate <span class="hl-method">depth-derived features including height above ground, angle with gravity, and surface normal differences</span>. Second, we introduce an <span class="hl-method">amodal completion mechanism</span> that uses <span class="hl-method">long-range depth cues to infer occluded surface boundaries</span>. Third, we build a <span class="hl-concept">semantic segmentation system</span> that uses <span class="hl-method">region-level features combining appearance, shape, and 3D geometric context</span> to achieve <span class="hl-evidence">state-of-the-art recognition performance on the NYUD2 benchmark</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在本研究中，我們採取有系統的方法處理 RGB-D 影像的室內場景理解，涵蓋三項相互關聯的任務。首先，我們擴展 gPb 輪廓偵測器與 UCM 階層式分割框架，融入深度衍生特徵，包括離地高度、與重力的夾角以及表面法線差異。其次，我們引入非模態補全機制，利用長距離深度線索推斷被遮擋的表面邊界。第三，我們建構語意分割系統，使用結合外觀、形狀與三維幾何情境的區域級特徵，在 NYUD2 基準上達成最先進的辨識效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——列舉三項技術貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的「現有方法不足」，此段扮演「轉折」角色：從問題過渡到具體解法。三項貢獻恰好對應摘要中的三大子問題，邏輯嚴密。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以編號方式清楚列出三項貢獻，便於讀者追蹤。但每項貢獻都建立在既有框架（gPb-ucm）之上，若基礎框架在深度域表現不佳，整體效能可能受限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Contour detection</span> has a rich history in computer vision, from early <span class="hl-concept">edge detectors</span> to the more recent <span class="hl-concept">gPb (globalized probability of boundary)</span> framework which combines <span class="hl-method">multiscale local brightness, color, and texture gradients with spectral clustering</span>. The <span class="hl-concept">UCM (ultrametric contour map)</span> provides a natural hierarchy of regions. However, <span class="hl-rebuttal">these methods were designed for RGB images and do not leverage depth information</span>. Recent works on <span class="hl-concept">RGB-D segmentation</span> have used depth in various ways, but typically <span class="hl-rebuttal">treat it as an additional channel rather than exploiting its geometric meaning</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                輪廓偵測在電腦視覺中有悠久的歷史，從早期的邊緣偵測器到較新的 gPb（全域化邊界機率）框架，後者結合了多尺度局部亮度、顏色與紋理梯度及譜聚類。UCM（超度量輪廓圖）提供了自然的區域階層。然而，這些方法是為 RGB 影像設計的，並未利用深度資訊。近期關於 RGB-D 分割的研究雖以各種方式使用深度，但通常僅將其視為額外通道，而未發掘其幾何意涵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理輪廓偵測與分割的研究脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立技術譜系：從通用邊緣偵測到 gPb-ucm，再點出「深度作為額外通道」的不足，為本文「深度作為幾何線索」的立場鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將先前研究歸類為「僅把深度當額外通道」略顯簡化——部分研究已嘗試提取法線等幾何特徵。但此框架有效地凸顯了本文在幾何建模上的獨特性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">semantic segmentation of indoor scenes</span>, the seminal <span class="hl-concept">NYU Depth V2 dataset</span> by Silberman et al. provides <span class="hl-evidence">1449 densely labeled RGB-D images with 40 semantic classes</span>. Prior approaches have used <span class="hl-method">hand-crafted features with random forest classifiers</span> or <span class="hl-method">kernel descriptors on RGB-D patches</span>. <span class="hl-concept">Scene classification</span> methods typically rely on <span class="hl-method">global scene descriptors</span> such as GIST. Our work differs by building a <span class="hl-thesis">unified pipeline that integrates low-level perceptual organization with high-level semantic recognition</span>, leveraging the <span class="hl-method">geometric structure revealed by depth at every stage</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在室內場景的語意分割方面，Silberman 等人的 NYU Depth V2 資料集提供了 1449 張具有 40 個語意類別密集標註的 RGB-D 影像。先前的方法使用手工設計特徵搭配隨機森林分類器，或在 RGB-D 區塊上使用核描述子。場景分類方法通常依賴全域場景描述子（如 GIST）。本文的不同之處在於建構統一的管線，將低階感知組織與高階語意辨識整合在一起，在每個階段皆利用深度所揭示的幾何結構。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位本文貢獻——在語意分割文獻脈絡中突顯統一管線的獨特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從技術工具（資料集、特徵、分類器）的角度區分本文與先前工作，強調「統一管線」是關鍵差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「在每個階段皆利用深度」的承諾具有說服力，但需在後續章節逐一驗證各階段的深度融合是否真正帶來增益，而非僅是計算開銷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 輪廓偵測 ====== -->
+    <h2 class="section-heading" id="sec-contour">3. Contour Detection — 輪廓偵測</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We extend the <span class="hl-concept">gPb framework</span> to <span class="hl-concept">RGB-D images</span> by incorporating <span class="hl-method">depth-derived gradient channels</span>. Specifically, we compute oriented gradients of <span class="hl-method">depth values, surface normals, and height above the estimated ground plane</span>. Each gradient channel captures different types of boundaries: <span class="hl-evidence">depth gradients detect occlusion boundaries, normal gradients reveal orientation discontinuities at surface folds, and height gradients help separate objects from the support surface</span>. These are combined with the standard <span class="hl-method">brightness, color, and texture gradients</span> using a <span class="hl-method">logistic regression classifier</span> trained to predict true boundary probability.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們藉由納入深度衍生梯度通道，將 gPb 框架擴展至 RGB-D 影像。具體而言，我們計算深度值、表面法線與離估計地面高度的方向梯度。每個梯度通道捕捉不同類型的邊界：深度梯度偵測遮擋邊界，法線梯度揭示表面摺痕處的朝向不連續性，高度梯度有助於將物件與支撐面分離。這些梯度通道與標準的亮度、顏色及紋理梯度結合，透過經訓練的邏輯迴歸分類器預測真實邊界機率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法推導第一步——定義深度衍生梯度通道。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法的基礎：三種深度梯度（深度值、法線、高度）各自對應不同的物理意義，展現了作者對深度資訊的系統性分析。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將深度資訊拆解為三種具有物理可解釋性的梯度通道，是優雅的設計選擇。但深度感測器的雜訊（尤其在物件邊緣）可能嚴重影響梯度品質，作者需說明去雜訊策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Furthermore, we introduce a <span class="hl-method">contour classification scheme</span> that labels each detected boundary as arising from a <span class="hl-concept">depth discontinuity</span>, a <span class="hl-concept">surface normal discontinuity</span>, or an <span class="hl-concept">albedo/texture change</span>. This classification is performed by training a <span class="hl-method">multi-class classifier on the relative contributions of each gradient channel</span>. Knowing the type of boundary provides <span class="hl-thesis">valuable semantic information: depth boundaries indicate occlusion relationships, normal boundaries indicate object parts or surface curvature, and albedo boundaries suggest material or illumination changes</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此外，我們引入輪廓分類方案，將每條偵測到的邊界標記為源自深度不連續、表面法線不連續或反照率/紋理變化。此分類透過在各梯度通道的相對貢獻上訓練多類別分類器來實現。了解邊界類型能提供寶貴的語意資訊：深度邊界指示遮擋關係，法線邊界指示物件部件或表面曲率，而反照率邊界暗示材質或光照變化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法延伸——從偵測邊界到分類邊界類型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將輪廓偵測從「哪裡有邊界」提升到「為什麼有邊界」，為下游的分組與語意分割提供更豐富的線索。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    邊界類型分類是本文的獨特貢獻，賦予輪廓物理語意。但在實際場景中，邊界類型可能混合出現（如遮擋處同時有深度與反照率變化），單一標籤的分類可能過度簡化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 階層式分組 ====== -->
+    <h2 class="section-heading" id="sec-grouping">4. Hierarchical Grouping — 階層式分組</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Building on the extended contour detector, we construct <span class="hl-concept">ultrametric contour maps (UCMs)</span> that provide a <span class="hl-method">hierarchical segmentation of the RGB-D image</span>. At each level of the hierarchy, regions are merged based on the <span class="hl-method">minimum boundary strength along their shared contour</span>. We further enhance grouping with an <span class="hl-concept">amodal completion mechanism</span>: using <span class="hl-method">depth-based reasoning about occlusion relationships</span>, we infer the full extent of surfaces that are partially hidden behind other objects. This allows the algorithm to <span class="hl-thesis">group together disconnected image regions that belong to the same physical surface</span>, such as a table visible on both sides of a chair.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於擴展的輪廓偵測器，我們建構超度量輪廓圖（UCM），提供 RGB-D 影像的階層式分割。在階層的每個層級，區域依據其共享輪廓上的最小邊界強度進行合併。我們進一步以非模態補全機制增強分組：利用基於深度的遮擋關係推理，推斷部分被其他物件遮擋的表面的完整範圍。這使演算法能將屬於同一物理表面但在影像中不連通的區域分組在一起，例如在椅子兩側可見的桌面。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——描述深度驅動的非模態補全機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的支柱之一：非模態補全直接解決了室內場景中普遍的遮擋問題，將純粹的影像分割提升到三維表面推理的層次。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「椅子兩側可見的桌面」作為具體範例，使抽象的演算法變得直觀。但非模態補全假設遮擋關係可從深度圖可靠地推斷，在深度感測器失效的區域（如反光或透明表面）可能不成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 語意分割 ====== -->
+    <h2 class="section-heading" id="sec-semantic">5. Semantic Segmentation — 語意分割</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">semantic segmentation</span>, we classify each <span class="hl-concept">superpixel</span> in the hierarchical segmentation into one of <span class="hl-evidence">40 object categories</span> defined in the <span class="hl-evidence">NYUD2 dataset</span>. Our feature set includes <span class="hl-method">generic features</span> (color histograms, texture descriptors, shape statistics, 3D bounding box properties, surface normal distributions) as well as <span class="hl-method">class-specific features</span> that capture the <span class="hl-method">geometric context of each region relative to the scene structure</span> — e.g., height above ground, distance to walls, and local support relationships. A <span class="hl-method">linear SVM classifier</span> is trained on these features, followed by <span class="hl-method">contextual refinement using a CRF</span> that encourages spatial consistency.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在語意分割方面，我們將階層式分割中的每個超像素分類為 NYUD2 資料集定義的 40 種物件類別之一。我們的特徵集包括通用特徵（色彩直方圖、紋理描述子、形狀統計量、三維包圍框屬性、表面法線分布）以及類別專屬特徵——捕捉每個區域相對於場景結構的幾何情境，例如離地高度、與牆壁的距離及局部支撐關係。使用線性 SVM 分類器在這些特徵上進行訓練，隨後透過條件隨機場（CRF）進行情境精煉以鼓勵空間一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法的最高層——描述語意分類的特徵工程與分類架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示如何將前幾節的低階與中階處理結果轉化為語意理解。通用特徵與類別專屬特徵的結合，體現了「一般到特殊」的設計哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    特徵工程的豐富性令人印象深刻，但同時也暴露了對手工設計特徵的高度依賴。在深度學習時代即將來臨的背景下（2013年），此方法的可擴展性值得思考。CRF 精煉的效果需與額外計算成本一同評估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate our approach on the <span class="hl-evidence">NYU Depth V2 dataset</span>, which contains <span class="hl-evidence">1449 RGB-D images of indoor scenes with dense semantic labels across 40 categories</span>. For <span class="hl-concept">contour detection</span>, our RGB-D gPb achieves <span class="hl-evidence">an ODS F-score of 0.72, compared to 0.65 for the RGB-only baseline</span>, demonstrating the significant benefit of depth features. For <span class="hl-concept">semantic segmentation</span>, our method achieves <span class="hl-evidence">a pixel-wise accuracy of 60.3% and a mean class accuracy of 35.1%</span>, significantly outperforming prior methods. The addition of <span class="hl-method">contextual features and CRF-based refinement</span> provides <span class="hl-evidence">a further 3-4% improvement in pixel accuracy</span>. We also demonstrate strong performance on <span class="hl-concept">scene classification</span>, correctly categorizing <span class="hl-evidence">73.7% of test scenes</span> into room types.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 NYU Depth V2 資料集上評估本方法，該資料集包含 1449 張室內場景的 RGB-D 影像，具有橫跨 40 個類別的密集語意標註。在輪廓偵測方面，我們的 RGB-D gPb 達到 ODS F-score 0.72，相較於僅使用 RGB 的基準線 0.65 有顯著提升，展現深度特徵的顯著效益。在語意分割方面，我們的方法達到像素精確度 60.3% 與平均類別精確度 35.1%，顯著優於先前方法。情境特徵與基於 CRF 的精煉進一步帶來 3-4% 的像素精確度提升。我們也展示了在場景分類上的優異表現，正確地將 73.7% 的測試場景歸類至房間類型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在多個任務與指標上驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱，覆蓋三個維度：(1) 輪廓偵測的 F-score；(2) 語意分割的像素精確度；(3) 場景分類的正確率。每個數字都有基準對照。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    具體的數值比較（0.72 vs 0.65）令人信服。但 40 類別的平均類別精確度僅 35.1%，說明長尾類別的辨識仍具挑戰性。此外，僅在 NYUD2 上評估限制了泛化性的論證力度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-thesis">comprehensive framework for perceptual organization and recognition of indoor scenes from RGB-D images</span>. By <span class="hl-method">extending the gPb-ucm pipeline with depth-derived features</span>, introducing <span class="hl-method">amodal completion for better grouping</span>, and building a <span class="hl-method">rich feature-based semantic segmentation system</span>, we achieve <span class="hl-evidence">significant improvements over prior work across multiple tasks</span>. Our results demonstrate that <span class="hl-thesis">depth information, when properly exploited through geometric reasoning rather than treated as a simple additional channel, provides substantial benefits for scene understanding</span>. Future directions include incorporating <span class="hl-rebuttal">learned feature representations</span> and extending to <span class="hl-rebuttal">full 3D scene parsing</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一個從 RGB-D 影像進行室內場景感知組織與辨識的完整框架。透過以深度衍生特徵擴展 gPb-ucm 管線、引入非模態補全以改善分組、以及建構豐富特徵的語意分割系統，我們在多項任務上達成顯著優於先前工作的成果。我們的結果表明，深度資訊在透過幾何推理而非僅作為額外通道被適當利用時，能為場景理解提供實質性的效益。未來方向包括納入學習式特徵表示，以及擴展至完整的三維場景解析。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的結構，從具體成果回到更高層次的啟示：深度的幾何語意比原始數值更重要。形成完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「學習式特徵表示」的展望頗具先見之明——僅一年後，深度學習方法便大幅超越了手工特徵。此處的謙虛承認暗示作者已意識到方法的時代局限性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                RGB-D 場景理解缺乏<br>對深度幾何語意的利用
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                深度衍生幾何特徵<br>應融入每個處理階段
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                NYUD2 基準上<br>多任務顯著提升
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                非模態補全處理<br>遮擋造成的分組困難
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                幾何推理而非原始通道<br>才是深度利用的正確方式
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將深度資訊轉化為具物理意義的幾何特徵（法線、高度、遮擋關係），並系統性地融入輪廓偵測、階層式分組與語意分割的每個階段，能顯著提升室內場景的 RGB-D 理解能力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>深度資訊的幾何解構：</strong>將深度拆解為深度值梯度、法線梯度與離地高度三種獨立通道，每種都具有明確的物理意義（遮擋、表面摺痕、支撐關係）。這種有原則的設計比簡單地將深度作為第四通道更具說服力，且 ODS F-score 從 0.65 提升至 0.72 的實證結果直接驗證了此設計的有效性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>手工特徵的可擴展性隱憂：</strong>語意分割的 40 類別平均精確度僅 35.1%，顯示方法在長尾類別上仍力有未逮。更根本的是，整套框架高度依賴手工設計的特徵與傳統分類器，在深度學習即將主導的時代（2013年），此方法的技術壽命有限——作者在結論中對此有所暗示。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

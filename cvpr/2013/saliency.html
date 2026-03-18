@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hierarchical Saliency Detection — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Hierarchical Saliency Detection
+                <span class="course-tag">CVPR 2013</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_cvpr_2013/papers/Yan_Hierarchical_Saliency_Detection_2013_CVPR_paper.pdf" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-tree">3. 層次樹模型</a>
+        <a href="#sec-saliency">4. 層次顯著性計算</a>
+        <a href="#sec-integration">5. 多層整合</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Saliency detection</span> aims to identify the most visually prominent regions in an image. A fundamental challenge arises when <span class="hl-rebuttal">salient foreground or background contains small-scale high-contrast patterns</span>, which can <span class="hl-rebuttal">adversely affect detection accuracy</span>. Existing methods that use <span class="hl-rebuttal">varying patch sizes or image downsampling</span> to handle scale issues often introduce artifacts or lose fine details. We propose a <span class="hl-concept">hierarchical approach</span> that analyzes saliency through a <span class="hl-method">scale-based tree model</span> rather than varying patch sizes or downsampling. Our method constructs a <span class="hl-concept">hierarchical segmentation tree</span> and computes <span class="hl-method">saliency at multiple layers, from fine to coarse</span>, then integrates these multi-scale results. This approach <span class="hl-thesis">improves saliency detection on many images that cannot be handled well by traditional single-scale methods</span>. We also present a <span class="hl-evidence">newly constructed large-scale benchmark dataset</span> for evaluation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                顯著性偵測旨在辨識影像中視覺上最突出的區域。當顯著前景或背景包含小尺度高對比模式時，會產生根本性的挑戰，可能不利地影響偵測精確度。使用不同區塊大小或影像降取樣來處理尺度問題的現有方法，往往引入偽影或丟失精細細節。我們提出一種層次方法，透過基於尺度的樹模型而非不同區塊大小或降取樣來分析顯著性。我們的方法建構階層式分割樹，在從精細到粗略的多個層級計算顯著性，然後整合這些多尺度結果。此方法改善了許多傳統單尺度方法無法良好處理的影像的顯著性偵測。我們也提出一個新建構的大規模基準資料集供評估使用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以尺度問題為核心動機，引出階層式顯著性偵測方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要採用「問題-現有不足-本文方案-貢獻」的標準結構，同時預告了新資料集這一額外貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「小尺度高對比模式」是顯著性偵測中確實存在的難題，但作者未在摘要中具體說明此問題有多普遍。「新基準資料集」的雙重貢獻策略有效提升了論文的影響力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Visual saliency</span> plays a crucial role in <span class="hl-evidence">image retargeting, object recognition, image quality assessment, and content-aware editing</span>. The goal is to produce a <span class="hl-concept">saliency map</span> where pixel values indicate the <span class="hl-method">probability of belonging to a salient object</span>. Most existing methods compute saliency at a <span class="hl-rebuttal">single scale determined by the superpixel or patch size</span>. However, <span class="hl-thesis">real-world salient objects exhibit complex multi-scale structures</span>: a person wearing a striped shirt has a uniform silhouette at coarse scale but high-contrast internal patterns at fine scale. <span class="hl-rebuttal">Single-scale methods may incorrectly mark the stripes as salient boundaries or fail to group them as part of the salient object</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺顯著性在影像重定向、物件辨識、影像品質評估與內容感知編輯中扮演關鍵角色。目標是產生顯著圖，其中像素值指示屬於顯著物件的機率。大多數現有方法在由超像素或區塊大小決定的單一尺度上計算顯著性。然而，真實世界的顯著物件展現複雜的多尺度結構：穿著條紋襯衫的人在粗略尺度具有統一的輪廓，但在精細尺度具有高對比的內部模式。單尺度方法可能錯誤地將條紋標記為顯著邊界，或無法將它們歸組為顯著物件的一部分。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——以具體範例說明多尺度挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證的起點：先建立顯著性偵測的廣泛應用價值，再以「條紋襯衫」的直觀範例引出尺度問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「條紋襯衫」是極佳的具體範例，使抽象的尺度問題變得直觀。但此類情境在實際應用中的普遍性值得質疑——大多數顯著物件可能不具如此明顯的多尺度結構。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose a <span class="hl-concept">hierarchical saliency detection</span> framework that operates on a <span class="hl-method">tree-structured image representation</span>. Instead of processing saliency at a single fixed scale, we <span class="hl-thesis">compute saliency cues at multiple layers of a hierarchical segmentation</span>, from individual superpixels to large merged regions. At each layer, saliency is computed based on <span class="hl-method">region-level contrast and spatial distribution features</span>. The multi-layer results are then <span class="hl-method">integrated through a principled combination scheme</span> that preserves fine details from lower layers while maintaining global coherence from upper layers. Additionally, we introduce a <span class="hl-evidence">new large-scale dataset with 5,000 images and pixel-accurate ground truth</span> for benchmarking.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一個在樹狀結構影像表示上運作的階層式顯著性偵測框架。我們不在單一固定尺度上處理顯著性，而是在階層式分割的多個層級——從個別超像素到大型合併區域——計算顯著性線索。在每個層級，顯著性基於區域級的對比度與空間分布特徵計算。多層結果隨後透過有原則的結合方案整合，從較低層級保留精細細節，同時從較高層級維持全域一致性。此外，我們引入一個包含 5,000 張影像與像素精確真實標註的新大規模資料集供基準測試使用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——概述階層式框架與資料集貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段提供完整的方法概覽：多層計算 + 整合方案。5,000 張影像的新資料集是重要的額外貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「有原則的結合方案」措辭模糊，需在方法章節中具體化。新資料集的引入是雙刃劍：它增強了論文貢獻，但也意味著與先前工作的公平比較需要格外謹慎。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Saliency detection</span> methods can be broadly categorized into <span class="hl-concept">bottom-up</span> and <span class="hl-concept">top-down</span> approaches. <span class="hl-concept">Bottom-up methods</span> compute saliency based on <span class="hl-method">low-level visual contrast</span>, including <span class="hl-concept">frequency domain analysis</span>, <span class="hl-concept">region-based contrast</span>, and <span class="hl-concept">graph-based manifold ranking</span>. The influential <span class="hl-concept">RC (Region Contrast)</span> method computes saliency as the <span class="hl-method">weighted sum of color distances to all other regions</span>. <span class="hl-concept">GC (Global Contrast)</span> uses <span class="hl-method">color histogram distances</span>. However, these methods <span class="hl-rebuttal">operate at a fixed segmentation granularity and cannot adapt to the intrinsic scale of salient objects</span>. Some recent works use <span class="hl-method">multi-scale superpixels</span> but simply <span class="hl-rebuttal">average or concatenate features across scales without principled integration</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                顯著性偵測方法可大致分為由下而上與由上而下的方法。由下而上方法基於低階視覺對比度計算顯著性，包括頻域分析、基於區域的對比度與基於圖的流形排序。具影響力的 RC（區域對比度）方法將顯著性計算為與所有其他區域之色彩距離的加權總和。GC（全域對比度）使用色彩直方圖距離。然而，這些方法在固定的分割粒度上運作，無法適應顯著物件的固有尺度。部分近期研究使用多尺度超像素，但僅是跨尺度平均或串接特徵，缺乏有原則的整合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性分類並批判現有顯著性偵測方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「固定粒度」為批判焦點，將 RC、GC 等代表性方法統一歸類為「單尺度」的局限，為本文的多層方法建立對比。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對多尺度超像素方法的批判（「簡單平均或串接」）準確點出了缺乏理論基礎的問題。但作者自身的「有原則整合」是否真正具有理論保證，仍需在方法章節驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 層次樹模型 ====== -->
+    <h2 class="section-heading" id="sec-tree">3. Hierarchical Tree Model — 層次樹模型</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We construct a <span class="hl-concept">hierarchical segmentation tree</span> from the input image. The tree is built using an <span class="hl-method">agglomerative clustering process</span>: starting from an <span class="hl-method">initial fine-grained superpixel segmentation</span> (leaf nodes), we iteratively merge adjacent regions based on <span class="hl-method">color similarity and boundary strength</span>, creating parent nodes at each merge step. The resulting tree has <span class="hl-evidence">L layers (typically 3-5)</span>, where <span class="hl-method">layer 0 contains the finest superpixels and layer L-1 contains the coarsest regions</span>. Each node in the tree represents a <span class="hl-concept">region at a specific scale</span>, and the parent-child relationships encode how fine-grained regions compose into coarser ones. This tree provides a <span class="hl-thesis">natural multi-scale representation that respects image boundaries at every level</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們從輸入影像建構階層式分割樹。此樹透過凝聚式聚類過程建構：從初始的精細超像素分割（葉節點）開始，基於色彩相似度與邊界強度迭代合併相鄰區域，在每個合併步驟建立父節點。所得的樹具有 L 個層級（通常 3-5 層），其中第 0 層包含最精細的超像素，第 L-1 層包含最粗略的區域。樹中的每個節點代表特定尺度上的區域，而父子關係編碼了精細區域如何組成粗略區域。此樹提供了在每個層級都尊重影像邊界的自然多尺度表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建構多尺度基礎——定義階層式分割樹。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續的多層顯著性計算提供結構基礎。凝聚式聚類確保了層級間的嚴格嵌套關係，使多層結果的整合成為可能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「在每個層級都尊重影像邊界」是關鍵優勢——這避免了降取樣方法中邊界模糊的問題。但凝聚式聚類的合併順序依賴於局部決策，可能導致次優的層次結構。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 層次顯著性計算 ====== -->
+    <h2 class="section-heading" id="sec-saliency">4. Layer-wise Saliency Computation — 層次顯著性計算</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                At each layer l of the tree, we compute a <span class="hl-concept">saliency value for each region</span> based on two complementary cues. The <span class="hl-method">global contrast cue</span> measures the <span class="hl-method">color distinctiveness of a region relative to all other regions at the same layer</span>, weighted by spatial distance to emphasize nearby contrast. The <span class="hl-method">spatial distribution cue</span> measures how <span class="hl-method">compactly a region's color is distributed in the image</span> — salient objects tend to be spatially compact, while background colors are widely scattered. These two cues are combined as <span class="hl-method">S_l(r) = C_l(r) * D_l(r)</span>, where C is contrast and D is spatial compactness. <span class="hl-thesis">Different layers produce saliency maps at different granularities: fine layers capture details but are noisy, while coarse layers provide holistic assessment but lose boundaries</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在樹的每個層級 l，我們基於兩個互補的線索計算每個區域的顯著性值。全域對比度線索衡量區域相對於同層所有其他區域的色彩獨特性，以空間距離加權以強調鄰近對比。空間分布線索衡量區域的色彩在影像中分布的緊湊程度——顯著物件傾向於空間緊湊，而背景色彩則廣泛散布。這兩個線索結合為 S_l(r) = C_l(r) * D_l(r)，其中 C 為對比度，D 為空間緊湊度。不同層級產生不同粒度的顯著圖：精細層級捕捉細節但含雜訊，粗略層級提供整體評估但丟失邊界。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心計算——定義每層的顯著性度量。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將顯著性的直覺（對比度 + 空間緊湊度）轉化為具體的計算公式。乘法結合意味著兩個線索必須同時為高才能產生高顯著性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對比度與空間緊湊度的乘法結合簡潔有力，但可能在某些情況下過於嚴格——例如顯著物件佔據影像大部分面積時，空間緊湊度分數會很低。精細層「含雜訊」的坦承也暗示了整合步驟的關鍵性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 多層整合 ====== -->
+    <h2 class="section-heading" id="sec-integration">5. Multi-layer Integration — 多層整合</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The final saliency map is obtained by <span class="hl-method">integrating saliency values across all tree layers</span>. For each pixel p, its saliency is computed as a <span class="hl-method">weighted combination of the saliency values from the regions containing p at each layer</span>. The weights are determined by the <span class="hl-method">reliability of each layer</span>, estimated from the <span class="hl-method">distribution of saliency values at that layer</span> — a layer with clear bimodal distribution (salient vs. non-salient) receives higher weight. Additionally, we apply a <span class="hl-method">hierarchical refinement step</span>: <span class="hl-thesis">saliency from coarse layers provides spatial priors that constrain the saliency computation at finer layers</span>, ensuring that fine-scale details are consistent with the global saliency structure. This <span class="hl-thesis">bidirectional information flow between scales</span> is the core advantage of our tree-based approach.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最終的顯著圖透過跨所有樹層級整合顯著性值來獲得。對於每個像素 p，其顯著性計算為包含 p 的各層級區域的顯著性值之加權組合。權重由各層級的可靠性決定，從該層級的顯著性值分布估計——具有清晰雙峰分布（顯著 vs. 非顯著）的層級獲得更高的權重。此外，我們施加階層式精煉步驟：粗略層級的顯著性提供空間先驗來約束精細層級的顯著性計算，確保精細尺度的細節與全域顯著性結構一致。此尺度間的雙向資訊流動是我們基於樹的方法的核心優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    整合策略——描述多尺度結果如何融合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回答了「如何有原則地整合」的問題：以層級可靠性為權重，並透過粗到細的精煉確保一致性。「雙向資訊流動」是對先前工作「簡單平均」的直接改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以顯著性分布的雙峰性估計層級可靠性是巧妙的設計。但此假設在困難影像中可能不成立——當前景與背景差異模糊時，所有層級都可能缺乏清晰的雙峰分布。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on <span class="hl-evidence">four benchmark datasets</span>: the <span class="hl-evidence">MSRA-B (5,000 images)</span>, <span class="hl-evidence">ECSSD (1,000 images with complex structures)</span>, <span class="hl-evidence">DUT-OMRON (5,168 images)</span>, and our <span class="hl-evidence">newly constructed HKU-IS dataset (4,447 images)</span>. We compare against <span class="hl-evidence">14 state-of-the-art methods</span> including RC, GC, SF, MC, and DSR. Using the standard <span class="hl-method">precision-recall curve and F-measure</span>, our hierarchical approach achieves the <span class="hl-evidence">highest F-measure on all four datasets</span>. Notably, on <span class="hl-evidence">ECSSD, which specifically contains images with complex structures, we improve F-measure by 4.2% over the next best method</span>. <span class="hl-rebuttal">Ablation analysis confirms that multi-layer integration outperforms any single layer</span>, and that the hierarchical refinement provides an additional <span class="hl-evidence">2-3% improvement</span> over simple averaging.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在四個基準資料集上評估：MSRA-B（5,000 張影像）、ECSSD（1,000 張具複雜結構的影像）、DUT-OMRON（5,168 張影像）以及我們新建構的 HKU-IS 資料集（4,447 張影像）。我們與包括 RC、GC、SF、MC 和 DSR 在內的 14 種最先進方法進行比較。使用標準的精確度-召回率曲線與 F-measure，我們的階層式方法在所有四個資料集上達成最高的 F-measure。值得注意的是，在專門包含複雜結構影像的 ECSSD 上，我們比次佳方法提升了 4.2% 的 F-measure。消融分析確認多層整合優於任何單一層級，且階層式精煉比簡單平均額外提供 2-3% 的改善。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在四個資料集上與 14 種方法比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱，覆蓋：(1) 跨多個資料集的一致性；(2) 在複雜結構影像上的顯著優勢；(3) 消融研究驗證各組件。ECSSD 上 4.2% 的提升直接支持「階層式方法擅長處理複雜結構」的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    比較對象涵蓋 14 種方法，實驗設計充分。但其中一個測試資料集（HKU-IS）是作者自行建構的，在此資料集上的優勢可能受到資料集設計偏差的影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-concept">hierarchical saliency detection</span> method that addresses the <span class="hl-thesis">fundamental scale challenge in saliency computation</span>. By constructing a <span class="hl-method">segmentation tree</span> and computing saliency at <span class="hl-method">multiple levels with principled integration</span>, our approach captures both <span class="hl-thesis">fine details and global structure simultaneously</span>. The <span class="hl-evidence">consistent improvements across four datasets and strong performance on complex-structure images</span> validate the effectiveness of hierarchical processing. Our <span class="hl-evidence">new HKU-IS dataset</span> also provides a valuable resource for future research. Potential extensions include integrating <span class="hl-rebuttal">deep features</span> into the hierarchical framework and applying it to <span class="hl-rebuttal">video saliency detection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一種階層式顯著性偵測方法，處理顯著性計算中的根本尺度挑戰。透過建構分割樹並在多個層級上以有原則的整合計算顯著性，我們的方法同時捕捉精細細節與全域結構。跨四個資料集的一致改善以及在複雜結構影像上的優異表現，驗證了階層式處理的有效性。我們的新 HKU-IS 資料集也為未來研究提供了寶貴的資源。潛在的擴展方向包括將深度特徵整合到階層式框架中，以及應用於影片顯著性偵測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並展望未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論呼應緒論的尺度問題，以「同時捕捉精細細節與全域結構」作為問題的最終解答，形成論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「深度特徵」的展望在 2013 年頗具前瞻性——隨後基於深度學習的顯著性偵測方法確實大幅超越了手工特徵方法。此展望暗示作者已意識到特徵選擇可能是當前框架的瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                單尺度顯著性偵測<br>無法處理複雜結構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                階層式分割樹提供<br>自然的多尺度表示
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                四個資料集上<br>全面超越 14 種方法
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                有原則的多層整合<br>優於簡單平均
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                階層式處理解決<br>尺度挑戰
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過在階層式分割樹的多個層級上計算顯著性，並以層級可靠性為權重進行有原則的整合，能同時保留精細細節與全域結構，有效解決顯著性偵測中的尺度問題。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>在複雜結構上的顯著優勢：</strong>ECSSD 資料集專門收集具有複雜內部結構的影像，而本方法在此資料集上比次佳方法提升 4.2%，直接驗證了階層式處理對「條紋襯衫」類問題的有效性。消融研究中多層整合優於單層的結果也排除了「多此一舉」的疑慮。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>低階特徵的表達力限制：</strong>方法完全依賴色彩對比度與空間分布等低階特徵，缺乏語意理解。在前景與背景色彩相近或顯著物件佔據大部分影像的情況下，各層級的顯著性計算可能都不可靠，階層整合也無法彌補底層特徵的不足。此外，新建構的 HKU-IS 資料集作為評估基準之一可能引入偏差。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

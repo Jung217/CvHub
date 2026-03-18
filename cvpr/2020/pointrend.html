@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PointRend: Image Segmentation as Rendering — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                PointRend: Image Segmentation as Rendering
+                <span class="course-tag">CVPR 2020</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1912.08193" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-pointrend">3.1 PointRend 模組</a>
+        <a href="#sec-subdivision">3.2 細分策略</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents <span class="hl-concept">PointRend (Point-based Rendering)</span>, a method that
+                <span class="hl-thesis">"performs point-based segmentation predictions at adaptively selected locations based on an iterative subdivision algorithm."</span>
+                The key insight draws an analogy between
+                <span class="hl-thesis">image segmentation and image rendering in computer graphics</span>:
+                both problems involve mapping a representation to a regularly-sampled grid of pixel labels or colors.
+                PointRend produces
+                <span class="hl-thesis">"crisp object boundaries in regions that are over-smoothed by previous methods"</span>
+                and works with both <span class="hl-concept">instance segmentation</span> and <span class="hl-concept">semantic segmentation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 <span class="hl-concept">PointRend（基於點的渲染）</span>方法，該方法<span class="hl-thesis">「在基於迭代細分演算法自適應選取的位置上，執行基於點的分割預測」</span>。核心洞見在於將<span class="hl-thesis">影像分割類比為電腦圖學中的影像渲染</span>：兩個問題皆涉及將某種表徵映射至規則取樣的像素標籤或色彩網格。PointRend 能在先前方法過度平滑的區域<span class="hl-thesis">產生清晰的物件邊界</span>，且同時適用於<span class="hl-concept">實例分割</span>與<span class="hl-concept">語意分割</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精煉語言勾勒核心貢獻：將分割問題重新框架為渲染問題，並提出自適應點取樣策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為摘要，此段建立了「分割即渲染」的類比框架，這既是理論洞見也是修辭策略。先點出跨領域的類比，再以「清晰邊界」作為實際效益的承諾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以電腦圖學的渲染概念重新包裝分割任務，是極具吸引力的敘事策略。然而，渲染與分割在本質上有根本差異——渲染有明確的幾何模型作為輸入，分割則需要從像素中推斷語意，類比的深度值得檢驗。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：問題背景 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Current segmentation architectures operate on
+                <span class="hl-concept">regular grids</span> — either through
+                <span class="hl-concept">fully convolutional networks</span> that predict dense pixel-wise labels or through
+                <span class="hl-concept">mask heads</span> operating on fixed-resolution feature maps.
+                These approaches face a fundamental tension:
+                <span class="hl-rebuttal">"computation is uniformly allocated across the grid, even though only a small fraction of grid cells differ from their neighbors."</span>
+                The vast majority of pixels lie in smooth interior regions where prediction is trivial.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                當前的分割架構運作於<span class="hl-concept">規則網格</span>之上——透過<span class="hl-concept">全摺積網路</span>預測密集的像素級標籤，或透過在固定解析度特徵圖上運作的<span class="hl-concept">遮罩頭</span>。這些方法面臨一個根本性的張力：<span class="hl-rebuttal">「運算資源在整個網格上均勻分配，儘管只有極小比例的網格單元與其鄰居有所不同。」</span>絕大多數像素位於平滑的內部區域，其預測是微不足道的。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出現有分割架構在運算資源分配上的根本低效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先確立「均勻運算是浪費的」這一核心觀察，為後續引入自適應取樣策略建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「均勻分配 vs. 自適應分配」的對立框架切入，簡潔有力。但此觀察並非全新——級聯式（cascade）和注意力機制早已嘗試解決此問題，作者需在後文區分自身方法的獨特性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：渲染類比 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors observe that this inefficiency parallels a long-solved problem in
+                <span class="hl-concept">computer graphics</span>:
+                <span class="hl-thesis">"efficient rendering of high-resolution images does not require estimating a color value for every pixel."</span>
+                Techniques like <span class="hl-concept">adaptive subdivision</span> and
+                <span class="hl-concept">anti-aliasing</span> in image rendering
+                <span class="hl-method">focus computation on regions where the image signal changes rapidly</span>, such as object edges.
+                PointRend borrows this principle:
+                <span class="hl-thesis">compute predictions only at carefully selected points where uncertainty is highest</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者觀察到，這種低效性與<span class="hl-concept">電腦圖學</span>中一個早已解決的問題相似：<span class="hl-thesis">「高效地渲染高解析度影像並不需要為每個像素估計色彩值。」</span>影像渲染中的<span class="hl-concept">自適應細分</span>與<span class="hl-concept">反鋸齒</span>等技術，<span class="hl-method">將運算集中於影像訊號變化劇烈的區域</span>，例如物件邊緣。PointRend 借鑑了這一原理：<span class="hl-thesis">僅在不確定性最高的精心選取的點上進行預測</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心類比——將電腦圖學的渲染效率觀念引入分割問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「靈感來源」角色：從跨領域知識轉移的角度提出解決方向，為 PointRend 的具體設計提供概念基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    跨領域類比是強有力的說服工具——暗示該問題有成熟的解決範式可供借鑑。但渲染中的「訊號變化」是可直接計算的（已知幾何），而分割中的「不確定性」需要模型自身估計，兩者的資訊可得性存在根本差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior work on improving segmentation resolution includes
+                <span class="hl-concept">dilated/atrous convolutions</span> that maintain spatial resolution,
+                <span class="hl-concept">encoder-decoder architectures</span> that progressively upsample,
+                and <span class="hl-concept">conditional random fields (CRFs)</span> used as post-processing to sharpen boundaries.
+                In instance segmentation, <span class="hl-concept">Mask R-CNN</span> predicts masks on a
+                <span class="hl-rebuttal">"coarse 28x28 grid"</span> which is then
+                <span class="hl-rebuttal">"resized to the bounding box resolution, resulting in over-smoothed boundaries."</span>
+                These approaches
+                <span class="hl-rebuttal">uniformly process all spatial locations regardless of their difficulty</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前在提升分割解析度方面的工作包括：維持空間解析度的<span class="hl-concept">擴張/空洞摺積</span>、逐步上取樣的<span class="hl-concept">編碼器-解碼器架構</span>，以及作為後處理以銳化邊界的<span class="hl-concept">條件隨機場（CRF）</span>。在實例分割中，<span class="hl-concept">Mask R-CNN</span> 在<span class="hl-rebuttal">粗糙的 28x28 網格上預測遮罩</span>，再<span class="hl-rebuttal">調整至邊界框解析度，導致邊界過度平滑</span>。這些方法<span class="hl-rebuttal">不論空間位置的難度高低，均以均勻方式處理所有位置</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性地梳理既有提升分割解析度的方法，並指出共同缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    延續緒論的「均勻運算」批判脈絡，以具體方法佐證此問題的普遍性。特別以 Mask R-CNN 的 28x28 限制作為代表性案例。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將多種不同範式的方法歸入同一缺陷框架（「均勻處理」），統一了批判視角但也過度簡化——例如 CRF 後處理本身就是一種非均勻精修策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-pointrend">3.1 PointRend Module — PointRend 模組</h3>
+
+    <!-- 方法段落 1：點特徵表徵 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">PointRend module</span> operates as a drop-in replacement that can be applied to existing segmentation architectures.
+                For each selected point, the module constructs a
+                <span class="hl-method">point-wise feature representation</span> by combining two types of features:
+                (1) <span class="hl-method">fine-grained features extracted via bilinear interpolation from the CNN feature map</span>
+                at the point's location, capturing low-level positional information; and
+                (2) <span class="hl-method">coarse-grained features from the region's global representation</span>,
+                providing semantic context.
+                A small <span class="hl-method">point head MLP</span> then maps this combined representation to a segmentation label.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">PointRend 模組</span>可作為即插即用的替換元件，應用於現有的分割架構。對於每個選取的點，模組透過結合兩類特徵建構<span class="hl-method">逐點特徵表徵</span>：(1) <span class="hl-method">透過雙線性插值從 CNN 特徵圖的該點位置擷取的細粒度特徵</span>，捕捉低階位置資訊；(2) <span class="hl-method">來自區域全域表徵的粗粒度特徵</span>，提供語意上下文。隨後由一個小型<span class="hl-method">逐點 MLP 頭</span>將此組合表徵映射為分割標籤。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法細節——描述 PointRend 模組的特徵建構與預測機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的核心之一：說明「在選定的點上做什麼」。雙路特徵結合（細粒度 + 粗粒度）確保每個點同時具備位置精度與語意理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「即插即用」的定位是強有力的工程訴求——降低了採用門檻。雙路特徵設計合理，但 MLP 的容量是否足以處理複雜的邊界模式，以及雙線性插值是否會引入偽影，值得進一步分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 2：點選取策略 -->
+    <h3 class="subsection-heading" id="sec-subdivision">3.2 Point Selection Strategy — 點選取策略</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                During <span class="hl-concept">training</span>, PointRend uses a
+                <span class="hl-method">non-uniform sampling strategy biased toward uncertain regions</span>.
+                Points are selected by first uniformly sampling candidates, then
+                <span class="hl-method">oversampling points with predictions closest to 0.5 (most uncertain)</span>.
+                During <span class="hl-concept">inference</span>, the module employs an
+                <span class="hl-method">iterative subdivision algorithm</span> inspired by adaptive rendering:
+                starting from a coarse prediction, it
+                <span class="hl-method">"selects the N most uncertain points, computes their representations, and predicts labels"</span>
+                at each subdivision step, progressively refining only the ambiguous regions
+                until the desired output resolution is reached.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-concept">訓練</span>階段，PointRend 採用<span class="hl-method">偏向不確定區域的非均勻取樣策略</span>。首先均勻取樣候選點，再<span class="hl-method">過度取樣預測值最接近 0.5（最不確定）的點</span>。在<span class="hl-concept">推論</span>階段，模組採用受自適應渲染啟發的<span class="hl-method">迭代細分演算法</span>：從粗糙的預測開始，在每個細分步驟中<span class="hl-method">「選取 N 個最不確定的點、計算其表徵並預測標籤」</span>，逐步精修模糊區域，直至達到所需的輸出解析度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心演算法——描述訓練時的不確定性取樣與推論時的迭代細分。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回答「如何選擇在哪些點上計算」——這是 PointRend 效率優勢的根本來源。訓練與推論階段的策略差異設計體現了對兩個場景不同需求的深入理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    迭代細分的漸進式精修策略直覺上非常合理——資源集中在「邊界」附近。但以 0.5 閾值作為不確定性指標是否為最優選擇？對於多類別分割，不確定性的定義可能更為複雜。此外，迭代步數如何平衡精度與速度，未見理論分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments demonstrate PointRend's effectiveness across both instance and semantic segmentation.
+                For <span class="hl-concept">instance segmentation</span> on COCO,
+                PointRend applied to <span class="hl-concept">Mask R-CNN</span> with a
+                <span class="hl-evidence">ResNet-50 backbone achieves significant improvements in mask AP,
+                particularly visible at higher IoU thresholds</span> where boundary quality matters most.
+                Qualitatively, <span class="hl-evidence">predictions show dramatically sharper boundaries</span>
+                compared to the standard 28x28 mask head.
+                For <span class="hl-concept">semantic segmentation</span> on Cityscapes,
+                PointRend improves results with
+                <span class="hl-evidence">reduced computational cost compared to increasing feature map resolution</span>.
+                The method adds <span class="hl-evidence">negligible computational overhead</span> since it
+                <span class="hl-rebuttal">processes only a small subset of all pixels</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗在<span class="hl-concept">實例分割</span>與<span class="hl-concept">語意分割</span>兩個任務上展示了 PointRend 的有效性。在 COCO 實例分割任務中，將 PointRend 應用於 <span class="hl-concept">Mask R-CNN</span> 搭配 <span class="hl-evidence">ResNet-50 骨幹網路，在遮罩 AP 上取得顯著提升，尤其在較高 IoU 閾值下</span>（邊界品質最為關鍵之處）效果最為明顯。定性結果顯示，<span class="hl-evidence">預測呈現出比標準 28x28 遮罩頭更為清晰的邊界</span>。在 Cityscapes 語意分割任務中，PointRend 以<span class="hl-evidence">較低的運算成本提升了結果</span>，相較於直接增加特徵圖解析度更為高效。該方法僅增加<span class="hl-evidence">微不足道的運算負擔</span>，因為它<span class="hl-rebuttal">只處理所有像素中的一小部分</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實驗證據——在多個任務與資料集上驗證方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的實證支柱，覆蓋三個維度：(1) 高 IoU 閾值下的量化提升；(2) 定性的邊界清晰度對比；(3) 運算效率優勢。三者共同支撐「自適應優於均勻」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調高 IoU 閾值的改善是聰明的策略——這正是邊界精度的直接指標。但作者對整體 AP（所有閾值平均）的改善幅度著墨較少，可能暗示在低 IoU 閾值下改善有限。Cityscapes 的結果較 COCO 簡略，泛化性論證尚有空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">PointRend</span> presents a new perspective on image segmentation by
+                <span class="hl-thesis">drawing an analogy to rendering in computer graphics</span>.
+                The module <span class="hl-method">adaptively selects a non-uniform set of points</span>
+                at which to compute segmentation labels, using an
+                <span class="hl-method">iterative subdivision strategy</span> that focuses computation on uncertain regions.
+                This approach <span class="hl-thesis">yields significantly sharper boundaries</span> while being
+                <span class="hl-evidence">computationally efficient and applicable as a general module</span>
+                across different segmentation architectures and tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">PointRend</span> 透過將影像分割類比為電腦圖學中的渲染，為分割問題提供了全新的視角。該模組自適應地選取一組非均勻的點來計算分割標籤，採用迭代細分策略將運算集中於不確定區域。此方法在產生顯著更清晰的邊界的同時，保持運算效率，並可作為通用模組應用於不同的分割架構與任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重述核心類比、方法機制與實際效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段完美呼應摘要的結構：類比（渲染）、機制（自適應點選取）、效益（清晰邊界 + 效率）。形成首尾完整的論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論簡潔有力，但未討論方法的局限性——例如對於缺乏清晰邊界的分割目標（如天空/雲的邊界）、極端尺度變化的場景、以及 3D 分割任務的適用性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                均勻分割運算<br>浪費於平滑區域
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                分割可類比渲染<br>自適應點取樣
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                COCO / Cityscapes<br>邊界品質顯著提升
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                運算開銷微小<br>即插即用通用性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                PointRend 兼具效率<br>與邊界精度
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將影像分割重新框架為渲染問題，並透過迭代細分的自適應點取樣策略，在運算效率與邊界精度之間取得最優平衡。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>跨領域類比的優雅性：</strong>從電腦圖學的自適應渲染借鑑成熟技術，將其成功轉移至分割任務。此類比不僅提供了直覺理解，更轉化為具體可行的演算法設計（迭代細分），在高 IoU 閾值下產生可量化的邊界品質提升，同時保持極低的額外運算成本。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>類比深度的局限：</strong>渲染問題具有明確的幾何先驗（已知場景模型），而分割的「不確定性」完全依賴模型自身的估計，兩者在資訊可得性上有本質差異。此外，以預測值接近 0.5 作為不確定性指標，在多類別場景下的最優性缺乏理論保證，且迭代步數與精度的權衡未見系統性分析。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

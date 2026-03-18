@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPADE: Semantic Image Synthesis with Spatially-Adaptive Normalization — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .section-subtitle {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 0.88rem;
+            color: #666;
+            margin-bottom: 24px;
+        }
+
+        /* ===== 段落行（雙欄） ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin-bottom: 32px;
+            align-items: flex-start;
+        }
+
+        .para-left {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .para-right {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Lora', 'Georgia', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            margin-bottom: 0;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            border: none;
+            border-top: 1px solid #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 14px 18px;
+            font-size: 0.97rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* ===== 五類維度高亮 ===== */
+        .hl-thesis {
+            background-color: rgba(255, 220, 80, 0.35);
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+        .hl-concept {
+            background-color: rgba(230, 80, 80, 0.22);
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+        .hl-evidence {
+            background-color: rgba(70, 140, 220, 0.25);
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+        .hl-rebuttal {
+            background-color: rgba(80, 190, 100, 0.25);
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+        .hl-method {
+            background-color: rgba(160, 90, 210, 0.22);
+            padding: 1px 3px;
+            border-radius: 2px;
+        }
+
+        /* ===== 批注卡片 ===== */
+        .annotation-card {
+            border-radius: 6px;
+            padding: 16px 18px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+        }
+
+        .annotation-card.card-thesis    { background: #fffbe6; border-left: 4px solid #f0c040; }
+        .annotation-card.card-concept   { background: #fef0f0; border-left: 4px solid #d95050; }
+        .annotation-card.card-evidence  { background: #eef5fc; border-left: 4px solid #4a8ecc; }
+        .annotation-card.card-rebuttal  { background: #eefaf0; border-left: 4px solid #45b060; }
+        .annotation-card.card-method    { background: #f5eefa; border-left: 4px solid #9050c8; }
+        .annotation-card.card-mixed     { background: #f4f2ee; border-left: 4px solid #888; }
+
+        .annotation-card .ann-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #555;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .annotation-card p {
+            margin-bottom: 6px;
+        }
+
+        .annotation-card p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 36px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        }
+
+        .argument-overview h2 {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.4rem;
+            color: #1a2332;
+            margin-bottom: 24px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+        }
+
+        .argument-overview h3 {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.05rem;
+            color: #1a2332;
+            margin: 20px 0 10px;
+        }
+
+        .argument-overview p, .argument-overview li {
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        .argument-overview ul {
+            padding-left: 22px;
+        }
+
+        .argument-overview li {
+            margin-bottom: 5px;
+        }
+
+        .logic-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin: 16px 0;
+        }
+
+        .logic-node {
+            background: #eef2f7;
+            border: 1px solid #c0cfe0;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .logic-arrow {
+            font-size: 1.2rem;
+            color: #888;
+        }
+
+        .strength-box {
+            display: flex;
+            gap: 20px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .strength-item {
+            flex: 1;
+            min-width: 260px;
+            padding: 16px;
+            border-radius: 6px;
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+
+        .strength-item.strong {
+            background: #eef5ec;
+            border-left: 4px solid #45b060;
+        }
+
+        .strength-item.weak {
+            background: #fef5ee;
+            border-left: 4px solid #e08040;
+        }
+
+        .strength-item .strength-label {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        /* ===== 響應式設計 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .para-left {
+                flex: 1 1 auto;
+                max-width: 100%;
+            }
+            .main-container {
+                padding: 16px 12px 40px;
+            }
+            .top-navbar {
+                padding: 14px 16px;
+            }
+            .section-nav {
+                padding: 0 12px;
+            }
+            .argument-overview {
+                padding: 20px;
+            }
+            .strength-box {
+                flex-direction: column;
+            }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== 頂部導航欄 ===== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Semantic Image Synthesis with Spatially-Adaptive Normalization
+                <span class="course-tag">CVPR 2019</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&#8592; 回到主頁</a>
+            <a href="https://arxiv.org/abs/1903.07291" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+        </div>
+        <div class="color-legend">
+            <div class="legend-item"><span class="legend-swatch" style="background:#f0c040;"></span> 核心論點 / Thesis</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#d95050;"></span> 關鍵概念 / 術語</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#4a8ecc;"></span> 實證證據 / 資料</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#45b060;"></span> 讓步 / 反駁處理</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#9050c8;"></span> 方法論說明</div>
+        </div>
+    </div>
+</nav>
+
+<!-- ===== 章節導航條 ===== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 引言</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-spade">3.1 SPADE</a>
+        <a href="#sec-generator">3.2 生成器</a>
+        <a href="#sec-why">3.3 為何更好</a>
+        <a href="#sec-multimodal">3.4 多模態合成</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ===== 主體內容 ===== -->
+<div class="main-container">
+
+    <!-- ==================== 摘要 ==================== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract 摘要</h2>
+    <p class="section-subtitle">Park, Liu, Wang, Zhu — CVPR 2019</p>
+
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                We propose <span class="hl-concept">spatially-adaptive normalization</span>, a simple but effective layer for
+                <span class="hl-thesis">synthesizing photorealistic images given an input semantic layout</span>.
+                The previous methods directly feed the semantic layout as input to the deep network, which is then
+                processed through stacks of <span class="hl-concept">convolution, normalization, and nonlinearity layers</span>.
+                We show that this is suboptimal as the <span class="hl-thesis">normalization layers tend to "wash away"
+                semantic information</span>. To address the issue, we propose using the input layout for
+                <span class="hl-method">modulating the activations in normalization layers through a spatially-adaptive,
+                learned transformation</span>. Experiments on several challenging datasets demonstrate the
+                <span class="hl-evidence">advantage of the proposed method over existing approaches</span> regarding both
+                visual fidelity and alignment with input layouts. Moreover, the model allows users to easily
+                <span class="hl-thesis">control both the semantic and style of image content</span>. Code is available upon publication.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                本文提出<span class="hl-concept">空間自適應正規化層</span>（spatially-adaptive normalization），這是一種簡潔而有效的網路層，用於根據輸入的語義佈局<span class="hl-thesis">合成逼真影像</span>。先前的方法直接將語義佈局作為深度網路的輸入，經由層疊的<span class="hl-concept">摺積、正規化與非線性層</span>處理。然而我們發現此做法並非最優，因為<span class="hl-thesis">正規化層傾向於「洗掉」語義資訊</span>。為解決此問題，我們提出利用輸入佈局，透過<span class="hl-method">空間自適應的學習轉換來調制正規化層中的激活值</span>。在多個具挑戰性的資料集上的實驗表明，所提方法在<span class="hl-evidence">視覺保真度與輸入佈局對齊方面均優於現有方法</span>。此外，該模型允許使用者輕鬆<span class="hl-thesis">控制影像內容的語義與風格</span>。程式碼於論文發表後公開。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-thesis">
+                <span class="ann-label">段落功能：提出核心問題與解決方案</span>
+                <p><strong>邏輯角色：</strong>作為全文的濃縮概覽，建立「問題 → 原因診斷 → 方法提出 → 實驗驗證 → 應用價值」的完整論述框架。</p>
+                <p><strong>論證技巧：</strong>摘要精準地先指出現有方法的根本缺陷（正規化層洗掉語義資訊），再提出對應的解法（空間自適應調制），形成清晰的因果鏈。同時強調「使用者可控性」拓展了研究的應用價值，兼顧學術貢獻與工程實用性。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 1. 引言 ==================== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction 引言</h2>
+    <p class="section-subtitle">問題定義與研究動機</p>
+
+    <!-- 引言段落1：任務定義 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                We address the problem of <span class="hl-concept">semantic image synthesis</span>—converting a
+                <span class="hl-concept">semantic segmentation mask</span> to a photorealistic image. This problem is
+                challenging but has many important applications, such as content creation and image editing tools,
+                which could eventually offer an alternative to traditional rendering pipelines.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                本研究聚焦於<span class="hl-concept">語義影像合成</span>問題——即將<span class="hl-concept">語義分割遮罩</span>轉換為逼真影像。此問題極具挑戰性，但擁有眾多重要應用場景，例如內容創作與影像編輯工具，未來有望成為傳統渲染管線的替代方案。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-concept">
+                <span class="ann-label">段落功能：定義研究任務</span>
+                <p><strong>邏輯角色：</strong>開篇即明確界定研究問題的邊界——語義分割遮罩到逼真影像的轉換，為後續技術討論奠定基礎。</p>
+                <p><strong>論證技巧：</strong>簡潔地引出應用場景（內容創作、影像編輯）來建立研究的實用價值，使讀者迅速理解此研究「為何重要」。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引言段落2：現有方法問題 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                The conventional network architecture for this task uses stacked
+                <span class="hl-concept">convolutional, normalization, and nonlinearity layers</span>. We identify that
+                this design is suboptimal because <span class="hl-thesis">normalization layers tend to "wash away"
+                information contained in the input semantic masks</span>. This is particularly problematic when the
+                semantic layout is directly concatenated with or added to the input of the first layer, as the
+                semantic signal must survive through many normalization stages.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                用於此任務的傳統網路架構採用層疊的<span class="hl-concept">摺積、正規化與非線性層</span>。我們指出此設計並非最優，因為<span class="hl-thesis">正規化層傾向於「洗掉」輸入語義遮罩中的資訊</span>。當語義佈局直接串聯或疊加至第一層輸入時，此問題尤為突出，因為語義訊號必須在多個正規化階段中存活下來。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-thesis">
+                <span class="ann-label">段落功能：指出現有方法的根本缺陷</span>
+                <p><strong>邏輯角色：</strong>此段是全文的關鍵洞察——識別出正規化層會「洗掉」語義資訊這一核心問題，為後續 SPADE 的設計提供直接動機。</p>
+                <p><strong>論證技巧：</strong>使用「wash away」的比喻式措辭使抽象的技術問題變得直觀，同時補充「語義訊號必須在多個正規化階段中存活」的解釋，強化問題的嚴重性。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引言段落3：提出方法 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                We propose <span class="hl-concept">spatially-adaptive normalization</span>, a
+                <span class="hl-method">conditional normalization layer that modulates the activations using input
+                semantic layouts through a spatially-adaptive, learned transformation</span>. Unlike prior conditional
+                normalization methods, the modulation parameters of the proposed method are
+                <span class="hl-thesis">spatially-adaptive</span>—they vary with respect to the spatial position in the
+                input semantic mask—effectively propagating semantic information throughout the network.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                我們提出<span class="hl-concept">空間自適應正規化</span>，一種<span class="hl-method">條件式正規化層，透過空間自適應的學習轉換，利用輸入語義佈局來調制激活值</span>。與先前的條件式正規化方法不同，本方法的調制參數具有<span class="hl-thesis">空間自適應性</span>——它們隨輸入語義遮罩的空間位置而變化——從而有效地將語義資訊在整個網路中傳播。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-method">
+                <span class="ann-label">段落功能：提出核心方法</span>
+                <p><strong>邏輯角色：</strong>緊接問題診斷，提出「空間自適應正規化」作為解決方案，完成「問題→方案」的邏輯閉環。</p>
+                <p><strong>論證技巧：</strong>透過與先前條件式正規化方法的對比（「unlike prior methods」），精準定位本方法的創新點——參數的空間變化性。「effectively propagating semantic information throughout the network」則直接呼應前段提出的問題。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引言段落4：實驗結果預覽 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                We conduct extensive experiments on several challenging datasets including
+                <span class="hl-evidence">COCO-Stuff, ADE20K, and Cityscapes</span>. Our results show that even a
+                <span class="hl-evidence">compact network with spatially-adaptive normalization produces significantly
+                better results compared to several state-of-the-art methods</span> in terms of both visual quality
+                and alignment with the input segmentation masks.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                我們在多個具挑戰性的資料集上進行了大量實驗，包括 <span class="hl-evidence">COCO-Stuff、ADE20K 和 Cityscapes</span>。結果表明，即使是<span class="hl-evidence">採用空間自適應正規化的輕量網路，在視覺品質與輸入分割遮罩對齊方面，亦顯著優於多種現有最先進方法</span>。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-evidence">
+                <span class="ann-label">段落功能：預覽實驗成果</span>
+                <p><strong>邏輯角色：</strong>在引言尾段預告實驗結果，強化讀者對方法有效性的信心，引導其繼續閱讀後續技術細節。</p>
+                <p><strong>論證技巧：</strong>強調「compact network」仍能超越 SOTA，暗示方法的效率優勢，不僅品質好且模型更輕量——這是極具說服力的組合論證。提及三個不同領域的資料集也展現了方法的泛化能力。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 2. 相關工作 ==================== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work 相關工作</h2>
+    <p class="section-subtitle">技術背景與文獻綜述</p>
+
+    <!-- 相關工作段落1：生成模型 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                <span class="hl-concept">Deep generative models</span>, particularly
+                <span class="hl-concept">Generative Adversarial Networks (GANs)</span> and
+                <span class="hl-concept">Variational Autoencoders (VAEs)</span>, have achieved remarkable progress in
+                image generation. We focus on <span class="hl-concept">conditional image synthesis</span>, where the goal
+                is to generate images conditioned on some input signal. Various forms of conditioning have been explored,
+                including <span class="hl-concept">class-conditional models</span>,
+                <span class="hl-concept">text-to-image generation</span>, and
+                <span class="hl-concept">image-to-image translation</span>.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                <span class="hl-concept">深度生成模型</span>，尤其是<span class="hl-concept">生成對抗網路（GANs）</span>和<span class="hl-concept">變分自編碼器（VAEs）</span>，在影像生成方面取得了顯著進展。本文聚焦於<span class="hl-concept">條件式影像合成</span>，其目標是根據某種輸入訊號來生成影像。已有研究探索了多種條件形式，包括<span class="hl-concept">類別條件模型</span>、<span class="hl-concept">文本到影像生成</span>，以及<span class="hl-concept">影像到影像轉譯</span>。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-concept">
+                <span class="ann-label">段落功能：建立技術背景</span>
+                <p><strong>邏輯角色：</strong>梳理生成模型的整體技術脈絡，將本研究定位在「條件式影像合成」這一具體分支中，幫助讀者理解研究位置。</p>
+                <p><strong>論證技巧：</strong>透過列舉 GAN、VAE 等主流框架以及多種條件形式，展示作者對領域的全面掌握，建立學術可信度。分類方式清晰，便於讀者定位本文的技術座標。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落2：正規化方法 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                <span class="hl-concept">Normalization layers</span> can be categorized into
+                <span class="hl-concept">unconditional</span> types—such as
+                <span class="hl-concept">Batch Normalization (BatchNorm)</span>,
+                <span class="hl-concept">Instance Normalization (InstanceNorm)</span>, and
+                <span class="hl-concept">Layer Normalization (LayerNorm)</span>—and
+                <span class="hl-concept">conditional</span> types, including
+                <span class="hl-concept">Conditional Batch Normalization</span> and
+                <span class="hl-concept">Adaptive Instance Normalization (AdaIN)</span>. Our proposed method applies
+                <span class="hl-thesis">spatially-varying affine transformations</span> learned from semantic input,
+                <span class="hl-rebuttal">distinguishing it from prior conditional normalization methods that use
+                spatially-uniform parameters across all spatial coordinates</span>.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                <span class="hl-concept">正規化層</span>可分為<span class="hl-concept">非條件式</span>類型——如<span class="hl-concept">批次正規化（BatchNorm）</span>、<span class="hl-concept">實例正規化（InstanceNorm）</span>和<span class="hl-concept">層正規化（LayerNorm）</span>——以及<span class="hl-concept">條件式</span>類型，包括<span class="hl-concept">條件批次正規化</span>和<span class="hl-concept">自適應實例正規化（AdaIN）</span>。本文提出的方法從語義輸入中學習<span class="hl-thesis">空間變化的仿射變換</span>，這<span class="hl-rebuttal">使其與先前使用空間均勻參數的條件式正規化方法形成根本區別</span>。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-rebuttal">
+                <span class="ann-label">段落功能：定位技術差異</span>
+                <p><strong>邏輯角色：</strong>透過對正規化方法的系統分類，精準標定 SPADE 在技術譜系中的位置——它是一種具空間變化性的條件式正規化。</p>
+                <p><strong>論證技巧：</strong>巧妙地將現有方法歸類後，用「spatially-varying vs. spatially-uniform」的對比凸顯核心創新。此策略既承認先前工作的貢獻，又清晰劃定了自身的創新邊界。潛在漏洞：分類較為概括，未深入討論各方法在特定場景的表現差異。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 3.1 SPADE ==================== -->
+    <h2 class="section-heading" id="sec-spade">3.1 Spatially-Adaptive Denormalization (SPADE)</h2>
+    <p class="section-subtitle">核心技術貢獻</p>
+
+    <!-- SPADE段落1：數學表述 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                The core contribution of this work is <span class="hl-concept">SPADE (SPatially-Adaptive
+                DEnormalization)</span>. Unlike standard <span class="hl-concept">Batch Normalization</span>, where
+                activations are normalized channel-wise and then modulated with
+                <span class="hl-method">learned, spatially-uniform scale and bias parameters</span>, SPADE modulates
+                the normalized activations with <span class="hl-thesis">scale and bias parameters that depend on the
+                input segmentation mask and vary across spatial positions</span>.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                本研究的核心貢獻是 <span class="hl-concept">SPADE（空間自適應去正規化）</span>。不同於標準的<span class="hl-concept">批次正規化</span>——其中激活值按通道正規化後以<span class="hl-method">學習得到的空間均勻尺度與偏差參數</span>進行調制——SPADE 使用<span class="hl-thesis">依賴於輸入分割遮罩且隨空間位置變化的尺度與偏差參數</span>來調制正規化後的激活值。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-method">
+                <span class="ann-label">段落功能：定義核心機制</span>
+                <p><strong>邏輯角色：</strong>正式引入 SPADE 的技術定義，這是全文的核心創新點。透過與標準 BatchNorm 的對比，使讀者迅速把握關鍵差異。</p>
+                <p><strong>論證技巧：</strong>採用「對比框架」——先描述已知的標準做法（BatchNorm），再指出 SPADE 的不同之處（空間變化參數），降低讀者理解門檻。SPADE 的命名本身就暗示了其「去正規化」的核心操作。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SPADE段落2：數學公式 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                Mathematically, the activation value at site (n, c, y, x) is first
+                <span class="hl-method">normalized using the channel-wise mean and standard deviation</span>.
+                The normalized activation is then <span class="hl-method">modulated by position-specific scaling
+                (&gamma;) and bias (&beta;) parameters</span>, which are derived from the segmentation mask through a
+                <span class="hl-method">two-layer convolutional network</span>. The first convolution layer processes
+                the segmentation mask with a shared set of filters, followed by separate convolution layers that
+                produce the &gamma; and &beta; tensors respectively.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                從數學角度而言，位於 (n, c, y, x) 處的激活值首先<span class="hl-method">使用通道級別的均值和標準差進行正規化</span>。隨後，正規化後的激活值由<span class="hl-method">位置特定的尺度參數（&gamma;）和偏差參數（&beta;）進行調制</span>，這些參數透過一個<span class="hl-method">兩層摺積網路</span>從分割遮罩中衍生。第一層摺積使用共享濾波器處理分割遮罩，接著由各自獨立的摺積層分別產生 &gamma; 和 &beta; 張量。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-method">
+                <span class="ann-label">段落功能：闡述技術細節</span>
+                <p><strong>邏輯角色：</strong>提供 SPADE 的精確數學表述，讓讀者能夠完整理解並複現此方法。從高層概念過渡到具體實現。</p>
+                <p><strong>論證技巧：</strong>將複雜的數學操作分解為「正規化 → 生成調制參數 → 應用調制」三步驟，邏輯清晰。兩層摺積網路的設計選擇（共享第一層+獨立輸出層）體現了參數效率與表達力的平衡，但論文未深入討論為何選擇兩層而非更深的網路。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SPADE段落3：統一框架 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                The proposed method <span class="hl-thesis">generalizes several existing normalization approaches</span>:
+                if we <span class="hl-rebuttal">replace the segmentation mask with class labels, SPADE reduces to
+                Conditional Batch Normalization</span>; if we replace it with image data, it reduces to
+                <span class="hl-concept">Adaptive Instance Normalization (AdaIN)</span>. This unifying perspective
+                shows that SPADE occupies a more general position in the design space of conditional normalization layers.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                所提出的方法可<span class="hl-thesis">統一多種現有正規化方法</span>：若<span class="hl-rebuttal">將分割遮罩替換為類別標籤，SPADE 退化為條件批次正規化</span>；若替換為影像資料，則退化為<span class="hl-concept">自適應實例正規化（AdaIN）</span>。此統一觀點表明，SPADE 在條件式正規化層的設計空間中佔據更為通用的位置。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-rebuttal">
+                <span class="ann-label">段落功能：建立理論統一性</span>
+                <p><strong>邏輯角色：</strong>將 SPADE 定位為現有方法的泛化形式，而非僅僅是另一種新方法。此論證策略極大地提升了方法的理論地位。</p>
+                <p><strong>論證技巧：</strong>採用「特例歸約」的數學論證風格——展示現有方法是 SPADE 的特殊情況——這是一種極為有力的論證手段，既展現了 SPADE 的通用性，也暗示先前方法的局限性。此策略常見於數學導向的電腦視覺論文。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 3.2 生成器 ==================== -->
+    <h2 class="section-heading" id="sec-generator">3.2 SPADE Generator 生成器架構</h2>
+    <p class="section-subtitle">網路設計與訓練策略</p>
+
+    <!-- 生成器段落1：架構設計 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                The <span class="hl-concept">SPADE generator</span> architecture removes the
+                <span class="hl-thesis">encoder component common in recent architectures</span>, since the
+                <span class="hl-method">learned modulation parameters already encode sufficient label
+                information</span>. This simplification produces a
+                <span class="hl-evidence">more lightweight network</span> while maintaining or even improving performance.
+                The generator accepts a <span class="hl-method">random noise vector as input</span>, which is
+                processed through a series of <span class="hl-concept">SPADE residual blocks</span> with upsampling layers
+                to produce the final output image.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                <span class="hl-concept">SPADE 生成器</span>架構移除了<span class="hl-thesis">近期架構中常見的編碼器元件</span>，因為<span class="hl-method">學習得到的調制參數已足以編碼標籤資訊</span>。這一簡化產生了<span class="hl-evidence">更為輕量的網路</span>，同時維持甚至提升了性能。生成器接受<span class="hl-method">隨機雜訊向量作為輸入</span>，經由一系列 <span class="hl-concept">SPADE 殘差模組</span>與上採樣層處理，產生最終的輸出影像。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-method">
+                <span class="ann-label">段落功能：描述架構創新</span>
+                <p><strong>邏輯角色：</strong>闡述 SPADE 生成器的架構設計邏輯——因為 SPADE 層已承擔語義編碼功能，故可移除傳統編碼器，實現輕量化。</p>
+                <p><strong>論證技巧：</strong>「移除編碼器」既是架構簡化，又是 SPADE 有效性的間接證明——若 SPADE 層不能充分編碼語義資訊，移除編碼器後效能應會下降。這構成了一種優雅的自證邏輯。接受隨機向量輸入的設計同時開啟了多模態合成的可能。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 生成器段落2：訓練細節 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                The architecture employs <span class="hl-concept">ResNet blocks</span> with upsampling layers.
+                Training uses a <span class="hl-method">multi-scale discriminator</span> and
+                <span class="hl-method">pix2pixHD loss function</span>, with the modification of replacing the
+                <span class="hl-concept">least-squared loss</span> with <span class="hl-concept">hinge loss</span>.
+                This training scheme stabilizes the adversarial training process and improves the quality of
+                generated images.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                該架構採用帶上採樣層的 <span class="hl-concept">ResNet 模組</span>。訓練使用<span class="hl-method">多尺度判別器</span>和<span class="hl-method">pix2pixHD 損失函數</span>，並以 <span class="hl-concept">鉸鏈損失（hinge loss）</span>替代<span class="hl-concept">最小平方損失</span>。此訓練方案穩定了對抗訓練過程，並提升了生成影像的品質。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-method">
+                <span class="ann-label">段落功能：說明訓練策略</span>
+                <p><strong>邏輯角色：</strong>補充生成器的訓練細節，使方法描述完整。多尺度判別器與 hinge loss 是當時 GAN 訓練的成熟技巧。</p>
+                <p><strong>論證技巧：</strong>訓練策略的選擇建立在已有成功經驗（pix2pixHD）之上，將 hinge loss 替換 least-squared loss 是較為「安全」的改進。潛在漏洞：未詳細討論為何 hinge loss 更適合此場景，讀者需自行推敲。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 3.3 為何更好 ==================== -->
+    <h2 class="section-heading" id="sec-why">3.3 Why SPADE Works Better 為何 SPADE 更有效</h2>
+    <p class="section-subtitle">理論分析與直覺解釋</p>
+
+    <!-- 為何更好段落1：InstanceNorm 的問題 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                When <span class="hl-concept">convolution</span> is applied to
+                <span class="hl-concept">uniform or homogeneous mask regions</span>, followed by
+                <span class="hl-concept">Instance Normalization</span>, the
+                <span class="hl-thesis">normalized activations become zero regardless of the input label value</span>,
+                effectively <span class="hl-thesis">eliminating semantic information entirely</span>. This is because
+                in uniform regions, the convolution output has the same value at every spatial location, leading
+                to zero variance after normalization.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                當對<span class="hl-concept">均勻或同質的遮罩區域</span>施加<span class="hl-concept">摺積</span>，再接以<span class="hl-concept">實例正規化</span>時，<span class="hl-thesis">正規化後的激活值無論輸入標籤為何都會變為零</span>，從而<span class="hl-thesis">徹底消除語義資訊</span>。這是因為在均勻區域中，摺積輸出在每個空間位置具有相同的值，導致正規化後方差為零。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-thesis">
+                <span class="ann-label">段落功能：提供理論證明</span>
+                <p><strong>邏輯角色：</strong>以嚴謹的推理證明傳統方法（Conv + InstanceNorm）在均勻遮罩區域會完全喪失語義資訊，這是支撐 SPADE 設計動機的理論基石。</p>
+                <p><strong>論證技巧：</strong>這是一個簡潔而有力的「反面論證」——不是直接證明 SPADE 好，而是先證明傳統方法在特定條件下必然失敗（零方差導致資訊消失）。此類構造性反例在學術論文中極具說服力。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 為何更好段落2：SPADE 的優勢 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                In contrast, <span class="hl-thesis">SPADE feeds the segmentation masks through spatially-adaptive
+                modulation without normalization—only the previous-layer activations are normalized</span>. The
+                semantic map is <span class="hl-method">processed through a separate convolutional pathway to produce
+                the modulation parameters</span>, which are then applied <em>after</em> normalization. This design
+                <span class="hl-thesis">preserves semantic information while maintaining the benefits of
+                normalization</span> for stable training.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                相比之下，<span class="hl-thesis">SPADE 將分割遮罩透過空間自適應調制引入，而不對其進行正規化——僅對前一層的激活值進行正規化</span>。語義圖透過<span class="hl-method">獨立的摺積路徑處理以生成調制參數</span>，這些參數在正規化之後施加。此設計<span class="hl-thesis">在保留語義資訊的同時，維持了正規化對穩定訓練的好處</span>。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-thesis">
+                <span class="ann-label">段落功能：解釋 SPADE 的優勢機制</span>
+                <p><strong>邏輯角色：</strong>與前段形成「問題→解答」的完整邏輯對——前段說明為何傳統方法失敗，本段說明 SPADE 為何不會有此問題。</p>
+                <p><strong>論證技巧：</strong>關鍵洞察在於「分離路徑」：語義資訊走獨立的摺積路徑（不被正規化），而正規化僅作用於前層激活值。這種設計巧妙地「兩全其美」——既保留語義又穩定訓練。以「in contrast」開頭，形成清晰的正反對比結構。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 3.4 多模態合成 ==================== -->
+    <h2 class="section-heading" id="sec-multimodal">3.4 Multi-Modal Synthesis 多模態合成</h2>
+    <p class="section-subtitle">風格控制與影像編碼</p>
+
+    <!-- 多模態段落1 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                The architecture enables <span class="hl-thesis">multi-modal synthesis</span> by accepting
+                <span class="hl-method">random noise vectors as input to the generator</span>. Different random
+                vectors lead to different output images for the same semantic layout, providing
+                <span class="hl-thesis">diversity in generated results</span>.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                該架構透過接受<span class="hl-method">隨機雜訊向量作為生成器輸入</span>，實現了<span class="hl-thesis">多模態合成</span>。對於相同的語義佈局，不同的隨機向量會產生不同的輸出影像，從而提供<span class="hl-thesis">生成結果的多樣性</span>。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-thesis">
+                <span class="ann-label">段落功能：引出附加功能</span>
+                <p><strong>邏輯角色：</strong>展示 SPADE 架構的額外優勢——移除編碼器後，隨機向量輸入自然實現了多模態合成，這是架構設計的附帶紅利。</p>
+                <p><strong>論證技巧：</strong>將多模態合成呈現為架構設計的自然結果而非刻意添加的功能，暗示設計的優雅性。「同一佈局、不同輸出」的描述直觀易懂。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 多模態段落2：VAE -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                An <span class="hl-method">image encoder</span> can be trained to process real images into random
+                vectors, forming a <span class="hl-concept">Variational Autoencoder (VAE)</span> framework. The
+                <span class="hl-method">encoder captures the style information</span> of the real image, while the
+                <span class="hl-method">generator combines the encoded style with segmentation information via
+                SPADE layers</span>. This allows <span class="hl-thesis">guided image synthesis</span>, where the
+                style of a reference image can be transferred to a new semantic layout.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                可訓練一個<span class="hl-method">影像編碼器</span>將真實影像處理為隨機向量，形成<span class="hl-concept">變分自編碼器（VAE）</span>框架。<span class="hl-method">編碼器擷取真實影像的風格資訊</span>，而<span class="hl-method">生成器則透過 SPADE 層將編碼的風格與分割資訊結合</span>。這使得<span class="hl-thesis">導引式影像合成</span>成為可能——即可將參考影像的風格轉移至新的語義佈局上。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-method">
+                <span class="ann-label">段落功能：拓展應用場景</span>
+                <p><strong>邏輯角色：</strong>進一步將架構擴展為 VAE 框架，展示「風格遷移 + 語義控制」的複合能力，拓寬了研究的應用邊界。</p>
+                <p><strong>論證技巧：</strong>透過引入 VAE 框架，SPADE 的「語義調制」能力與「風格編碼」能力被解耦，這一設計允許兩者獨立控制。「guided image synthesis」一詞暗示了極具吸引力的互動式應用場景。潛在漏洞：VAE 編碼器可能引入後驗坍塌問題，但論文未詳細討論。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 4. 實驗 ==================== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments 實驗</h2>
+    <p class="section-subtitle">定量評估與使用者研究</p>
+
+    <!-- 實驗段落1：訓練設定 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                Training is conducted on <span class="hl-evidence">8 V100 GPUs</span> with
+                <span class="hl-method">synchronized Batch Normalization</span>. The model is evaluated on
+                challenging datasets including <span class="hl-evidence">COCO-Stuff, ADE20K, and Cityscapes</span>,
+                covering diverse scene categories from urban street views to indoor environments.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                訓練在 <span class="hl-evidence">8 塊 V100 GPU</span> 上進行，使用<span class="hl-method">同步批次正規化</span>。模型在多個具挑戰性的資料集上評估，包括 <span class="hl-evidence">COCO-Stuff、ADE20K 和 Cityscapes</span>，涵蓋從城市街景到室內環境的多樣場景類別。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-evidence">
+                <span class="ann-label">段落功能：說明實驗配置</span>
+                <p><strong>邏輯角色：</strong>交代硬體環境與資料集選擇，為後續定量結果的可信度奠定基礎。</p>
+                <p><strong>論證技巧：</strong>選擇三個不同規模和場景類型的資料集展現了方法的泛化能力。提及同步 BatchNorm 體現了對分散式訓練的重視。潛在問題：8 塊 V100 的計算需求較高，可能限制方法的可及性。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落2：定量結果 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                On COCO-Stuff, SPADE achieves a <span class="hl-evidence">mIoU of 35.2 versus 14.6 for
+                pix2pixHD</span>—a dramatic improvement in semantic alignment. The
+                <span class="hl-evidence">FID scores are approximately 2.2 times better</span> than previous leading
+                methods, indicating significantly improved visual quality. These quantitative improvements are
+                consistent across all evaluated datasets.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                在 COCO-Stuff 上，<span class="hl-evidence">SPADE 達到 35.2 的 mIoU，而 pix2pixHD 僅為 14.6</span>——語義對齊方面有了大幅提升。<span class="hl-evidence">FID 分數約為先前領先方法的 2.2 倍改善</span>，表明視覺品質顯著提升。這些定量改進在所有評估資料集上均保持一致。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-evidence">
+                <span class="ann-label">段落功能：呈現核心定量結果</span>
+                <p><strong>邏輯角色：</strong>以具體資料支撐方法的有效性主張。mIoU 從 14.6 到 35.2 的提升（約 2.4 倍）是極為顯著的改進。</p>
+                <p><strong>論證技巧：</strong>選用 mIoU（語義對齊）和 FID（視覺品質）兩個互補指標，分別驗證方法在「忠於輸入佈局」和「生成品質」兩個維度上的優勢。「2.2 times better」的表述具有很強的衝擊力。「consistent across all datasets」進一步排除了偶然性。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落3：使用者研究與消融 -->
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                <span class="hl-evidence">User studies via Amazon Mechanical Turk strongly favor the proposed results
+                across all datasets</span>, confirming the perceptual quality advantage. Ablation studies show that
+                <span class="hl-evidence">SPADE consistently outperforms variants including simple concatenation of
+                semantic masks</span>. Notably, the <span class="hl-thesis">decoder-style SPADE generator achieves
+                better performance than baselines with fewer parameters</span>, demonstrating both effectiveness
+                and efficiency.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                <span class="hl-evidence">透過 Amazon Mechanical Turk 進行的使用者研究在所有資料集上均強烈偏好本方法的結果</span>，印證了感知品質上的優勢。消融研究表明，<span class="hl-evidence">SPADE 持續優於包括簡單串聯語義遮罩在內的各種變體</span>。值得注意的是，<span class="hl-thesis">解碼器式的 SPADE 生成器以更少的參數實現了優於基線方法的效能</span>，同時展現了有效性與效率。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-evidence">
+                <span class="ann-label">段落功能：補充主觀評估與消融實驗</span>
+                <p><strong>邏輯角色：</strong>以使用者研究補充定量指標的不足（FID 不完全等於人類感知），消融實驗則驗證了各設計選擇的必要性。</p>
+                <p><strong>論證技巧：</strong>三重驗證策略——定量指標、使用者研究、消融實驗——形成了極為完備的實驗論證體系。「fewer parameters + better performance」是最具說服力的組合：不僅效果好，而且更高效。這直接反駁了「效能提升可能僅來自更大模型」的潛在質疑。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 5. 結論 ==================== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion 結論</h2>
+    <p class="section-subtitle">總結與展望</p>
+
+    <div class="para-row">
+        <div class="para-left">
+            <div class="en-text">
+                We have presented <span class="hl-concept">spatially-adaptive normalization</span> for utilizing
+                <span class="hl-method">semantic layouts in affine transformations within normalization layers</span>.
+                This approach produces the <span class="hl-thesis">first semantic image synthesis model capable of
+                generating photorealistic outputs across diverse scenes</span>. The method demonstrates compelling
+                applications in <span class="hl-thesis">multi-modal synthesis and guided image synthesis</span>,
+                providing users with flexible control over the generation process.
+            </div>
+            <hr class="lang-divider">
+            <div class="zh-text">
+                本文提出了<span class="hl-concept">空間自適應正規化</span>，用於在<span class="hl-method">正規化層的仿射變換中利用語義佈局</span>。此方法產生了<span class="hl-thesis">首個能夠在多樣場景中生成逼真輸出的語義影像合成模型</span>。該方法在<span class="hl-thesis">多模態合成與導引式影像合成</span>中展現了引人注目的應用，為使用者提供了對生成過程的靈活控制。
+            </div>
+        </div>
+        <div class="para-right">
+            <div class="annotation-card card-thesis">
+                <span class="ann-label">段落功能：總結全文貢獻</span>
+                <p><strong>邏輯角色：</strong>以精煉的語言回顧核心貢獻——技術創新（SPADE）、品質突破（首個逼真多場景合成）、應用價值（多模態與導引合成）。</p>
+                <p><strong>論證技巧：</strong>「first semantic image synthesis model」的措辭確立了里程碑地位。結論刻意強調應用層面（multi-modal、guided synthesis），將學術貢獻與實際價值結合。潛在漏洞：未討論方法的局限性或失敗案例，這在學術論文中是常見的遺憾。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <h3>全文邏輯骨架</h3>
+        <div class="logic-flow">
+            <div class="logic-node">問題：語義遮罩→影像合成</div>
+            <span class="logic-arrow">&#8594;</span>
+            <div class="logic-node">診斷：正規化層洗掉語義資訊</div>
+            <span class="logic-arrow">&#8594;</span>
+            <div class="logic-node">方案：SPADE 空間自適應正規化</div>
+            <span class="logic-arrow">&#8594;</span>
+            <div class="logic-node">理論：分離路徑保留語義</div>
+            <span class="logic-arrow">&#8594;</span>
+            <div class="logic-node">實證：mIoU / FID 大幅提升</div>
+            <span class="logic-arrow">&#8594;</span>
+            <div class="logic-node">結論：首個逼真多場景合成模型</div>
+        </div>
+
+        <h3>作者核心主張（一句話）</h3>
+        <p style="font-size:1.05rem; font-weight:600; color:#1a2332; margin:8px 0 20px;">
+            透過空間自適應的條件式正規化層（SPADE），語義分割遮罩中的資訊可在生成網路中被有效保留與利用，從而以更輕量的架構實現跨場景的逼真語義影像合成。
+        </p>
+
+        <h3>論證最強處 vs 最弱處</h3>
+        <div class="strength-box">
+            <div class="strength-item strong">
+                <span class="strength-label">最強處</span>
+                理論分析（Section 3.3）以構造性論證證明 InstanceNorm 在均勻區域必然消除語義資訊，並搭配定量實驗（mIoU 從 14.6 提升至 35.2）和消融研究三重印證。特別是「更少參數、更好效果」的發現，有力反駁了「效能來自模型規模」的替代假說，形成了從理論到實證的完整閉環。
+            </div>
+            <div class="strength-item weak">
+                <span class="strength-label">最弱處</span>
+                論文對方法的局限性與失敗案例討論不足。例如：SPADE 在語義類別高度碎片化的場景中是否仍然有效？兩層摺積網路生成調制參數的設計是否為最優選擇？VAE 編碼器是否存在後驗坍塌問題？此外，8 塊 V100 GPU 的訓練需求較高，可能限制了方法在資源受限環境中的可及性，但論文未對此進行討論。
+            </div>
+        </div>
+    </div>
+
+</div><!-- /main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

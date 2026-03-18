@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aggregated Residual Transformations for Deep Neural Networks (ResNeXt) — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Aggregated Residual Transformations for Deep Neural Networks (ResNeXt)
+                <span class="course-tag">CVPR 2017</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1611.05431" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-equiv">3.2 等價形式</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a simple, highly modularized network architecture for image classification. Our network is constructed by <span class="hl-method">repeating a building block that aggregates a set of transformations with the same topology</span>. Our simple design results in a homogeneous, multi-branch architecture that has only a few hyper-parameters to set. This strategy exposes a new dimension, which we call <span class="hl-thesis">"cardinality" — the size of the set of transformations</span>, as an essential factor in addition to the dimensions of depth and width. On the <span class="hl-evidence">ImageNet-1K dataset</span>, we empirically show that <span class="hl-thesis">increasing cardinality is able to improve classification accuracy</span> even under the setting of maintaining complexity. Moreover, <span class="hl-evidence">increasing cardinality is more effective than going deeper or wider</span> when we increase the capacity. Our model, named <span class="hl-concept">ResNeXt</span>, is the foundation of our entry to the <span class="hl-evidence">ILSVRC 2016 classification task in which we secured 2nd place</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種簡潔、高度模組化的影像分類網路架構。此網路透過重複一個聚合一組具有相同拓撲結構之變換的構建區塊而構成。這個簡潔的設計產生了一個同質的多分支架構，僅需設定少量超參數。此策略揭示了一個新的維度，我們稱之為「基數」——變換集合的大小，作為深度與寬度之外的關鍵因素。在 ImageNet-1K 資料集上，我們以實驗展示在維持計算複雜度的條件下，增加基數能改善分類準確率。更進一步，當我們增加容量時，增加基數比加深或加寬更為有效。我們的模型名為 ResNeXt，是我們參加 ILSVRC 2016 分類任務的基礎，在其中取得了第二名。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以簡潔的語言引出「基數」這一新維度，並以競賽成績佐證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時完成三件事：(1) 提出「基數」概念；(2) 主張其優於深度與寬度；(3) 以 ILSVRC 名次為初步佐證。論證從概念到實證一氣呵成。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「簡潔」、「同質」、「少量超參數」等關鍵詞反覆出現，強調設計的易用性。但「第二名」而非第一名的結果稍微削弱了說服力——讀者可能好奇第一名使用了何種方法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Research on visual recognition is undergoing a transition from <span class="hl-concept">"feature engineering"</span> to <span class="hl-concept">"network engineering"</span>. The design of <span class="hl-concept">network architectures</span> has become increasingly important, as demonstrated by the progression from <span class="hl-concept">AlexNet</span> to <span class="hl-concept">VGGNet</span> to <span class="hl-concept">Inception</span> and <span class="hl-concept">ResNet</span>. While deeper and wider networks tend to improve accuracy, the <span class="hl-rebuttal">design space is enormously large</span> and hand-crafting architectures requires substantial expertise. <span class="hl-concept">Inception models</span> demonstrate that carefully designed topologies can achieve compelling accuracy with <span class="hl-evidence">lower theoretical complexity than VGGNet</span>, but each Inception module involves <span class="hl-rebuttal">many individually customized hyperparameters</span>, making it difficult to adapt to new tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺辨識的研究正經歷從「特徵工程」到「網路工程」的轉變。網路架構設計的重要性日益凸顯，從 AlexNet 到 VGGNet、Inception 再到 ResNet 的演進即為明證。雖然更深更寬的網路往往能提升準確率，但設計空間極其龐大，手工設計架構需要大量專業知識。Inception 模型展示了精心設計的拓撲結構能以低於 VGGNet 的理論複雜度達到令人注目的準確率，但每個 Inception 模組涉及大量個別客製化的超參數，使其難以適應新任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從架構演進史出發，指出 Inception 的複雜性問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「特徵工程到網路工程」的宏觀轉變開場，再收束到具體問題：設計空間過大、Inception 過於複雜。為 ResNeXt 的「簡潔」設計哲學鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 Inception 定位為「有效但複雜」，為 ResNeXt 的「同樣有效但簡潔」提供了對比框架。但此處低估了 Inception 的系統性設計原則——Inception v4 已相當模組化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors adopt <span class="hl-concept">VGGNet/ResNet's strategy</span> of <span class="hl-method">stacking building blocks of the same shape</span>, which is simple and allows extension to any number of transformations. In contrast to Inception's heterogeneous branches, all paths in ResNeXt share <span class="hl-method">identical topology</span>. This leads to a key insight: the <span class="hl-thesis">"split-transform-merge" strategy can be abstracted as aggregating transformations</span>, where the number of transformations — the <span class="hl-concept">cardinality</span> — becomes a <span class="hl-thesis">concrete, measurable dimension orthogonal to depth and width</span>. Experiments show that <span class="hl-evidence">a 101-layer ResNeXt achieves better accuracy than a 200-layer ResNet with only 50% of its complexity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者採納 VGGNet/ResNet 的策略，堆疊相同形狀的構建區塊，簡潔且可擴展至任意數量的變換。與 Inception 的異質分支不同，ResNeXt 中所有路徑共享相同的拓撲結構。這帶來一項關鍵洞見：「分割-變換-合併」策略可被抽象為聚合變換，其中變換的數量——即基數——成為與深度和寬度正交的具體、可量化的維度。實驗顯示，101 層的 ResNeXt 以僅 50% 的複雜度達到優於 200 層 ResNet 的準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心概念——從 Inception 的「分割-變換-合併」中抽取出「基數」維度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的核心轉折：將 Inception 的複雜設計抽象為簡潔的維度概念（基數），再以 101 層 vs 200 層的對比作為初步佐證。從定性概念到定量對比的邏輯完整。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「101 層 ResNeXt 勝過 200 層 ResNet，且僅需 50% 複雜度」是極具衝擊力的對比。但讀者需要注意，ResNeXt-101 與 ResNet-200 的比較涉及多個變數（基數、深度、寬度），並非純粹的單一維度比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper contextualizes ResNeXt among several lines of work. <span class="hl-concept">Multi-branch networks</span> such as <span class="hl-concept">Inception</span> use carefully customized branches with different filter sizes and pooling operations. <span class="hl-concept">Grouped convolutions</span>, originally used in <span class="hl-concept">AlexNet</span> for distributing computation across GPUs, are repurposed here as a <span class="hl-method">principled mechanism for increasing representational power</span>. Unlike <span class="hl-concept">network compression</span> techniques that decompose weight matrices to reduce parameters, ResNeXt <span class="hl-thesis">focuses on improving accuracy rather than compression</span>. And unlike <span class="hl-concept">model ensembling</span>, all branches in ResNeXt are <span class="hl-method">trained jointly as a single model</span>, sharing parameters through the same optimization process.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文將 ResNeXt 置於多條研究脈絡中。Inception 等多分支網路使用精心客製化的分支搭配不同濾波器大小和池化運算。分組摺積最初在 AlexNet 中用於跨 GPU 分配計算，此處被重新定位為提升表示能力的系統化機制。不同於透過分解權重矩陣來減少參數的網路壓縮技術，ResNeXt 著重於提升準確率而非壓縮。也不同於模型集成，ResNeXt 中的所有分支作為單一模型聯合訓練，在相同的最佳化過程中共享參數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——區隔 ResNeXt 與四種相關方法的差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過四組對比（Inception、分組摺積、壓縮、集成），精確界定 ResNeXt 的獨特定位：同質化的多分支 + 表示能力導向 + 單一模型聯合訓練。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將分組摺積從「工程便利」重新詮釋為「理論機制」是聰明的學術包裝。但分組摺積限制了通道間的資訊流通，此缺陷未被討論——後續的 ShuffleNet 正是針對此問題提出通道混洗策略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Aggregated Transformations — 聚合變換</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A standard <span class="hl-concept">ResNet block</span> performs a transformation <span class="hl-method">F(x) = w_2 * ReLU(w_1 * x)</span> with a residual connection <span class="hl-method">y = x + F(x)</span>. ResNeXt generalizes this by <span class="hl-method">aggregating C identical transformations</span>: <span class="hl-method">F(x) = sum_{i=1}^{C} T_i(x)</span>, where C is the <span class="hl-concept">cardinality</span> and each T_i has the same topology but separate parameters. In the concrete design, each transformation path uses a <span class="hl-method">bottleneck of 1x1 conv (reducing to d dimensions) -> 3x3 conv -> 1x1 conv (restoring dimensions)</span>. The notation <span class="hl-concept">"32x4d"</span> denotes <span class="hl-method">32 paths, each with a 4-dimensional bottleneck</span>. Two simple rules constrain the design: (1) blocks sharing spatial resolution share hyperparameters; (2) when spatial maps downsample by 2x, width doubles.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                標準 ResNet 區塊執行變換 F(x) = w_2 * ReLU(w_1 * x) 搭配殘差連接 y = x + F(x)。ResNeXt 將此推廣為聚合 C 個相同的變換：F(x) = sum_{i=1}^{C} T_i(x)，其中 C 為基數，每個 T_i 具有相同拓撲但獨立參數。在具體設計中，每條變換路徑使用瓶頸結構：1x1 摺積（降至 d 維）-> 3x3 摺積 -> 1x1 摺積（恢復維度）。記號「32x4d」表示 32 條路徑，每條具有 4 維的瓶頸。兩條簡單規則約束設計：(1) 共享空間解析度的區塊共享超參數；(2) 當空間圖下取樣 2 倍時，寬度加倍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法——定義聚合變換的數學形式與具體架構設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將「基數」從概念落實為具體數學與架構設計。從 ResNet 的單一變換推廣到 C 個變換的聚合，是自然且優雅的泛化。兩條設計規則確保了公平的複雜度比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「32x4d」這樣直觀的記號使複雜概念易於溝通。兩條設計規則隔離了基數作為唯一變數，確保了消融實驗的公平性。但瓶頸維度 d 的選擇（4 vs 8 vs 其他）缺乏理論指引，主要靠實驗調參。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 等價形式 ====== -->
+    <h3 class="subsection-heading" id="sec-equiv">3.2 Equivalent Formulations — 等價形式</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The aggregated transformations can be equivalently reformulated in <span class="hl-method">three ways</span>: (a) the explicit aggregation form where paths are summed; (b) a <span class="hl-method">concatenation form</span> where low-dimensional outputs are concatenated then processed by a single wider 1x1 convolution; and (c) a <span class="hl-method">grouped convolution form</span> where a single wide layer's channels are divided into groups. All three produce <span class="hl-evidence">mathematically identical results</span>. The <span class="hl-concept">grouped convolution</span> interpretation is most significant for implementation: <span class="hl-thesis">"all the low-dimensional embeddings can be replaced by a single, wider layer. Splitting is essentially done by the grouped convolutional layer when it divides its input channels into groups."</span> This makes ResNeXt efficiently implementable using standard deep learning frameworks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                聚合變換可以等價地重新表述為三種形式：(a) 顯式聚合形式，路徑被加總；(b) 串接形式，低維輸出被串接後由單一較寬的 1x1 摺積處理；(c) 分組摺積形式，單一寬層的通道被劃分為群組。三者產生數學上完全相同的結果。分組摺積的詮釋對實作最為重要：「所有低維嵌入都可以被單一較寬的層取代。分割本質上由分組摺積層在劃分輸入通道為群組時完成。」這使得 ResNeXt 能以標準深度學習框架高效實作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論驗證——證明三種形式的數學等價性，並指出最佳實作方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段彌合了理論與實務的鴻溝：概念上的「聚合變換」可透過分組摺積高效實現，消除了讀者對實作可行性的疑慮。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三種等價形式的展示是極為有力的論證——它表明 ResNeXt 的概念具有內在的一致性，不因實作方式而改變語意。但等價性僅在數學上成立——在數值精度、GPU 效率上三者可能有差異，此點未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">ImageNet-1K</span>, <span class="hl-evidence">ResNeXt-50 (32x4d) achieves 22.2% top-1 error versus ResNet-50's 23.9%</span>, a 1.7% improvement under the same complexity. <span class="hl-evidence">ResNeXt-101 (32x4d) reaches 21.2% top-1 error compared to ResNet-101's 22.0%</span>. Crucially, when doubling computational complexity from the ResNet-101 baseline: going <span class="hl-evidence">deeper (ResNet-200) yields only 0.3% improvement</span>, going <span class="hl-evidence">wider yields 0.7% improvement</span>, but <span class="hl-evidence">increasing cardinality (ResNeXt-101 64x4d) yields 1.3% improvement</span>. On <span class="hl-evidence">ImageNet-5K</span>, ResNeXt-101 shows <span class="hl-evidence">2.3% improvement over ResNet-101</span> on 5K-way classification. On <span class="hl-evidence">COCO detection</span>, ResNeXt provides consistent improvements of <span class="hl-evidence">+1.0% AP</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ImageNet-1K 上，ResNeXt-50（32x4d）達到 22.2% top-1 錯誤率，相比 ResNet-50 的 23.9% 降低了 1.7%，且計算複雜度相同。ResNeXt-101（32x4d）達到 21.2% top-1 錯誤率，對比 ResNet-101 的 22.0%。關鍵的是，當從 ResNet-101 基線加倍計算複雜度時：加深（ResNet-200）僅帶來 0.3% 改善，加寬帶來 0.7% 改善，但增加基數（ResNeXt-101 64x4d）帶來 1.3% 改善。在 ImageNet-5K 上，ResNeXt-101 在 5K 路分類中比 ResNet-101 提升 2.3%。在 COCO 物件偵測上，ResNeXt 持續帶來 +1.0% AP 的改善。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實證——以嚴格控制的實驗比較基數 vs 深度 vs 寬度的效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的決定性證據：0.3% vs 0.7% vs 1.3% 的三向比較直接支持「基數優於深度和寬度」的核心論點。跨資料集（1K/5K/COCO）的一致改善進一步強化了泛化性論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以等複雜度為前提的三維比較是極為公平且有力的實驗設計。但 1.3% 的絕對改善幅度是否具備統計顯著性？作者未報告信賴區間或多次運行的變異性。此外，COCO 上的 +1.0% AP 雖一致但幅度有限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">ResNeXt</span> demonstrates that <span class="hl-thesis">cardinality is a concrete, measurable dimension that is orthogonal to network depth and width</span>. The modularized design with <span class="hl-method">homogeneous transformations</span> proves <span class="hl-thesis">simpler than Inception variants while achieving superior accuracy</span> on image classification, object detection, and smaller-scale recognition tasks. The architecture generalizes effectively from <span class="hl-evidence">ImageNet-1K to ImageNet-5K, CIFAR, and COCO</span>, suggesting that the benefits of increased cardinality are robust across scales and domains.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                ResNeXt 證明了基數是一個與網路深度和寬度正交的具體、可量化維度。採用同質變換的模組化設計比 Inception 變體更簡潔，同時在影像分類、物件偵測與較小規模的辨識任務上達到了更優的準確率。此架構從 ImageNet-1K 有效泛化至 ImageNet-5K、CIFAR 和 COCO，顯示增加基數的效益在不同規模與領域間具有穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申基數作為新維度的核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論與摘要呼應，形成閉環。強調「簡潔」和「泛化」兩大優勢，將 ResNeXt 定位為架構設計原則的貢獻，而非僅僅是一個新模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    未討論基數增加的邊際效益遞減問題（從 32 到 64 的改善是否持續），也未探討基數與其他超參數的交互作用。此外，分組摺積限制通道間通訊的缺陷——後來被 ShuffleNet 指出——在此被完全忽略。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>網路設計空間龐大<br>Inception 過於複雜</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>基數為新維度<br>同質聚合變換</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>等複雜度下基數<br>優於深度與寬度</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>三種等價形式<br>分組摺積高效實作</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>基數是正交維度<br>簡潔且泛化性強</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>在神經網路架構設計中，「基數」——即聚合變換的數量——是一個與深度、寬度正交且更為有效的新維度，透過同質化的多路徑聚合可在不增加複雜度的前提下顯著提升表示能力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>嚴格控制的維度比較：</strong>在等計算複雜度的約束下，直接比較深度、寬度與基數三個維度的效益（0.3% vs 0.7% vs 1.3%），實驗設計嚴謹且結論明確。三種等價形式的數學證明進一步加固了概念的一致性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>通道間資訊流通的限制：</strong>分組摺積本質上限制了不同組通道間的交互，可能在需要跨通道複雜推理的任務中表現欠佳。此外，基數的邊際效益遞減規律未被探討——從 C=32 到 C=64 的收益是否持續？更高基數是否會帶來額外的最佳化困難？</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

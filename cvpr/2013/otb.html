@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Object Tracking: A Benchmark — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Online Object Tracking: A Benchmark
+                <span class="course-tag">CVPR 2013</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://www.cv-foundation.org/openaccess/content_cvpr_2013/html/Wu_Online_Object_Tracking_2013_CVPR_paper.html" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-benchmark">3. 基準設計</a>
+        <a href="#sec-evaluation">3.2 評估方法</a>
+        <a href="#sec-experiments">4. 實驗結果</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Object tracking</span> is one of the most important problems in computer vision, yet <span class="hl-rebuttal">there is no established standard benchmark for evaluating tracking algorithms</span>. Existing evaluations are <span class="hl-rebuttal">fragmented, using different sequences, metrics, and protocols</span>, making fair comparison difficult. In this paper, we present <span class="hl-thesis">a large-scale benchmark for online single-object tracking</span> that includes <span class="hl-evidence">50 fully annotated sequences with 11 attributes</span> covering major challenges such as <span class="hl-evidence">illumination variation, scale change, occlusion, deformation, and fast motion</span>. We evaluate <span class="hl-evidence">29 tracking algorithms</span> using <span class="hl-method">one-pass evaluation (OPE), temporal robustness evaluation (TRE), and spatial robustness evaluation (SRE)</span>, and provide comprehensive analysis of tracker performance under each attribute.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                物件追蹤是電腦視覺中最重要的問題之一，然而目前缺乏評估追蹤演算法的既定標準基準。現有的評估方式分散零碎，使用不同的序列、指標與協議，使公平比較難以實現。本文提出一個大規模的線上單物件追蹤基準，包含 50 個完整標註的序列，涵蓋 11 個屬性，涵蓋光照變化、尺度變化、遮擋、形變與快速運動等主要挑戰。我們使用單次評估（OPE）、時間穩健性評估（TRE）與空間穩健性評估（SRE）來評估 29 種追蹤演算法，並提供每個屬性下追蹤器效能的全面分析。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——指出基準缺失的問題，提出 OTB 作為標準化解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時扮演「診斷」與「處方」的角色：先診斷追蹤領域評估混亂的現狀，再開出 OTB 基準的處方。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「50 個序列、29 種演算法」的數字展示了基準的規模。但 50 個序列是否足以涵蓋追蹤的所有困難場景？後續 OTB-100 的推出也間接承認了此版本的規模限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The field of <span class="hl-concept">visual object tracking</span> has seen rapid progress over the past decade, with dozens of new algorithms proposed each year. However, this progress is <span class="hl-rebuttal">difficult to quantify objectively</span> because researchers often <span class="hl-rebuttal">evaluate on their own selected sequences with different evaluation metrics</span>. A paper may report improvements on 5-10 sequences that happen to favor its method, while failing on sequences not shown. This <span class="hl-thesis">"evaluation crisis" hinders scientific progress</span> and makes it impossible for practitioners to choose the right tracker for their application.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺物件追蹤領域在過去十年間取得了快速進展，每年有數十種新演算法被提出。然而，此進展難以客觀量化，因為研究者往往在自行選擇的序列上以不同的評估指標進行評估。一篇論文可能在恰好有利於其方法的 5-10 個序列上報告改進，卻在未展示的序列上表現不佳。此「評估危機」阻礙了科學進展，使實務工作者無法為其應用選擇合適的追蹤器。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題診斷——以「評估危機」一詞尖銳地指出領域的系統性問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將散在的評估問題（不同序列、不同指標、選擇性報告）統合為一個「危機」，提升了問題的緊迫感。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「評估危機」的修辭具有強烈的號召力，有效動員社群關注基準建設。但此說法對現有研究者的評估實踐帶有批評意味，可能引起反彈。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In the <span class="hl-concept">object detection</span> community, the <span class="hl-concept">PASCAL VOC challenge</span> has served as a standard benchmark since 2005, enabling <span class="hl-evidence">fair comparison and measurable year-over-year progress</span>. Similarly, the <span class="hl-concept">Middlebury benchmark</span> has driven advances in <span class="hl-concept">optical flow and stereo</span>. The tracking community <span class="hl-thesis">lacks an equivalent benchmark</span>. Our goal is to fill this gap by providing a <span class="hl-thesis">comprehensive, standardized evaluation platform for visual tracking</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在物件偵測社群中，PASCAL VOC 挑戰賽自 2005 年以來一直作為標準基準，使公平比較與可量測的逐年進步成為可能。類似地，Middlebury 基準推動了光流與立體視覺的進步。追蹤社群缺乏同等的基準。我們的目標是透過提供一個全面、標準化的視覺追蹤評估平台來填補此缺口。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    類比論證——以其他領域的成功基準為範例，證明標準化評估的價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 PASCAL VOC 和 Middlebury 為正面範例，暗示「有基準就有進步」的因果關係，為建立追蹤基準提供正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    類比論證有效但不完美：偵測與追蹤的任務性質不同，偵測基準的成功不保證相同模式適用於追蹤（追蹤涉及時序依賴、初始化敏感性等特殊問題）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior tracking evaluations include <span class="hl-concept">PETS workshops</span> (focused on surveillance), the <span class="hl-concept">VOT challenge</span> (initiated in 2013, concurrent with this work), and various <span class="hl-concept">ad hoc evaluations in individual papers</span>. <span class="hl-concept">PETS</span> primarily addresses <span class="hl-rebuttal">multi-object tracking in fixed-camera scenarios</span>, which is quite different from the <span class="hl-concept">generic single-object tracking</span> problem we address. The <span class="hl-concept">Visual Tracker Benchmark by Babenko et al.</span> evaluates a small number of trackers on <span class="hl-rebuttal">limited sequences without systematic attribute annotation</span>. Our benchmark improves on these efforts by combining <span class="hl-thesis">large-scale evaluation, detailed per-attribute analysis, and multiple robustness evaluation protocols</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的追蹤評估包括 PETS 研討會（聚焦於監控場景）、VOT 挑戰賽（於 2013 年啟動，與本文同期）、以及各論文中的臨時性評估。PETS 主要處理固定攝影機場景中的多物件追蹤，與我們所針對的通用單物件追蹤問題截然不同。Babenko 等人的視覺追蹤器基準在有限序列上評估少量追蹤器，缺乏系統性的屬性標註。我們的基準結合了大規模評估、詳細的逐屬性分析與多種穩健性評估協議，超越了這些既有努力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理既有評估方案並指出各自的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過與 PETS、VOT、Babenko 的對比，凸顯 OTB 的獨特貢獻：屬性標註 + 多協議評估。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    與同期 VOT 挑戰賽的關係處理得體——承認其存在但強調不同的設計哲學。但兩個基準的共存也導致了追蹤社群的評估標準分裂。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-benchmark">3. Benchmark Design — 基準設計</h2>
+    <h3 class="subsection-heading">3.1 Dataset and Attributes</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our benchmark consists of <span class="hl-evidence">50 sequences</span> selected to cover a <span class="hl-method">wide variety of tracking challenges</span>. Each sequence is annotated with <span class="hl-method">frame-level bounding boxes</span> and tagged with <span class="hl-method">11 attributes</span>: <span class="hl-evidence">illumination variation (IV), scale variation (SV), occlusion (OCC), deformation (DEF), motion blur (MB), fast motion (FM), in-plane rotation (IPR), out-of-plane rotation (OPR), out-of-view (OV), background clutter (BC), and low resolution (LR)</span>. Each sequence may have multiple attributes, enabling fine-grained analysis of <span class="hl-thesis">which challenges cause which trackers to fail</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的基準由 50 個序列組成，精選以涵蓋多種追蹤挑戰。每個序列都標註了幀級邊界框，並標記了 11 個屬性：光照變化（IV）、尺度變化（SV）、遮擋（OCC）、形變（DEF）、動態模糊（MB）、快速運動（FM）、面內旋轉（IPR）、面外旋轉（OPR）、出視野（OV）、背景雜亂（BC）與低解析度（LR）。每個序列可具有多個屬性，使得可以細粒度地分析哪些挑戰導致哪些追蹤器失敗。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    資料集描述——定義 11 個追蹤困難屬性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    屬性標註是 OTB 的核心創新之一：不僅評估「整體效能」，更能精確診斷「哪裡失敗」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    11 個屬性的選擇全面且直覺。但屬性之間的相關性未被充分處理——例如快速運動常伴隨動態模糊，使得單屬性分析可能具有混淆因素。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-evaluation">3.2 Evaluation Methodology — 評估方法</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-method">three complementary evaluation protocols</span>. <span class="hl-concept">One-Pass Evaluation (OPE)</span> runs each tracker once from the ground-truth initial frame — this is the standard protocol. <span class="hl-concept">Temporal Robustness Evaluation (TRE)</span> initializes trackers from <span class="hl-method">20 different starting frames</span> throughout each sequence, measuring sensitivity to the temporal starting point. <span class="hl-concept">Spatial Robustness Evaluation (SRE)</span> perturbs the <span class="hl-method">initial bounding box with shifts and scale changes</span>, measuring sensitivity to initialization accuracy. Performance is reported via <span class="hl-method">success plots (overlap threshold vs. success rate) and precision plots (location error threshold vs. precision)</span>, with <span class="hl-thesis">area under the curve (AUC) as the primary ranking metric</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出三種互補的評估協議。單次評估（OPE）從真實初始幀執行每個追蹤器一次——這是標準協議。時間穩健性評估（TRE）從每個序列中的 20 個不同起始幀初始化追蹤器，量測對時間起始點的敏感性。空間穩健性評估（SRE）以位移與尺度變化擾動初始邊界框，量測對初始化精度的敏感性。效能以成功率曲線（重疊門檻 vs. 成功率）和精度曲線（位置誤差門檻 vs. 精度）報告，曲線下面積（AUC）作為主要排名指標。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    評估協議定義——三種互補協議全面衡量追蹤器的穩健性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    OPE/TRE/SRE 分別測量「標準效能」、「時間穩定性」與「空間穩定性」，形成多維度的評估體系。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    TRE 和 SRE 的設計回應了「追蹤器對初始化敏感」的已知問題，方法論設計嚴謹。但 20 個起始幀的選擇是否足夠，以及擾動範圍的選擇是否合理，需要進一步驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experimental Results — 實驗結果</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate <span class="hl-evidence">29 tracking algorithms</span> spanning diverse approaches: <span class="hl-evidence">generative methods (IVT, L1APG), discriminative methods (Struck, SCM), sparse representation (ASLA), correlation filters (CSK, MOSSE), and part-based models (DPM-based)</span>. Under OPE, <span class="hl-evidence">Struck achieves the highest overall AUC of 0.474</span>, followed by <span class="hl-evidence">SCM (0.453) and ASLA (0.434)</span>. The attribute-based analysis reveals that <span class="hl-evidence">no single tracker dominates across all attributes</span>: Struck excels on fast motion and motion blur, while SCM performs best on background clutter and occlusion.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們評估了 29 種追蹤演算法，涵蓋多樣化的方法：生成式方法（IVT、L1APG）、判別式方法（Struck、SCM）、稀疏表示（ASLA）、相關濾波器（CSK、MOSSE）及基於零件的模型（基於 DPM 的方法）。在 OPE 下，Struck 達到最高的整體 AUC 0.474，其次為 SCM（0.453）和 ASLA（0.434）。基於屬性的分析揭示了沒有單一追蹤器能在所有屬性上佔據主導地位：Struck 在快速運動和動態模糊上表現優異，而 SCM 在背景雜亂和遮擋上表現最佳。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心發現呈現——展示追蹤器的整體排名與屬性別表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「無單一最佳追蹤器」的發現是本文最重要的實證結論——它證明了基於屬性分析的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    全面的比較令人印象深刻。但 AUC 0.474 的最高分暗示即使最好的追蹤器也只在不到一半的情況下「成功」，反映了追蹤問題的固有困難。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The TRE and SRE evaluations provide additional insights. Under TRE, rankings remain <span class="hl-evidence">largely consistent with OPE</span>, suggesting that top trackers are <span class="hl-evidence">robust to temporal starting position</span>. Under SRE, some trackers show <span class="hl-evidence">significant sensitivity to bounding box perturbation</span> — in particular, <span class="hl-evidence">generative trackers like IVT degrade more than discriminative trackers when initialization is noisy</span>. We also observe that <span class="hl-evidence">speed-accuracy trade-offs vary widely</span>: real-time trackers like MOSSE (615 FPS) score much lower than Struck (20 FPS) but are <span class="hl-evidence">orders of magnitude faster</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                TRE 和 SRE 評估提供了額外的洞見。在 TRE 下，排名與 OPE 大致一致，表明頂級追蹤器對時間起始位置具有穩健性。在 SRE 下，某些追蹤器對邊界框擾動表現出顯著敏感性——特別是，當初始化存在雜訊時，IVT 等生成式追蹤器的退化程度大於判別式追蹤器。我們同時觀察到速度-精度的取捨差異極大：MOSSE（615 FPS）等即時追蹤器的分數遠低於 Struck（20 FPS），但速度快了數個數量級。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    穩健性深度分析——揭示不同追蹤器對初始化的敏感性差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    TRE/SRE 的結果驗證了多協議評估的價值：僅看 OPE 會遺漏穩健性差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「生成式對初始化更敏感」的發現具有實務指導意義。但未深入分析為何判別式方法更穩健，錯失了理論性貢獻的機會。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented a <span class="hl-thesis">comprehensive benchmark for online single-object tracking</span> with <span class="hl-evidence">50 sequences, 11 attributes, and 29 evaluated trackers</span>. Our findings suggest that <span class="hl-thesis">the choice of tracker should be guided by the specific challenges of the application scenario</span>, as no single method excels in all situations. We release our benchmark including <span class="hl-evidence">all sequences, annotations, evaluation code, and tracker results</span> to the community, and hope it will serve as a <span class="hl-thesis">standard platform for future tracking research</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一個全面的線上單物件追蹤基準，包含 50 個序列、11 個屬性及 29 個被評估的追蹤器。我們的發現顯示，追蹤器的選擇應以應用場景的具體挑戰為指導，因為沒有單一方法在所有情況下都表現優異。我們向社群發布包含所有序列、標註、評估程式碼與追蹤器結果的基準，期望其能作為未來追蹤研究的標準平台。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結與開放——重申貢獻並強調資源公開。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以資源開放作結，確保基準的持續影響力。「沒有最佳追蹤器」的結論簡潔而有力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    公開所有資源是學術貢獻的典範做法，直接促成了 OTB 成為事實上的標準。事實上，OTB 至今仍是追蹤領域最常引用的基準之一。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>追蹤領域缺乏<br>標準化評估基準</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>多屬性多協議<br>的系統化基準</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>29 種追蹤器<br>在 50 序列上的評估</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>無單一最佳追蹤器<br>需依場景選擇</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>公開資源<br>成為標準平台</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過建立涵蓋 50 個序列、11 個困難屬性、三種評估協議的標準化基準，可系統性地揭示追蹤演算法的優劣，並為追蹤領域提供公正的比較平台。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>屬性別分析的開創性：</strong>11 個屬性的標註使研究者首次能夠精確診斷追蹤器在何種條件下失敗。「無單一最佳追蹤器」的發現顛覆了簡單的效能排名觀念，推動社群轉向更細緻的演算法設計。基準的完全公開更確保了長期的影響力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>規模與多樣性的局限：</strong>50 個序列雖然多於先前的評估，但相比現代追蹤基準（如 LaSOT 的 1,400 個序列）仍顯不足。此外，序列主要來自常見場景，對特殊領域（醫學影像、衛星追蹤等）的代表性有限。屬性之間的共線性未被充分處理。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

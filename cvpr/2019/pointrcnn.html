@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PointRCNN: 3D Object Proposal Generation and Detection From Point Cloud — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                PointRCNN: 3D Object Proposal Generation and Detection From Point Cloud
+                <span class="course-tag">CVPR 2019</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1812.04244" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<nav class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#abstract">摘要</a>
+        <a href="#introduction">1. 引言</a>
+        <a href="#related-work">2. 相關工作</a>
+        <a href="#method">3. 方法</a>
+        <a href="#method-3-1">3.1 自底向上提案生成</a>
+        <a href="#method-3-2">3.2 點雲區域池化</a>
+        <a href="#method-3-3">3.3 正則座標精煉</a>
+        <a href="#experiments">4. 實驗</a>
+        <a href="#conclusion">5. 結論</a>
+        <a href="#arg-overview">論證總覽</a>
+    </div>
+</nav>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ========== 摘要 ========== -->
+    <h2 class="section-heading" id="abstract">Abstract 摘要</h2>
+
+    <!-- 摘要段落 1：框架總覽 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors propose <span class="hl-concept">PointRCNN</span> for <span class="hl-concept">3D object detection</span> directly from <span class="hl-concept">point clouds</span>. The framework comprises two stages: <span class="hl-method">stage-1 performs bottom-up 3D proposal generation via segmenting the point cloud</span>, while <span class="hl-method">stage-2 refines proposals in canonical coordinates</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提出 <span class="hl-concept">PointRCNN</span> 框架，直接從<span class="hl-concept">點雲</span>進行<span class="hl-concept">三維物體偵測</span>。該框架包含兩個階段：<span class="hl-method">第一階段透過點雲語意分割以自底向上的方式生成三維提案</span>；<span class="hl-method">第二階段則在正則座標系中對提案進行精煉</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心框架，概述兩階段架構的設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為全文的開場定位，明確宣告研究貢獻的核心架構，為後續詳細方法論鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    以「兩階段」架構簡潔概括複雜系統，便於讀者快速建立心智模型。但尚未說明為何兩階段優於端到端方案。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 2：與現有方法對比 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than converting point clouds to <span class="hl-rebuttal">bird's-eye projections or voxels</span>, their stage-1 sub-network <span class="hl-thesis">"directly generates a small number of high-quality 3D proposals from point cloud in a bottom-up manner via segmenting the point cloud."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                有別於將點雲轉換為<span class="hl-rebuttal">鳥瞰投影或體素</span>的既有做法，本文的第一階段子網路<span class="hl-thesis">「透過語意分割，直接以自底向上的方式從點雲生成少量高品質的三維提案」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    與現有方法進行對比，凸顯本方法的差異化優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過否定既有路線（投影/體素化）來為自身方法建立合理性，屬於「先破後立」的論證策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    使用隱性反駁——未直接批評但以「rather than」暗示替代路線的不足。引用原文強調「高品質」和「少量」兼具。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 3：Stage-2 與實驗結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Stage-2 transforms pooled points into canonical coordinates</span>, combining <span class="hl-concept">local spatial features</span> with <span class="hl-concept">global semantic features</span>. Testing on <span class="hl-evidence">KITTI</span> shows their approach <span class="hl-thesis">outperforms state-of-the-art methods</span> using only point cloud input.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">第二階段將池化後的點轉換至正則座標系</span>，結合<span class="hl-concept">局部空間特徵</span>與<span class="hl-concept">全域語意特徵</span>。在 <span class="hl-evidence">KITTI</span> 基準測試中的結果顯示，<span class="hl-thesis">僅使用點雲輸入即超越當時的最先進方法</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    補充第二階段技術細節並提供實驗佐證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在摘要尾端以實驗資料總結性地支撐核心主張，形成「架構→方法→結果」的完整閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    強調「only point cloud input」凸顯方法的純粹性與通用性。但摘要中未提供具體數值，說服力待後續實驗章節補足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 1. 引言 ========== -->
+    <h2 class="section-heading" id="introduction">1. Introduction 引言</h2>
+
+    <!-- 引言段落 1：問題背景 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">"3D object detection is crucial and indispensable for many real-world applications, such as autonomous driving and domestic robots."</span> <span class="hl-concept">Point cloud irregularity</span> and the large <span class="hl-concept">6-DOF search space</span> present core challenges.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">「三維物體偵測對於自動駕駛和家用機器人等諸多現實應用而言，是至關重要且不可或缺的。」</span><span class="hl-concept">點雲的不規則性</span>以及龐大的<span class="hl-concept">六自由度搜索空間</span>構成了核心挑戰。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機，說明三維偵測的重要性與困難。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    全文論證鏈的起點——先建立「問題重要且困難」的前提，為後續方案的必要性打下基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    以實際應用場景（自動駕駛）拉近讀者注意力，接著用「irregularity」和「6-DOF」兩個技術痛點快速勾勒挑戰。措辭有效但偏概括。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引言段落 2：現有方法缺陷 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Existing approaches that project point clouds into <span class="hl-concept">bird's-view</span> or <span class="hl-concept">voxelize</span> data <span class="hl-rebuttal">"suffer from information loss during the quantization."</span> <span class="hl-thesis">"Unlike object detection from 2D images, 3D objects in autonomous driving scenes are naturally and well separated by annotated 3D bounding boxes."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現有將點雲投影為<span class="hl-concept">鳥瞰圖</span>或進行<span class="hl-concept">體素化</span>的方法<span class="hl-rebuttal">「在量化過程中會造成資訊損失」</span>。<span class="hl-thesis">「不同於二維影像中的物體偵測，自動駕駛場景中的三維物體天然地被標註的三維邊界框良好分隔。」</span>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判現有方法的缺陷，並提出一個關鍵觀察。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接問題背景，進一步分析現有路線的不足，為自身方法創造「空白地帶」。後半段的觀察直接啟發了基於分割的提案生成。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    「資訊損失」的批評精準到位。「天然分隔」的觀察是全文最具洞察力的論點之一，巧妙地將三維偵測轉化為分割問題的合理性基礎。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引言段落 3：三大貢獻 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Three main contributions: (1) <span class="hl-thesis">novel bottom-up proposal generation using point cloud segmentation</span>, (2) <span class="hl-method">canonical coordinate refinement with bin-based losses</span>, (3) <span class="hl-evidence">state-of-the-art on KITTI, "ranking first among all published works as of Nov. 16 2018."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三項主要貢獻：(1) <span class="hl-thesis">提出基於點雲語意分割的新型自底向上提案生成方法</span>；(2) <span class="hl-method">在正則座標系中使用基於區間的損失函數進行精煉</span>；(3) <span class="hl-evidence">在 KITTI 基準上達成最先進表現，「截至 2018 年 11 月 16 日在所有已發表論文中排名第一」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    列舉研究貢獻清單，總結創新點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    引言結尾的「承諾」段落——明確告訴讀者本文將交付什麼成果，引導預期。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    三點式列舉清晰有力。標註具體日期（Nov. 16 2018）增加可驗證性，但也意味著結論有時效性——後續方法可能很快超越。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 2. 相關工作 ========== -->
+    <h2 class="section-heading" id="related-work">2. Related Work 相關工作</h2>
+
+    <!-- 相關工作段落 1：單目方法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Previous work estimated 3D boxes from <span class="hl-concept">monocular images</span> achieving <span class="hl-rebuttal">"only coarse 3D detection results due to the lack of depth information."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的研究嘗試從<span class="hl-concept">單目影像</span>估計三維邊界框，但<span class="hl-rebuttal">「由於缺乏深度資訊，僅能獲得粗略的三維偵測結果」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    回顧單目影像方法並指出其根本局限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    文獻綜述的第一層篩選——先排除最不相關的技術路線（純影像），突顯點雲的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    以「缺乏深度資訊」一語概括整類方法的不足，簡潔有效。但未提及深度估計等改進方向，可能過於武斷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：投影與體素化方法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Projection-based</span> and <span class="hl-concept">voxelization methods</span> <span class="hl-rebuttal">"suffer from information loss due to the data quantization."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">基於投影和體素化的方法</span><span class="hl-rebuttal">「由於資料量化而造成資訊損失」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批評主流的投影/體素化路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    排除第二類替代路線，進一步收窄到「直接從原始點雲操作」的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    重複使用「information loss」論點與摘要呼應，強化印象。但未定量說明損失有多嚴重，也未提及 VoxelNet 等方法透過更細粒度體素緩解此問題的努力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：F-PointNet 與 PointNet -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">F-PointNet</span> <span class="hl-rebuttal">"generates 2D proposals from images which might miss difficult objects that could only be clearly observed from 3D space."</span> <span class="hl-concept">PointNet</span> made a key contribution in <span class="hl-method">"directly learning point features from raw point clouds."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">F-PointNet</span> <span class="hl-rebuttal">「從影像生成二維提案，可能會遺漏只能從三維空間清楚觀察到的困難物體」</span>。<span class="hl-concept">PointNet</span> 的關鍵貢獻在於<span class="hl-method">「直接從原始點雲學習點特徵」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    分析最接近的競爭方法（F-PointNet）並指出依賴，同時肯定基礎工具（PointNet）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    精準定位——F-PointNet 是最直接的對比對象，指出其對二維提案的依賴為 PointRCNN 「純三維」路線提供了差異化空間。PointNet 則作為技術基石被正面引用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    對 F-PointNet 的批評聚焦於「might miss difficult objects」——使用可能性語氣而非斷定，較為客觀。承認 PointNet 的貢獻體現學術禮節，同時為自身方法的技術選型做鋪墊。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 3. 方法 ========== -->
+    <h2 class="section-heading" id="method">3. Method 方法</h2>
+
+    <!-- === 3.1 自底向上3D提案生成 === -->
+    <h3 class="subsection-heading" id="method-3-1">3.1 Bottom-up 3D Proposal Generation 自底向上三維提案生成</h3>
+
+    <!-- 3.1 段落 1：骨幹網路與前景分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Uses <span class="hl-method">PointNet++ with multi-scale grouping</span> as backbone. <span class="hl-thesis">Foreground points "provide rich information on predicting their associated objects' locations and orientations."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                採用<span class="hl-method">具有多尺度分組策略的 PointNet++</span> 作為骨幹網路。<span class="hl-thesis">前景點「為預測其所屬物體的位置和朝向提供了豐富的資訊」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明骨幹網路選型與核心設計直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法論的起點——先確定特徵提取工具（PointNet++），再陳述「前景點蘊含定位資訊」這一設計假設，作為後續分割驅動偵測的理論依據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    選擇成熟的 PointNet++ 作為骨幹降低了方法的新穎性風險，使讀者將注意力集中在框架設計而非特徵提取上。「前景點提供豐富資訊」的論斷直覺上合理但缺乏理論保證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.1 段落 2：Focal Loss 與 Bin-based 定位 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Focal loss</span> handles <span class="hl-concept">class imbalance</span>. For center location, they <span class="hl-method">"split the surrounding area of each foreground point into a series of discrete bins along the X and Z axes."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                使用 <span class="hl-method">Focal Loss</span> 處理<span class="hl-concept">類別不平衡</span>問題。在中心定位方面，他們<span class="hl-method">「將每個前景點周圍的區域沿 X 軸和 Z 軸分割為一系列離散的區間」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述兩個關鍵技術細節：損失函數與定位策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補充第一階段的實作細節——Focal Loss 解決訓練穩定性問題，bin-based 策略將連續迴歸轉為離散分類，降低學習難度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    Focal Loss 借鑑自 RetinaNet，展現跨領域技術遷移能力。Bin-based 定位是本文的核心方法論創新之一——將迴歸問題轉為分類+殘差的混合策略，兼顧精度與收斂穩定性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.1 段落 3：NMS 與提案數量 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">NMS based on oriented IoU</span> generates <span class="hl-evidence">top 300 proposals for training, top 100 for inference</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">基於有向 IoU 的非極大值抑制</span>生成<span class="hl-evidence">訓練時的前 300 個提案和推理時的前 100 個提案</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明提案篩選機制與具體數量設定。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    第一階段的收尾——從分割到定位再到篩選，完整描述提案生成的管線。具體數字（300/100）為可復現性提供保障。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    訓練與推理時提案數量不同的設定是常見做法，但未解釋為何選擇這些特定數值。100 個提案的設定後續在實驗中被證明已足夠（96% recall），形成前後呼應。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === 3.2 點雲區域池化 === -->
+    <h3 class="subsection-heading" id="method-3-2">3.2 Point Cloud Region Pooling 點雲區域池化</h3>
+
+    <!-- 3.2 段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Points tested for inclusion within <span class="hl-method">enlarged bounding boxes</span>. Features include <span class="hl-concept">"3D point coordinates, laser reflection intensity, predicted segmentation mask, and C-dimensional learned point feature representation."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對點進行包含性測試，判斷其是否位於<span class="hl-method">擴大的邊界框</span>內。特徵包含<span class="hl-concept">「三維點座標、雷射反射強度、預測的分割遮罩，以及 C 維度的學習點特徵表示」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述區域池化的操作方式與特徵組成。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    連接第一階段（提案生成）與第二階段（提案精煉）的橋樑模組——決定哪些點和特徵進入精煉階段。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    「擴大邊界框」確保不遺漏邊界附近的有用點，是務實的工程設計。四類特徵的組合涵蓋幾何、物理（反射強度）、語意三個層面，設計思路完整。第一階段的分割遮罩被複用為特徵，體現了跨階段資訊傳遞的巧妙設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === 3.3 正則座標精煉 === -->
+    <h3 class="subsection-heading" id="method-3-3">3.3 Canonical 3D Bounding Box Refinement 正則三維邊界框精煉</h3>
+
+    <!-- 3.3 段落 1：座標變換 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Transform pooled points to <span class="hl-method">canonical coordinate system</span> where <span class="hl-concept">"the origin is located at the center of the box proposal."</span> <span class="hl-method">"To compensate for the lost depth information, we include the distance to the sensor."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                將池化後的點轉換至<span class="hl-method">正則座標系</span>，其中<span class="hl-concept">「原點位於提案邊界框的中心」</span>。<span class="hl-method">「為了補償損失的深度資訊，我們加入了到感測器的距離。」</span>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明正則座標變換的設計與深度補償策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    第二階段的核心創新——將局部點雲統一到提案中心的座標系，消除位置依賴性，使網路能更專注於形狀與尺寸的精煉。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    正則化座標的設計靈感來自二維物體偵測中的 RoI 特徵對齊思想，但針對三維場景進行了重要適配。加入感測器距離作為補償特徵是精妙的設計——正則化會抹除絕對位置資訊，而距離恢復了這部分線索。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 段落 2：Bin-based 迴歸 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Bin-based regression</span> with <span class="hl-concept">smaller search ranges</span> for refinement.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                採用<span class="hl-method">基於區間的迴歸</span>方式，在<span class="hl-concept">更小的搜索範圍</span>內進行精煉。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述精煉階段的迴歸策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    與 3.1 中第一階段的 bin-based 定位形成對稱結構——兩階段均採用相同的迴歸策略，但搜索範圍從粗到精逐步收窄。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    「更小的搜索範圍」體現了由粗到精的級聯設計哲學，符合 coarse-to-fine 的經典範式。但段落過於簡略，未說明具體的區間大小和殘差設定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 4. 實驗 ========== -->
+    <h2 class="section-heading" id="experiments">4. Experiments 實驗</h2>
+
+    <!-- 實驗段落 1：訓練設定 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Subsample scenes to <span class="hl-evidence">16,384 points</span></span>. <span class="hl-evidence">Stage-1 trains 200 epochs, stage-2 for 50 epochs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">將場景下採樣至 <span class="hl-evidence">16,384 個點</span></span>。<span class="hl-evidence">第一階段訓練 200 個 epoch，第二階段訓練 50 個 epoch</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告訓練的基本超參數設定。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗章節的開頭，為可復現性提供必要的配置資訊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    16,384 點的下採樣是 PointNet 系列的常見設定。兩階段的訓練 epoch 差異（200 vs 50）暗示第一階段的分割任務更為複雜，但未解釋原因。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：KITTI 測試結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On KITTI test: <span class="hl-evidence">85.94% AP (easy), 75.76% (moderate), 68.32% (hard)</span> at <span class="hl-concept">IoU=0.7</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 KITTI 測試集上：以 <span class="hl-concept">IoU=0.7</span> 為閾值，<span class="hl-evidence">簡單難度達 85.94% AP，中等難度 75.76%，困難難度 68.32%</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    報告核心實驗資料——KITTI 測試集的 AP 結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    全文論證鏈的關鍵支撐——以具體資料驗證方法的有效性，回應引言中「超越最先進方法」的承諾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    三個難度等級的結果全部報告，展現方法的全面性。IoU=0.7 是 KITTI 車輛偵測的標準閾值，保證了與其他方法的公平比較。從 easy 到 hard 的下降幅度（約 17.6%）暗示遠距離或遮擋場景仍有改進空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：召回率 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Achieves <span class="hl-evidence">"96.01% recall at IoU threshold 0.5 on the moderate difficulty of car class"</span> with only <span class="hl-evidence">50 proposals</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                僅使用 <span class="hl-evidence">50 個提案</span>即在中等難度車輛類別上，以 IoU=0.5 為閾值達到 <span class="hl-evidence">96.01% 的召回率</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供提案品質的量化證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    直接支撐摘要中「少量高品質提案」的核心主張——50 個提案即可覆蓋 96% 的目標，這是對第一階段設計成功的有力佐證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    「50 提案 + 96% 召回」是本文最具說服力的資料之一，因為它同時證明了效率（少量提案）和效果（高召回率）。但 IoU=0.5 是較寬鬆的閾值，若換為 IoU=0.7 的召回率表現如何未在此處提及。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：消融實驗 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Removing <span class="hl-concept">canonical transformation</span> causes <span class="hl-evidence">"significant" performance drops</span>. Removing stage-1 features <span class="hl-evidence">"decreases the mAP by 2.71%."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                移除<span class="hl-concept">正則座標變換</span>會導致<span class="hl-evidence">「顯著的」性能下降</span>。移除第一階段特徵則<span class="hl-evidence">「使 mAP 降低 2.71%」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    透過消融實驗驗證各組件的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融實驗是方法論文的核心驗證環節——證明每個設計選擇（正則座標、跨階段特徵傳遞）都是必要的，而非冗餘裝飾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    正則座標變換的消融只用「significant」描述而未給出具體數值，略顯模糊。相比之下，第一階段特徵的 2.71% mAP 降幅提供了精確量化。兩組消融分別驗證了第二階段的兩個核心設計，邏輯完整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 5. 結論 ========== -->
+    <h2 class="section-heading" id="conclusion">5. Conclusion 結論</h2>
+
+    <!-- 結論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">"PointRCNN directly generates 3D proposals from point cloud in a bottom-up manner, which achieves significantly higher recall than previous proposal generation methods."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">「PointRCNN 以自底向上的方式直接從點雲生成三維提案，相較於先前的提案生成方法取得了顯著更高的召回率。」</span>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結第一階段的核心成就。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的第一部分，回扣引言承諾的第一項貢獻（bottom-up 提案生成），形成首尾呼應的完整論證閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    使用「significantly higher recall」呼應實驗中 96.01% 的具體資料，將定量結果昇華為定性結論。措辭自信且有資料支撐。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The stage-2 network <span class="hl-thesis">"refines the proposals in the canonical coordinate by combining semantic features and local spatial features."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第二階段網路<span class="hl-thesis">「在正則座標中透過結合語意特徵與局部空間特徵來精煉提案」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結第二階段的技術特色。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的第二部分，完整概括兩階段框架，收束全文論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    結論相對保守，未過度延伸或提出未來展望。「combining semantic features and local spatial features」精準概括了第二階段的設計哲學。但缺乏對局限性的討論（如僅在 KITTI 上驗證、計算成本等），是學術論文中常見的遺漏。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="arg-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架流程 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                點雲的不規則性與<br>6-DOF 搜索空間
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                直接從原始點雲<br>進行自底向上偵測
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                分割驅動提案 +<br>正則座標精煉
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                投影/體素化造成<br>資訊損失
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                KITTI 最先進表現<br>（僅用點雲輸入）
+            </div>
+        </div>
+
+        <!-- 三張詳細卡片 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過將三維物體偵測分解為「分割驅動的提案生成」和「正則座標下的精煉」兩個階段，PointRCNN 能直接從原始點雲高效且準確地偵測三維物體，無需依賴影像或體素化中間表示。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>「三維物體天然被邊界框分隔」的觀察極具洞察力——它將三維偵測巧妙轉化為語意分割問題，配合 96.01% 召回率的資料佐證，令人信服地證明了自底向上策略的優越性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>對正則座標變換消融實驗僅以「significant」描述性能下降而未提供具體數值，削弱了該核心組件貢獻的說服力。此外，實驗僅在 KITTI 單一資料集上驗證，泛化能力未得到充分論證。</p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

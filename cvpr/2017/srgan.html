@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo-Realistic Single Image Super-Resolution Using a GAN (SRGAN) — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Photo-Realistic Single Image Super-Resolution Using a GAN (SRGAN)
+                <span class="course-tag">CVPR 2017</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1609.04802" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-loss">3.3 感知損失函數</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Despite the breakthroughs in accuracy and speed of <span class="hl-concept">single image super-resolution</span> using faster and deeper <span class="hl-concept">convolutional neural networks</span>, one central problem remains largely unsolved: how do we recover the <span class="hl-thesis">finer texture details</span> when we super-resolve at large upscaling factors? The behavior of optimization-based super-resolution methods is principally driven by the objective function. Recent work has largely focused on <span class="hl-rebuttal">minimizing mean squared error (MSE)</span>, which produces <span class="hl-evidence">"high peak signal-to-noise ratios, but they are often lacking high-frequency details and are perceptually unsatisfying."</span> We propose <span class="hl-concept">SRGAN</span>, applying a <span class="hl-method">generative adversarial network (GAN)</span> to super-resolution. We employ a <span class="hl-method">perceptual loss function consisting of an adversarial loss and a content loss</span>. <span class="hl-evidence">Extensive mean-opinion-score (MOS) testing</span> shows that <span class="hl-thesis">SRGAN sets a new state of the art for photo-realistic super-resolution</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管利用更快更深的摺積神經網路在單一影像超解析度上取得了準確率和速度的突破，一個核心問題仍待解決：在大倍率放大時，我們如何恢復精細的紋理細節？以最佳化為基礎的超解析度方法，其行為主要由目標函數決定。近期研究大多著重於最小化均方誤差（MSE），雖能產生「高峰值訊噪比，但往往缺乏高頻細節且在感知上不令人滿意」。我們提出 SRGAN，將生成對抗網路（GAN）應用於超解析度。我們採用由對抗損失和內容損失組成的感知損失函數。廣泛的平均意見分數（MOS）測試顯示，SRGAN 為逼真的超解析度樹立了新的最先進標準。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——指出 MSE 導向方法的感知缺陷，引出 SRGAN 以 GAN 驅動的感知損失作為解方。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建構了一個清晰的「範式轉換」敘事：從「MSE/PSNR 最佳化」到「感知品質最佳化」。此轉換是全文的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 MOS 而非 PSNR 作為主要評估指標是一個大膽的選擇，直接挑戰了領域的傳統衡量標準。但 MOS 的主觀性可能引發可重現性的質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">ill-posed nature of super-resolution</span> means that for each low-resolution image, <span class="hl-rebuttal">multiple plausible high-resolution solutions exist</span>. MSE-based optimization inherently produces the <span class="hl-rebuttal">"average of all plausible solutions,"</span> which tends to be overly smooth. The key insight is that <span class="hl-thesis">pixel-wise image differences do not align with human perception of image quality</span>. A super-resolved image with lower PSNR can appear more realistic than one with higher PSNR. The authors propose to replace pixel-space optimization with <span class="hl-method">optimization in a perceptual feature space</span>, using a <span class="hl-concept">VGG-based content loss</span> combined with an <span class="hl-concept">adversarial loss</span> that encourages solutions <span class="hl-thesis">"perceptually hard to distinguish from the HR reference images"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                超解析度的不適定本質意味著，對每張低解析度影像而言，存在多個合理的高解析度解。基於 MSE 的最佳化本質上產出「所有合理解的平均」，往往過度平滑。關鍵洞見在於：像素層級的影像差異與人類對影像品質的感知並不一致。PSNR 較低的超解析度影像可能看起來比 PSNR 較高的更為真實。作者提議以感知特徵空間的最佳化取代像素空間最佳化，使用基於 VGG 的內容損失結合對抗損失，鼓勵產出「在感知上難以與高解析度參考影像區分」的解。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立動機——從超解析度的不適定性推導出 MSE 失效的根本原因。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建構了最核心的理論論點：MSE -> 平均解 -> 過度平滑。這個因果鏈直接導向對抗訓練的必要性——GAN 將解推向自然影像流形，而非平均。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「不適定性 -> MSE 平均化」的推理在理論上極為嚴謹。但「低 PSNR 可更真實」的主張具挑釁性——這隱含著 PSNR 作為指標的根本缺陷，在超解析度社群中仍有爭議。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Early super-resolution methods using <span class="hl-concept">prediction-based filtering</span> (linear, bicubic, Lanczos) are <span class="hl-rebuttal">"fast but oversimplify the SISR problem and usually yield solutions with overly smooth textures."</span> Learning-based methods progressed through <span class="hl-concept">example-pair approaches</span>, <span class="hl-concept">sparse coding</span>, and <span class="hl-concept">CNN-based methods</span>. The seminal <span class="hl-concept">SRCNN</span> by Dong et al. introduced <span class="hl-method">end-to-end deep networks for SR</span>. Prior work on <span class="hl-concept">perceptual loss functions</span> by Johnson et al. demonstrated that <span class="hl-evidence">"loss functions closer to perceptual similarity recover visually more convincing HR images"</span> than pixel-wise MSE. Key architectural innovations include <span class="hl-concept">residual blocks</span> with skip connections and <span class="hl-concept">learned upscaling filters</span> shown superior to bicubic pre-upscaling.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                早期使用預測式濾波（線性、雙三次、Lanczos）的超解析度方法「快速但過度簡化了 SISR 問題，通常產出紋理過度平滑的解」。基於學習的方法經歷了範例配對方法、稀疏編碼和 CNN 方法的演進。Dong 等人的開創性 SRCNN 引入了端到端深度網路進行超解析度。Johnson 等人在感知損失函數上的先前工作展示了「更接近感知相似性的損失函數能恢復視覺上更具說服力的高解析度影像」。關鍵的架構創新包含帶跳躍連接的殘差區塊和優於雙三次前置放大的學習式放大濾波器。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——從傳統方法到 CNN 再到感知損失的技術演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術譜系：濾波方法 -> CNN 方法 -> 感知損失。SRGAN 被定位為此演進的自然延續——將感知損失與 GAN 結合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    引用 Johnson et al. 的感知損失工作作為 SRGAN 的直接前驅，清楚界定了貢獻的增量性。但作者對 SRCNN 至 SRGAN 之間的大量 CNN 方法（VDSR、DRCN 等）僅略帶提及，可能遺漏了某些關鍵的中間進展。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Generator Architecture (SRResNet) — 生成器架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The generator consists of <span class="hl-method">16 residual blocks</span> with identical layout. Each block contains <span class="hl-method">two convolutional layers with 3x3 kernels and 64 feature maps</span>, <span class="hl-method">batch normalization</span>, and <span class="hl-method">ParametricReLU activation</span>. <span class="hl-method">Two sub-pixel convolution layers</span> (following Shi et al.) perform the upsampling. <span class="hl-method">Skip connections</span> from input to output relieve the network from learning the identity mapping, significantly improving training efficiency. When trained with <span class="hl-method">MSE loss alone</span> (without GAN), this architecture — termed <span class="hl-concept">SRResNet</span> — already <span class="hl-evidence">sets a new state of the art on PSNR benchmarks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                生成器由 16 個具有相同佈局的殘差區塊組成。每個區塊包含兩個具有 3x3 核和 64 個特徵圖的摺積層、批次正規化和 ParametricReLU 啟動函數。兩個子像素摺積層（依循 Shi 等人）執行上取樣。從輸入到輸出的跳躍連接免除了網路學習恆等映射的負擔，顯著提升訓練效率。僅以 MSE 損失訓練（無 GAN）時，此架構——稱為 SRResNet——便已在 PSNR 基準上樹立了新的最先進標準。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構設計——描述生成器的具體網路結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了雙層基線：(1) SRResNet 本身已是 PSNR 最先進；(2) SRGAN 在此基礎上追求感知品質。這使得後續的 GAN 貢獻更具說服力——它改善的是已經很強的基線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將生成器獨立命名為 SRResNet 是聰明的策略——即使去除 GAN 組件，架構本身也有獨立的貢獻。但 16 殘差區塊的選擇缺乏消融支持，且批次正規化在後續研究中被發現可能引入偽影。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading">3.2 Discriminator Architecture — 判別器架構</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The discriminator is trained to <span class="hl-method">"differentiate between the super-resolved images and original photo-realistic images"</span>. It employs <span class="hl-method">eight convolutional layers with 3x3 filters</span>, where feature maps increase from 64 to 512, doubling with each strided convolution. <span class="hl-method">LeakyReLU activations (alpha=0.2)</span> replace standard ReLU, and <span class="hl-method">strided convolutions replace max pooling</span> for spatial reduction. Two dense layers followed by <span class="hl-method">sigmoid activation</span> produce the binary classification output. This architecture follows the design principles of <span class="hl-concept">DCGAN</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                判別器被訓練來「區分超解析度影像與原始的逼真影像」。它採用八個具有 3x3 濾波器的摺積層，特徵圖從 64 增加到 512，每次步進摺積加倍。LeakyReLU 啟動函數（alpha=0.2）取代了標準 ReLU，步進摺積取代了最大池化來進行空間縮減。兩個全連接層接 sigmoid 啟動函數產出二元分類輸出。此架構遵循 DCGAN 的設計原則。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構設計——描述判別器的具體網路結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    判別器是 GAN 框架的必要組件，為生成器提供對抗訊號。其設計遵循已驗證的 DCGAN 原則，降低了架構設計的不確定性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    直接採用 DCGAN 的判別器設計降低了工程風險。但對於超解析度任務，判別器是否需要專門設計？例如，應否關注局部紋理而非全域真實性？此處缺乏針對 SR 任務的判別器設計探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-loss">3.3 Perceptual Loss Function — 感知損失函數</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper's central innovation is the <span class="hl-concept">perceptual loss function</span>: <span class="hl-method">l^SR = l^SR_content + 10^-3 * l^SR_adversarial</span>. The <span class="hl-concept">content loss</span> measures distance in <span class="hl-method">VGG19 feature space</span> rather than pixel space: <span class="hl-method">the Euclidean distance between feature representations phi_{i,j}(I^HR) and phi_{i,j}(G(I^LR))</span> from a specific VGG layer. This is <span class="hl-thesis">"more invariant to changes in pixel space"</span> and captures high-level semantic content. The <span class="hl-concept">adversarial loss</span> <span class="hl-method">-log D(G(I^LR))</span> pushes super-resolved images toward the <span class="hl-thesis">natural image manifold</span>. The <span class="hl-method">10^-3 weighting on adversarial loss</span> prevents competition with content loss, <span class="hl-thesis">balancing texture hallucination against content fidelity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文的核心創新是感知損失函數：l^SR = l^SR_content + 10^-3 * l^SR_adversarial。內容損失在 VGG19 特徵空間而非像素空間中衡量距離：取 VGG 特定層的特徵表示 phi_{i,j}(I^HR) 與 phi_{i,j}(G(I^LR)) 之間的歐氏距離。這「對像素空間的變化更具不變性」，能捕捉高層語意內容。對抗損失 -log D(G(I^LR)) 將超解析度影像推向自然影像流形。對抗損失上 10^-3 的權重防止其與內容損失競爭，在紋理幻象與內容保真度之間取得平衡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——定義感知損失函數的數學形式與設計理念。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文的技術支柱。VGG 特徵損失 + 對抗損失的組合直接實現了摘要中「感知品質」的承諾。10^-3 的權重設計展示了兩種損失間的微妙平衡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    損失函數的設計是 SRGAN 最核心的貢獻，且邏輯鏈完整：VGG 捕捉語意 -> 對抗損失推向流形 -> 權重平衡兩者。但 10^-3 的權重是經驗性的，且不同 VGG 層的選擇會顯著影響結果——作者在實驗中以 phi_{5,4} 為最佳，但理論依據薄弱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">Set14 at 4x upscaling</span>, SRGAN achieves <span class="hl-evidence">MOS of 3.72</span> compared to SRResNet's 2.98 and DRCN's 2.84, while <span class="hl-evidence">original HR images score 4.32</span>. Notably, <span class="hl-evidence">SRGAN's PSNR (26.02 dB) is actually lower than SRResNet (28.49 dB)</span>, confirming the paper's thesis that PSNR and perceptual quality are misaligned. Testing with <span class="hl-evidence">26 raters and over 29,328 ratings</span> provides statistical rigor. <span class="hl-evidence">VGG feature loss from deeper layers (phi_{5,4}) produces better texture detail than shallower layers (phi_{2,2})</span>. The authors acknowledge limitations: approaches that <span class="hl-rebuttal">"hallucinate finer detail might be less suited for medical applications or surveillance"</span> and <span class="hl-rebuttal">text/structured scenes remain challenging</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Set14 上以 4 倍放大，SRGAN 達到 MOS 3.72，相比 SRResNet 的 2.98 和 DRCN 的 2.84，原始高解析度影像得分為 4.32。值得注意的是，SRGAN 的 PSNR（26.02 dB）實際上低於 SRResNet（28.49 dB），印證了本文的核心論點：PSNR 與感知品質並非一致。以 26 位評分者和超過 29,328 份評分進行的測試提供了統計嚴謹性。來自較深層（phi_{5,4}）的 VGG 特徵損失比淺層（phi_{2,2}）產生更好的紋理細節。作者承認局限性：「幻想更精細細節」的方法可能不適用於醫療應用或監控，且文字/結構化場景仍具挑戰性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實證——以 MOS 和 PSNR 的反向關係驗證感知品質優先的論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的決定性證據：PSNR 下降但 MOS 大幅上升的結果直接驗證了「感知品質 != PSNR」的核心論點。大規模 MOS 測試的統計力度為這一主觀品質主張提供了客觀支持。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動承認在醫療和監控應用中的限制展現了學術誠信。但 MOS 測試的具體條件（顯示解析度、觀看距離、評分者專業背景）會影響結果的可重現性，這些細節的透明度至關重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors conclude with a dual contribution: <span class="hl-concept">SRResNet</span> <span class="hl-evidence">"sets a new state of the art on public benchmark datasets when evaluated with the widely used PSNR measure,"</span> while <span class="hl-concept">SRGAN</span> <span class="hl-thesis">"augments the content loss function with an adversarial loss by training a GAN."</span> Using <span class="hl-evidence">extensive MOS testing</span>, they confirm that <span class="hl-thesis">SRGAN reconstructions for 4x upscaling are, "by a considerable margin, more photo-realistic than reconstructions obtained with state-of-the-art reference methods."</span> The paradigm shift from <span class="hl-thesis">pixel fidelity to perceptual fidelity</span> fundamentally redefines the objective of super-resolution research.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者以雙重貢獻作結：SRResNet「在以廣泛使用的 PSNR 衡量時，於公開基準資料集上樹立了新的最先進標準」，而 SRGAN「透過訓練 GAN 以對抗損失增強內容損失函數」。透過廣泛的 MOS 測試，他們確認 SRGAN 在 4 倍放大的重建結果「以相當大的幅度，比最先進參考方法獲得的重建更為逼真」。從像素保真度到感知保真度的範式轉移，從根本上重新定義了超解析度研究的目標。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申雙重貢獻並宣告範式轉移。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以 SRResNet（PSNR 之王）和 SRGAN（感知品質之王）的雙線敘事收束，暗示兩者分別服務不同的應用需求，形成互補而非替代的關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「範式轉移」的措辭具有強烈的宣言性，但後續研究（如 ESRGAN）的存在表明 SRGAN 本身仍有大幅改進空間。此外，GAN 訓練的不穩定性在生產環境中的可靠性仍是未被充分討論的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>MSE 最佳化導致<br>過度平滑缺乏紋理</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>論點</strong><br>感知損失+對抗訓練<br>推向自然影像流形</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>證據</strong><br>MOS 大幅領先<br>PSNR 與感知不一致</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>反駁</strong><br>SRResNet 本身<br>已是 PSNR 最先進</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>像素保真到感知保真<br>超解析度範式轉移</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>以 GAN 驅動的感知損失函數（VGG 特徵空間內容損失 + 對抗損失）取代傳統 MSE，能在 4 倍超解析度中恢復逼真的紋理細節，開創從像素保真到感知保真的範式轉移。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p><strong>PSNR 與 MOS 的反向關係：</strong>SRGAN 在 PSNR 上劣於 SRResNet，但在 MOS 上大幅領先的結果，是對「PSNR = 品質」這一普遍假設的有力反駁。29,328 份評分的大規模 MOS 測試提供了強有力的統計支持，使主觀品質主張具備了客觀可信度。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p><strong>紋理幻象的可控性不足：</strong>GAN 生成的紋理可能不忠於原始內容——例如在人臉上添加不存在的毛孔，或在建築上幻想出不正確的紋理圖案。作者雖承認醫療和監控場景的限制，但對幻象紋理的保真度缺乏定量分析。此外，10^-3 的對抗損失權重完全是經驗性的，缺乏理論指引。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

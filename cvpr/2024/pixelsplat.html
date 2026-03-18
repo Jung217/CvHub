@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pixelSplat: 3D Gaussian Splats from Image Pairs for Scalable Generalizable 3D Reconstruction — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .honorable-mention-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #c0c0c0, #8a8a8a);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                pixelSplat: 3D Gaussian Splats from Image Pairs for Scalable Generalizable 3D Reconstruction
+                <span class="course-tag">CVPR 2024</span>
+                <span class="honorable-mention-badge">Honorable Mention</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2312.12337" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-background">3. 背景</a>
+        <a href="#sec-method">4. 方法</a>
+        <a href="#sec-scale">4.1 尺度歧義</a>
+        <a href="#sec-gaussian-pred">4.2 高斯參數預測</a>
+        <a href="#sec-experiments">5. 實驗</a>
+        <a href="#sec-ablation">5.3 消融分析</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce <span class="hl-concept">pixelSplat</span>, a <span class="hl-thesis">feed-forward model that learns to reconstruct a 3D Gaussian splat parameterization of a 3D scene from a pair of images</span>. Our model features <span class="hl-thesis">real-time and memory-efficient rendering for scalable training as well as fast 3D reconstruction at inference time</span>. To overcome <span class="hl-rebuttal">local minima inherent to sparse representations</span>, we predict <span class="hl-method">dense probability distributions over 3D and sample Gaussian means from these distributions</span>. We make this sampling operation differentiable via a <span class="hl-method">reparameterization trick</span>, allowing us to <span class="hl-method">back-propagate gradients through the Gaussian splatting representation</span>. We benchmark our method on <span class="hl-evidence">wide-baseline novel view synthesis on the RealEstate10k and ACID datasets</span>, where we <span class="hl-evidence">outperform state-of-the-art light field transformers and accelerate rendering by 2.5 orders of magnitude</span> while reconstructing an <span class="hl-thesis">interpretable and editable 3D radiance field</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 <span class="hl-concept">pixelSplat</span>，一個前饋式模型，能從一對影像學習重建以三維高斯基元<span class="hl-thesis">參數</span>化的三維場景。本模型具備即時且記憶體效率高的<span class="hl-evidence">渲染</span>能力，可支援可擴展的訓練流程以及<span class="hl-thesis">推論</span>時的快速三維重建。為克服稀疏表示固有的局部極小值問題，我們預測三維空間上的稠密機率分布，並從中取樣高斯基元的均值。透過重參數化技巧使取樣操作可微分，使梯度能透過高斯濺射表示進行反向傳播。我們在 RealEstate10k 與 ACID 資料集的寬基線<span class="hl-evidence">新視角合成</span>任務上進行基準測試，結果優於最先進的光場轉換器，且渲染速度提升約 2.5 個數量級，同時重建出可解讀且可編輯的三維輻射場。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以單段摘要涵蓋問題、方法、技術創新與實驗結果四大要素。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題定義與解決方案預告」的雙重功能：先界定稀疏表示的局部極小值挑戰，再以機率取樣與重參數化技巧回應。最後以資料佐證方法的有效性與效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「2.5 個數量級」的加速幅度在摘要中極為搶眼，是非常有效的修辭策略。但需注意這僅為渲染速度的比較，整體流程（含編碼時間）的加速倍數需在實驗中進一步釐清。「可解讀且可編輯」的宣稱亦需驗證其三維表示的品質。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The problem of <span class="hl-concept">generalizable novel view synthesis</span> from sparse image observations has seen tremendous progress through <span class="hl-concept">differentiable rendering</span>. However, differentiable rendering inherits a key weakness: <span class="hl-rebuttal">training, reconstruction, and rendering are notoriously memory- and time-intensive because differentiable rendering requires evaluating dozens or hundreds of points along each camera ray</span>. While <span class="hl-concept">light-field transformers</span> represent progress, they remain <span class="hl-rebuttal">far from real-time</span> and <span class="hl-rebuttal">do not reconstruct 3D scene representations that can be edited or exported for downstream tasks</span> in vision and graphics.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從稀疏影像觀測進行可泛化<span class="hl-concept">新視角合成</span>的問題，已因可微分<span class="hl-concept">渲染</span>技術而取得巨大進展。然而可微分渲染承襲了一項關鍵缺陷：訓練、<span class="hl-rebuttal">重建</span>與渲染過程耗費大量記憶體與時間，因為每條攝影機射線都需評估數十至數百個取樣點。儘管光場轉換器代表了一定的進展，但其距離<span class="hl-rebuttal">即時</span>渲染仍有相當差距，且無法重建可供編輯或匯出至下游視覺與圖學任務的三維場景表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出可微分渲染與光場方法的效率與功能性瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定可微分渲染的成就，再以「記憶體與時間密集」和「無法匯出三維表示」兩個維度揭示不足，為引入基於基元的表示法鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「dozens or hundreds of points along each ray」具體化計算瓶頸，比抽象地說「慢」更具說服力。但作者將所有光場方法歸為「非即時」，忽略了某些輕量化光場方法已接近即時的事實。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：pixelSplat 方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">pixelSplat</span>, which brings <span class="hl-thesis">the benefits of a primitive-based 3D representation — fast and memory-efficient rendering as well as interpretable 3D structure — to generalizable view synthesis</span>. We identify two key challenges. First, <span class="hl-concept">scale ambiguity</span>: in real-world datasets, camera poses are only reconstructed up to an arbitrary scale factor. We design <span class="hl-method">a multi-view epipolar transformer that reliably infers this per-scene scale factor</span>. Second, <span class="hl-concept">local minima in optimization</span>: optimizing primitive parameters directly via gradient descent suffers from local minima. While single-scene methods use <span class="hl-rebuttal">non-differentiable pruning and division heuristics</span>, the generalizable case requires gradient flow, precluding such operations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 <span class="hl-concept">pixelSplat</span>，將基元式三維表示的優勢——快速且記憶體效率高的<span class="hl-thesis">渲染</span>，以及可解讀的三維結構——帶入可泛化視角合成領域。我們辨識出兩個核心挑戰。第一，尺度歧義：在真實世界資料集中，攝影機位姿僅能被重建到一個任意的尺度因子。我們設計了一個多視圖<span class="hl-method">極線</span>轉換器，能可靠地推斷每個場景的尺度因子。第二，最佳化中的局部極小值：透過梯度下降直接最佳化基元參數容易陷入局部極小值。雖然單場景方法可使用不可微分的修剪與分裂啟發式策略，但可泛化的情境需要梯度流通，因此無法採用此類操作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——概述 pixelSplat 的定位與面臨的兩大核心技術挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段扮演「轉折」角色：從「現有方法不足」過渡到「本文方案」，並預先揭示技術難點，為後續方法章節建立期待。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將兩大挑戰（尺度歧義、局部極小值）清楚分項列出，使論文結構高度對稱且易於追蹤。「non-differentiable pruning」的批判精準地點出原始 3D-GS 的痛點，但作者是否完全解決了局部極小值問題，需待消融實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：機率取樣方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our proposed solution: we <span class="hl-method">parameterize the positions (i.e., means) of Gaussians implicitly via dense probability distributions predicted by our encoder</span>. In each forward pass, we <span class="hl-method">sample Gaussian primitive locations from this distribution</span>, enabling <span class="hl-thesis">implicit spawning or deletion of primitives during training while maintaining gradient flow</span> through a <span class="hl-method">reparameterization trick</span>. We demonstrate that <span class="hl-thesis">a 3D Gaussian splatting representation can be predicted in a single forward pass from just a pair of images</span>, showing that a Gaussian splatting representation can be turned into a building block of any end-to-end differentiable system. Results show <span class="hl-evidence">significant outperformance over light field transformers on real-world datasets</span> while <span class="hl-evidence">drastically reducing both training and rendering cost</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出的解決方案是：透過<span class="hl-method">編碼器</span>預測的稠密機率分布，隱式地<span class="hl-method">參數</span>化高斯基元的位置（即均值）。在每次前向傳播中，從該分布取樣高斯基元的位置，使得訓練過程中能隱式地產生或刪除基元，同時透過重參數化技巧維持梯度流通。我們展示了三維高斯濺射表示可從僅僅一對影像在單次前向傳播中被預測出來，顯示高斯濺射表示可作為任何端到端可微分系統的建構模組。實驗結果在真實世界<span class="hl-evidence">資料集</span>上顯著優於光場轉換器，同時大幅降低訓練與<span class="hl-evidence">渲染</span>成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新揭示——闡述機率取樣方案的核心思路及其效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    直接回應上段列出的兩大挑戰：以機率分布取代確定性迴歸來解決局部極小值，以重參數化技巧保持端到端可微分性。此段是全文技術貢獻的濃縮版。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「building block of any end-to-end differentiable system」是一個極具雄心的宣稱，暗示 pixelSplat 的通用性。但此通用性尚未在多樣化的下游任務中被驗證——論文僅展示了新視角合成這一個應用場景。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：單場景新視角合成 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent advances in <span class="hl-concept">single-scene novel view synthesis</span> employ <span class="hl-concept">neural fields</span> and <span class="hl-concept">volume rendering</span> as standards. However, these methods suffer from <span class="hl-rebuttal">high computational demands requiring dozens of queries of the neural field per ray</span>. Discrete data structures accelerate rendering but <span class="hl-rebuttal">still significantly fall short of real-time rendering at high resolutions</span>. The recently proposed <span class="hl-concept">3D Gaussian splatting</span> offers <span class="hl-thesis">an efficient alternative by sparsely representing the radiance field with 3D Gaussian primitives that can be rendered via rasterization</span>. However, single-scene optimization requires <span class="hl-rebuttal">dozens of images per scene</span>. Our work trains neural networks to estimate 3D Gaussian primitive scene representation from <span class="hl-evidence">just two images in a single forward pass</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                單場景<span class="hl-concept">新視角合成</span>的近期進展以神經場與體積<span class="hl-concept">渲染</span>為標準方法。然而這些方法面臨高計算需求的困境，每條射線需數十次神經場查詢。離散資料結構雖能加速渲染，但在高解析度下仍遠未達到<span class="hl-rebuttal">即時</span>水準。近期提出的三維高斯濺射提供了一個高效的替代方案，以三維高斯基元稀疏地表示輻射場，並可透過光柵化進行渲染。然而單場景最佳化需要每個場景數十張影像。本研究訓練神經網路，僅從兩張影像在單次前向傳播中即可估計三維高斯基元的場景表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理單場景方法的演進脈絡，定位 3D-GS 與本文的關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術譜系：NeRF 系方法 -> 加速方案 -> 3D-GS -> pixelSplat。每一步都指出剩餘缺口，以線性演進的敘事將 pixelSplat 定位為自然的下一步。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「just two images in a single forward pass」與「dozens of images per scene」形成鮮明對比，修辭效果極強。但兩張影像能提供的幾何資訊遠少於數十張，品質退化是否可接受需仰賴實驗資料。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：基於先驗的三維重建 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">generalizable novel view synthesis</span> direction seeks 3D reconstruction and novel view synthesis from <span class="hl-evidence">only a handful of images per scene</span>. Neural networks can be trained to regress <span class="hl-concept">multi-plane images</span> for small-baseline synthesis, but <span class="hl-rebuttal">large-baseline novel view synthesis requires full 3D representations</span>. Methods preserving <span class="hl-method">end-to-end locality and shift equivariance between encoder and scene representation via pixel-aligned or otherwise local features</span> enabled generalization to room-scale scenes and beyond. Recent work combines encoders with <span class="hl-concept">cost volumes</span> to match features across views, inspired by classical multi-view stereo. While methods inferring interpretable 3D representations exist, <span class="hl-rebuttal">recent light field scene representations trade interpretability for faster rendering</span>. Our method <span class="hl-thesis">presents the best of both worlds: it infers an interpretable 3D scene representation in the form of 3D Gaussian primitives while accelerating rendering by three orders of magnitude compared to light field transformers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                可泛化<span class="hl-concept">新視角合成</span>的研究方向旨在僅從每個場景少量影像進行三維重建與新視角合成。神經網路可被訓練以迴歸多平面影像用於小基線合成，但大基線新視角合成則需要完整的三維表示。透過像素對齊或其他局部特徵在<span class="hl-method">編碼器</span>與場景表示之間保持端到端局部性與平移等變性的方法，使泛化能力擴展至房間尺度乃至更大的場景。近期工作結合編碼器與代價體積來跨視圖匹配特徵，靈感源自經典的多視圖立體視覺。雖然存在推斷可解讀三維表示的方法，但近期的光場場景表示以犧牲可解讀性換取更快的<span class="hl-rebuttal">渲染</span>速度。本方法兼具兩者優勢：以三維高斯基元的形式推斷可解讀的三維場景表示，同時相較光場轉換器將渲染速度提升三個數量級。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 pixelSplat 放置於可泛化視角合成的發展脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了「可解讀性 vs. 效率」的二元對立框架，再以 pixelSplat 作為統一兩者的方案。這是典型的「兩難困境+第三條路」論證結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「best of both worlds」是極具感染力的修辭，但可能過度簡化了權衡關係。三個數量級的加速主要來自光柵化 vs. 體積渲染的本質差異，而非 pixelSplat 本身的創新。作者巧妙地將 3D-GS 的先天優勢歸功於自己的方法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：尺度歧義 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior work recognizes <span class="hl-concept">the challenge of scene scale ambiguity in machine learning for multi-view geometry</span>. In <span class="hl-concept">monocular depth estimation</span>, state-of-the-art models <span class="hl-method">rely on sophisticated scale-invariant depth losses</span>. In novel view synthesis, <span class="hl-method">single-image 3D diffusion models trained on real-world data rescale 3D scenes according to heuristics on depth statistics and condition their encoders on scene scale</span>. We instead build <span class="hl-method">a multi-view encoder that can infer the scale of the scene</span>, using <span class="hl-method">an epipolar transformer that finds cross-view pixel correspondences and associates them with positionally encoded depth values</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的研究已認知到多視圖幾何中機器學習面臨的場景尺度歧義挑戰。在單目深度估計領域，最先進的模型依賴精巧的尺度不變深度損失函數。在新視角合成中，以真實世界資料訓練的單影像三維<span class="hl-method">擴散模型</span>，依據深度統計的啟發式規則重新縮放三維場景，並以場景尺度為條件調節其<span class="hl-method">編碼器</span>。相較之下，我們建構了一個能推斷場景尺度的多視圖編碼器，使用<span class="hl-method">極線</span>轉換器找到跨視圖的像素對應關係，並將其與位置編碼的深度值關聯起來。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    差異化論述——對比先前處理尺度歧義的方法，突顯本文方案的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應可能的質疑「尺度歧義難道不是已解決的問題？」——透過對比不同領域的處理策略（啟發式 vs. 本文的自動推斷），論證本文方案的原創性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者將其他方法歸類為「heuristics」（啟發式），暗示這些方法缺乏理論支撐，但極線幾何本身也是經典的啟發式方法。差異在於本文將尺度推斷融入端到端學習框架，這才是真正的貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 背景：3D Gaussian Splatting ====== -->
+    <h2 class="section-heading" id="sec-background">3. Background: 3D Gaussian Splatting — 背景</h2>
+
+    <!-- 背景段落 1：3D-GS 基礎 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3D Gaussian Splatting</span> parameterizes a 3D scene as a set of <span class="hl-concept">3D Gaussian primitives</span> {g_k = (mu_k, Sigma_k, alpha_k, S_k)}, where each has a <span class="hl-method">mean mu_k, a covariance Sigma_k, an opacity alpha_k, and spherical harmonics coefficients S_k</span>. These primitives parameterize the 3D radiance field and can be rendered via <span class="hl-method">an inexpensive rasterization operation</span>. Unlike dense neural field representations that require evaluating dozens of samples per ray, <span class="hl-thesis">this approach is significantly cheaper in terms of time and memory</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三維高斯濺射將三維場景參數化為一組三維高斯基元 {g_k = (mu_k, Sigma_k, alpha_k, S_k)}，每個基元包含均值 mu_k、共變異數矩陣 Sigma_k、不透明度 alpha_k，以及球諧函數係數 S_k。這些基元參數化三維輻射場，並可透過低成本的光柵化操作進行渲染。不同於需要每條射線評估數十個取樣的稠密神經場表示，此方法在時間與記憶體方面顯著更為經濟。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義先備知識——介紹 3D Gaussian Splatting 的基本表示形式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為方法章節的前置知識，此段為讀者建立必要的符號系統與概念基礎。四元組 (mu, Sigma, alpha, S) 的定義將在後續方法中被反覆引用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的數學符號將複雜的三維表示壓縮為易於理解的格式。「inexpensive rasterization」是相對於體積渲染而言，但在高斯基元數量極大時，光柵化同樣可能成為瓶頸——此處的效率宣稱具有條件性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 背景段落 2：局部極小值問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Fitting <span class="hl-concept">3D-GS models</span> relates to <span class="hl-concept">fitting Gaussian mixture models</span>, where we seek the parameters of a set of Gaussians that maximize the likelihood of a set of samples. This problem is <span class="hl-rebuttal">famously non-convex</span>. Local minima arise when <span class="hl-rebuttal">Gaussian primitives initialized at random locations have to move through space to arrive at their final location</span>. Two issues prevent convergence: first, <span class="hl-rebuttal">Gaussian primitives have local support, meaning gradients vanish if the distance to the correct location exceeds more than a few standard deviations</span>. Second, <span class="hl-rebuttal">even if a Gaussian is close enough to receive substantial gradients, there still needs to exist a monotonically decreasing loss path to its final location</span>. 3D-GS addresses this via <span class="hl-rebuttal">non-differentiable pruning and splitting operations, which are incompatible with the generalizable setting where primitive parameters are predicted by a neural network that must receive gradients</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                擬合三維高斯濺射模型的問題等同於擬合高斯混合模型，即尋找一組高斯<span class="hl-rebuttal">參數</span>以最大化一組樣本的似然度。這是一個著名的非凸問題。局部極小值出現於隨機初始化位置的高斯基元需要在空間中移動以到達最終位置時。兩個因素阻礙收斂：第一，高斯基元具有局部支撐，意即若與正確位置的距離超過數個標準差，梯度便會消失。第二，即便高斯基元距離夠近而能接收到可觀的梯度，仍需存在一條損失函數單調遞減的路徑通往最終位置。原始 <span class="hl-concept">3D-GS</span> 以不可微分的修剪與分裂操作解決此問題，但這與需要梯度流通至神經網路的可泛化設定不相容。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題深化——以高斯混合模型的類比剖析局部極小值的根本成因。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是連接「背景」與「方法」的關鍵橋梁：透過精確描述局部極小值的兩個成因（梯度消失與非單調路徑），為後續的機率取樣方案提供充分的動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以高斯混合模型作類比是極具洞察力的論證手法，使讀者能從熟悉的統計框架理解新問題。「famously non-convex」一語精準援引了學界共識。然而，原始 3D-GS 的 Adaptive Density Control 在實務中運作良好，作者是否真正需要完全可微分的替代方案，取決於可泛化設定的必要性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">4. Image-conditioned 3D Gaussian Inference — 影像條件式三維高斯推斷</h2>
+
+    <h3 class="subsection-heading" id="sec-scale">4.1 Resolving Scale Ambiguity — 解決尺度歧義</h3>
+
+    <!-- 方法 4.1 段落 1：問題陳述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In practice, <span class="hl-concept">structure-from-motion (SfM)</span> reconstructs each scene <span class="hl-rebuttal">only up to scale</span>, meaning scenes are scaled by individual, arbitrary scale factors s_i. A given scene provides camera data C_i = {(I_j, s_i * T_j)}, where s_i * T_j denotes a metric pose whose translation component is scaled by the unknown scalar s_i. Critically, <span class="hl-thesis">recovering s_i from a single image is impossible due to the principle of scale ambiguity</span>. This means <span class="hl-rebuttal">a neural network making predictions about the geometry of a scene from a single image cannot possibly predict the depth that matches the poses reconstructed by structure-from-motion</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實務上，運動恢復結構（SfM）僅能將每個場景重建至一個未知的尺度，意即場景被乘以各自任意的尺度因子 s_i。給定場景提供攝影機資料 C_i = {(I_j, s_i * T_j)}，其中 s_i * T_j 表示平移分量被未知純量 s_i 縮放的度量位姿。關鍵在於，由於尺度歧義原理，從單張影像恢復 s_i 是不可能的。這意味著從單張影像預測場景幾何的神經網路，不可能預測出與 SfM 重建位姿一致的深度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    界定不可能性——以數學論證說明單影像深度預測的根本限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了「為何需要雙視圖」的理論必要性：不是工程上的選擇偏好，而是數學上的不可能性。這為雙視圖編碼器的設計提供了無可辯駁的動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「principle of scale ambiguity」這一幾何學基本原理作為論據，使論證具備了理論的嚴格性。但實務上，若訓練資料的尺度分布相對集中，單影像模型也可能學到近似的尺度先驗——這裡的「不可能性」是嚴格數學意義上的，不完全等於實務表現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 4.1 段落 2：極線注意力方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our solution uses <span class="hl-method">two reference views</span>. For each pixel in image I, we <span class="hl-method">annotate points along its epipolar line in the second image with their corresponding depths in I's coordinate frame</span>. These depth values are computed from camera poses and <span class="hl-method">encode the scene's scale s_i</span>. Each view is encoded separately into feature volumes F and F-tilde. For pixel coordinate u from I, the epipolar line in the second image is sampled at coordinates {u-tilde_l}. For each epipolar sample, the <span class="hl-method">distance to I's camera origin is computed by triangulation</span>. Queries, keys, and values for epipolar attention are then computed as: s = F-tilde[u-tilde_l] concatenated with gamma(d-tilde), where gamma denotes <span class="hl-method">positional encoding</span>. We then perform <span class="hl-method">epipolar cross-attention</span>: F[u] += Att(q, {k_l}, {v_l}).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的解決方案使用兩個參考視圖。對於影像 I 中的每個像素，我們在第二張影像中沿其<span class="hl-method">極線</span>標注對應深度值（以 I 的座標系表示）。這些深度值由攝影機位姿計算得出，並編碼了場景的尺度 s_i。每個視圖被獨立編碼為特徵體積 F 與 F-tilde。對於 I 中的像素座標 u，在第二張影像中沿極線取樣座標 {u-tilde_l}。對每個極線取樣點，透過三角測量計算其到 I 攝影機原點的距離。隨後計算極線<span class="hl-method">注意力</span>的查詢、鍵與值：s = F-tilde[u-tilde_l] 串接 gamma(d-tilde)，其中 gamma 為位置編碼。接著執行極線交叉注意力：F[u] += Att(q, {k_l}, {v_l})。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——詳述極線注意力機制的實現步驟。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將抽象的「解決尺度歧義」轉化為具體的演算法步驟。極線幾何與注意力機制的結合是本文的關鍵技術貢獻，將經典多視圖幾何與現代深度學習巧妙融合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    位置編碼 gamma(d) 的引入是精妙的設計：它將連續的深度值轉化為高維表示，使網路能區分相近的深度。然而極線取樣的密度與範圍是需要調整的超參數，取樣不足可能導致錯過正確的對應點。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 4.1 段落 3：自注意力與傳播 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                After the epipolar cross-attention layer, <span class="hl-thesis">each pixel feature F[u] contains a weighted sum of the depth positional encodings</span>, where we expect that the correct correspondence gained the largest weight, and thus <span class="hl-method">each pixel feature now encodes the scaled depth that is consistent with the arbitrary scale factor s_i</span>. Following epipolar cross-attention, a <span class="hl-method">residual convolution layer</span> F += Conv(F) and a <span class="hl-method">per-image self-attention layer</span> F += SelfAttention(F) are applied. These <span class="hl-thesis">enable our encoder to propagate scaled depth estimates to parts of the image feature maps that may not have any epipolar correspondences</span>, such as occluded or textureless regions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                經過極線交叉<span class="hl-method">注意力</span>層後，每個像素特徵 F[u] 包含了深度位置編碼的加權總和。我們預期正確的對應點獲得最大權重，因此每個像素特徵現已編碼了與任意尺度因子 s_i 一致的縮放深度。在極線交叉注意力之後，依序施加殘差<span class="hl-method">摺積</span>層 F += Conv(F) 與逐影像自注意力層 F += SelfAttention(F)。這些機制使<span class="hl-thesis">編碼器</span>能將縮放深度估計傳播至影像特徵圖中可能缺乏極線對應的區域，例如被遮擋或無紋理的區域。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    補全設計——說明如何處理極線注意力無法覆蓋的區域。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    預先回應「極線對應在遮擋/無紋理區域失效」的潛在質疑，以殘差摺積與自注意力作為資訊傳播機制。展現了作者對方法局限性的深刻理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「propagate scaled depth estimates」描述自注意力的功能是直觀的解釋，但缺乏實驗證據直接證明深度資訊確實被有效傳播。消融實驗中若能展示移除自注意力層對遮擋區域的影響，將更有說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-gaussian-pred">4.2 Gaussian Parameter Prediction — 高斯參數預測</h3>
+
+    <!-- 方法 4.2 段落 1：像素對齊參數化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method leverages scale-aware feature maps to predict Gaussian primitive parameters. <span class="hl-method">Every pixel in an image samples a point on a surface in the 3D scene. We thus choose to parameterize the scene via pixel-aligned Gaussians</span>: for each pixel at coordinate u, we take the corresponding feature F[u] as input and predict the parameters of <span class="hl-method">M Gaussian primitives</span>. The baseline approach directly regresses the Gaussian center mu = o + d_u * d, where d = g(F[u]) and the ray direction d is computed from camera extrinsics T and intrinsics K. However, <span class="hl-rebuttal">directly optimizing Gaussian parameters is susceptible to local minima</span>, and we cannot rely on spawning and pruning heuristics since they require gradients.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                此方法利用具尺度感知的特徵圖來預測高斯基元<span class="hl-method">參數</span>。影像中的每個像素對應三維場景中一個表面點的取樣，因此我們選擇以像素對齊高斯來參數化場景：對於座標 u 處的每個像素，取其對應特徵 F[u] 作為輸入，預測 M 個高斯基元的參數。基準方法直接迴歸高斯中心 mu = o + d_u * d，其中 d = g(F[u])，射線方向 d 由攝影機外參 T 與內參 K 計算。然而直接最佳化高斯參數容易陷入局部極小值，且由於需要梯度流通，我們無法依賴產生與修剪的啟發式策略。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    基準設定——先介紹直覺但有缺陷的直接迴歸方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「先展示簡單方案的不足，再引出改進方案」的經典對比結構，為後續的機率預測方法建立動機。像素對齊的設計決策本身也是重要的架構選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    像素對齊的設計意味著高斯基元數量與影像解析度成正比，在高解析度影像上可能產生大量基元。但這也確保了場景的完整覆蓋。M 個基元 per pixel 的選擇可處理半透明與深度不連續，但 M 的具體值對性能的影響未在此討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 4.2 段落 2：機率深度預測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than predicting depth d directly, our method <span class="hl-thesis">predicts the probability distribution of the likelihood that a Gaussian (i.e. surface) exists at a depth d along the ray u</span>. This is implemented as <span class="hl-method">a discrete probability density over a set of depth buckets</span>. Near and far planes d_near and d_far are set, and depth is discretized into Z bins represented by vector b, where each element is defined in <span class="hl-method">disparity space</span>. A <span class="hl-method">discrete probability distribution p_phi(z)</span> is defined over index variable z, where phi_z is the probability that a surface exists in depth bucket b_z. Probabilities are <span class="hl-method">predicted by a fully connected neural network f from per-pixel feature F[u] and normalized via softmax</span>. A per-bucket center offset delta is also predicted, allowing fine-grained depth adjustment within each bucket.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                不同於直接預測深度 d，本方法預測在射線 u 上深度 d 處存在高斯基元（即表面）的機率分布。具體實現為一組深度桶上的離散機率密度。設定近平面 d_near 與遠平面 d_far，並將深度離散化為 Z 個桶，以向量 b 表示，每個元素定義於視差空間中。在索引變數 z 上定義離散機率分布 p_phi(z)，其中 phi_z 為表面存在於深度桶 b_z 中的機率。機率由全連接神經網路 f 從逐像素特徵 F[u] 預測，並透過 <span class="hl-method">softmax</span> 進行歸一化。同時預測每桶的中心偏移 delta，允許在每個桶內進行細粒度的深度調整。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——以機率分布取代確定性深度迴歸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這是全文最重要的技術貢獻：將「預測一個深度值」轉化為「預測深度的機率分布」。視差空間的離散化確保遠處的深度桶更寬（符合深度感測的特性），而 per-bucket offset 則恢復了離散化損失的精度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    視差空間離散化是精妙的設計選擇，使深度解析度隨距離自然衰減。但桶的數量 Z 是一個關鍵超參數：過少則深度精度不足，過多則增加計算負擔。此外，softmax 歸一化假設所有機率質量集中在 [d_near, d_far] 範圍內，對超出此範圍的場景可能失效。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法 4.2 段落 3：重參數化技巧 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To <span class="hl-thesis">backpropagate gradients into depth bucket probabilities phi</span>, the sampling operation z ~ p_phi(z) must be made differentiable. However, <span class="hl-rebuttal">the sampling operation is inherently not differentiable</span>. We employ a <span class="hl-method">reparameterization trick</span> inspired by variational autoencoders: <span class="hl-method">we set the opacity alpha of a Gaussian to be equal to the probability of the bucket that it was sampled from</span>. If z ~ p_phi(z), then alpha = phi_z. This means in each backward pass, we assign the gradients of the loss with respect to the opacities to the gradients of the depth probability buckets. Intuitively: <span class="hl-thesis">if sampling produces a correct depth, gradient descent increases the opacity, leading it to be sampled more often, eventually concentrating probability mass in the correct bucket. If an incorrect depth is sampled, gradient descent decreases the opacity, lowering the probability of further incorrect predictions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為將梯度反向傳播至深度桶機率 phi，取樣操作 z ~ p_phi(z) 必須可微分。然而取樣操作本質上不可微分。我們採用受變分自編碼器啟發的重<span class="hl-method">參數</span>化技巧：將高斯基元的不透明度 alpha 設定為其被取樣之桶的機率值。若 z ~ p_phi(z)，則 alpha = phi_z。這意味著在每次反向傳播中，損失函數對不透明度的梯度被指派給深度機率桶的梯度。直觀而言：若取樣產生正確的深度，梯度下降會增加不透明度，使其更常被取樣，最終將機率質量集中於正確的桶。若取樣到不正確的深度，梯度下降則會降低不透明度，減少後續不正確預測的機率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解決關鍵障礙——以重參數化技巧實現不可微分操作的梯度傳播。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決了機率取樣方案的最後一個技術障礙。alpha = phi_z 的設定建立了不透明度與機率之間的巧妙橋梁，使渲染損失的梯度能自然地流向深度預測。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「correct depth -> increase opacity -> sample more often」的直觀解釋極具教育意義，使複雜的數學機制變得平易近人。但此方案假設渲染損失能準確反映深度的正確性——在遮擋嚴重的區域，渲染損失可能對深度錯誤不敏感，導致機率分布無法正確收斂。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">5. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：實驗設置 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method is trained and evaluated on <span class="hl-evidence">RealEstate10k, a dataset of home walkthrough videos downloaded from YouTube</span>, and <span class="hl-evidence">ACID, a dataset of aerial landscape videos</span>. Both include <span class="hl-evidence">camera poses computed by SfM software</span>, necessitating the scale-aware design. Three novel-view-synthesis baselines are compared: <span class="hl-concept">pixelNeRF</span> (conditions neural radiance fields on 2D image features), <span class="hl-concept">GPNR</span> (image-based light field rendering using epipolar lines), and <span class="hl-concept">Du et al.</span> (combines light field rendering with epipolar transformer). To present a fair comparison, <span class="hl-evidence">all baselines were retrained using the same data loaders and training curriculum</span>, where the inter-frame distance between reference views is gradually increased during training. Evaluation uses <span class="hl-evidence">PSNR, SSIM, and LPIPS</span> metrics. Implementation employs <span class="hl-method">a ResNet-50 and a ViT-B/8 vision transformer, both pre-trained using DINO objective, with outputs summed pixel-wise</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本方法在 RealEstate10k（從 YouTube 下載的居家導覽影片<span class="hl-evidence">資料集</span>）與 ACID（航拍景觀影片資料集）上進行訓練與評估。兩者皆包含由 SfM 軟體計算的攝影機位姿，因此需要具尺度感知的設計。比較了三個新視角合成基線：<span class="hl-concept">pixelNeRF</span>（以二維影像特徵為條件的神經輻射場）、<span class="hl-concept">GPNR</span>（使用極線的基於影像光場渲染），以及 <span class="hl-concept">Du et al.</span>（結合光場渲染與極線轉換器）。為確保公平比較，所有基線均使用相同的資料載入器與訓練課程重新訓練，其中參考視圖間的幀間距在訓練過程中逐步增大。評估採用 PSNR、SSIM 與 LPIPS 指標。實現方面使用經 DINO 目標預訓練的 <span class="hl-method">ResNet</span>-50 與 ViT-B/8 視覺轉換器，兩者的輸出按像素相加。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗基礎設定——詳述資料集、基線、評估指標與實現細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為後續的定量結果建立可信度基礎。「retrained using the same data loaders」是關鍵的公平性保證，直接回應了「比較是否公平」的潛在質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調公平比較（相同資料載入器、相同訓練課程）是良好的實驗實踐。但基線模型可能有自己最優的訓練策略，統一訓練課程是否真的公平值得討論。DINO 預訓練的 ResNet-50 + ViT 提供了強大的初始特徵，但基線是否也使用了同等級的預訓練模型未明確說明。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：定量結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Quantitative results demonstrate that pixelSplat outperforms all baselines on every metric</span>. On <span class="hl-evidence">ACID, pixelSplat achieves 28.14 dB PSNR</span>; on <span class="hl-evidence">RealEstate10k, it achieves 25.89 dB PSNR</span>, with especially significant LPIPS improvements. Compared to <span class="hl-concept">Du et al.</span>, improvements are <span class="hl-evidence">1.26 dB on ACID and 1.11 dB on RealEstate10k</span>. Qualitative results demonstrate that the method not only produces more accurate and perceptually appealing images, but also <span class="hl-evidence">generalizes better to out-of-distribution examples</span>. The method is also <span class="hl-evidence">significantly less resource-intensive</span>: for a single scene encoding followed by 100 image renderings (approximate sequence length), <span class="hl-evidence">the cost is about 650 times less than the next-fastest baseline</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                定量結果顯示 <span class="hl-evidence">pixelSplat</span> 在所有指標上均優於所有基線。在 ACID 上達到 28.14 dB PSNR，在 RealEstate10k 上達到 25.89 dB PSNR，尤其在 LPIPS 指標上的改進最為顯著。相較於 <span class="hl-concept">Du et al.</span>，在 ACID 上提升 1.26 dB，在 RealEstate10k 上提升 1.11 dB。定性結果顯示本方法不僅生成更準確且視覺上更佳的影像，對分布外樣本的泛化能力也更強。本方法在資源消耗上亦顯著更低：對單一場景編碼後渲染 100 張影像（近似序列長度），成本約為次快基線的六百五十分之一。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展示核心實證——以定量資料證明方法在品質與效率上的雙重優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的實證支柱，以三個維度支撐核心論點：(1) 影像品質（PSNR/SSIM/LPIPS）；(2) 泛化能力；(3) 計算效率（650 倍加速）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    650 倍的成本降低數字極為驚人，但這基於「編碼一次 + 渲染 100 張」的特定場景。若僅渲染少量視角，攤銷後的加速倍數會顯著降低。此外，1.11-1.26 dB 的 PSNR 提升雖然統計上顯著，在視覺上的差異可能不太明顯。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：三維表示品質 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Point cloud visualizations from <span class="hl-evidence">out-of-distribution views show the method produces structured 3D representations</span>. However, the authors acknowledge that <span class="hl-rebuttal">while the resulting Gaussians facilitate high-fidelity novel-view synthesis for in-distribution camera poses, they suffer from the same failure modes as 3D Gaussians optimized using the original 3D Gaussian splatting method</span>. Specifically, <span class="hl-rebuttal">reflective surfaces are often transparent, and Gaussians appear billboard-like when viewed from out-of-distribution views</span>. These limitations are inherent to the Gaussian splatting representation itself, not unique to the proposed method.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從分布外視角的點雲視覺化顯示，本方法能產生結構化的三維表示。然而作者也承認，雖然產生的高斯基元能在分布內攝影機位姿下實現高保真新視角合成，但其承襲了原始三維高斯濺射方法的相同失敗模式。具體而言，反射表面通常呈現透明狀態，而從分布外視角觀察時，高斯基元呈現廣告板狀的外觀。這些限制是高斯濺射表示本身的固有特性，非本方法獨有。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    誠實揭露局限——承認方法在特定條件下的失敗模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展現學術誠信：在報告成功後主動揭示局限，並巧妙地將責任歸於底層的 3D-GS 表示而非 pixelSplat 本身。這既是讓步，也是一種修辭策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將失敗歸因於 3D-GS 表示的固有限制是合理的責任劃分，但也意味著 pixelSplat 未能改善這些已知問題。若未來的改進方法能解決廣告板效應，本方法的框架是否能直接受益，是一個值得探討的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-ablation">5.3 Ablations and Analysis — 消融分析</h3>
+
+    <!-- 消融段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The ablation study addresses three questions. <strong>Q1a: Is the epipolar encoder responsible for handling scale ambiguity?</strong> Comparing against a variant <span class="hl-evidence">without epipolar encoding shows significant performance drops</span>. Qualitatively, this produces <span class="hl-evidence">ghosting and motion blur artifacts that are evidence of incorrect depth predictions</span>. Visualization of epipolar attention scores <span class="hl-evidence">demonstrates that the epipolar transformer successfully discovers cross-view correspondences</span>. <strong>Q1b: Does frequency-based positional encoding of depth matter?</strong> Testing without depth encoding yields <span class="hl-evidence">a performance drop of approximately 2 dB PSNR</span>, highlighting that beyond simply detecting correspondence, <span class="hl-thesis">the encoder uses the scene-scale encoded depths it triangulates to resolve scale ambiguity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究探討三個問題。問題一a：<span class="hl-evidence">極線</span><span class="hl-thesis">編碼器</span>是否負責處理尺度歧義？與不含極線編碼的變體比較顯示顯著的效能下降，定性上產生了鬼影與動態模糊偽影，證明了深度預測的不正確。極線注意力分數的視覺化展示了極線轉換器確實能成功發現跨視圖對應。問題一b：基於頻率的深度位置編碼是否重要？不使用深度編碼時，效能下降約 2 dB PSNR，突顯出編碼器不僅檢測對應關係，更利用其三角測量得到的場景尺度編碼深度來解決尺度歧義。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——以消融實驗逐一確認極線編碼器與深度位置編碼的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    直接回應方法章節的設計決策：極線注意力與位置編碼並非可有可無的裝飾，而是各自貢獻了大幅的效能提升。2 dB 的下降幅度足以證明其不可或缺性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以明確的問題-答案結構組織消融實驗，使讀者能快速定位感興趣的設計選擇。鬼影偽影的定性分析為定量指標提供了直觀的視覺佐證。但消融實驗僅在 RealEstate10k 上進行，ACID 上的結果可能不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Q2: Does probabilistic depth prediction alleviate local minima?</strong> Ablating the sampling approach and <span class="hl-evidence">directly regressing depth shows a performance drop of approximately 1 dB in PSNR</span>, validating that <span class="hl-thesis">predicting the depth of a Gaussian probabilistically is necessary</span>. Detailed ablation metrics on <span class="hl-evidence">RealEstate10k: Full model achieves 25.89 PSNR / 0.858 SSIM / 0.142 LPIPS; without epipolar encoder: 19.98 / 0.641 / 0.289; without depth encoding: 24.09 / 0.803 / 0.181; without probabilistic sampling: 24.44 / 0.820 / 0.175; with additional depth regularization: 25.28 / 0.847 / 0.152</span>. These results confirm that <span class="hl-thesis">every proposed component contributes to the final performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                問題二：機率深度預測是否能緩解局部極小值？移除取樣方法並直接迴歸深度後，效能下降約 1 dB PSNR，驗證了以機率方式預測高斯深度的必要性。RealEstate10k 上的詳細消融指標：完整模型達到 25.89 PSNR / 0.858 SSIM / 0.142 LPIPS；不含極線<span class="hl-evidence">編碼器</span>：19.98 / 0.641 / 0.289；不含深度編碼：24.09 / 0.803 / 0.181；不含機率取樣：24.44 / 0.820 / 0.175；加入深度正則化：25.28 / 0.847 / 0.152。這些結果確認了每個提出的組件都對最終效能有所貢獻。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    量化驗證——以完整的消融資料支撐機率取樣的核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以消融實驗作為全文論證的最終驗證：每個組件（極線編碼器 > 深度編碼 > 機率取樣）的相對重要性清晰可見。極線編碼器的貢獻（約 6 dB）遠大於機率取樣（約 1 dB），暗示尺度歧義的解決是更關鍵的挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    資料呈現清晰且完整，五組對比使讀者能精確評估每個組件的貢獻。值得注意的是，機率取樣僅帶來約 1.45 dB 的提升（24.44 vs. 25.89），而極線編碼器帶來近 6 dB 的提升。這暗示局部極小值問題雖然存在，但其影響可能小於尺度歧義問題——與緒論中兩者並列的描述存在張力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+
+    <!-- 結論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have introduced <span class="hl-concept">pixelSplat</span>, <span class="hl-thesis">a method that reconstructs a primitive-based parameterization of the 3D radiance field of a scene from only two images</span>. Our method is <span class="hl-evidence">significantly faster than prior work on generalizable novel view synthesis</span> while producing an <span class="hl-thesis">explicit 3D scene representation</span>. To solve <span class="hl-concept">local minima in primitive-based function regression</span>, we introduced <span class="hl-method">a novel parameterization of primitive location via a dense probability distribution</span> and a <span class="hl-method">novel reparameterization trick to backpropagate gradients into the parameters of this distribution</span>. This framework is general, and we hope that our work inspires follow-up work on prior-based inference of primitive-based representations across applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 <span class="hl-concept">pixelSplat</span>，一個僅從兩張影像即可重建場景三維輻射場之基元式<span class="hl-thesis">參數</span>化表示的方法。我們的方法在產生顯式三維場景表示的同時，速度顯著快於先前的可泛化<span class="hl-evidence">新視角合成</span>工作。為解決基元式函數迴歸中的局部極小值問題，我們引入了透過稠密機率分布對基元位置進行參數化的新方法，以及將梯度反向傳播至該分布參數的新型重參數化技巧。此框架具有通用性，我們期望本研究能啟發後續在各種應用中基於先驗推斷基元式表示的後續工作。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結貢獻——以精煉語言重申核心方法與技術創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要結構，形成完整的論證閉環：從問題（效率與局部極小值）到解決方案（機率取樣與重參數化）再到成果（速度與品質的雙重提升）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「This framework is general」的宣稱為未來擴展留下了空間，但本文僅驗證了新視角合成一個任務。結論未討論方法的具體局限性（如僅限兩視圖輸入、對反射表面的處理不佳），這在學術寫作中略顯不足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：未來方向 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Future directions include <span class="hl-thesis">leveraging our model for generative modeling by combining it with diffusion models</span>, or <span class="hl-thesis">removing the need for camera poses to enable large-scale training</span> on uncurated internet data. The ability to predict 3D Gaussian representations in a single forward pass opens opportunities for <span class="hl-thesis">real-time 3D reconstruction in augmented reality and robotics applications</span>, where both speed and interpretable 3D structure are critical requirements.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                未來方向包括將本模型與<span class="hl-thesis">擴散模型</span>結合以實現生成式建模，或消除對攝影機位姿的需求以支援在未經整理的網路資料上進行大規模訓練。在單次前向傳播中預測三維高斯表示的能力，為擴增實境與機器人應用中的即時三維<span class="hl-thesis">重建</span>開啟了契機，在這些場景中速度與可解讀的三維結構皆為關鍵需求。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望未來——勾勒潛在的應用場景與研究延伸方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以兩條明確的未來方向（生成式建模、無位姿訓練）收束全文，展示研究的延展性與影響力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提及擴散模型是順應 2023-2024 年的研究趨勢，極具前瞻性。「removing the need for camera poses」是一個極具雄心但技術難度極高的目標，展現了作者的學術企圖心。但從兩視圖跨越到無位姿的單影像重建，所需的技術突破遠大於本文框架所能承載。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                可微分渲染耗費記憶體<br>且光場方法缺乏三維表示
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                以 3D 高斯基元實現<br>快速且可解讀的重建
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                RealEstate10k / ACID<br>全面超越基線方法
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                以機率取樣解決局部極小值<br>以極線注意力解決尺度歧義
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                基元式前饋三維重建<br>可作為通用建構模組
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過在深度空間預測機率分布並以重參數化技巧維持梯度流通，可從僅兩張影像在單次前向傳播中預測出高品質、可解讀且可即時渲染的三維高斯濺射場景表示。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>尺度歧義的優雅解決方案：</strong>極線轉換器結合位置編碼深度的設計，將經典多視圖幾何與現代注意力機制無縫融合。消融實驗中移除極線編碼器導致近 6 dB 的崩潰性下降，有力地證明了此組件的不可或缺性。同時，650 倍的渲染成本降低使方法具備了實際應用的可行性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>僅雙視圖輸入的幾何限制：</strong>從兩張影像重建三維場景在本質上受限於有限的視角覆蓋，反射表面與分布外視角的失敗模式難以避免。此外，機率取樣帶來的改進（約 1.45 dB）遠小於極線編碼器（約 6 dB），暗示論文在緒論中將兩大挑戰並列的框架可能誇大了局部極小值問題的嚴重性。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

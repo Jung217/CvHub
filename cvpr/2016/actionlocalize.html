@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temporal Action Localization in Untrimmed Videos via Multi-stage CNNs — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Temporal Action Localization in Untrimmed Videos via Multi-stage CNNs
+                <span class="course-tag">CVPR 2016</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1601.02129" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. Segment-CNN</a>
+        <a href="#sec-localization">3.3 定位網路</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper addresses <span class="hl-concept">temporal action localization in untrimmed long videos</span> through a <span class="hl-concept">multi-stage deep learning framework</span>. The authors propose that <span class="hl-thesis">"videos in real applications are usually unconstrained and contain multiple action instances plus video content of background scenes"</span>. Their solution, <span class="hl-concept">Segment-CNN (S-CNN)</span>, uses three <span class="hl-method">3D ConvNet stages: a proposal network identifying candidate segments, a classification network learning action categories, and a localization network with a novel loss function considering temporal overlap</span>. Results show significant improvements: <span class="hl-evidence">"mAP increases from 1.7% to 7.4% on MEXaction2 and from 15.0% to 19.0% on THUMOS 2014"</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文透過多階段深度學習框架處理未修剪長影片中的時序動作定位問題。作者指出真實應用中的影片通常不受限，包含多個動作實例以及背景場景內容。其解決方案 Segment-CNN（S-CNN）使用三個 3D 摺積網路階段：識別候選片段的提議網路、學習動作類別的分類網路，以及具有考量時序重疊的新穎損失函數的定位網路。結果展示顯著改進：MEXaction2 上的 mAP 從 1.7% 提升至 7.4%，THUMOS 2014 上從 15.0% 提升至 19.0%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「真實影片的非結構化特性」為動機，預告三階段 S-CNN 架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以類比物件偵測的「提議-分類-定位」管線來組織影片理解問題，使讀者迅速建立對架構的直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    MEXaction2 上 4 倍多的提升（1.7% -> 7.4%）數字驚人，但基線極低暗示該任務當時仍處於起步階段。THUMOS 上 4 個百分點的絕對提升更具參考價值。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Most existing work on <span class="hl-concept">action recognition</span> assumes <span class="hl-rebuttal">pre-segmented (trimmed) video clips containing a single action</span>. However, <span class="hl-thesis">real-world videos are untrimmed, containing multiple action instances interspersed with irrelevant background content</span>. <span class="hl-concept">Temporal action localization</span> requires not only recognizing what actions occur but also <span class="hl-thesis">determining precisely when they start and end</span>. This is analogous to the relationship between <span class="hl-concept">image classification</span> and <span class="hl-concept">object detection</span> in the spatial domain — the latter requires localization in addition to recognition.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                多數現有的動作辨識研究假設預先分割（修剪）的影片片段僅包含單一動作。然而，真實世界的影片是未修剪的，包含散布在無關背景內容中的多個動作實例。時序動作定位不僅需要辨識發生了哪些動作，還需精確判斷它們的起始與結束時間。這類似於空間域中影像分類與物件偵測的關係——後者在辨識之外還需要定位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——以空間域的分類 vs. 偵測類比，定義時序動作定位問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：「修剪 vs. 未修剪」的對比清晰界定了問題的實際需求，「分類 vs. 偵測」的類比則為三階段架構的設計提供直覺基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    空間-時序的類比非常有效，讓讀者立即理解問題的本質。但影片的時序結構（序列性、不同動作的時長差異極大）使問題比空間偵測更具挑戰，此差異值得更深入討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior approaches to <span class="hl-concept">temporal action detection</span> primarily rely on <span class="hl-method">hand-crafted features</span> such as <span class="hl-concept">improved dense trajectories (iDT)</span> combined with <span class="hl-concept">Fisher vectors</span>. These methods use <span class="hl-method">sliding windows at multiple scales</span> followed by <span class="hl-method">SVM classifiers</span>. While effective, they are <span class="hl-rebuttal">computationally expensive at test time due to exhaustive sliding window search</span> and <span class="hl-rebuttal">cannot learn temporal boundaries in an end-to-end fashion</span>. Recent deep learning approaches for video understanding focus primarily on <span class="hl-rebuttal">trimmed action classification</span> using <span class="hl-concept">two-stream networks</span> or <span class="hl-concept">C3D features</span>, without addressing the localization problem.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的時序動作偵測方法主要依賴手工特徵，如改良密集軌跡（iDT）結合 Fisher 向量。這些方法使用多尺度滑動視窗搭配 SVM 分類器。雖然有效，但由於窮舉滑動視窗搜尋，在測試時計算成本高昂，且無法以端到端方式學習時序邊界。近期的影片理解深度學習方法主要聚焦於使用雙流網路或 C3D 特徵的修剪式動作分類，未處理定位問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——指出手工特徵方法的效率瓶頸與深度學習方法的定位缺口。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    雙線批判：(1) 傳統方法有定位能力但效率差；(2) 深度方法有效率但缺乏定位。S-CNN 旨在結合兩者優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將問題清晰地分為「效率」與「定位」兩個維度，使 S-CNN 的多階段設計顯得必要。但作者未充分討論同期開始探索的注意力機制方法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. Segment-CNN ====== -->
+    <h2 class="section-heading" id="sec-method">3. Segment-CNN Framework — Segment-CNN 框架</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The proposed <span class="hl-concept">Segment-CNN (S-CNN)</span> operates in three stages. The <span class="hl-concept">Proposal Network</span> performs <span class="hl-method">binary classification of segments as action or background</span>, using <span class="hl-method">IoU-based labeling thresholds (0.7 for positive, 0.3 for negative)</span>. Input segments are generated via <span class="hl-method">sliding windows of varied lengths (16, 32, 64, 128, 256, 512 frames with 75% overlap)</span>, with <span class="hl-method">16 frames uniformly sampled from each window</span>. The <span class="hl-concept">Classification Network</span> then performs <span class="hl-method">multi-class recognition for K action categories plus background</span>, using IoU-based segment labeling from training data. Only segments with <span class="hl-evidence">proposal confidence above 0.7</span> are passed to this stage.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                所提出的 Segment-CNN（S-CNN）分三階段運作。提議網路將片段以二元分類方式判定為動作或背景，使用基於 IoU 的標記閾值（正樣本 0.7、負樣本 0.3）。輸入片段透過不同長度的滑動視窗生成（16、32、64、128、256、512 幀，重疊率 75%），每個視窗均勻取樣 16 幀。分類網路隨後對 K 個動作類別加上背景進行多類別辨識，使用訓練資料中基於 IoU 的片段標記。僅提議信心度高於 0.7 的片段被傳遞至此階段。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法架構——描述 S-CNN 的提議與分類兩個階段。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了完整的管線前兩步：多尺度滑動視窗生成候選 -> 提議網路過濾 -> 分類網路辨識。此設計直接對應物件偵測中的 R-CNN 範式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多尺度滑動視窗（6 種長度）涵蓋了從短動作到長動作的時長範圍，設計周全。但 75% 的重疊率加上 6 種尺度會產生大量候選片段，提議網路的效率至關重要。均勻取樣 16 幀的做法可能在極長片段中丟失重要的時序資訊。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 定位網路 ====== -->
+    <h3 class="subsection-heading" id="sec-localization">3.3 Localization Network — 定位網路</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key innovation is the <span class="hl-concept">Localization Network</span> with a <span class="hl-concept">novel combined loss function</span>: <span class="hl-method">L = L_softmax + lambda * L_overlap</span>. The <span class="hl-method">overlap loss is designed such that the loss function reaches minimum at P^(k_n) = sqrt(v^alpha)</span>, where v is the temporal IoU with the ground truth. This formulation <span class="hl-thesis">explicitly rewards segments that have higher temporal overlap with ground truth instances</span>, going beyond mere classification correctness. The loss <span class="hl-method">penalizes both misclassification and over-confident predictions exceeding the overlap target</span>, encouraging the network to produce confidence scores that faithfully reflect temporal alignment quality.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                關鍵創新在於定位網路及其新穎的組合損失函數：L = L_softmax + lambda * L_overlap。重疊損失的設計使損失函數在 P^(k_n) = sqrt(v^alpha) 時達到最小值，其中 v 為與真實標註的時序 IoU。此公式化明確獎勵與真實動作實例具有更高時序重疊的片段，超越單純的分類正確性。該損失懲罰錯誤分類與超過重疊目標的過度自信預測，鼓勵網路產生忠實反映時序對齊品質的信心分數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——詳述定位網路的重疊感知損失函數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最重要的技術貢獻：將時序定位精度直接編碼到損失函數中，使網路學習的不僅是「是什麼動作」，更是「在多大程度上對齊」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以數學公式精確定義「重疊損失」，使設計理由透明可驗證。然而 alpha 和 lambda 兩個超參數的選取對效能的影響需要消融實驗支持，且「過度自信懲罰」的設計在實務中可能導致保守的信心分數。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                S-CNN is evaluated on <span class="hl-evidence">THUMOS 2014</span> and <span class="hl-evidence">MEXaction2</span> benchmarks. On THUMOS 2014, S-CNN achieves <span class="hl-evidence">19.0% mAP at IoU threshold 0.5, compared to 15.0% for the previous best method (Oneata et al.)</span>, an improvement of 4 percentage points. On MEXaction2, the improvements are even more dramatic: <span class="hl-evidence">BullChargeCape class reaches 11.6% AP (vs. 0.3% baseline), with overall mAP jumping from 1.7% to 7.4%</span>. <span class="hl-rebuttal">Ablation studies confirm that removing any component (proposal, classification, or localization network) reduces performance</span>, validating the necessity of the three-stage design. The localization network contributes the <span class="hl-evidence">largest individual improvement</span>, confirming the value of the overlap-aware loss.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                S-CNN 在 THUMOS 2014 與 MEXaction2 基準上進行評估。在 THUMOS 2014 上，S-CNN 在 IoU 閾值 0.5 下達到 19.0% mAP，相較於先前最佳方法（Oneata 等人）的 15.0%，提升了 4 個百分點。在 MEXaction2 上，改進更為顯著：BullChargeCape 類別達到 11.6% AP（基線 0.3%），整體 mAP 從 1.7% 躍升至 7.4%。消融研究確認移除任何組件（提議、分類或定位網路）均導致效能下降，驗證了三階段設計的必要性。定位網路貢獻了最大的個別改進，確認了重疊感知損失的價值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供實驗證據——在兩個基準上驗證並透過消融分析解構各組件貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三層驗證：(1) 整體 mAP 改進；(2) 逐類別分析；(3) 消融研究。定位網路貢獻最大的發現直接呼應核心技術創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    MEXaction2 上 4 倍多的提升數字令人印象深刻，但基線的 1.7% mAP 暗示該任務在當時幾乎未被有效解決。THUMOS 的 19.0% 雖有提升，但絕對準確率仍然偏低，顯示時序定位是一個尚待深入研究的困難問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents the first application of <span class="hl-thesis">3D ConvNets with multi-stage processes for temporal action localization in untrimmed long videos</span>. The <span class="hl-concept">Segment-CNN</span> framework demonstrates that the <span class="hl-thesis">"proposal network improves efficiency by eliminating unlikely candidate segments, and the localization network is key to temporal localization accuracy"</span>. The <span class="hl-method">novel overlap loss function</span> enables the model to learn temporal boundary precision beyond classification correctness. The significant improvements on <span class="hl-evidence">THUMOS 2014 and MEXaction2</span> confirm the effectiveness of this multi-stage approach for bridging the gap between trimmed action recognition and real-world video understanding.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文首次將 3D 摺積網路的多階段流程應用於未修剪長影片的時序動作定位。Segment-CNN 框架展示了提議網路透過過濾不可能的候選片段提升效率，而定位網路是時序定位精度的關鍵。新穎的重疊損失函數使模型能在分類正確性之外學習時序邊界精度。在 THUMOS 2014 與 MEXaction2 上的顯著改進確認了此多階段方法在銜接修剪式動作辨識與真實世界影片理解之間的有效性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申三階段架構的各組件角色與貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論以「首次應用」的措辭強調開創性，並將工作定位為銜接「修剪辨識」與「真實理解」的橋梁。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「首次應用 3D ConvNet 於時序定位」的宣稱增強了論文的歷史定位。但結論未討論多階段管線的錯誤累積問題（每階段的誤差會傳遞到下一階段），以及滑動視窗方法在超長影片上的可擴展性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                未修剪影片中<br>動作的時序定位
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                三階段 S-CNN<br>提議+分類+定位
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                THUMOS/MEXaction2<br>顯著的 mAP 提升
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                消融研究確認<br>每階段均不可或缺
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                多階段管線銜接<br>辨識與真實理解
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將物件偵測中「提議-分類」的思路遷移至時序維度，以三階段 3D 摺積網路管線配合重疊感知損失函數，首次有效解決未修剪影片中的時序動作定位問題。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>空間-時序類比的設計洞見：</strong>將 R-CNN 範式從空間域遷移至時序域的直覺清晰且可執行。重疊損失函數將定位精度直接編碼為可微目標，使端到端訓練成為可能，是超越「僅分類」的關鍵技術突破。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>多階段管線的累積誤差：</strong>三階段串聯設計中，提議網路的遺漏（低召回率）將導致後續階段無法挽回的損失。均勻取樣 16 幀的策略在時長差異極大的動作上可能丟失關鍵時序資訊，且整體 mAP 仍然偏低（19%），顯示此問題的本質難度尚未被充分攻克。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

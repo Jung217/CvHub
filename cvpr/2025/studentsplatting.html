@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Student Splatting and Scooping — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                3D Student Splatting and Scooping
+                <span class="course-tag">CVPR 2025</span>
+                <span class="best-paper-badge">Honorable Mention</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2503.10148" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-student-t">3.2 Student-t 分布</a>
+        <a href="#sec-scooping">3.3 潑濺與挖取</a>
+        <a href="#sec-sghmc">3.4 SGHMC 學習</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.2 消融研究</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3D Gaussian Splatting (3DGS)</span> provides a new framework for <span class="hl-concept">novel view synthesis</span> and has inspired substantial subsequent research. In this paper, the authors improve its fundamental paradigm and formulation, arguing that <span class="hl-thesis">as an unnormalized mixture model, it needs to be neither Gaussians nor splatting</span>. They propose <span class="hl-concept">Student Splatting and Scooping (SSS)</span>, a new <span class="hl-method">non-monotonic mixture model consisting of positive and negative Student's t distributions</span> with <span class="hl-method">learnable tail-fatness parameters</span>, learned by a <span class="hl-method">principled SGHMC sampling approach</span>. Experiments demonstrate that SSS <span class="hl-evidence">achieves matching or better quality with similar numbers of components, and obtains comparable results while reducing the component number by as much as 82%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三維高斯潑濺（3DGS）為新視角合成提供了嶄新的框架，並激發了大量後續研究。本文改進其基本範式與公式化，主張作為一個非正規化混合模型，它既不必是高斯分布、也不必僅限於潑濺運算。作者提出 Student Splatting and Scooping（SSS），一種由正值與負值 Student-t 分布構成的非單調混合模型，具備可學習的尾部厚度參數，並以具理論基礎的 SGHMC 取樣方法進行學習。實驗證明 SSS 在相近的元件數量下達到相同或更優的品質，且在將元件數量削減高達 82% 的情況下仍獲得可比擬的成果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從既有框架（3DGS）出發，指出其根本性可改進之處，再引出 SSS 的三重創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題重新定義」的功能：不只是改進 3DGS 的某個環節，而是質疑其最根本的假設——為何必須是高斯？為何必須是正值？為何必須是梯度下降？一句話涵蓋三個維度的突破。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「82% 元件削減」的數據極具衝擊力，但需注意這是最佳情境數字。此外，「不必是高斯也不必是潑濺」的宣言雖引人注目，但 Student-t 分布本身在特殊情況下就是高斯——框架的「推廣」性質需在方法段仔細辨析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：3DGS 的成功與地位 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3D Gaussian Splatting (3DGS)</span> provides a new framework for <span class="hl-concept">novel view synthesis</span> and has sparked significant research in <span class="hl-concept">neural rendering</span>. Since 3DGS is becoming foundational to many models, improvements to it offer substantial benefits. The success of 3DGS lies in its dual strengths: <span class="hl-thesis">"Gaussians can approximate an arbitrary density function hence good expressivity"</span> and <span class="hl-thesis">"splatting provides a flexible way of identifying only the relevant Gaussians"</span> for efficient rendering. However, the framework still suffers from <span class="hl-rebuttal">insufficient expressivity</span> and <span class="hl-rebuttal">low parameter efficiency, i.e. needing a large number of components</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三維高斯潑濺為新視角合成提供了嶄新框架，並在神經渲染領域引發廣泛研究。由於 3DGS 日漸成為諸多模型的基礎架構，對其改進能帶來顯著效益。3DGS 的成功源於雙重優勢：高斯分布能逼近任意密度函數，因而具備良好的表達力；而潑濺運算提供了一種靈活的方式，僅辨識出相關的高斯元件以達成高效渲染。然而，該框架仍受限於表達力不足與低參數效率——亦即需要大量元件。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——肯定 3DGS 的開創性地位，同時精準指出其雙重弱點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以「成功的雙重基礎」為框架，對稱地引出「雙重不足」，為後續的三維度改進（分布、正負值、最佳化）奠定動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 3DGS 的核心設計解構為「分布選擇」與「渲染機制」兩個獨立面向，為後續分別替換提供了邏輯空間。但「表達力不足」的判斷需要定量支撐——單純增加元件數量是否也能解決此問題？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：核心主張與方案預告 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since 3DGS fundamentally fits <span class="hl-method">"a 3D mixture model to a radiance field,"</span> the authors contend it should not be restricted to Gaussians or splatting. They propose <span class="hl-concept">Student Splatting and Scooping (SSS)</span>, which replaces Gaussians with <span class="hl-method">flexible Student's t distributions with one additional degree of freedom</span>, extends splatting to include <span class="hl-method">both positive and negative densities</span>, and introduces <span class="hl-method">a principled sampling approach based on Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)</span>. SSS contains <span class="hl-thesis">a simple yet strong and non-trivial generalization of 3DGS and its variants</span>, achieving <span class="hl-evidence">state-of-the-art rendering quality</span> while demonstrating <span class="hl-evidence">high parameter efficiency</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                鑑於 3DGS 本質上是在將一個三維混合模型擬合至輻射場，作者主張不應將其侷限於高斯分布或潑濺運算。他們提出 SSS，以具有額外一個自由度的靈活 Student-t 分布取代高斯分布，將潑濺擴展為同時包含正值與負值密度，並引入基於隨機梯度漢密爾頓蒙地卡羅（SGHMC）的具理論基礎取樣方法。SSS 是 3DGS 及其變體的一個簡潔卻強大且非平凡的推廣，達成了最先進的渲染品質，同時展現出高度的參數效率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——完整預告 SSS 的三項核心創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的「雙重不足」，此段展開「三維度改進」：(1) 分布層面以 Student-t 取代高斯；(2) 密度層面引入負值元件；(3) 最佳化層面以 SGHMC 取代 SGD。三者環環相扣，共同回應表達力與效率問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「簡潔卻非平凡的推廣」定位 SSS，巧妙平衡了創新性與可信度。但三項改進同時引入增加了分析因果關係的難度——消融研究的設計是否能清楚分離各項貢獻？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：貢獻總結 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The key contributions of this work are threefold. First, a new <span class="hl-concept">mixture model using flexible Student's t distributions</span> that can <span class="hl-method">adaptively range from Cauchy (fat-tailed) to Gaussian distributions</span> through a learnable degree-of-freedom parameter, providing <span class="hl-thesis">greater expressivity than fixed Gaussian components</span>. Second, the introduction of <span class="hl-concept">negative density components ("scooping")</span> that <span class="hl-method">subtract color densities from the mixture</span>, enabling <span class="hl-thesis">superior parameter efficiency particularly for complex topologies</span>. Third, a <span class="hl-concept">principled SGHMC-based sampling scheme</span> that <span class="hl-method">addresses the tight parameter coupling among the degree of freedom, mean, and covariance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究的關鍵貢獻有三。第一，提出使用靈活 Student-t 分布的新混合模型，透過可學習的自由度參數，能自適應地在柯西分布（厚尾）與高斯分布之間連續變化，提供比固定高斯元件更強的表達力。第二，引入負值密度元件（「挖取」），從混合模型中減去色彩密度，在複雜拓撲結構上實現優越的參數效率。第三，提出基於 SGHMC 的具理論基礎取樣方案，解決自由度、均值與共變異數之間的緊密參數耦合問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    貢獻條列——以結構化方式明確列出三項核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為全文提供路線圖：三項貢獻分別對應後續 3.2、3.3、3.4 小節，讀者可據此預期方法章節的結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項貢獻的排列順序暗示了重要性遞減（分布 > 負值 > 最佳化），但消融研究顯示 SGHMC 的貢獻可能不亞於分布更換，此處的排列可能誤導讀者對各項貢獻權重的預期。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：三維重建與 NeRF -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3D reconstruction and novel view synthesis</span> are long-standing research topics in computer vision, with traditional methods including <span class="hl-concept">Multi-View Stereo (MVS)</span> and <span class="hl-concept">Structure from Motion (SfM)</span>. Deep learning has brought important changes to the field. <span class="hl-concept">Neural Radiance Field (NeRF)</span> proposes to <span class="hl-method">implicitly encode the radiance field of a 3D object or scene into a neural network</span>. Many extensions exist: <span class="hl-concept">Mip-NeRF</span> for quality improvement, <span class="hl-concept">Plenoxels</span> and <span class="hl-concept">Instant-NGP</span> for acceleration, <span class="hl-concept">D-NeRF</span> for dynamic scenes, and <span class="hl-concept">DreamFusion</span> for generation tasks. However, <span class="hl-rebuttal">the biggest drawback of NeRF is that the ray casting process for rendering is time consuming</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三維重建與新視角合成是電腦視覺中歷史悠久的研究課題，傳統方法包含多視角立體視覺（MVS）與運動恢復結構（SfM）。深度學習為此領域帶來了重要變革。神經輻射場（NeRF）提出將三維物件或場景的輻射場隱式編碼至神經網路中。諸多延伸工作涵蓋品質提升（<span class="hl-concept">Mip-NeRF</span>）、加速（<span class="hl-concept">Plenoxels</span>、<span class="hl-concept">Instant-NGP</span>）、動態場景（<span class="hl-concept">D-NeRF</span>）與生成任務（<span class="hl-concept">DreamFusion</span>）。然而，NeRF 最大的缺點在於光線投射的渲染過程極為耗時。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——建立從傳統方法到 NeRF 的技術演進脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為 3DGS 的出場鋪路：NeRF 的效能瓶頸正是 3DGS 得以興起的關鍵缺口，也是本文工作的歷史語境。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的列舉涵蓋 NeRF 生態系的主要分支，高效地建立學術背景。但「最大缺點是耗時」的判斷在 Instant-NGP 等加速方法出現後已不完全成立，此處可能略顯過時。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：潑濺方法與 3DGS -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3DGS</span> solves the above rendering speed problem by <span class="hl-method">replacing volume rendering with a differentiable rasterization method</span>, using <span class="hl-concept">3D Gaussians as the primitive for the splatting method</span>. Subsequent work improves various aspects: quality (<span class="hl-concept">GS++, Mip-Splatting</span>), dynamic scenes (<span class="hl-concept">4D Gaussian Splatting, Deformable 3D Gaussians</span>), and generation (<span class="hl-concept">DreamGaussian</span>). Some research improves the fundamental paradigm, including <span class="hl-concept">FreGS</span>, <span class="hl-concept">3DGS-MCMC</span>, and work focusing on <span class="hl-method">optimization and adaptive density control</span>. Recent efforts explore <span class="hl-concept">different primitives other than 3D Gaussians</span>, such as <span class="hl-concept">2DGS</span> for surface reconstruction, <span class="hl-concept">GES</span> using a generalized exponential kernel, and <span class="hl-concept">3DHGS</span> decomposing one Gaussian into two half-Gaussians.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">3DGS</span> 以可微分光柵化方法取代體積渲染，解決了上述渲染速度問題，使用三維高斯分布作為潑濺方法的基元。後續研究從多個面向進行改進：品質（GS++、Mip-Splatting）、動態場景（4D 高斯潑濺、可變形三維高斯）與生成（<span class="hl-concept">DreamGaussian</span>）。部分研究改進了基本範式，包含 <span class="hl-concept">FreGS</span>、<span class="hl-concept">3DGS-MCMC</span>，以及聚焦於最佳化與自適應密度控制的工作。近期研究亦探索高斯以外的不同基元，例如用於表面重建的 <span class="hl-concept">2DGS</span>、使用廣義指數核的 <span class="hl-concept">GES</span>，以及將一個高斯分解為兩個半高斯的 <span class="hl-concept">3DHGS</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 SSS 置於 3DGS 改進方法的譜系中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了兩條平行的改進路線：(1) 應用層面的擴展；(2) 基本範式的改進。SSS 明確屬於第二條路線，且以「分布替換」為切入點，與 GES、3DHGS 形成直接對話。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將競爭方法歸類為「不同基元」的探索，暗示這是一個活躍的研究方向，同時為 SSS 選擇 Student-t 分布提供了合理性。但作者需在方法段解釋為何 Student-t 優於 GES 的廣義指數核或 3DHGS 的半高斯。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：SSS 的定位 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The present work positions itself <span class="hl-thesis">"among the few recent efforts in improving the fundamental formulation of 3DGS,"</span> but differs from existing approaches in three key ways: it uses <span class="hl-method">more expressive and flexible distributions, the 3D Student's t distribution</span>; it employs <span class="hl-method">both positive and negative densities</span> rather than positive-only monotonic mixtures; and it proposes <span class="hl-method">a principled sampling approach</span> rather than relying on standard gradient-based optimization with heuristic density control strategies.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究將自身定位為「少數近期致力於改進 3DGS 基本公式化的工作之一」，但在三個關鍵面向上有別於既有方法：採用更具表達力與靈活性的三維 Student-t 分布；使用正值與負值密度而非僅正值的單調混合模型；提出具理論基礎的取樣方法，而非依賴標準梯度最佳化搭配啟發式密度控制策略。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    差異化定位——明確區分 SSS 與既有改進方法的不同之處。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成相關工作的最終功能：從「全景掃描」收束至「精確定位」，三項差異點恰好對應三項貢獻，形成緒論-相關工作-方法之間的嚴密邏輯銜接。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以三重對比精準凸顯差異化，修辭效果強烈。但「啟發式密度控制」一詞暗含對 3DGS-MCMC 等工作的批評——後者其實也具備統計學基礎，此處的對比可能過度簡化了競爭方法的理論深度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Preliminaries: 3DGS as a Mixture Model — 預備知識</h3>
+
+    <!-- 方法段落 1：3DGS 的混合模型觀點 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3DGS</span> essentially fits <span class="hl-thesis">an unnormalized 3D Gaussian mixture model to a radiance field</span>. The formulation requires that all weights satisfy <span class="hl-method">w<sub>i</sub> &gt; 0</span>, with each Gaussian component associated with an <span class="hl-method">opacity o &isin; [0, 1]</span> and <span class="hl-method">color c represented by spherical harmonics</span>. The rendering equation reveals that the projected <span class="hl-concept">C(u) can be seen as a 2D Gaussian mixture</span>, except that a component's weight is also a function of other components, introducing <span class="hl-rebuttal">additional cross-component interactions</span>. Gaussians are chosen because they are <span class="hl-method">closed under affine transformation and marginalization of variables</span>, enabling fast computation via projection. Critically, 3DGS is <span class="hl-thesis">a monotonic mixture as it is additive, i.e. w<sub>i</sub> &gt; 0</span>, and all existing variants follow this paradigm.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">3DGS</span> 本質上是將一個非正規化三維高斯混合模型擬合至輻射場。其公式化要求所有權重滿足正值條件，每個高斯元件與一個不透明度及以球面諧波表示的色彩相關聯。渲染方程揭示投影後的影像可視為二維高斯混合，但此時元件的權重亦為其他元件的函數，引入了額外的跨元件交互作用。之所以選擇高斯分布，是因為其在仿射變換與變數邊際化下具有封閉性，能夠透過投影實現快速計算。關鍵在於，3DGS 是一個單調混合模型——它是累加式的，所有權重為正，且現有所有變體皆遵循此範式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學基礎建立——以混合模型的視角重新詮釋 3DGS。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文方法論的邏輯起點：將 3DGS 抽象為「混合模型擬合」的統計問題後，三個面向的改進便自然浮現——分布族、權重符號、最佳化演算法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「混合模型」的統一視角重新框架化 3DGS，是本文最核心的知識貢獻之一。它使後續的推廣顯得自然且有理論基礎。但此重新詮釋也可能過度簡化 3DGS 的工程細節（如自適應密度控制、分裂/合併策略），這些在實作中同樣重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 Student-t 分布 ====== -->
+    <h3 class="subsection-heading" id="sec-student-t">3.2 Student's t as a Basic Component — Student-t 分布作為基本元件</h3>
+
+    <!-- 方法段落 2：Student-t 的定義與動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors propose <span class="hl-method">an unnormalized t-distribution mixture model</span>, where a <span class="hl-concept">t-distribution</span> is defined by a <span class="hl-method">mean (location) &mu; &isin; R<sup>3</sup></span>, a <span class="hl-method">covariance matrix &Sigma; (shape)</span>, and a <span class="hl-method">degree of freedom (tail-fatness) &nu; &isin; [1, +&infin;)</span>, along with opacity and color. The scalar normalization constant can be dropped to facilitate learning. The choice of t-distribution is driven by two factors. First, <span class="hl-thesis">"t-distribution is a strong generalization of Gaussians"</span>: <span class="hl-evidence">when &nu; &rarr; 1, the t-distribution approaches Cauchy; when &nu; &rarr; &infin;, it approaches Gaussian</span>. Since <span class="hl-thesis">"Cauchy is fat-tailed, it can cover larger areas with higher densities than Gaussians therefore potentially reducing the number of components,"</span> and since <span class="hl-method">&mu;, &Sigma;, and &nu; are all learnable</span>, SSS becomes a mixture of components learned from an infinite number of distribution families.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提出非正規化 t 分布混合模型，其中 t 分布由均值（位置）、共變異數矩陣（形狀）及自由度（尾部厚度）所定義，另附帶不透明度與色彩。為便於學習，純量正規化常數可予以捨棄。選擇 t 分布的理由有二。首先，t 分布是高斯分布的強推廣：當自由度趨近於 1 時，t 分布趨近柯西分布；當自由度趨近無窮時，則趨近高斯分布。由於柯西分布具有厚尾特性，能以更高的密度覆蓋更大的區域，因此有潛力減少元件數量。鑑於均值、共變異數與自由度皆為可學習參數，SSS 實質上成為從無限多個分布族中學習而來的混合模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之一——定義 Student-t 基元並闡述其相較於高斯的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是三項貢獻中最基礎的一環：分布的更換影響後續所有的數學推導與工程實作。以「無限分布族」的概念將一個額外參數的代價轉化為「質的飛躍」，論證力度強。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    柯西到高斯的連續譜是極具吸引力的理論性質，但實際學習中自由度參數是否能穩定收斂至最佳值？若大多數元件最終學到的自由度接近無窮（即退化為高斯），則推廣的實際收益將大幅縮減。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 3：數學性質 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Second, the <span class="hl-concept">t-distribution</span> also provides <span class="hl-thesis">good properties similar to Gaussians</span>, specifically being <span class="hl-method">closed under affine transformation and marginalization</span>. The authors derive a <span class="hl-method">closed-form 2D t-distribution for projection</span>, which <span class="hl-thesis">"enables us to easily derive the key gradients for learning"</span> — <span class="hl-rebuttal">"unlike existing research also using alternative mixture components but requiring approximation."</span> This mathematical tractability is critical for maintaining the computational advantages of the splatting framework while switching to a more expressive distribution family.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                其次，t 分布亦具備與高斯分布類似的良好性質，特別是在仿射變換與邊際化下的封閉性。作者推導出投影所需的封閉形式二維 t 分布，使關鍵梯度的計算變得直截了當——這有別於其他同樣使用替代混合元件但需要近似處理的研究。此數學可解析性對於在切換至更具表達力的分布族的同時，維持潑濺框架的計算優勢至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    理論支撐——證明 Student-t 保留了高斯的關鍵計算優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應潛在質疑「更換分布是否會犧牲效率」：封閉形式的投影確保渲染速度不受影響，使 Student-t 成為高斯的「帕累托改進」而非折衷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「封閉形式」與競爭方法的「需要近似」形成鮮明對比，暗示 SSS 在理論優雅性上的優勢。但封閉形式的計算可能比高斯的對應計算更為複雜（涉及更多項次），實際的渲染速度差異應在實驗中報告。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 潑濺與挖取 ====== -->
+    <h3 class="subsection-heading" id="sec-scooping">3.3 Splatting and Scooping — 潑濺與挖取</h3>
+
+    <!-- 方法段落 4：負值元件的動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                While <span class="hl-concept">monotonic mixture models</span> are powerful, <span class="hl-thesis">a non-monotonic mixture model has been proposed by introducing negative components</span>, allowing the model to operate with <span class="hl-method">both positive and negative densities</span>. In existing approaches, a squared mixture formulation <span class="hl-rebuttal">"increases the model evaluation complexity to O(n&sup2;),"</span> making it significantly slower. The authors instead <span class="hl-method">"still use the positive/negative formulation but with w &isin; R instead of w &gt; 0,"</span> allowing negative components directly. Though <span class="hl-rebuttal">"this might cause issues as the formulation is then not well defined with negative components,"</span> the density can be <span class="hl-method">parameterized in an energy-based form which is well defined</span>. During learning, <span class="hl-method">the opacity is parameterized by a tanh function</span>, ensuring positive and negative components can dynamically change signs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管單調混合模型能力強大，非單調混合模型透過引入負值元件已被提出，使模型能在正值與負值密度空間中同時運作。在既有方法中，平方混合公式將模型評估複雜度提升至 O(n^2)，顯著增加計算負擔。作者改以直接採用正負值公式，令權重可為任意實數而非限定為正值。雖然此做法可能導致公式在負值元件下定義不完整，但密度可以能量函數的形式參數化，從而獲得良好定義。在學習過程中，不透明度以 tanh 函數參數化，確保正值與負值元件能動態地切換符號。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之二——引入負值密度元件並解決其數學定義問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段處理從單調到非單調混合模型的跨越，既指出既有方法（平方混合）的效率瓶頸，又以能量函數形式提出更優雅的替代方案。tanh 參數化是關鍵的工程細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者坦誠承認「定義不完整」的問題後立即給出解方，展現了嚴謹的學術態度。但 tanh 允許動態變號意味著訓練過程中元件的角色可能不穩定，這對收斂性的影響未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 5：負值元件的直覺與效率 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Introducing <span class="hl-concept">negative t-distributions</span> can <span class="hl-thesis">enhance the representation power</span> of the mixture. A negative component is <span class="hl-method">"equivalent to removing its color from the mixture"</span> and is <span class="hl-method">"particularly useful in subtracting colors."</span> This is especially beneficial for <span class="hl-evidence">complex topologies</span> — for instance, a torus shape that would require many positive-only components to approximate can be represented with <span class="hl-evidence">"merely two components (one positive and one negative)"</span> using the scooping approach. The negative component effectively <span class="hl-method">"scoops out" a region of density from a positive component</span>, enabling <span class="hl-thesis">fewer components to fit complex shape topologies</span>, which is the fundamental source of SSS's parameter efficiency.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                引入負值 t 分布能增強混合模型的表達能力。負值元件等同於從混合模型中移除其色彩，尤其在色彩相減方面特別實用。這對複雜拓撲結構尤為有益——例如，一個環面形狀在僅使用正值元件時需要大量元件來逼近，但透過挖取方法僅需兩個元件（一正一負）即可表示。負值元件有效地從正值元件中「挖去」一塊密度區域，使較少的元件即可擬合複雜的形狀拓撲，這正是 SSS 參數效率的根本來源。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    直覺解釋——以環面範例闡明負值元件的實際效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將抽象的數學概念（非單調混合模型）轉化為具體的幾何直覺（環面的正負元件組合），使讀者能直觀理解 82% 元件削減的來源。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    環面範例是極具說服力的教學工具，但真實場景中的複雜度遠非單一拓撲可概括。負值元件在高度細碎的幾何（如樹葉、毛髮）上是否同樣有效，需更多實驗驗證。此外，負值元件可能導致渲染時出現負密度偽影。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 SGHMC 學習 ====== -->
+    <h3 class="subsection-heading" id="sec-sghmc">3.4 Learning via Sampling — 基於取樣的學習</h3>
+
+    <!-- 方法段落 6：SGHMC 的動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training SSS involves learning <span class="hl-rebuttal">more tightly coupled parameters compared with 3DGS, namely among &nu;, &mu;, and &Sigma;</span>. The authors speculate this occurs <span class="hl-rebuttal">"because changing &nu; in learning is changing the family of distributions within which we optimize &mu; and &Sigma;."</span> To address this, they propose <span class="hl-method">a sampling scheme based on Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)</span>, parameterizing <span class="hl-method">the posterior distribution as an energy-based model</span> where the loss function serves as the energy. Since the positive/negative formulation is not a well-defined distribution, <span class="hl-method">"using an energy function circumvents this issue and prescribes the high density regions of good parameters."</span> The momentum term in SGHMC creates <span class="hl-method">"frictions for each dimension,"</span> enabling <span class="hl-thesis">adaptive learning for each parameter</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練 SSS 涉及比 3DGS 更為緊密耦合的參數學習，尤其是自由度、均值與共變異數之間的關係。作者推測這是因為在學習中改變自由度等同於改變最佳化均值與共變異數時所處的分布族。為此，他們提出基於隨機梯度漢密爾頓蒙地卡羅的取樣方案，將後驗分布參數化為能量模型，以損失函數作為能量。由於正負值公式並非定義良好的分布，使用能量函數能規避此問題並指定良好參數的高密度區域。SGHMC 中的動量項為每個維度創建「摩擦力」，實現對每個參數的自適應學習。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之三——闡述 SGHMC 取樣方法的動機與理論基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應了一個深層問題：Student-t 的額外自由度參數為何不能簡單地用 SGD 學習？參數耦合的概念揭示了三項改進之間的內在聯繫——分布的推廣（第一項）必然帶來最佳化的挑戰（第三項）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將最佳化困難歸因於「參數耦合」是直覺上合理的解釋，但「推測」一詞顯示作者未提供嚴格的理論證明。SGHMC 本身引入了額外的超參數（摩擦係數、噪音排程），可能增加實作的調參負擔。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 7：摩擦力與噪音排程 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The practical implementation uses <span class="hl-method">SGHMC on the mean &mu; and Adam on the other parameters</span>. The update equation is modified to include <span class="hl-method">adaptive friction F and noise N for &mu;</span>, with a <span class="hl-method">sigmoid function that switches on/off the friction and noise</span>, activating for components with opacity lower than 0.005. Learning begins by <span class="hl-method">initializing with a sparse set of SfM points</span>, running the update <span class="hl-method">"without friction for burn-in for exploration,"</span> then <span class="hl-method">"running the full sampling for exploitation."</span> During burn-in, noise is <span class="hl-method">multiplied by the covariance &Sigma; of the component</span>; after burn-in, <span class="hl-method">anisotropy is maintained by friction due to momentum</span>. Components with near-zero opacity are <span class="hl-method">recycled by relocating them</span> rather than simply removed, with the relocation designed to <span class="hl-method">minimize pixel-wise color changes over the whole domain</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實作上對均值使用 SGHMC，對其餘參數使用 Adam。更新方程經修改以納入均值的自適應摩擦力與噪音，透過 sigmoid 函數控制摩擦力與噪音的啟閉，當元件的不透明度低於 0.005 時啟動。學習自稀疏的 SfM 點集初始化開始，先在無摩擦力的情況下進行探索期的燃燒階段，再執行完整的取樣以進行利用。在燃燒階段，噪音乘以該元件的共變異數；燃燒期後，非等向性由動量產生的摩擦力維持。不透明度接近零的元件不是單純移除，而是透過重新定位來回收利用，重新定位的設計旨在最小化全域的逐像素色彩變化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    工程細節——描述 SGHMC 的實作策略與訓練流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將理論框架轉化為可執行的演算法：探索-利用的兩階段策略、自適應摩擦力的啟閉機制、元件回收而非移除的策略，每一項都是從 SGHMC 理論到實作的橋接。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「對均值用 SGHMC、對其餘用 Adam」的混合策略在理論上不如統一使用 SGHMC 優雅，暗示在全參數取樣方面仍有改進空間。此外，0.005 的不透明度閾值、燃燒期長度等超參數的選擇缺乏理論指導。但元件回收（而非移除）的設計是相當精巧的工程貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：設定與基準 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Following existing research, experiments employ <span class="hl-evidence">11 scenes from 3 datasets</span>: <span class="hl-evidence">7 public scenes from Mip-NeRF 360, 2 outdoor scenes from Tanks &amp; Temples, and 2 indoor scenes from Deep Blending</span>. Evaluation uses three standard metrics: <span class="hl-method">Peak Signal-to-Noise Ratio (PSNR), Structural Similarity Index Metric (SSIM), and Learned Perceptual Image Patch Similarity (LPIPS)</span>. Comparison is conducted against <span class="hl-concept">3DGS, GES, 3DHGS, Scaffold-GS, Fre-GS, 3DGS-MCMC, and Mip-NeRF</span>. SSS <span class="hl-evidence">achieves overall the best results on 6 of the 9 metrics, and the second best on 2 metrics</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                遵循既有研究，實驗採用三個資料集共 11 個場景：來自 Mip-NeRF 360 的 7 個公開場景、Tanks and Temples 的 2 個室外場景，以及 Deep Blending 的 2 個室內場景。評估使用三項標準指標：峰值訊噪比（PSNR）、結構相似性指標（SSIM）與學習感知影像塊相似度（LPIPS）。與 3DGS、GES、3DHGS、Scaffold-GS、Fre-GS、3DGS-MCMC 及 Mip-NeRF 進行比較。SSS 在 9 項指標中的 6 項取得最佳成績，並在 2 項中居次。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定與總體結果——建立評估框架並報告整體表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續細部分析提供基準：「6/9 最佳」的成績建立了 SSS 的整體優勢，使讀者對後續的細部討論抱持正面預期。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「6/9 最佳、2/9 次佳」的統計方式以指標數量取勝，但未加權——若未取得最佳的那 1 項是最重要的指標（如 PSNR），則此統計可能具誤導性。此外，11 個場景的樣本量偏小，統計顯著性有待商榷。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：參數效率分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-thesis">parameter efficiency</span> of SSS is a key advantage. Across scenes, SSS uses significantly fewer components than baseline methods: for example, <span class="hl-evidence">468k vs 1.1M, 364k vs 2.6M, 208k vs 3.4M, and 96k vs 2.5M</span> components compared to original 3DGS. Most notably, <span class="hl-evidence">"SSS achieves 23.6 PSNR with merely 180k components, already surpassing Mip-NeRF, 3DGS and GES"</span> which use millions of components or expensive ray marching. The <span class="hl-evidence">component reduction reaches up to 82%</span> while maintaining comparable or superior rendering quality, demonstrating that the combination of <span class="hl-method">Student's t distributions and negative components</span> fundamentally improves the expressivity per component.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SSS 的參數效率是其關鍵優勢。在各場景中，SSS 使用的元件數量遠少於基線方法：例如，與原始 3DGS 相比分別為 468k 對 1.1M、364k 對 2.6M、208k 對 3.4M、96k 對 2.5M。最值得注意的是，SSS 僅以 180k 個元件即達到 23.6 的 PSNR，已超越使用數百萬元件或昂貴光線行進的 Mip-NeRF、3DGS 與 GES。元件削減幅度高達 82%，同時維持相當或更優的渲染品質，證明 Student-t 分布與負值元件的結合從根本上提升了每個元件的表達力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實證——以具體數據證明參數效率的大幅提升。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最有力的實證論據：直接以數字回應緒論中「低參數效率」的問題陳述。180k 元件超越數百萬元件方法的結果，使 SSS 的理論優勢獲得了堅實的量化支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數據的呈現方式極具說服力——以「絕對數量對比」而非百分比，使差距更為直觀。但需注意每個 Student-t 元件比高斯元件多一個自由度參數，因此實際的記憶體佔用比可能不如元件數比那麼懸殊。作者應報告實際記憶體使用量的比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：具體場景表現 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On specific benchmarks, SSS demonstrates consistent improvements. For the <span class="hl-evidence">Train scene from Tanks &amp; Temples, SSS achieves 23.23/0.844/0.170 in PSNR/SSIM/LPIPS, where the second-best method 3DHGS achieves 22.95/0.827/0.197</span> — representing <span class="hl-evidence">improvements of 1.22%, 2.05%, and 13.7%</span> respectively. The perceptual quality improvement (LPIPS) is particularly notable, suggesting that the <span class="hl-thesis">heavier tails of the Student's t distribution better capture fine details and complex textures</span> that are perceptually important. These improvements are consistent across both indoor and outdoor scenes, indicating the robustness of the approach.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在具體基準測試上，SSS 展現了一致的改進。以 Tanks and Temples 的 Train 場景為例，SSS 在 PSNR/SSIM/LPIPS 上達到 23.23/0.844/0.170，而次佳方法 3DHGS 為 22.95/0.827/0.197——分別改進了 1.22%、2.05% 與 13.7%。感知品質（LPIPS）的改進尤為顯著，顯示 Student-t 分布的厚尾特性更能捕捉在感知上至關重要的精細細節與複雜紋理。這些改進在室內與室外場景中均保持一致，表明方法具備穩健性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    細部驗證——以具體場景的三項指標數據強化論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從「整體勝出」深入到「具體場景」，增加論證的粒度與可信度。LPIPS 13.7% 的改進幅度遠高於 PSNR 的 1.22%，暗示 SSS 的優勢在感知品質上尤為明顯。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇 Train 場景作為範例可能因為它展現了最佳的改進幅度，作者應報告平均改進及最差情況以呈現完整圖景。此外，將 LPIPS 的大幅改進歸因於「厚尾特性」是一個有趣但未經驗證的解釋——需要更細緻的分析才能建立因果關係。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.2 消融研究 ====== -->
+    <h3 class="subsection-heading" id="sec-ablation">4.2 Ablation Study — 消融研究</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The ablation study systematically evaluates each component through three configurations: <span class="hl-method">"SGD + positive t-distribution"</span> (Student's t with standard gradient descent), <span class="hl-method">"SGHMC + positive t-distribution"</span> (Student's t with proposed sampling, no negative components), and the <span class="hl-method">full SSS model</span>. Results demonstrate a clear progression: <span class="hl-evidence">"By only replacing Gaussians with Student's t distributions (SGD + t-distribution), it already outperforms Mip-NeRF, 3DGS, and GES, demonstrating improved expressivity."</span> <span class="hl-evidence">"Further with SGHMC, it is already the best method, showing the advantage of the proposed sampling."</span> On the <span class="hl-evidence">Tanks &amp; Temples dataset: SGD + positive t-distribution achieves 23.80 PSNR; SGHMC + positive t-distribution achieves 24.53 PSNR; the full model achieves 24.87 PSNR</span>. The authors conclude that <span class="hl-thesis">"while individual techniques alone might provide merely small improvements, SSS as a whole is the state-of-the-art."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究透過三種配置系統性地評估各項組件：「SGD + 正值 t 分布」（以標準梯度下降搭配 Student-t）、「SGHMC + 正值 t 分布」（以提出的取樣方法搭配 Student-t，無負值元件）及完整的 SSS 模型。結果展現清晰的遞進：僅以 Student-t 分布替換高斯（SGD + t 分布）便已超越 Mip-NeRF、3DGS 與 GES，證明表達力的提升。再加入 SGHMC 後便已是最佳方法，顯示所提取樣方案的優勢。在 Tanks and Temples 資料集上：SGD + 正值 t 分布達到 23.80 PSNR；SGHMC + 正值 t 分布達到 24.53 PSNR；完整模型達到 24.87 PSNR。作者總結道：「儘管個別技術單獨而言可能僅帶來微小改進，SSS 作為整體卻達到了最先進水準。」
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    因果分析——逐步剝離各項創新以驗證其個別貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究回應了緒論中三項同時引入的潛在疑慮：遞進式的數據（23.80 -> 24.53 -> 24.87）清楚展示每一層改進的增量貢獻，其中 SGHMC 的貢獻（+0.73）甚至大於 Student-t 本身的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三階段的遞進設計令人信服，但缺少一個關鍵配置：「SGHMC + 正值高斯」——即僅改變最佳化而不更換分布。此配置能更清楚地分離「分布更換」與「最佳化改進」的獨立貢獻。此外，「個別技術僅帶來微小改進」的措辭略顯矛盾——23.80 已超越多數基線，這不算「微小」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors proposed <span class="hl-concept">Student Splatting and Scooping (SSS)</span>, <span class="hl-thesis">a new non-monotonic mixture model, consisting of positive and negative Student's t distributions, learned by a principled SGHMC sampling</span>. SSS contains a <span class="hl-thesis">simple yet strong and non-trivial generalization of 3DGS and its variants</span>. SSS <span class="hl-evidence">outperforms existing methods in rendering quality</span>, and shows <span class="hl-evidence">high parameter efficiency, e.g. achieving comparable quality with less than one-third of components</span>. The work demonstrates that <span class="hl-thesis">questioning the fundamental assumptions of a successful framework — the choice of distribution, the sign of weights, and the optimization method — can yield substantial improvements</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者提出了 Student Splatting and Scooping（SSS），一種由正值與負值 Student-t 分布構成的非單調混合模型，以具理論基礎的 SGHMC 取樣進行學習。SSS 是 3DGS 及其變體的一個簡潔卻強大且非平凡的推廣。SSS 在渲染品質上超越現有方法，並展現高度參數效率——例如以不到三分之一的元件達到可比擬的品質。本研究證明，質疑一個成功框架的根本假設——分布的選擇、權重的符號與最佳化方法——能帶來可觀的改進。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——重申核心貢獻並提煉更高層次的學術啟示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段以「質疑根本假設」作為昇華，將 SSS 的技術貢獻提升為一則方法論啟示：對既有框架的基礎性反思可能比漸進式改進更有價值。這與 Honorable Mention 的殊榮相稱。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    最後的昇華語句極具說服力，但作者未充分討論局限性。Student-t 分布仍受限於對稱與平滑，取樣方法需要超參數調整。未來方向（如結合 Laplace 分布、自適應 SGHMC）僅在局限性段落中略提，未在結論中正式展開。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：局限性與未來方向 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                SSS has acknowledged limitations. <span class="hl-rebuttal">"Its primitives are restricted to symmetric and smooth t-distributions, limiting its representation."</span> The <span class="hl-rebuttal">"sampling also needs hyperparameter tuning such as the percentage of negative components."</span> In the future, the authors plan to <span class="hl-method">combine other distribution families (e.g. Laplace) with t-distribution</span> to further enhance expressivity, and to <span class="hl-method">make the SGHMC self-adaptive</span> to achieve better balances between positive and negative components.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                SSS 存在已知的局限性。其基元受限於對稱且平滑的 t 分布，限制了表達能力。取樣方法亦需超參數調整，例如負值元件的比例。未來，作者計畫結合其他分布族（如拉普拉斯分布）與 t 分布以進一步增強表達力，並使 SGHMC 具備自適應能力，以在正值與負值元件之間取得更佳的平衡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自我反思——坦誠列出方法的局限性並展望改進方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以「承認不足」展現學術誠信，同時以「未來方向」暗示 SSS 框架仍有擴展空間，為後續研究留下伏筆。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    局限性的陳述相對簡短——「對稱且平滑」的限制在表示銳利邊緣或不規則幾何時可能是顯著的弱點，值得更深入的分析。結合拉普拉斯分布的構想有趣（拉普拉斯具有尖銳峰值），但混合不同分布族的可微分渲染管線之工程挑戰可能遠比此處暗示的更為艱鉅。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                3DGS 表達力不足<br>且參數效率低
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                混合模型無需限於<br>高斯或正值潑濺
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                11 場景 3 資料集<br>6/9 指標最佳
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                封閉形式投影維持<br>計算效率不犧牲
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                質疑根本假設<br>帶來實質性突破
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將 3DGS 的高斯基元替換為具可學習尾部厚度的 Student-t 分布，並引入負值密度元件與 SGHMC 取樣，能在大幅削減元件數量的同時達到更優的渲染品質。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>理論推廣的優雅性與實證的強力支撐：</strong>以混合模型的統一視角重新框架化 3DGS，使三個維度的改進（分布、符號、最佳化）均有清晰的理論動機。180k 元件即超越數百萬元件方法的數據，直接且有力地驗證了「每元件表達力」的根本性提升。消融研究的遞進式設計清楚分離了各項貢獻。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>超參數依賴與對稱性限制未被充分探討：</strong>SGHMC 引入的摩擦係數、噪音排程、負值元件比例等超參數，以及 Student-t 分布的對稱平滑限制，可能在銳利邊緣或高度不規則幾何上造成表達瓶頸。此外，消融研究缺少「SGHMC + 高斯」配置，無法完全分離分布更換與最佳化改進的獨立貢獻。元件數比較未計入每元件額外的自由度參數所佔的記憶體開銷。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

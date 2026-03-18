@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks
+                <span class="course-tag">CVPR 2024</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2312.14238" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-model-design">3.2 模型設計</a>
+        <a href="#sec-alignment">3.3 對齊策略</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The exponential growth of <span class="hl-concept">large language models (LLMs)</span> has opened up numerous possibilities for <span class="hl-concept">multimodal AGI systems</span>. However, in the field of computer vision, the weights of <span class="hl-rebuttal">large-scale vision foundation models are often employed as the backbone of other models</span>. The scaling up of <span class="hl-concept">vision foundation models</span> and their alignment to <span class="hl-concept">LLMs</span> has not been sufficiently explored. In this work, the authors present <span class="hl-concept">InternVL</span>, <span class="hl-thesis">scaling up the vision foundation model to 6 billion parameters and progressively aligning it with an LLM</span>, using web-scale image-text data from diverse sources. The model is versatile, and can be applied to and achieve <span class="hl-evidence">state-of-the-art performance on 32 generic visual-linguistic benchmarks</span> including <span class="hl-evidence">visual perception tasks such as image-level or pixel-level recognition, vision-language tasks such as zero-shot image/video classification, zero-shot image-text retrieval</span>, and <span class="hl-evidence">link with LLMs to create multimodal dialogue systems</span>. It has powerful visual capabilities and can be a good alternative to the <span class="hl-concept">ViT-22B</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大型語言模型的指數級成長為多模態通用人工智慧系統開啟了無數可能性。然而在電腦視覺領域，大規模視覺<span class="hl-concept">基礎模型</span>的權重往往僅被用作其他模型的<span class="hl-rebuttal">骨幹</span>網路。視覺基礎模型的規模擴展及其與大型語言模型的對齊，至今尚未被充分探索。本研究提出 <span class="hl-concept">InternVL</span>，將視覺基礎模型擴展至 60 億<span class="hl-thesis">參數</span>，並利用來自多元來源的網路規模圖文資料，漸進式地與大型語言模型對齊。該模型具備高度通用性，在 32 項通用視覺語言<span class="hl-evidence">基準</span>測試上達到最先進的表現，涵蓋影像層級與像素層級辨識等視覺感知任務、<span class="hl-evidence">零樣本</span>影像／影片分類與零樣本圖文檢索等視覺語言任務，以及可與大型語言模型銜接建構多模態對話系統。該模型具備強大的視覺能力，可作為 <span class="hl-concept">ViT-22B</span> 的優質替代方案。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從大型語言模型的崛起，到視覺基礎模型的不足，最終引出 InternVL 的定位與貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「缺口識別與解決方案預告」的雙重功能：先點明視覺基礎模型在規模與對齊上的落差，再以 32 項基準測試的最先進表現作為承諾，預告後文的實證支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「32 項基準測試」的廣度策略極具說服力，暗示模型具備強泛化性。但摘要未說明在每項基準上是否均為最佳；以「可作為 ViT-22B 的替代方案」收尾帶有一定的行銷色彩，需待實驗章節驗證此主張的精確程度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：問題動機——視覺與語言模型的參數失衡 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recent <span class="hl-concept">vision-language foundation models (VLLMs)</span> typically connect a <span class="hl-concept">vision encoder</span> to a <span class="hl-concept">large language model</span> using lightweight "glue" layers. However, this paradigm creates <span class="hl-thesis">three critical limitations</span>: first, there is a <span class="hl-thesis">disparity in parameter scale</span> — vision encoders hover around <span class="hl-evidence">1 billion parameters</span> while LLMs exceed <span class="hl-evidence">100 billion</span>, creating an imbalanced multimodal system. Second, the <span class="hl-rebuttal">vision and language components learn inconsistent representations</span> because they are pre-trained on different objectives and datasets. Third, the <span class="hl-rebuttal">connection between the two modalities is often inefficient</span>, relying on simple projection layers that fail to bridge the representational gap.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                近期的視覺語言<span class="hl-concept">基礎模型</span>通常以輕量的「黏合」層將視覺<span class="hl-concept">編碼器</span>與大型語言模型連接。然而，此範式產生三項關鍵限制：其一，<span class="hl-thesis">參數</span>規模存在嚴重失衡——視覺編碼器停留在約 10 億參數，而大型語言模型已超越 1,000 億，形成不對稱的多模態系統。其二，視覺與語言組件由於在不同目標函數與資料集上預訓練，導致所學表徵不一致。其三，兩種模態之間的連接往往效率低落，僅依賴簡單的投影層，無法有效彌合表徵落差。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出當前視覺語言模型架構的三項結構性缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以數字對比（1B vs. 100B+）建立參數失衡的直覺，再延伸至表徵不一致與連接低效兩項更深層的問題，為 InternVL 的設計原則提供動機基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項限制的列舉結構清晰且遞進（規模 -> 表徵 -> 連接），強化了問題的嚴重性。但「1B vs. 100B」的對比略有誇大——實務上許多有效的 VLLM（如 LLaVA）在此失衡下仍表現優異，暗示參數規模未必是唯一瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：InternVL 的設計原則 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To address these limitations, the authors propose <span class="hl-concept">InternVL</span> with <span class="hl-thesis">three key design principles</span>. First, <span class="hl-method">parameter-balanced components</span>: the vision encoder (<span class="hl-concept">InternViT-6B</span>) is scaled to <span class="hl-evidence">6 billion parameters</span>, and the language middleware (<span class="hl-concept">QLLaMA</span>) contains <span class="hl-evidence">8 billion parameters</span>, creating a more balanced multimodal architecture. Second, <span class="hl-method">consistent representation alignment</span>: by initializing QLLaMA from a <span class="hl-method">pre-trained multilingual LLaMA</span>, the vision and language components share a common representational foundation. Third, a <span class="hl-method">progressive image-text alignment strategy</span> that advances from <span class="hl-method">contrastive learning to generative learning</span>, ensuring robust cross-modal alignment at each stage.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為解決上述限制，作者提出 <span class="hl-concept">InternVL</span> 並遵循三項核心設計原則。第一，<span class="hl-method">參數</span>均衡的組件配置：視覺編碼器 <span class="hl-concept">InternViT-6B</span> 擴展至 60 億參數，語言中介層 <span class="hl-concept">QLLaMA</span> 包含 80 億參數，建構更為均衡的多模態架構。第二，一致的表徵對齊：透過以<span class="hl-method">預訓練</span>的多語言 LLaMA 初始化 QLLaMA，使視覺與語言組件共享共同的表徵基礎。第三，漸進式圖文對齊策略，從<span class="hl-method">對比學習</span>推進至生成式學習，確保每個階段均具備穩健的跨模態對齊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以三項設計原則直接回應前段的三項限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接問題陳述的轉折段落：每項設計原則精準對應一項缺陷（規模失衡 -> 參數均衡；表徵不一致 -> 共同初始化；連接低效 -> 漸進對齊），形成完整的「問題-解方」映射。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    一對一回應的結構極為工整，具有強烈的說服力。然而，「參數均衡」是否真正必要值得商榷——視覺與語言處理的資訊複雜度本就不同，強行追求參數對等可能導致視覺端過度參數化或語言端不足。此論點的根基需實驗資料佐證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：貢獻總結 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The contributions of this work are threefold. First, InternVL scales the <span class="hl-concept">vision foundation model</span> to <span class="hl-evidence">6 billion parameters</span>, making it <span class="hl-thesis">the largest open-source vision encoder to date</span>. Second, the <span class="hl-method">progressive alignment strategy</span> enables the model to seamlessly bridge contrastive and generative learning paradigms within a <span class="hl-thesis">unified framework</span>. Third, the model achieves <span class="hl-evidence">state-of-the-art performance on 32 benchmarks</span> spanning <span class="hl-evidence">visual perception, vision-language understanding, and multimodal dialogue</span>, demonstrating <span class="hl-thesis">broad versatility without task-specific architectural modifications</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究的貢獻有三。第一，InternVL 將視覺<span class="hl-concept">基礎模型</span>擴展至 60 億<span class="hl-evidence">參數</span>，使其成為目前最大的開源視覺<span class="hl-thesis">編碼器</span>。第二，漸進式對齊策略使模型能在統一框架內無縫銜接對比學習與生成式學習範式。第三，模型在涵蓋視覺感知、視覺語言理解與多模態對話的 32 項<span class="hl-evidence">基準</span>測試上達到最先進表現，展現了無需任務特定架構修改即可適用的廣泛通用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    貢獻宣告——以三點式結構明確列出論文的核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    緒論的收束段落，將前述的動機與設計原則濃縮為具體的貢獻點，為讀者建立對後續章節的預期框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「最大的開源視覺編碼器」是一個可客觀驗證的事實性主張，增強可信度。但「32 項基準測試的最先進表現」措辭模糊——是否在每項基準上都達到第一名，或是整體而言具競爭力？此處的量化細節需待實驗章節釐清。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：視覺基礎模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Vision foundation models</span> have evolved from <span class="hl-concept">AlexNet</span> through <span class="hl-concept">ResNet</span> to the <span class="hl-concept">Vision Transformer (ViT)</span> family. Recent scaling efforts include <span class="hl-concept">ViT-22B</span> and <span class="hl-concept">EVA-02</span>, which demonstrate that <span class="hl-evidence">larger vision models yield better representations for downstream tasks</span>. However, these models <span class="hl-rebuttal">primarily derive their training from visual-only datasets or BERT-style alignment</span>, lacking direct integration with LLMs. This disconnect means that <span class="hl-rebuttal">even the most powerful vision encoders cannot natively participate in language-driven reasoning</span>, limiting their utility in the era of multimodal AI.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺<span class="hl-concept">基礎模型</span>從 <span class="hl-concept">AlexNet</span> 經 <span class="hl-concept">ResNet</span> 演進至 Vision <span class="hl-concept">Transformer</span> 家族。近期的規模擴展包括 <span class="hl-concept">ViT-22B</span> 與 <span class="hl-concept">EVA-02</span>，證明更大的視覺模型能產生更優質的下游任務表徵。然而，這些模型的訓練主要仰賴純視覺<span class="hl-rebuttal">資料集</span>或 BERT 式的對齊方式，缺乏與大型語言模型的直接整合。此斷裂意味著即便是最強大的視覺<span class="hl-rebuttal">編碼器</span>也無法原生參與語言驅動的推理，限制了其在多模態人工智慧時代的效用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理視覺基礎模型的演進脈絡與當前瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    延續緒論的「參數規模」議題，此段將批判焦點從規模失衡轉移至訓練範式的不相容——即便視覺模型也在擴大，它們的訓練目標與 LLM 生態系統仍然脫節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「AlexNet -> ViT -> ViT-22B」的線性敘事建立技術演進的歷史感，再以「缺乏 LLM 整合」一筆帶過所有先前工作的不足。但 CLIP 式的對比學習本身已建立了視覺-語言橋樑，此處可能低估了現有方法的對齊效果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：大型語言模型與視覺語言模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Large language models</span> such as the <span class="hl-concept">GPT series</span>, <span class="hl-concept">LLaMA</span>, and <span class="hl-concept">InternLM</span> have demonstrated extraordinary capabilities in reasoning, instruction following, and in-context learning. The integration of visual perception into these models has spawned a rich landscape of <span class="hl-concept">vision-language large models (VLLMs)</span>, including <span class="hl-concept">Flamingo</span>, <span class="hl-concept">BLIP-2</span>, and <span class="hl-concept">LLaVA</span>. These approaches typically employ a <span class="hl-method">frozen or lightly fine-tuned vision encoder (often CLIP ViT-L)</span> connected to an LLM decoder via a <span class="hl-method">projection layer or Q-Former module</span>. While effective, <span class="hl-rebuttal">the vision encoder remains the bottleneck — its limited capacity constrains the visual information available to the language model</span>, and its representations are not natively aligned with the LLM's embedding space.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                GPT 系列、<span class="hl-concept">LLaMA</span> 與 <span class="hl-concept">InternLM</span> 等大型語言模型在推理、指令遵循與上下文學習方面展現了卓越能力。將視覺感知整合至這些模型中，催生了豐富的視覺語言大型模型生態，包括 <span class="hl-concept">Flamingo</span>、<span class="hl-concept">BLIP-2</span> 與 <span class="hl-concept">LLaVA</span>。這些方法通常採用凍結或輕度微調的視覺<span class="hl-method">編碼器</span>（通常為 CLIP ViT-L），經由投影層或 <span class="hl-method">Q-Former</span> 模組與 LLM 解碼器連接。雖然有效，但視覺編碼器仍為瓶頸——其有限的容量制約了可供語言模型使用的視覺資訊，且其表徵並非原生地與 LLM 的嵌入空間對齊。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——在 VLLM 的蓬勃發展中，識別視覺編碼器作為共同瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立 InternVL 的學術譜系：Flamingo / BLIP-2 / LLaVA 皆為前驅，但共享「視覺端不足」的根本限制。此段將 InternVL 定位為此趨勢的自然進化——不只改善連接方式，而是從根本強化視覺端。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將視覺編碼器定義為「瓶頸」是全文的核心前提，但 LLaVA-1.5 等工作已證明以 CLIP ViT-L 配合高品質指令微調資料即可達到優異表現。視覺編碼器是否真為主要瓶頸，抑或資料品質與對齊策略更為關鍵，是一個值得深究但作者未充分討論的問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Overall Architecture — 整體架構</h3>
+
+    <!-- 方法段落 1：架構概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Unlike traditional <span class="hl-rebuttal">vision-only or dual-encoder approaches</span>, InternVL combines two core components: <span class="hl-concept">InternViT-6B</span>, a vision transformer with <span class="hl-evidence">6 billion parameters</span>, and <span class="hl-concept">QLLaMA</span>, a language middleware with <span class="hl-evidence">8 billion parameters</span> initialized from <span class="hl-method">multilingual LLaMA</span>. The architecture supports <span class="hl-thesis">flexible composition for diverse visual-linguistic tasks through three inference modes</span>: (1) <span class="hl-method">visual perception</span>, where InternViT-6B generates feature maps for dense prediction tasks; (2) <span class="hl-method">contrastive tasks</span>, where attention pooling extracts global visual features for similarity computation; and (3) <span class="hl-method">generative tasks</span>, where QLLaMA reorganizes visual representations as prefix tokens for sequential generation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                有別於傳統的純視覺或雙<span class="hl-rebuttal">編碼器</span>方法，InternVL 結合兩大核心組件：擁有 60 億<span class="hl-evidence">參數</span>的視覺轉換器 <span class="hl-concept">InternViT-6B</span>，以及從多語言 <span class="hl-method">LLaMA</span> 初始化、含 80 億參數的語言中介層 <span class="hl-concept">QLLaMA</span>。此架構透過三種<span class="hl-thesis">推論</span>模式支援多元視覺語言任務的彈性組合：（1）視覺感知模式，由 InternViT-6B 生成特徵圖供密集預測任務使用；（2）對比任務模式，以注意力池化提取全域視覺特徵進行相似度計算；（3）生成任務模式，由 QLLaMA 將視覺表徵重組為前綴標記以進行序列生成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構總覽——勾勒 InternVL 的雙組件設計與三種推論模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法章節的開篇，為讀者建立全局理解：60 億視覺參數 + 80 億語言參數的設計直接回應緒論中的「參數均衡」原則，三種推論模式則預告了後續實驗的廣泛覆蓋面。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三種推論模式的設計展現了架構的通用性，這是一項重要的工程貢獻。然而，模組化的靈活性可能帶來最佳化上的妥協——為適配多種任務而設計的架構，在特定任務上可能不如專門設計的模型表現優異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 模型設計 ====== -->
+    <h3 class="subsection-heading" id="sec-model-design">3.2 Model Design — 模型設計</h3>
+
+    <!-- 模型設計段落 1：InternViT-6B -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The design of <span class="hl-concept">InternViT-6B</span> involves systematic <span class="hl-method">hyperparameter exploration</span>, varying <span class="hl-method">depth {32, 48, 64, 80}, head dimension {64, 128}, and MLP ratio {4, 8}</span> across <span class="hl-evidence">16 model variants</span>. Evaluation reveals that <span class="hl-evidence">"depth, head dimension, and MLP ratio have little impact on the performance"</span> for a fixed parameter count, suggesting that <span class="hl-thesis">the total number of parameters matters more than the specific architectural configuration</span>. The final selected architecture uses <span class="hl-method">width 3200, depth 48, MLP dimension 12800, and 25 attention heads</span>, yielding <span class="hl-evidence">5.9 billion parameters</span>. This variant is chosen based on a composite criterion of <span class="hl-method">throughput, accuracy, and training stability</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">InternViT-6B</span> 的設計涉及系統性的超<span class="hl-method">參數</span>探索，在深度 {32, 48, 64, 80}、<span class="hl-method">注意力</span>頭維度 {64, 128} 與 MLP 比率 {4, 8} 之間，對 16 種模型變體進行評估。結果揭示，在固定參數量下，深度、頭維度與 MLP 比率對效能影響甚微，表明總參數量比具體的架構配置更為重要。最終選定的架構採用寬度 3200、深度 48、MLP 維度 12800 與 25 個注意力頭，共 59 億參數。此變體基於吞吐量、準確率與訓練穩定性的綜合標準選出。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構搜尋——描述 InternViT-6B 的設計方法學與最終選擇依據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為「視覺模型規模擴展」的主張提供方法論基礎：並非隨意擴大，而是經過系統搜尋。「參數量比架構配置更重要」的發現也為選擇提供了理論支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    16 種變體的消融研究展現了方法論的嚴謹性。但「架構配置影響甚微」的結論若為真，則暗示作者在架構設計上的貢獻有限——核心貢獻僅在於「將規模做大」而非「設計更好的架構」。這可能削弱論文的技術新穎性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模型設計段落 2：QLLaMA -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">QLLaMA</span> is built upon a <span class="hl-method">pre-trained multilingual LLaMA</span> augmented with <span class="hl-method">96 learnable queries and cross-attention layers</span> totaling <span class="hl-evidence">1 billion additional parameters</span> that are randomly initialized. This design offers three advantages over the widely-used <span class="hl-concept">Q-Former</span>: (1) <span class="hl-method">pre-trained weight initialization</span> provides a strong starting point for representation alignment, unlike Q-Former which is trained from scratch; (2) QLLaMA is <span class="hl-evidence">42 times larger than Q-Former</span>, providing substantially greater capacity for cross-modal understanding; (3) the architecture is <span class="hl-thesis">applicable to both contrastive and generative tasks</span>, whereas Q-Former is primarily designed for contrastive alignment.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">QLLaMA</span> 建構於<span class="hl-method">預訓練</span>的多語言 LLaMA 之上，額外增加 96 個可學習查詢與交叉<span class="hl-method">注意力</span>層，共計 10 億個隨機初始化的新增<span class="hl-evidence">參數</span>。相較於廣泛使用的 <span class="hl-concept">Q-Former</span>，此設計具備三項優勢：（1）預訓練權重初始化為表徵對齊提供了優質的起點，不像 Q-Former 需從零訓練；（2）QLLaMA 的規模是 Q-Former 的 42 倍，為跨模態理解提供了顯著更大的容量；（3）此架構可同時適用於對比與生成任務，而 Q-Former 主要為對比對齊而設計。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件設計——詳述 QLLaMA 的架構與相對於 Q-Former 的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應緒論中「連接低效」的問題：QLLaMA 並非簡單的投影層，而是一個具備 80 億參數的完整語言模型中介層。以 Q-Former 為參照對象，透過三項具體優勢建立差異化定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「42 倍大」的數字對比極具衝擊力，但更大不一定更好——BLIP-2 的 Q-Former 以極少參數即實現了有效的視覺-語言橋接。作者需證明額外的參數量確實帶來了與規模相稱的效能提升，而非僅是算力的浪費。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 對齊策略 ====== -->
+    <h3 class="subsection-heading" id="sec-alignment">3.3 Alignment Strategy — 對齊策略</h3>
+
+    <!-- 對齊策略段落 1：第一階段——視覺語言對比訓練 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The alignment proceeds through <span class="hl-thesis">three progressive stages</span>. <span class="hl-concept">Stage 1: Vision-Language Contrastive Training</span> aligns InternViT-6B with multilingual LLaMA-7B on <span class="hl-evidence">web-scale noisy image-text pairs</span>. The training dataset comprises <span class="hl-evidence">6.03 billion image-text pairs (4.98 billion after cleaning)</span> drawn from diverse sources including <span class="hl-evidence">LAION-en, LAION-multi, LAION-COCO, COYO, Wukong, CC3M/12M, and SBU</span>. The loss function follows <span class="hl-method">CLIP's symmetric cross-entropy</span> formulation. This stage establishes the foundation for <span class="hl-thesis">contrastive task excellence and visual perception capabilities</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對齊流程分為三個漸進階段。第一階段為視覺語言對比訓練，在網路規模的含噪圖文配對資料上對齊 InternViT-6B 與多語言 LLaMA-7B。訓練資料集包含 60.3 億筆圖文配對（清洗後為 49.8 億筆），來源涵蓋 LAION-en、LAION-multi、LAION-<span class="hl-evidence">COCO</span>、COYO、Wukong、CC3M/12M 及 SBU 等多元資料集。損失函數採用 <span class="hl-method">CLIP</span> 的對稱交叉熵公式。此階段為對比任務的卓越表現與視覺感知能力奠定基礎。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略第一階段——以大規模對比學習建立視覺-語言基礎對齊。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    漸進式對齊的起點：以 CLIP 式對比學習作為最基礎、最穩健的對齊方式，利用近 50 億筆資料建立廣泛的視覺-語言關聯。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    49.8 億筆資料的規模本身就是一項壁壘——多數研究團隊無法複現此規模的訓練。作者以資料規模作為隱含的競爭優勢，但未充分討論資料品質的影響。含噪的網路資料是否可能引入偏見或降低特定任務的表現，值得進一步探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 對齊策略段落 2：第二階段——生成訓練 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Stage 2: Vision-Language Generative Training</span> builds upon Stage 1 by inheriting its weights and introducing newly added <span class="hl-method">cross-attention components</span>. The training uses <span class="hl-evidence">filtered, high-quality data reduced to 1.03 billion pairs</span> after rigorous quality filtering. The loss function combines three objectives: <span class="hl-method">image-text contrastive loss (ITC), image-text matching loss (ITM), and image-grounded text generation loss (ITG)</span>. Critically, <span class="hl-method">both InternViT-6B and the base QLLaMA parameters remain frozen</span> during this stage, with only the newly added cross-attention layers being optimized. This design <span class="hl-thesis">preserves the strong visual representations established in Stage 1 while learning the generative bridge</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第二階段為視覺語言生成訓練，繼承第一階段的權重並引入新增的交叉<span class="hl-method">注意力</span>組件。訓練使用經嚴格品質篩選後縮減至 10.3 億筆的高品質資料。損失函數結合三項目標：圖文對比損失（ITC）、圖文匹配損失（ITM）與基於影像的文本生成損失（ITG）。關鍵的是，Intern<span class="hl-method">ViT</span>-6B 與基底 QLLaMA 的參數在此階段均保持凍結，僅最佳化新增的交叉注意力層。此設計在學習生成橋接的同時，保全了第一階段建立的強健視覺表徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略第二階段——從對比學習過渡至生成學習。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    漸進式策略的中間環節：資料量從 49.8 億大幅縮減至 10.3 億（品質優先於數量），凍結策略確保不破壞第一階段的成果。三重損失函數的設計展現了多目標最佳化的複雜性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    凍結大部分參數是一項保守但務實的選擇——避免災難性遺忘。但這也意味著第二階段的學習容量受限於新增的交叉注意力層（僅 10 億參數），生成能力的上限可能因此受到制約。此外，三項損失函數的權重如何平衡，作者未詳細說明。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 對齊策略段落 3：第三階段——監督式微調 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Stage 3: Supervised Fine-tuning</span> connects InternVL with downstream <span class="hl-concept">LLM decoders</span> such as <span class="hl-concept">Vicuna</span> and <span class="hl-concept">InternLM</span>. The fine-tuning uses approximately <span class="hl-evidence">4 million instruction-tuning samples</span> spanning <span class="hl-evidence">captioning, visual question answering, OCR, visual grounding, and multi-turn dialogue</span>. The framework offers flexibility: one can <span class="hl-method">freeze the LLM decoder while training only the MLP projection layer</span>, or <span class="hl-method">employ QLLaMA as a more powerful intermediary</span>. This stage transforms the aligned vision-language model into a <span class="hl-thesis">practical multimodal dialogue system capable of instruction-following and open-ended visual reasoning</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第三階段為監督式<span class="hl-concept">微調</span>，將 InternVL 與下游 LLM <span class="hl-concept">解碼器</span>（如 <span class="hl-concept">Vicuna</span> 與 <span class="hl-concept">InternLM</span>）連接。微調使用約 400 萬筆指令微調樣本，涵蓋圖說生成、視覺問答、光學字元辨識、<span class="hl-evidence">視覺定位</span>與多輪對話。框架提供彈性選擇：可凍結 LLM 解碼器僅訓練 MLP 投影層，或採用 <span class="hl-method">QLLaMA</span> 作為更強大的中介層。此階段將已對齊的視覺語言模型轉化為具備指令遵循與開放式視覺推理能力的實用多模態對話系統。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略第三階段——將基礎模型轉化為實用對話系統。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    漸進式策略的最終階段：從基礎對齊（第一階段）到生成能力（第二階段）再到任務適應（第三階段），形成完整的訓練管線。400 萬筆指令資料相較前兩階段規模極小，但品質與任務覆蓋度更高。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提供「凍結 LLM」與「使用 QLLaMA」兩種路徑的彈性設計，增加了方法的實用性。但第三階段實際上與 LLaVA 等方法的微調流程非常相似，InternVL 在此階段的獨特貢獻主要在於更強的視覺編碼器，而非微調策略本身的創新。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：視覺感知基準 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">visual perception benchmarks</span>, InternViT-6B demonstrates exceptional capabilities. For <span class="hl-concept">image classification on ImageNet-1K</span>, linear probing achieves <span class="hl-evidence">88.2% top-1 accuracy</span>, which represents <span class="hl-evidence">"the currently best linear evaluation results without the JFT dataset."</span> On <span class="hl-concept">semantic segmentation (ADE20K)</span>, the model consistently outperforms <span class="hl-concept">ViT-22B</span> across all evaluation protocols: <span class="hl-evidence">few-shot learning shows consistent advantages across varied training data proportions</span>; linear probing achieves <span class="hl-evidence">47.2 mIoU, surpassing ViT-22B by 12.6 points</span>; and full-parameter tuning reaches <span class="hl-evidence">58.9 mIoU, a gain of 3.6 points over ViT-22B</span>. These results confirm that <span class="hl-thesis">scaling a vision encoder with language-aligned pre-training produces superior visual representations even for pure vision tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在視覺感知<span class="hl-concept">基準</span>上，Intern<span class="hl-evidence">ViT</span>-6B 展現了卓越能力。在 ImageNet-1K 影像<span class="hl-concept">分類</span>任務中，線性探測達到 88.2% 的 top-1 準確率，為目前不使用 JFT <span class="hl-evidence">資料集</span>的最佳線性評估結果。在語義<span class="hl-concept">分割</span>任務（ADE20K）上，模型在所有評估協定中均持續超越 <span class="hl-concept">ViT-22B</span>：<span class="hl-evidence">少樣本</span>學習在不同訓練資料比例下均展現一致優勢；線性探測達到 47.2 mIoU，超越 ViT-22B 達 12.6 分；全參數微調達到 58.9 mIoU，領先 ViT-22B 達 3.6 分。這些結果確認了以語言對齊預訓練來擴展視覺<span class="hl-thesis">編碼器</span>，即便在純視覺任務上也能產生更優質的視覺表徵。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證驗證（視覺感知）——以定量結果證明 InternViT-6B 的視覺表徵品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    回應「參數擴展是否有效」的核心問題：以 ViT-22B 為參照基線，在更少參數（6B vs. 22B）下取得更好成績，強力支持「語言對齊預訓練」的價值主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 ViT-22B 作為比較對象是精明的選擇——擊敗一個參數量為自身 3.7 倍的模型極具說服力。但「不使用 JFT 資料集」的限定條件值得注意：以 JFT 訓練的 ViT-22B 可能表現更好，此處的比較存在訓練資料差異的混淆因子。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：視覺語言基準 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">vision-language benchmarks</span>, InternVL demonstrates broad competence. For <span class="hl-concept">zero-shot image classification</span>, InternVL-C achieves leading performance with <span class="hl-evidence">"stronger robustness to distribution shift, manifesting in consistent accuracy across ImageNet variants."</span> In <span class="hl-concept">zero-shot video classification</span>, single-frame evaluation yields <span class="hl-evidence">76.1%, 75.5%, and 67.5% on Kinetics-400/600/700</span>, surpassing <span class="hl-evidence">EVA-02 by +6.3, +6.2, and +4.1 points</span> respectively; with 8-frame uniform sampling, the model <span class="hl-evidence">outperforms ViCLIP by more than 3.3 points</span>. For <span class="hl-concept">image-text retrieval</span>, InternVL shows strong <span class="hl-evidence">multilingual performance across both English and Chinese datasets</span>, with InternVL-G (incorporating generative training) further enhancing retrieval accuracy.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在視覺語言<span class="hl-concept">基準</span>上，InternVL 展現了廣泛的能力。在<span class="hl-concept">零樣本</span>影像<span class="hl-concept">分類</span>中，InternVL-C 達到領先表現，對分布偏移具備更強的<span class="hl-evidence">穩健性</span>，在 ImageNet 各變體上保持一致的準確率。在零樣本影片分類中，單幀評估在 Kinetics-400/600/700 上分別達到 76.1%、75.5% 與 67.5%，超越 <span class="hl-evidence">EVA-02</span> 達 +6.3、+6.2 與 +4.1 分；以 8 幀均勻取樣評估，模型超越 Vi<span class="hl-evidence">CLIP</span> 逾 3.3 分。在圖文檢索方面，InternVL 在英文與中文<span class="hl-evidence">資料集</span>上均展現強勁的多語言表現，而融入生成訓練的 InternVL-G 進一步提升了檢索準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證驗證（視覺語言）——以多項跨模態基準展示模型的泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從純視覺任務擴展至跨模態任務，驗證「漸進式對齊」策略的有效性。影片分類結果特別值得注意——模型並未針對影片做特殊設計，卻能大幅超越專門的影片模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多語言能力的展示是一項差異化優勢，但主要歸功於多語言 LLaMA 的初始化而非架構設計本身。此外，零樣本影片分類以「單幀」評估為主，這實質上測試的是靜態影像辨識而非時序理解，可能高估了模型的影片理解能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：多模態對話與消融研究 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">multimodal dialogue benchmarks</span>, InternVL-Chat combined with Vicuna-13B achieves <span class="hl-evidence">1317.2 on MME (spanning 14 sub-tasks)</span> and <span class="hl-evidence">87.6 recall on POPE (hallucination evaluation)</span>, demonstrating <span class="hl-evidence">"superior performance compared with previous methods, under the condition of fair trainable parameter counts."</span> <span class="hl-concept">Ablation studies</span> further validate the design choices: <span class="hl-evidence">minimalist supervised fine-tuning with only MLP training shows InternVL outperforms vision encoder baselines</span>, confirming the value of the scaled vision encoder. Moreover, <span class="hl-evidence">"significant improvement when using QLLaMA as the glue layer"</span> validates the claim that <span class="hl-thesis">feature representation alignment through a language-informed middleware yields substantial gains over simple projection layers</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在多模態對話<span class="hl-concept">基準</span>上，InternVL-Chat 結合 Vicuna-13B 在 MME（涵蓋 14 項子任務）上達到 1317.2 分，在 POPE（幻覺評估）上達到 87.6 的召回率，展現在公平可訓練<span class="hl-evidence">參數</span>量條件下優於先前方法的表現。<span class="hl-concept">消融</span>研究進一步驗證了設計選擇的合理性：以僅訓練 MLP 層的最簡監督微調進行評估，InternVL 超越了各視覺<span class="hl-evidence">編碼器</span>基線，確認了擴展視覺編碼器的價值。此外，「使用 <span class="hl-evidence">QLLaMA</span> 作為黏合層時的顯著提升」驗證了以下主張——透過語言知識中介層進行特徵表徵對齊，相較簡單的投影層能帶來實質性的增益。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證驗證（對話與消融）——以對話基準和消融研究完成實驗論證的閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗章節的收束：對話任務證明端到端的實用性，消融研究則回溯驗證架構的每項設計決策。「公平可訓練參數量」的限定條件暗示作者意識到模型規模可能帶來不公平的比較優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融研究是本文實驗部分最有價值的環節——它區分了「規模擴展」與「對齊策略」各自的貢獻。但 POPE 上 87.6 的召回率雖看似不錯，幻覺問題在實際應用中仍是嚴峻挑戰。此外，MME 基準在 2024 年已非最具鑑別力的評估指標，較新的基準（如 MM-Bench）可能提供更全面的評估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">InternVL</span> bridges the gap between <span class="hl-concept">vision foundation models</span> and <span class="hl-concept">large language models</span> by <span class="hl-thesis">scaling the vision encoder to 6 billion parameters and implementing a progressive alignment strategy</span>. The research demonstrates <span class="hl-evidence">"proficiency in a wide range of generic visual-linguistic tasks"</span> spanning <span class="hl-evidence">classification, retrieval, captioning, visual question answering, and dialogue</span>. The three-stage training pipeline — from <span class="hl-method">contrastive pre-training on 4.98 billion pairs</span>, through <span class="hl-method">generative training on 1.03 billion quality-filtered pairs</span>, to <span class="hl-method">supervised fine-tuning on 4 million instruction samples</span> — provides a <span class="hl-thesis">principled framework for building versatile multimodal systems that treat vision as a first-class citizen alongside language</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">InternVL</span> 透過將視覺<span class="hl-thesis">編碼器</span>擴展至 60 億參數並實施漸進式對齊策略，彌合了視覺<span class="hl-concept">基礎模型</span>與大型語言模型之間的落差。本研究展示了在廣泛的通用視覺語言任務上的出色表現，涵蓋<span class="hl-evidence">分類</span>、檢索、圖說生成、視覺問答與對話。三階段訓練管線——從 49.8 億筆配對的對比<span class="hl-method">預訓練</span>，經 10.3 億筆品質篩選配對的生成訓練，到 400 萬筆指令樣本的監督式<span class="hl-method">微調</span>——為建構將視覺視為與語言同等重要的通用多模態系統，提供了一套有原則的框架。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並提煉方法論價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要與緒論的結構，從技術方法回到更高層次的願景：「將視覺視為與語言同等重要」。三階段管線的資料量遞減（49.8B -> 1.03B -> 4M）優雅地總結了漸進精煉的哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論以「通用視覺語言」的宏大願景收束，但未充分討論局限性——如計算成本（640 張 A100 GPU 的訓練規模多數團隊無法負擔）、單一影像解析度的限制，以及在複雜推理任務上的表現。作為一篇規模導向的工作，缺乏對「何時規模擴展不再有效」的反思。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺基礎模型規模不足<br>且與 LLM 對齊薄弱
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                擴展視覺編碼器至 6B<br>漸進式跨模態對齊
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                32 項基準最先進表現<br>超越 ViT-22B
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                消融研究分離<br>規模與對齊的貢獻
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                視覺應與語言同等重要<br>於多模態系統中
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將視覺基礎模型擴展至 60 億參數並透過三階段漸進式策略與大型語言模型對齊，能在涵蓋感知、理解與對話的 32 項視覺語言任務上達到最先進的通用表現。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>以少勝多的視覺表徵品質：</strong>InternViT-6B 僅以 ViT-22B 四分之一的參數量，在 ImageNet 線性探測（88.2%）與 ADE20K 語義分割（線性探測 +12.6 mIoU）上全面超越後者。這有力地證明了語言對齊預訓練對視覺表徵的增益並非來自單純的規模擴展，而是跨模態知識遷移的結果。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>可複現性與公平比較的隱憂：</strong>訓練規模需 640 張 A100 GPU 與近 50 億筆資料，形成極高的複現門檻。此外，多項比較基線使用不同的訓練資料與計算預算，使得效能增益究竟來自架構設計、資料規模還是計算量，難以精確歸因。「32 項基準最先進」的主張也未逐一說明是否在每項基準上均為最佳。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

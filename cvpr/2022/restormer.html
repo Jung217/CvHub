@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restormer: Efficient Transformer for High-Resolution Image Restoration — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Restormer: Efficient Transformer for High-Resolution Image Restoration
+                <span class="course-tag">CVPR 2022</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2111.09881" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-mdta">3.1 MDTA</a>
+        <a href="#sec-gdfn">3.2 GDFN</a>
+        <a href="#sec-progressive">3.3 漸進式學習</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1：問題定義與方案概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Since <span class="hl-concept">convolutional neural networks (CNNs)</span> perform well at learning generalizable image priors from large-scale data, these models have been extensively applied to <span class="hl-concept">image restoration</span> and related tasks. Recently, another class of neural architectures, <span class="hl-concept">Transformers</span>, have shown significant performance gains on natural language and high-level vision tasks. While the <span class="hl-concept">self-attention mechanism</span> in the Transformer model is key to its success, its <span class="hl-rebuttal">computation grows quadratically with the spatial resolution</span>, therefore making it <span class="hl-rebuttal">infeasible to apply to most image restoration tasks involving high-resolution images</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                由於摺積神經網路（CNN）擅長從大規模資料中學習可泛化的影像先驗，這類模型已被廣泛應用於影像修復及相關任務。近年來，另一類神經架構——Transformer——在自然語言處理與高階視覺任務上展現出顯著的效能增益。雖然 Transformer 模型中的自注意力機制是其成功的關鍵，但其計算量隨空間解析度呈二次方增長，因此難以應用於涉及高解析度影像的大多數影像修復任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題界定——建立 CNN 與 Transformer 在影像修復領域的對立張力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要開頭以「CNN 擅長但有限、Transformer 強大但不可行」的對比結構，精準定位研究缺口：如何在高解析度影像修復中兼得兩者之長。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「二次方複雜度」作為 Transformer 不可行的論據，簡潔有力。但此處未提及已有的局部注意力方案（如 Swin Transformer），可能略微誇大了問題的嚴峻程度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 2：Restormer 解決方案與成果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, the authors propose an efficient Transformer model, <span class="hl-concept">Restormer</span>, that can capture <span class="hl-thesis">long-range pixel interactions while remaining applicable to large images</span>. The key designs include <span class="hl-method">multi-Dconv head transposed attention (MDTA)</span> that efficiently aggregates local and non-local pixel interactions, and <span class="hl-method">gated-Dconv feed-forward network (GDFN)</span> that performs controlled feature transformation to suppress less informative features. Restormer achieves <span class="hl-evidence">state-of-the-art results on 16 benchmark datasets</span> across tasks including <span class="hl-evidence">image deraining, single-image motion deblurring, defocus deblurring, and image denoising</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種高效的 Transformer 模型 <span class="hl-concept">Restormer</span>，能夠在捕捉長距離像素交互作用的同時，仍可應用於大尺寸影像。關鍵設計包含：多深度摺積頭轉置注意力（MDTA），可高效聚合局部與非局部像素交互作用；以及門控深度摺積前饋網路（GDFN），執行受控的特徵轉換以抑制資訊量較低的特徵。Restormer 在涵蓋影像去雨、單影像運動去模糊、散焦去模糊及影像去噪等任務的 16 個基準資料集上，達到了最先進的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方案預告——概述 Restormer 的核心模組與實驗成效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段以「兩大關鍵設計 + 16 個基準資料集」的組合，建立起方法的技術核心與實證基礎的雙重預告。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「16 個基準資料集」的數量本身即構成強有力的說服力指標，暗示方法具備跨任務的廣泛適用性。MDTA 與 GDFN 兩個縮寫同時出場，為後續方法章節建立了清晰的預期框架。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：CNN 的優勢與侷限 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Image restoration</span> aims to reconstruct a high-quality image from its degraded observation corrupted by <span class="hl-concept">noise, blur, rain streaks</span>, and other adverse factors. This is an inherently <span class="hl-rebuttal">ill-posed problem</span> as multiple solutions can map to the same degraded input. <span class="hl-concept">CNNs</span> have become the preferred approach because they <span class="hl-thesis">learn generalizable image priors from large-scale data</span>. However, CNNs present two key limitations: <span class="hl-rebuttal">restricted receptive fields</span> that prevent long-range dependency modeling, and <span class="hl-rebuttal">static filter weights</span> that cannot flexibly adapt to input content.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像修復旨在從受到雜訊、模糊、雨紋等不利因素汙損的退化觀測中，重建高品質影像。這本質上是一個病態問題，因為多組解均可對應至同一退化輸入。摺積神經網路（CNN）已成為首選方法，因其能從大規模資料中學習可泛化的影像先驗。然而，CNN 存在兩項關鍵侷限：受限的感受野使其無法建模長距離依賴關係，以及靜態濾波器權重無法靈活適應輸入內容。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義影像修復問題並指出 CNN 的雙重侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先肯定 CNN 的學習能力，再以「感受野受限」與「權重靜態」兩項技術性弱點，為引入 Transformer 的自注意力機制建立必要性論據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「病態問題」一詞在數學上嚴謹地定位了任務的困難度，增強了學術可信度。但「靜態濾波器權重」的批評未考慮動態摺積（如 DynamicConv）等已有的應對方案，可能簡化了 CNN 近年的進展。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：Transformer 的潛力與瓶頸 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Self-attention mechanisms</span>, the core component of <span class="hl-concept">Transformer</span> models, compute responses as weighted sums across all positions, thus addressing both CNN limitations. Transformers have demonstrated <span class="hl-evidence">state-of-the-art performance in NLP and high-level vision tasks</span>. However, their <span class="hl-rebuttal">complexity grows quadratically with spatial resolution</span>, rendering them <span class="hl-rebuttal">infeasible for high-resolution image restoration</span>. Recent Transformer applications in restoration either apply self-attention to <span class="hl-rebuttal">small 8x8 spatial windows</span> or divide images into <span class="hl-rebuttal">non-overlapping 48x48 patches</span>. These approaches <span class="hl-rebuttal">contradict the goal of capturing true long-range relationships</span>, particularly on high-resolution images.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自注意力機制是 <span class="hl-concept">Transformer</span> 模型的核心組件，透過計算所有位置的加權總和來產生回應，從而同時解決 CNN 的兩項侷限。Transformer 已在自然語言處理與高階視覺任務中展現最先進的效能。然而，其複雜度隨空間解析度呈二次方增長，使其在高解析度影像修復上不可行。近期將 Transformer 應用於修復任務的方法，要麼在小型 8x8 空間窗口內施加自注意力，要麼將影像分割為不重疊的 48x48 圖塊。這些做法與捕捉真正長距離關係的目標相矛盾，在高解析度影像上尤為明顯。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判現有方案——指出既有 Transformer 修復方法的根本矛盾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段扮演「問題深化」的角色：不僅指出 Transformer 的二次方瓶頸（已知問題），更進一步揭示現有折衷方案（局部窗口注意力）的邏輯矛盾——為了解決效率問題而犧牲了 Transformer 最核心的長距離建模優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「自相矛盾」的修辭策略批評 Swin Transformer 式的局部注意力，論證力度強。但 Swin Transformer 透過窗口移位機制仍可逐步聚合全域資訊，此處的批評略顯片面。作者需在方法章節中證明其替代方案確實更優。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：Restormer 的核心貢獻 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this work, the authors propose <span class="hl-concept">Restormer</span>, an <span class="hl-thesis">efficient Transformer capable of capturing global connectivity while remaining applicable to large images</span>. The main contributions are threefold: (1) proposing Restormer, an <span class="hl-method">encoder-decoder Transformer enabling multi-scale local-global representation learning</span> on high-resolution images without disintegrating them into patches; (2) introducing <span class="hl-method">multi-Dconv head transposed attention (MDTA)</span> that efficiently aggregates local and non-local pixel interactions by applying self-attention across channels rather than spatial dimensions; and (3) presenting <span class="hl-method">gated-Dconv feed-forward network (GDFN)</span> that performs controlled feature transformation with a gating mechanism to suppress less informative features. The model achieves <span class="hl-evidence">state-of-the-art performance on 16 benchmark datasets</span> across deraining, deblurring, and denoising.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究提出 <span class="hl-concept">Restormer</span>，一種能夠捕捉全域連結性且可應用於大尺寸影像的高效 Transformer。主要貢獻有三：（一）提出 Restormer，一個編碼器-解碼器 Transformer，在不將高解析度影像拆分為圖塊的前提下，實現多尺度局部-全域表示學習；（二）引入多深度摺積頭轉置注意力（MDTA），透過在通道維度而非空間維度上施加自注意力，高效聚合局部與非局部像素交互作用；（三）提出門控深度摺積前饋網路（GDFN），以門控機制執行受控的特徵轉換，抑制資訊量較低的特徵。該模型在涵蓋去雨、去模糊與去噪的 16 個基準資料集上達到最先進效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以三點式列舉 Restormer 的核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題與批判，此段是論證的轉折點。三項貢獻分別對應：架構層級的創新（編碼器-解碼器）、注意力層級的創新（MDTA）、前饋層級的創新（GDFN），形成由上而下的完整技術方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三點式結構清晰且便於讀者記憶。「不將影像拆分為圖塊」的強調直接回應了上段對局部注意力方法的批評。但「轉置注意力」的核心概念——在通道維度上計算注意力——並非全新，早在 SE-Net 等通道注意力機制中即有先例，作者需在方法章節中闡明差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：CNN 用於影像修復 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Data-driven <span class="hl-concept">CNN architectures</span> have significantly outperformed conventional restoration approaches. <span class="hl-concept">Encoder-decoder U-Net architectures</span> dominate the field due to their <span class="hl-method">hierarchical multi-scale representation</span> and computational efficiency. Techniques such as <span class="hl-method">skip connections</span>, <span class="hl-method">spatial and channel attention modules</span>, and <span class="hl-method">multi-stage progressive designs</span> have further enhanced restoration effectiveness. Notable approaches include <span class="hl-concept">MPRNet</span> with multi-stage progressive restoration and <span class="hl-concept">MIRNet</span> with multi-scale residual blocks, both demonstrating the value of <span class="hl-thesis">hierarchical feature processing for capturing details at multiple scales</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                資料驅動的 CNN 架構已大幅超越傳統修復方法。編碼器-解碼器 U-Net 架構因其階層式多尺度表示能力與計算效率而主導該領域。跳接連結、空間與通道注意力模組，以及多階段漸進式設計等技術進一步提升了修復效果。代表性方法包括採用多階段漸進式修復的 <span class="hl-concept">MPRNet</span>，以及使用多尺度殘差區塊的 <span class="hl-concept">MIRNet</span>，兩者均展示了階層式特徵處理在多尺度細節捕捉上的價值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理 CNN 修復方法的演進脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立 CNN 修復的技術譜系，從 U-Net 到注意力機制再到多階段設計，為 Restormer 繼承「編碼器-解碼器」框架與「多尺度處理」思想提供正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    特意提及 MPRNet 與 MIRNet——兩者皆為同一作者群的先前工作——建立了自身研究的延續性脈絡。此舉在學術上合理，但讀者應注意這可能使對比實驗的公正性產生疑慮。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：視覺 Transformer -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Transformers</span>, initially developed for sequence processing in NLP, have been adapted across vision tasks including <span class="hl-evidence">image recognition, segmentation, and object detection</span>. <span class="hl-concept">Vision Transformers (ViT)</span> decompose images into patch sequences, learning mutual relationships and capturing long-range dependencies with <span class="hl-thesis">strong input adaptability</span>. Despite successful applications to low-level vision problems like <span class="hl-evidence">super-resolution, colorization, denoising, and deraining</span>, <span class="hl-rebuttal">computational complexity remains prohibitive for high-resolution outputs</span>. Recent methods employ strategies reducing complexity, such as applying self-attention within local image regions using <span class="hl-concept">Swin Transformer</span> design. However, this <span class="hl-rebuttal">restricts context aggregation to local neighborhoods</span>, <span class="hl-rebuttal">contradicting the primary motivation for self-attention over convolutions</span> — particularly unsuitable for image restoration requiring global context awareness.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Transformer 最初為自然語言處理的序列處理而開發，後已被調適至影像辨識、分割與物件偵測等視覺任務。視覺 Transformer（ViT）將影像分解為圖塊序列，學習彼此間的關係並捕捉長距離依賴，具有強大的輸入適應性。儘管已成功應用於超解析度、著色、去噪與去雨等低階視覺問題，但計算複雜度仍使其在高解析度輸出上不可行。近期方法採用降低複雜度的策略，如使用 <span class="hl-concept">Swin Transformer</span> 設計在局部影像區域內施加自注意力。然而，這將上下文聚合限制在局部鄰域內，與自注意力相對於摺積的核心動機相矛盾——對於需要全域上下文感知的影像修復尤為不適。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判定位——分析 Transformer 在低階視覺中的現狀與根本矛盾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整篇論文動機的核心支柱：Swin Transformer 的局部窗口策略雖解決了效率問題，卻犧牲了全域建模能力。這一「矛盾」論述為 Restormer 的「通道維度注意力」方案提供了最直接的合理性依據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「與核心動機相矛盾」的修辭非常有力，但 Swin Transformer 的移位窗口機制確實能跨越窗口邊界傳遞資訊。作者此處的批評指向的是「直接的」全域感受野而非「間接的」全域連結，這一區分若能更精確地闡述，論證會更為嚴謹。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：既有低階視覺 Transformer -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Several Transformer-based restoration methods have been proposed. <span class="hl-concept">IPT (Image Processing Transformer)</span> uses a large-scale pre-trained Transformer but requires <span class="hl-rebuttal">enormous computational resources with over 115M parameters</span>. <span class="hl-concept">SwinIR</span> applies <span class="hl-method">Swin Transformer blocks with shifted window attention</span> and achieves strong results in super-resolution and denoising, yet its <span class="hl-rebuttal">local window attention limits the effective receptive field</span>. <span class="hl-concept">Uformer</span> introduces a <span class="hl-method">U-shaped Transformer with LeWin attention</span>, applying self-attention within non-overlapping windows. These methods demonstrate the potential of Transformers for restoration, but <span class="hl-thesis">none achieves truly global self-attention at linear complexity on full-resolution feature maps</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                已有多種基於 Transformer 的修復方法被提出。影像處理 Transformer（IPT）使用大規模預訓練 Transformer，但需要超過 1.15 億參數的龐大計算資源。<span class="hl-concept">SwinIR</span> 應用具有移位窗口注意力的 Swin Transformer 區塊，在超解析度與去噪上取得優異結果，但其局部窗口注意力限制了有效感受野。<span class="hl-concept">Uformer</span> 引入具 LeWin 注意力的 U 形 Transformer，在不重疊窗口內施加自注意力。這些方法展示了 Transformer 在修復領域的潛力，但沒有一個能在全解析度特徵圖上以線性複雜度實現真正的全域自注意力。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    競爭方法對比——具體列舉三種代表性 Transformer 修復方法的優缺點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段透過逐一檢視 IPT、SwinIR、Uformer 的侷限，以排除法收窄至 Restormer 要填補的精確技術缺口：「全解析度特徵圖上的線性複雜度全域注意力」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以三個具體方法作為反面教材，使論證從抽象批評轉為具體對比。但每個方法僅被指出一項缺陷，可能過度簡化了它們的能力。例如 SwinIR 透過多層堆疊已能覆蓋相當大的有效感受野。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <!-- 方法段落 1：整體架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given a degraded image of dimensions <span class="hl-method">H x W x 3</span>, Restormer first applies a convolution to obtain low-level feature embeddings of dimension <span class="hl-method">H x W x C</span>. These features pass through a <span class="hl-method">4-level symmetric encoder-decoder</span>, producing deep features of <span class="hl-method">H x W x 2C</span> dimensions. The encoder hierarchically reduces spatial size while expanding channel capacity. The decoder progressively recovers high-resolution representations from low-resolution latent features. Feature <span class="hl-method">downsampling and upsampling use pixel-unshuffle and pixel-shuffle</span> operations respectively. Encoder features concatenate with decoder features via <span class="hl-method">skip connections</span>, followed by 1x1 convolution to reduce channels. A <span class="hl-method">refinement stage</span> at the original resolution further enriches deep features before a final convolution generates the <span class="hl-method">residual image</span> that is added to the degraded input.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                給定一張維度為 <span class="hl-method">H x W x 3</span> 的退化影像，Restormer 首先以一層摺積提取維度為 <span class="hl-method">H x W x C</span> 的低階特徵嵌入。這些特徵通過一個四階對稱編碼器-解碼器，產生維度為 <span class="hl-method">H x W x 2C</span> 的深層特徵。編碼器以階層方式縮減空間尺寸並擴展通道容量，解碼器則從低解析度潛在特徵中漸進恢復高解析度表示。特徵的降取樣與升取樣分別使用 pixel-unshuffle 與 pixel-shuffle 運算。編碼器特徵透過跳接連結與解碼器特徵串接，再經 1x1 摺積以縮減通道數。原始解析度上的精煉階段進一步豐富深層特徵，最後由摺積生成殘差影像，加回退化輸入即得最終結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構總覽——描述 Restormer 的編碼器-解碼器整體管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續各子模組的討論設定了宏觀框架。四階對稱設計繼承了 U-Net 的成功範式，而 pixel-shuffle/unshuffle 的使用避免了棋盤偽影，殘差學習策略則降低了學習難度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    架構設計上大量借鏡成熟的 CNN 修復範式（U-Net、跳接、殘差學習），這是務實的選擇。但讀者可能質疑：若整體架構與 CNN 方法如此相似，那 Transformer 的貢獻究竟體現在何處？答案在於接下來的 MDTA 與 GDFN。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 MDTA ====== -->
+    <h3 class="subsection-heading" id="sec-mdta">3.1 Multi-Dconv Head Transposed Attention (MDTA)</h3>
+
+    <!-- MDTA 段落 1：動機與核心概念 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Conventional <span class="hl-concept">self-attention</span> exhibits <span class="hl-rebuttal">O(W<sup>2</sup>H<sup>2</sup>) time and memory complexity</span> for W x H pixel images, rendering it infeasible for restoration tasks involving high-resolution imagery. <span class="hl-concept">MDTA</span> achieves <span class="hl-thesis">linear complexity</span> by <span class="hl-method">applying self-attention across channels rather than spatial dimensions</span>, computing <span class="hl-method">cross-covariance across channels</span> to generate <span class="hl-concept">attention maps</span> that encode global context implicitly. Instead of the massive <span class="hl-rebuttal">HW x HW spatial attention maps</span> in conventional self-attention, MDTA produces compact <span class="hl-evidence">C x C transposed-attention maps</span>, where C is the number of channels — typically orders of magnitude smaller than HW.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                傳統自注意力對 W x H 像素影像具有 O(W<sup>2</sup>H<sup>2</sup>) 的時間與記憶體複雜度，使其在涉及高解析度影像的修復任務中不可行。<span class="hl-concept">MDTA</span> 透過在通道維度而非空間維度上施加自注意力來達到線性複雜度，計算通道間的交叉共變異數以生成隱含編碼全域上下文的注意力圖。不同於傳統自注意力中巨大的 HW x HW 空間注意力圖，MDTA 產生緊湊的 C x C 轉置注意力圖，其中 C 為通道數——通常比 HW 小數個數量級。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新揭示——闡述 MDTA 如何將注意力從空間維度轉移至通道維度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最關鍵的技術貢獻。「空間維度 -> 通道維度」的維度轉換，在數學上將複雜度從 O(H<sup>2</sup>W<sup>2</sup>) 降至 O(HWC)，直接實現了緒論中承諾的「線性複雜度全域注意力」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「C 通常比 HW 小數個數量級」作為效率論據，非常具說服力。但通道注意力本質上計算的是「哪些特徵通道更重要」，而非「哪些空間位置相關」——這與傳統空間自注意力捕捉的資訊類型不同。作者聲稱其「隱含編碼全域上下文」，但這一等價性需要更嚴格的理論或實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MDTA 段落 2：深度摺積與多頭機制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                MDTA incorporates <span class="hl-method">depth-wise convolutions</span> to emphasize local context before feature covariance computation. From <span class="hl-method">layer-normalized</span> input tensors, MDTA generates <span class="hl-method">query (Q), key (K), and value (V) projections</span> enriched with local context through two stages: first, <span class="hl-method">1x1 convolutions</span> aggregate pixel-wise cross-channel context; then, <span class="hl-method">3x3 depth-wise convolutions</span> encode channel-wise spatial context. The <span class="hl-method">multi-head structure</span> divides channels into separate heads, each learning parallel attention maps independently. This design <span class="hl-thesis">implicitly models contextualized global relationships between pixels while computing covariance-based attention maps, complementing convolutional strengths within the pipeline</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MDTA 結合深度摺積以在特徵共變異數計算前強調局部上下文。從經層正規化的輸入張量出發，MDTA 透過兩個階段生成富含局部上下文的查詢（Q）、鍵（K）、值（V）投影：首先以 1x1 摺積聚合逐像素的跨通道上下文，接著以 3x3 深度摺積編碼逐通道的空間上下文。多頭結構將通道分為獨立的頭，各自平行學習注意力圖。此設計在計算基於共變異數的注意力圖的同時，隱含地建模了像素間的上下文化全域關係，與管線中的摺積優勢相互補足。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節補充——完整描述 MDTA 的計算流程與設計哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段深化了 MDTA 的技術描述，關鍵在於「1x1 摺積 + 3x3 深度摺積」的二階段投影設計。這使得 Q、K、V 在進入注意力計算前已包含局部空間資訊，彌補了純通道注意力缺乏空間感知的弱點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「與摺積優勢互補」的論述巧妙地將 Transformer 與 CNN 定位為合作而非競爭關係，緩和了學術界可能的質疑。深度摺積的引入本質上是在通道注意力中注入空間歸納偏置——這是一個務實但可能降低模型「純 Transformer」純度的設計決策。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MDTA 段落 3：複雜度分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The computational advantage of MDTA is significant. For an input feature map of spatial dimensions <span class="hl-evidence">H x W</span> and <span class="hl-evidence">C channels</span>, conventional self-attention produces attention maps of size <span class="hl-evidence">HW x HW</span>, leading to <span class="hl-evidence">O(H<sup>2</sup>W<sup>2</sup>)</span> complexity. In contrast, MDTA reshapes Q and K such that the dot-product generates <span class="hl-evidence">C x C transposed-attention maps</span>, resulting in <span class="hl-evidence">O(HWC)</span> complexity — <span class="hl-thesis">linear in the number of pixels</span>. For a typical restoration setting with <span class="hl-evidence">256 x 256 input and 48 channels at level-1</span>, this represents a reduction from approximately <span class="hl-evidence">4.3 billion operations to 3.1 million</span> — a factor of over <span class="hl-evidence">1000x</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MDTA 的計算優勢相當顯著。對於空間維度為 <span class="hl-evidence">H x W</span>、具 C 個通道的輸入特徵圖，傳統自注意力產生大小為 <span class="hl-evidence">HW x HW</span> 的注意力圖，導致 O(H<sup>2</sup>W<sup>2</sup>) 的複雜度。相較之下，MDTA 重塑 Q 與 K 使得點積生成 C x C 的轉置注意力圖，複雜度為 <span class="hl-evidence">O(HWC)</span>——相對於像素數量呈線性。以典型的修復設定為例，256 x 256 輸入搭配第一階的 48 個通道，這意味著運算量從約 43 億次降至 310 萬次——超過 1000 倍的縮減。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定量論證——以具體數值展示 MDTA 的效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將前兩段的理論描述轉化為可量化的效率指標。「1000 倍」的縮減倍率是極具衝擊力的數字，直接回應了緒論中「二次方複雜度不可行」的問題陳述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體數字（43 億 vs. 310 萬）取代抽象的大 O 符號，大幅提升說服力。但需注意此計算僅涵蓋注意力圖的生成，未包含 Q、K、V 投影及深度摺積的額外開銷。完整的端到端效率比較需在實驗章節驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 GDFN ====== -->
+    <h3 class="subsection-heading" id="sec-gdfn">3.2 Gated-Dconv Feed-Forward Network (GDFN)</h3>
+
+    <!-- GDFN 段落 1：動機與設計 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Conventional <span class="hl-concept">feed-forward networks (FFN)</span> in Transformers operate identically at each pixel location using two <span class="hl-method">1x1 convolutions</span>: first expanding feature channels by a factor <span class="hl-method">gamma (typically 4)</span>, then reducing to original dimensions, with non-linearity applied in hidden layers. <span class="hl-concept">GDFN</span> introduces two fundamental modifications: a <span class="hl-method">gating mechanism</span> and the incorporation of <span class="hl-method">depth-wise convolutions</span>. The gating mechanism functions as the <span class="hl-method">element-wise product of two parallel linear transformation paths</span>, one activated with <span class="hl-method">GELU non-linearity</span>. This design <span class="hl-thesis">controls information flow through hierarchical levels, allowing each level to focus on complementary fine details</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Transformer 中傳統的前饋網路（FFN）在每個像素位置上以相同方式運作，使用兩層 1x1 摺積：先將特徵通道擴展 gamma 倍（通常為 4），再縮減回原始維度，並在隱藏層施加非線性。<span class="hl-concept">GDFN</span> 引入兩項根本性修改：門控機制與深度摺積的結合。門控機制以兩條平行線性轉換路徑的逐元素乘積實現，其中一條以 GELU 非線性啟動。此設計控制了資訊在階層式層級間的流動，使各層級得以聚焦於互補的精細細節。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第二核心創新——闡述 GDFN 的門控機制設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在 MDTA 解決了注意力效率問題之後，此段轉向 Transformer 的另一核心組件——前饋網路。門控機制賦予網路「選擇性傳遞資訊」的能力，超越了標準 FFN 的無差別特徵轉換。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    門控機制（GLU 變體）在 NLP 領域已有廣泛應用（如 GPT-3），此處將其引入影像修復是合理的遷移。但「控制資訊流動」的表述較為模糊，未具體說明門控如何在不同階層上學到互補的特徵——需要消融實驗支持。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GDFN 段落 2：計算流程 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Specifically, the GDFN formulation involves: the input tensor undergoes <span class="hl-method">layer normalization</span>, then splits into <span class="hl-method">two parallel transformation paths</span>. The first path applies <span class="hl-method">point-wise (1x1) convolution followed by 3x3 depth-wise convolution and GELU activation</span>. The second path applies <span class="hl-method">similar point-wise and depth-wise convolutions without activation</span>. These two paths are combined via <span class="hl-method">element-wise multiplication (gating)</span>, followed by a <span class="hl-method">final point-wise convolution and residual connection</span>. The depth-wise convolutions <span class="hl-thesis">encode spatially neighboring pixel information, useful for learning local image structure enabling effective restoration</span>. Since GDFN performs more operations than a standard FFN, the <span class="hl-method">expansion ratio is reduced (gamma = 2.66 instead of 4)</span> to maintain similar parameter count and computational cost.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                具體而言，GDFN 的計算流程如下：輸入張量先經層正規化，然後分為兩條平行轉換路徑。第一條路徑依序施加逐點（1x1）摺積、3x3 深度摺積與 GELU 啟動函數。第二條路徑施加類似的逐點與深度摺積但不含啟動函數。兩條路徑透過逐元素乘積（門控）結合，最後經逐點摺積與殘差連結。深度摺積編碼了空間鄰近像素的資訊，有助於學習局部影像結構以實現有效修復。由於 GDFN 比標準 FFN 執行更多運算，擴展比率從 4 降為 2.66 以維持相近的參數量與計算成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    計算細節——完整描述 GDFN 的資料流程與參數設定。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示了工程設計的審慎考量：在增加門控複雜度的同時，透過降低擴展比率維持整體計算預算不變。這種「零成本增益」的論述策略，使得 GDFN 的引入顯得有利無害。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「gamma 從 4 降至 2.66」的調整看似微小，但實際上改變了隱藏層的表示容量。作者聲稱參數量「相近」，但理想情況下應提供精確的數字比較。此外，深度摺積在 MDTA 與 GDFN 中均被採用，凸顯了該運算在此架構中的核心地位。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 漸進式學習 ====== -->
+    <h3 class="subsection-heading" id="sec-progressive">3.3 Progressive Learning — 漸進式學習</h3>
+
+    <!-- 漸進式學習段落 1：動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                CNN-based restoration models typically train on <span class="hl-method">fixed-size image patches</span>. However, <span class="hl-rebuttal">Transformer models trained on small cropped patches may not encode global image statistics</span>, yielding suboptimal performance on full-resolution test images. <span class="hl-concept">Progressive learning</span> addresses this by <span class="hl-method">training networks on smaller patches in early epochs and gradually larger patches in later epochs</span>. This strategy resembles <span class="hl-concept">curriculum learning</span>, where networks progress from simpler to more complex tasks requiring <span class="hl-thesis">fine image structure and texture preservation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                基於 CNN 的修復模型通常在固定尺寸的影像圖塊上訓練。然而，在小型裁切圖塊上訓練的 Transformer 模型可能無法編碼全域影像統計量，導致在全解析度測試影像上表現欠佳。漸進式學習透過在早期訓練週期使用較小圖塊、在後期逐步增大圖塊尺寸來解決此問題。此策略類似課程式學習，網路從較簡單的任務逐步過渡到需要精細影像結構與紋理保存的複雜任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練策略創新——提出漸進式學習以彌補固定圖塊訓練的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段補充了前兩節的架構創新，從「模型設計」擴展到「訓練方法」。漸進式學習直接回應了 Transformer 訓練的獨特挑戰：需要足夠大的感受野才能發揮全域建模優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「課程式學習」的類比使漸進式訓練策略顯得理論上有據。但此策略並非 Restormer 獨創，類似的圖塊尺寸排程在多種訓練方法中已有應用。作者的貢獻更多在於系統性地驗證此策略對 Transformer 修復的效益。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 漸進式學習段落 2：實作細節 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Mixed-size patch training through progressive learning <span class="hl-thesis">enhances performance at test time across different image resolutions</span> — a common scenario in restoration tasks. Specifically, training begins with <span class="hl-evidence">128 x 128 patches and batch size 64</span>, then advances through progressively larger patch-batch pairs: <span class="hl-evidence">(160<sup>2</sup>, 40), (192<sup>2</sup>, 32), (256<sup>2</sup>, 16), (320<sup>2</sup>, 8), (384<sup>2</sup>, 8)</span> at designated iteration milestones <span class="hl-evidence">[92K, 156K, 204K, 240K, 276K]</span> across 300K total iterations. As <span class="hl-method">patch sizes increase, batch sizes decrease to maintain consistent computational cost per optimization step</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                透過漸進式學習的混合尺寸圖塊訓練，在測試時能增強不同影像解析度下的效能——這在修復任務中十分常見。具體而言，訓練從 128 x 128 圖塊搭配批次大小 64 開始，接著漸進至更大的圖塊-批次組合：(160<sup>2</sup>, 40)、(192<sup>2</sup>, 32)、(256<sup>2</sup>, 16)、(320<sup>2</sup>, 8)、(384<sup>2</sup>, 8)，分別在總計 300K 次迭代中的第 92K、156K、204K、240K、276K 次切換。隨著圖塊尺寸增大，批次大小相應縮小，以維持每步最佳化的一致計算成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供具體排程——以數值詳述漸進式學習的實施細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將漸進式學習從概念轉化為可複現的具體實作。六組圖塊-批次配對的精確數值，體現了作者對訓練效率的細緻調校。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    詳盡的超參數排程有助於可複現性，這在修復領域極為重要。但讀者可能質疑這些切換點的選擇是否經過系統性搜索，抑或僅為啟發式設定。消融實驗中應驗證排程的穩健性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：去雨結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Image Deraining.</strong> Restormer achieves <span class="hl-evidence">consistent and significant performance gains</span> across <span class="hl-evidence">five deraining datasets</span> compared to existing approaches. Compared to <span class="hl-concept">SPAIR</span>, the previous best method, Restormer advances the state-of-the-art by <span class="hl-evidence">1.05 dB averaged across datasets</span>, with individual gains reaching <span class="hl-evidence">2.06 dB on Rain100L</span>. Visual results demonstrate that Restormer <span class="hl-thesis">effectively removes rain streaks while preserving fine structural content</span> that other methods tend to over-smooth.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像去雨方面，Restormer 相較於現有方法，在五個去雨資料集上達到一致且顯著的效能增益。與先前最佳方法 <span class="hl-concept">SPAIR</span> 相比，Restormer 將最先進水準推進了跨資料集平均 1.05 dB，在 Rain100L 上的個別增益更達 2.06 dB。視覺結果表明，Restormer 能有效去除雨紋，同時保存其他方法傾向過度平滑的精細結構內容。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第一組實證——展示去雨任務上的定量與定性結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以去雨作為實驗驗證的起點，跨五個資料集的一致性增益強化了方法的泛化性論述。2.06 dB 的最大增益在修復領域屬於非常顯著的進步。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇以「平均增益」與「最大增益」並陳，兼顧了穩健性與峰值表現的呈現。但 Rain100L 上 2.06 dB 的大幅增益可能暗示該資料集較為簡單或已趨飽和，使增益的絕對值意義打折。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：去模糊結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Single-Image Motion Deblurring.</strong> Restormer <span class="hl-evidence">outperforms all compared approaches</span> on both synthetic (<span class="hl-evidence">GoPro, HIDE</span>) and real-world (<span class="hl-evidence">RealBlur-R, RealBlur-J</span>) datasets. Averaged across all datasets, Restormer provides a <span class="hl-evidence">0.47 dB boost over MIMO-UNet+</span> and <span class="hl-evidence">0.26 dB over the previous best MPRNet</span>. Crucially, Restormer achieves this with <span class="hl-evidence">81% fewer FLOPs</span> than MPRNet. Compared to the Transformer model <span class="hl-concept">IPT</span>, Restormer shows <span class="hl-evidence">0.4 dB improvement with 4.4x fewer parameters</span> and runs <span class="hl-evidence">29x faster</span>. Despite being <span class="hl-rebuttal">trained solely on the GoPro dataset</span>, the method demonstrates <span class="hl-thesis">strong generalization to other benchmarks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                單影像運動去模糊方面，Restormer 在合成（GoPro、HIDE）與真實世界（RealBlur-R、RealBlur-J）資料集上均優於所有對比方法。跨所有資料集平均，Restormer 比 MIMO-UNet+ 提升 0.47 dB，比先前最佳的 MPRNet 提升 0.26 dB。關鍵在於，Restormer 以比 MPRNet 少 81% 的浮點運算量達成此成果。與 Transformer 模型 <span class="hl-concept">IPT</span> 相比，Restormer 以少 4.4 倍的參數量提升 0.4 dB，且運行速度快 29 倍。儘管僅在 GoPro 資料集上訓練，該方法仍展現出對其他基準的強泛化能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第二組實證——展示去模糊任務上的效能與效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段的論證維度更為豐富：不僅比較 PSNR，還涵蓋 FLOPs、參數量與推論速度。「81% 更少 FLOPs」與「29 倍更快」的數據直接回應了「Transformer 效率不足」的普遍質疑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    與 IPT 的比較尤為精彩：以 4.4 倍更少的參數達到更好的效能，有力地證明了「暴力增大模型」並非最佳策略。但「僅在 GoPro 上訓練」既是優勢（泛化性強）也是弱點——若使用更多訓練資料，增益幅度可能更大或更小，此處未探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：去噪結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Image Denoising.</strong> For <span class="hl-concept">Gaussian denoising</span> across synthetic benchmarks and noise levels (<span class="hl-evidence">sigma = 15, 25, 50</span>), Restormer achieves <span class="hl-evidence">state-of-the-art under both single-model and noise-level-specific training</span>. At challenging noise level sigma = 50 on <span class="hl-evidence">Urban100</span>, Restormer achieves <span class="hl-evidence">0.37 dB gain over DRUNet</span> (CNN-based) and <span class="hl-evidence">0.31 dB over SwinIR</span> (Transformer-based), with <span class="hl-evidence">3.14x fewer FLOPs and 13x faster inference</span> than SwinIR. For <span class="hl-concept">real image denoising</span>, Restormer is <span class="hl-thesis">the only method surpassing 40 dB PSNR on both SIDD and DND datasets</span>. On SIDD, it obtains <span class="hl-evidence">0.3 dB over MIRNet</span> and <span class="hl-evidence">0.25 dB over Uformer</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                影像去噪方面，在合成基準與各雜訊等級（sigma = 15、25、50）的高斯去噪上，Restormer 在單一模型與雜訊等級特定訓練兩種設定下均達到最先進水準。在具挑戰性的 <span class="hl-evidence">Urban100</span> 資料集 sigma = 50 條件下，Restormer 比基於 CNN 的 DRUNet 提升 0.37 dB，比基於 Transformer 的 SwinIR 提升 0.31 dB，同時以少 3.14 倍的浮點運算量與快 13 倍的推論速度達成。在真實影像去噪方面，Restormer 是唯一在 SIDD 與 DND 兩個資料集上均突破 40 dB PSNR 的方法。在 SIDD 上比 MIRNet 提升 0.3 dB，比 Uformer 提升 0.25 dB。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第三組實證——以去噪任務展示跨任務、跨架構類型的全面優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在論證結構上具有「收網」功能：同時擊敗 CNN 最佳（DRUNet）與 Transformer 最佳（SwinIR），證明 Restormer 超越了兩大架構家族。「唯一突破 40 dB」的里程碑式描述進一步鞏固了最先進地位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「唯一突破 40 dB」是極具修辭力量的量化里程碑。與 SwinIR 的直接效率比較（3.14 倍更少 FLOPs、13 倍更快）為 MDTA 的轉置注意力設計提供了最強有力的實證支持。但需注意 SwinIR 的原始設計目標為超解析度而非去噪，跨任務比較可能不完全公平。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：消融研究 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Ablation Studies.</strong> Systematic ablation experiments are conducted on Gaussian color denoising (<span class="hl-evidence">Urban100, sigma = 50</span>). The <span class="hl-concept">MDTA</span> module provides <span class="hl-evidence">0.32 dB gain over the baseline</span>, and removing depth-wise convolutions results in PSNR drops, confirming the importance of local context. The <span class="hl-concept">gating mechanism in GDFN</span> yields <span class="hl-evidence">0.12 dB gain</span> over conventional FFN, with depth-wise convolutions providing additional benefits, totaling <span class="hl-evidence">0.26 dB gain</span>. The <span class="hl-evidence">overall Transformer block improvements amount to 0.51 dB</span>. <span class="hl-concept">Progressive learning</span> provides <span class="hl-evidence">better results than fixed patch training while maintaining similar training time</span>. Under similar parameter and FLOP budgets, <span class="hl-evidence">deep-narrow models outperform wide-shallow counterparts</span> in accuracy.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究在高斯彩色去噪（Urban100、sigma = 50）上進行系統性驗證。<span class="hl-concept">MDTA</span> 模組相較基準提供 0.32 dB 的增益，移除深度摺積後 PSNR 下降，確認了局部上下文的重要性。GDFN 中的門控機制比傳統 FFN 提升 0.12 dB，深度摺積帶來額外效益，合計增益達 0.26 dB。整體 Transformer 區塊的改進合計 0.51 dB。漸進式學習在維持相近訓練時間的同時，比固定圖塊訓練取得更好的結果。在相近的參數量與浮點運算預算下，深窄模型在準確度上優於寬淺模型。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——以消融實驗逐一確認各設計決策的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究是方法論文的必備環節，此段系統性地拆解了三大貢獻的各別效益：MDTA（+0.32 dB）> GDFN（+0.26 dB）> 漸進式學習，建立了清晰的貢獻度排序。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    逐步拆解的消融方式使每個組件的邊際貢獻一目了然。但消融僅在單一任務（去噪）上進行，未覆蓋去雨與去模糊——不同任務對各組件的依賴程度可能不同。此外，0.51 dB 的總計改進是否能完全歸因於架構創新，而非超參數調整，仍需審慎解讀。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <!-- 結論段落 1：方法總結 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Restormer</span> presents an <span class="hl-thesis">efficient Transformer for high-resolution image restoration</span> through carefully designed architectural innovations. <span class="hl-concept">Multi-Dconv head transposed attention (MDTA)</span> models global context by <span class="hl-method">applying self-attention across channels rather than spatial dimensions</span>, achieving <span class="hl-thesis">linear complexity versus the quadratic complexity of conventional self-attention</span>. <span class="hl-concept">Gated-Dconv feed-forward networks (GDFN)</span> introduce <span class="hl-method">gating mechanisms for controlled feature transformation</span>. Both modules incorporate <span class="hl-method">depth-wise convolutions</span> encoding spatially local context, <span class="hl-thesis">complementing CNN strengths within the Transformer pipeline</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">Restormer</span> 透過精心設計的架構創新，提出了一種適用於高解析度影像修復的高效 Transformer。多深度摺積頭轉置注意力（MDTA）透過在通道維度而非空間維度上施加自注意力來建模全域上下文，相較於傳統自注意力的二次方複雜度，達到了線性複雜度。門控深度摺積前饋網路（GDFN）引入門控機制以進行受控的特徵轉換。兩個模組均結合了編碼空間局部上下文的深度摺積，在 Transformer 管線中與 CNN 的優勢形成互補。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結方法——以精煉語言重申 Restormer 的核心架構創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論首段呼應摘要結構，將 MDTA 與 GDFN 的關鍵設計以最精簡的形式重述，形成論證的閉環。「與 CNN 互補」的措辭將 Restormer 定位為融合兩大架構家族優點的混合方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「互補 CNN 優勢」的定位非常務實，避免了「Transformer 取代 CNN」的極端論述，有利於學術社群的接受度。但深度摺積的大量使用也模糊了「這究竟是一個 Transformer 還是一個增強版 CNN」的架構身份——此議題在社群中仍有爭議。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：實驗成果與展望 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Extensive experiments across <span class="hl-evidence">16 benchmark datasets</span> demonstrate <span class="hl-evidence">state-of-the-art performance</span> for <span class="hl-evidence">image deraining, single-image motion deblurring, defocus deblurring (single-image and dual-pixel), and image denoising (Gaussian and real-world)</span>. The model <span class="hl-thesis">effectively removes degradations while preserving fine image structure and texture details</span> across diverse restoration tasks. These results confirm that <span class="hl-thesis">Transformer architectures, when equipped with appropriate computational efficiency mechanisms, represent a powerful paradigm for low-level vision tasks</span> that have long been dominated by convolutional approaches.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 16 個基準資料集上的廣泛實驗證實了該模型在影像去雨、單影像運動去模糊、散焦去模糊（單影像與雙像素）及影像去噪（高斯與真實世界）上的最先進效能。模型在多樣化的修復任務中有效去除退化同時保存精細的影像結構與紋理細節。這些結果確認了配備適當計算效率機制的 Transformer 架構，代表了低階視覺任務的一個強大範式——而這些任務長期以來一直由摺積方法主導。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望與啟示——從實驗結果提煉更廣泛的領域意義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結尾段從具體的 Restormer 成果昇華至更宏觀的論述：Transformer 正在挑戰 CNN 在低階視覺中的統治地位。這為後續研究指明了方向，也賦予本文超越單一方法的學術價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「16 個基準資料集」的反覆強調在結論中達到最大效果。但作者未討論方法的局限性——如對極高解析度（4K/8K）的可擴展性、對其他修復任務（如超解析度、壓縮偽影去除）的適用性，以及推論時的記憶體消耗。作為一篇頂會論文，更開放地討論局限會增強可信度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                CNN 感受野受限<br>Transformer 複雜度過高
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                通道維度轉置注意力<br>實現線性複雜度全域建模
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                16 個基準資料集<br>跨四大修復任務最先進
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                深度摺積補足局部資訊<br>漸進式學習增強泛化性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                高效 Transformer 為<br>低階視覺的強大範式
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過在通道維度而非空間維度上計算自注意力，並結合深度摺積與門控前饋機制，Transformer 能以線性複雜度在高解析度影像修復中達到全面超越 CNN 與既有 Transformer 方法的最先進效能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>效率與效能的雙重驗證：</strong>MDTA 的通道轉置注意力不僅在理論上將複雜度從二次方降至線性（1000 倍計算量縮減），更在 16 個基準資料集、四大修復任務上實證地超越了 CNN 最佳（MPRNet、DRUNet）與 Transformer 最佳（SwinIR、IPT），且以更少的參數量與更快的推論速度達成——徹底打破了「效能與效率不可兼得」的既有認知。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>通道注意力與空間注意力的等價性未被嚴格論證：</strong>MDTA 以 C x C 通道共變異數矩陣取代 HW x HW 空間注意力圖，作者聲稱前者「隱含編碼全域上下文」，但兩者捕捉的資訊本質不同——通道注意力學習的是「哪些特徵通道重要」而非「哪些空間位置相關」。深度摺積的引入確實彌補了部分空間感知缺失，但這也模糊了 Transformer 與增強版 CNN 之間的架構邊界。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

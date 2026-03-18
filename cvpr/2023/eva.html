@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVA: Exploring the Limits of Masked Visual Representation Learning at Scale — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                EVA: Exploring the Limits of Masked Visual Representation Learning at Scale
+                <span class="course-tag">CVPR 2023</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2211.07636" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-pretext">3.1 前置任務設計</a>
+        <a href="#sec-pretrain">3.2 預訓練</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-cls">4.1 影像分類</a>
+        <a href="#sec-det">4.2 偵測與分割</a>
+        <a href="#sec-clip">4.3 CLIP 訓練</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1：EVA 定位與核心主張 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We launch <span class="hl-concept">EVA</span>, a vision-centric foundation model to <span class="hl-thesis">"explore the limits of visual representation at scale using only publicly accessible data."</span> EVA is a vanilla <span class="hl-concept">ViT pre-trained to reconstruct masked image-text aligned vision features</span> conditioned on visible image patches. Via this pretext task, we can <span class="hl-thesis">efficiently scale up EVA to one billion parameters</span>, and sets <span class="hl-evidence">new state-of-the-art performance on a broad range of representative vision downstream tasks</span>, such as image recognition, video action recognition, object detection, instance segmentation, and semantic segmentation <span class="hl-method">without heavy supervised training</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們推出 <span class="hl-concept">EVA</span>，一個以視覺為核心的基礎模型，旨在「僅使用公開可取得的資料，探索視覺表示在規模化下的極限」。<span class="hl-concept">EVA</span> 是一個標準 <span class="hl-concept">ViT</span>，透過重建遮罩影像-文字對齊的視覺特徵（以可見影像區塊為條件）進行預訓練。藉由此前置任務，我們能夠有效地將 <span class="hl-thesis">EVA</span> 擴展至十億參數規模，並在廣泛的代表性視覺下游任務上建立全新的最先進效能，涵蓋影像辨識、影片動作辨識、物件偵測、實例分割與語意分割，且無需大量監督式訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以一段式陳述概括 EVA 的定位、方法與成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題定義與解決方案預告」的雙重功能：先以「探索極限」的宏大敘事框定研究野心，再明確點出方法（遮罩特徵重建）與成果（多任務最先進），為讀者提供完整的論文地圖。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「僅使用公開資料」的強調策略精妙——暗示與使用私有大規模資料集的競爭者（如 Google 的 JFT-3B）相比，EVA 的成就更具可複現性。但 CLIP 特徵本身源自 4 億影像-文字配對的訓練，此間接依賴是否算「公開」有灰色地帶。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 2：規模化帶來質變 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We observe <span class="hl-thesis">"quantitative changes in scaling EVA result in qualitative changes in transfer learning performance,"</span> especially in <span class="hl-evidence">large vocabulary instance segmentation</span>. EVA achieves <span class="hl-evidence">comparable performance on LVISv1.0 with over 1,200 categories and COCO with only 80 categories</span>, nearly closing the gap between these two benchmarks. Besides, we also find that EVA, as a <span class="hl-concept">vision-centric multi-modal pivot</span>, can <span class="hl-thesis">connect images and text</span>. Using EVA to initialize the vision tower of a giant <span class="hl-concept">CLIP</span> model significantly improves <span class="hl-evidence">training efficiency and stability</span>, achieving <span class="hl-evidence">78.5% zero-shot top-1 accuracy on ImageNet-1K</span> with fewer samples and less compute.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們觀察到「<span class="hl-thesis">EVA</span> 在規模化上的量變導致遷移學習效能的質變」，特別是在大詞彙實例分割方面。EVA 在擁有超過 1,200 個類別的 <span class="hl-evidence">LVISv1</span>.0 與僅有 80 個類別的 COCO 上達到相當的效能，幾乎消弭了這兩個基準之間的差距。此外，我們還發現 EVA 作為一個以視覺為核心的多模態樞紐，能夠連接影像與文字。以 EVA 初始化巨型 <span class="hl-concept">CLIP</span> 模型的視覺塔，能顯著提升訓練效率與穩定性，在 <span class="hl-evidence">ImageNet</span>-1K 上以更少樣本與更低算力達到 78.5% 的零樣本 top-1 準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    預告核心發現——點出「量變引發質變」的主題以及 EVA 作為多模態樞紐的角色。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將摘要從「成果列舉」提升至「洞見層次」：LVIS 與 COCO 的差距消弭不僅是一個數字，而是規模化帶來本質性飛躍的證據。CLIP 初始化的發現則開闢了第二條貢獻線——EVA 不只是好的視覺編碼器，更是訓練更大模型的跳板。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「量變到質變」的修辭借用了辯證法語彙，極具學術感染力。然而 LVIS-COCO 差距的縮小也可能部分歸因於更多訓練資料或更長的微調排程，而非純粹的模型規模效應。作者需在實驗中控制變數以驗證此因果關係。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：NLP 成功經驗與視覺的差距 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">"Scaling up pre-trained language models has revolutionized natural language processing."</span> The key to this success lies in the <span class="hl-method">simple and scalable self-supervised learning task of masked signal prediction</span>, which enables <span class="hl-concept">Transformers</span> to scale to billions of parameters and achieve remarkable performance across a wide range of downstream tasks. Inspired by this paradigm, the vision community has made considerable efforts to replicate this success. However, <span class="hl-rebuttal">"the most competitive billion-sized vision pre-trained models still heavily rely on supervised or weakly-supervised training with hundreds of millions of labeled data,"</span> presenting a stark contrast with the self-supervised scaling trend in NLP.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                「擴展預訓練語言模型的規模已徹底革新了自然語言處理。」此成功的關鍵在於遮罩訊號預測這一簡潔且可擴展的自監督學習任務，使得 Transformer 能夠擴展至數十億參數規模，並在廣泛的下游任務上達到卓越效能。受此範式啟發，電腦視覺社群已投入大量努力複製這一成功。然而，最具競爭力的十億級視覺預訓練模型仍高度依賴以數億標註資料進行的監督式或弱監督式訓練，與自然語言處理中的自監督規模化趨勢形成鮮明對比。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從 NLP 的成功經驗出發，指出視覺領域的規模化瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以 NLP 的遮罩預測範式為「理想典範」，對比視覺領域仍需大量標註資料的現實，製造出明確的研究缺口。此跨領域類比是整篇論文的動機基石。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 NLP 類比建立動機是視覺 Transformer 論文的經典策略。但此類比忽略了視覺與語言的根本差異——語言是離散符號系統，天然適合遮罩預測；視覺訊號是連續的、高度冗餘的。作者稍後需正面回應為何遮罩預測在視覺中較難成功。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：視覺訊號的本質困難 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors attribute this gap partly to the nature of visual information: <span class="hl-thesis">"natural images are raw and information-sparse."</span> They argue that <span class="hl-thesis">"an ideal vision pretext task needs the abstraction of not only low-level geometry and structure information, but also high-level semantics,</span> <span class="hl-rebuttal">which is hardly captured by pixel-level recovery tasks"</span> such as <span class="hl-concept">MAE</span>. While <span class="hl-concept">masked image modeling (MIM)</span> has shown promising results at smaller scales, <span class="hl-rebuttal">simply recovering raw pixels or low-level features does not provide sufficient semantic abstraction</span> to fully exploit the scaling potential of vision Transformers.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者將此差距部分歸因於視覺資訊的本質：「自然影像是原始的且資訊稀疏的。」他們主張「理想的視覺前置任務不僅需要抽象化低階的幾何與結構資訊，還需要高階語意，而像素級恢復任務幾乎無法捕捉這些高階語意」。儘管遮罩影像建模（<span class="hl-concept">MIM</span>）在較小規模下已展現有前景的結果，但單純恢復原始像素或低階特徵無法提供足夠的語意抽象，以充分發揮視覺 Transformer 的規模化潛力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    診斷問題根源——解釋為何現有的遮罩影像建模方法難以規模化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段深化問題分析：從「視覺模型需要標註資料」的表面現象，挖掘至「像素級重建缺乏語意」的根本原因。這為 EVA 的解決方案——以 CLIP 特徵作為重建目標——奠定了理論必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 MAE 等像素重建方法的批評有理有據，但措辭較為絕對。MAE 在許多下游任務上表現優異，且後續研究（如 MAE 本身的規模化實驗）也展現了合理的擴展性。將「像素重建無法捕捉高階語意」作為定論，可能過度簡化了問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：EVA 的解決方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Through pilot studies, the authors found that <span class="hl-thesis">"simply using image-text aligned (i.e., CLIP) vision features as the prediction targets in MIM scales up well."</span> This pretext task combines <span class="hl-method">"benefits from both the high-level semantic abstraction of image-text contrastive learning as well as the good capture of geometry and structure in masked image modeling."</span> Based on this finding, they present <span class="hl-concept">EVA</span>, a <span class="hl-evidence">one billion parameter vanilla Vision Transformer</span> pre-trained on <span class="hl-evidence">29.6 million publicly accessible images</span>. EVA achieves state-of-the-art results across <span class="hl-evidence">image classification, video action recognition, object detection, instance segmentation, and semantic segmentation</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                透過先導研究，作者發現「在 MIM 中簡單地使用影像-文字對齊（即 <span class="hl-thesis">CLIP</span>）的視覺特徵作為預測目標，能良好地規模化。」此前置任務結合了「影像-文字對比學習的高階語意抽象，以及遮罩影像建模對幾何與結構的良好捕捉」兩者的優勢。基於此發現，他們提出 <span class="hl-concept">EVA</span>——一個以 2,960 萬張公開可取得的影像預訓練的十億參數標準視覺 <span class="hl-evidence">Transformer</span>。<span class="hl-concept">EVA</span> 在影像分類、影片動作辨識、物件偵測、實例分割與語意分割等任務上達到最先進的結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以先導實驗為依據，引出 EVA 的核心設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題診斷，此段扮演「轉折」角色：從「像素重建不夠」過渡到「CLIP 特徵重建恰到好處」。先導研究的存在讓此選擇顯得基於實證而非臆測，增強了可信度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「簡單地使用 CLIP 特徵」的措辭策略高明——以「簡單」強調方法的優雅性。但此「簡單」掩蓋了一個重要的隱含假設：CLIP 視覺塔本身需要 4 億影像-文字配對的大規模訓練。EVA 的「自監督」本質因此帶有「站在巨人肩膀上」的色彩。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：遮罩影像建模 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Masked Image Modeling (MIM)</span> has emerged as a powerful self-supervised learning paradigm for vision. Early works such as <span class="hl-concept">ViT</span> and <span class="hl-concept">iGPT</span> reported the <span class="hl-evidence">"first meaningful MIM pre-training results."</span> The <span class="hl-concept">BEiT family</span> significantly improved performance <span class="hl-method">"via masked visual token prediction,"</span> using a discrete visual tokenizer to convert image patches into tokens and then predicting masked tokens. More recent approaches such as <span class="hl-concept">MAE</span> and <span class="hl-concept">SimMIM</span> <span class="hl-method">explore pixel or feature regression in MIM</span>, demonstrating that even simple pixel-level reconstruction can learn useful representations, <span class="hl-rebuttal">but only at relatively small model and data scales</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                遮罩影像建模（<span class="hl-concept">MIM</span>）已成為視覺領域中一個強大的自監督學習範式。早期工作如 <span class="hl-concept">ViT</span> 與 <span class="hl-concept">iGPT</span> 報告了「首批有意義的 <span class="hl-concept">MIM</span> 預訓練結果」。<span class="hl-concept">BEiT</span> 系列「透過遮罩視覺標記預測」顯著提升了效能，使用離散視覺標記器將影像區塊轉換為標記，然後預測被遮罩的標記。更近期的方法如 <span class="hl-concept">MAE</span> 與 <span class="hl-concept">SimMIM</span> 探索了 <span class="hl-evidence">MIM</span> 中的像素或特徵迴歸，證明即使是簡單的像素級重建也能學習有用的表示，但僅限於相對較小的模型與資料規模。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——追溯遮罩影像建模的發展脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立學術譜系：iGPT/ViT -> BEiT（離散標記）-> MAE/SimMIM（像素迴歸），展現 MIM 的演進邏輯。每一步都指出剩餘缺口，為 EVA 的「CLIP 特徵迴歸」定位為自然的下一步。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以線性敘事呈現 MIM 的進展，最後以「但僅限於小規模」作結，暗示 EVA 正是解決此規模化瓶頸的答案。然而，MAE 的作者也進行了大規模實驗（ViT-H），此處的「小規模」界定可能過於模糊。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：視覺基礎模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Vision Foundation Models</span> have evolved significantly over recent years. <span class="hl-concept">Convolutional neural networks (ConvNets)</span> <span class="hl-evidence">"have long been the de-facto standard"</span> for visual representation learning. However, <span class="hl-rebuttal">"at sufficient model and data scales, ConvNets lag behind ViTs due to lack of scalable pre-training tasks."</span> Large pre-trained ViTs such as <span class="hl-concept">SwinV2-G</span> with hierarchical architectures and <span class="hl-concept">BEiT-3</span> with multi-modal representations have pushed the boundaries, but often require custom architectural modifications or <span class="hl-rebuttal">massive supervised datasets</span>. EVA demonstrates that <span class="hl-thesis">"vanilla ViT can be efficiently scaled up to billion-scale parameters"</span> through the right self-supervised pretext task, without the need for hierarchical designs or supervised pre-training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺基礎模型在近年來經歷了顯著的演進。摺積神經網路（<span class="hl-concept">ConvNets</span>）「長期以來一直是視覺表示學習的事實標準」。然而，「在足夠的模型與資料規模下，<span class="hl-concept">ConvNets</span> 因缺乏可擴展的預訓練任務而落後於 <span class="hl-rebuttal">ViTs</span>。」大型預訓練 <span class="hl-thesis">ViT</span>s 如具有層次架構的 <span class="hl-concept">SwinV2-G</span> 與具有多模態表示的 <span class="hl-concept">BEiT-3</span> 已推動了邊界，但往往需要客製化的架構修改或大規模監督資料集。EVA 證明「標準 ViT 可以透過正確的自監督前置任務，有效地擴展至十億級參數規模」，無需層次式設計或監督式預訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將 EVA 放置於視覺基礎模型的演進脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了關鍵的差異化論述：其他大規模模型需要層次架構（SwinV2-G）或多模態預訓練（BEiT-3），而 EVA 堅持使用「標準 ViT」，暗示其成功來自前置任務的選擇而非架構的複雜化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「標準 ViT」的措辭策略將 EVA 定位為簡潔優雅的方案，對比其他方法的「複雜工程」。但 EVA 的成功很大程度依賴 CLIP 教師模型的品質——若 CLIP-L/14 換成較弱的教師，效果可能大打折扣。此依賴性在相關工作中未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：CLIP 與對比學習 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Contrastive Language-Image Pre-training (CLIP)</span> has demonstrated that <span class="hl-thesis">aligning visual and textual representations through large-scale contrastive learning yields highly transferable visual features</span>. CLIP and its variants learn <span class="hl-method">joint image-text embeddings from hundreds of millions of image-text pairs</span>, producing vision encoders with remarkable <span class="hl-evidence">zero-shot transfer capabilities</span>. Works such as <span class="hl-concept">MVP</span> and <span class="hl-concept">MILAN</span> have explored using CLIP features as prediction targets in masked image modeling, but <span class="hl-rebuttal">have not demonstrated the scalability of this approach to billion-parameter models</span>. EVA builds upon these insights and <span class="hl-thesis">extends the paradigm to a significantly larger scale</span>, revealing emergent properties in transfer learning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對比語言-影像預訓練（<span class="hl-concept">CLIP</span>）已證明，透過大規模對比學習對齊視覺與文字表示，能產生高度可遷移的視覺特徵。<span class="hl-concept">CLIP</span> 及其變體從數億影像-文字配對中學習聯合影像-文字嵌入，產出具有卓越零樣本遷移能力的視覺編碼器。如 <span class="hl-concept">MVP</span> 與 <span class="hl-concept">MILAN</span> 等工作已探索將 CLIP 特徵作為遮罩影像建模的預測目標，但尚未展示此方法對十億參數模型的可擴展性。EVA 建基於這些洞見，並將此範式擴展至顯著更大的規模，揭示了遷移學習中的湧現特性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    學術致謝與差異化——承認 CLIP 特徵重建的靈感來源，同時劃清規模化的貢獻邊界。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段在論證中扮演微妙的「讓步-反駁」角色：先承認「CLIP 特徵作為 MIM 目標」並非 EVA 首創（出自 MVP、MILAN），但立即指出這些前作的規模限制，將 EVA 的貢獻精確定位為「規模化驗證」而非「方法創新」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    學術誠信值得肯定——明確標註 prior art。但「規模化本身即為貢獻」的論證需要更強的支撐：若只是將現有方法放大，是否真的揭示了新的洞見？作者需在實驗中證明大規模下出現了小規模不可見的「湧現行為」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading" id="sec-pretext">3.1 The Feature Instrumentality Project — 前置任務設計</h3>
+
+    <!-- 方法段落 1：先導實驗與任務選擇 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The team first evaluated two candidate approaches for the MIM pretext task: <span class="hl-method">recovering masked tokenized semantic vision features</span> (quantizing CLIP features into discrete tokens) and <span class="hl-method">feature distillation</span> (direct regression to CLIP features). Pilot experiments revealed critical insights: <span class="hl-evidence">"the (additional) CLIP feature tokenization process is unnecessary for achieving good downstream performance"</span> and <span class="hl-evidence">"feature distillation fails to provide consistent performance gain as the pre-training becomes longer."</span> Based on these findings, they selected the simplest approach: <span class="hl-thesis">"simply reconstructing the masked out CLIP vision features conditioned on visible image patches"</span> as the final pretext task.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                團隊首先評估了 MIM 前置任務的兩個候選方案：恢復遮罩的標記化語意視覺特徵（將 <span class="hl-evidence">CLIP</span> 特徵量化為離散標記）以及特徵蒸餾（直接迴歸至 <span class="hl-thesis">CLIP</span> 特徵）。先導實驗揭示了關鍵洞見：「額外的 CLIP 特徵標記化過程對於達成良好的下游效能並非必要」，且「隨著預訓練時間延長，特徵蒸餾無法提供一致的效能增益。」基於這些發現，他們選擇了最簡潔的方案：「以可見影像區塊為條件，簡單地重建被遮罩的 CLIP 視覺特徵」作為最終的前置任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法選擇的實證依據——透過先導實驗排除不佳的候選方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法選擇的「消除法」論證：不是直接主張某個方法最好，而是透過實驗排除其他選項。這種實證導向的敘事比純理論推導更具說服力，讓讀者感到結論是由資料驅動而非主觀偏好。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    先導實驗的邏輯清晰且科學。但需注意：先導實驗是在較小規模上進行的，其結論在十億參數規模上是否仍然成立？標記化在小規模下不必要，不代表在大規模下也不必要——規模化可能改變不同方案的相對優劣。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方法段落 2：方法的學術定位 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors are candid about the origins of their approach: <span class="hl-rebuttal">"this MIM pretext task is not originally proposed by us,"</span> crediting <span class="hl-concept">MVP</span> and <span class="hl-concept">MILAN</span> as prior works that first explored CLIP features as MIM targets. However, they emphasize that <span class="hl-thesis">"this work shows that this pretext task can scale up to billion-scale parameters and tens of millions of unlabeled images"</span> without requiring <span class="hl-method">semantic feature quantization</span> or <span class="hl-method">image-text paired pre-training data</span>. The contribution is thus positioned as a <span class="hl-thesis">scaling validation</span> rather than a methodological invention, complemented by comprehensive empirical evaluation across diverse tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者坦率地說明了其方法的起源：「此 <span class="hl-rebuttal">MIM</span> 前置任務並非由我們首先提出」，並向率先探索以 CLIP 特徵作為 MIM 目標的 <span class="hl-concept">MVP</span> 與 <span class="hl-concept">MILAN</span> 致謝。然而，他們強調「本研究證明此前置任務能夠擴展至十億級參數與數千萬張無標註影像」，且無需語意特徵量化或影像-文字配對的預訓練資料。因此，其貢獻定位為規模化驗證而非方法論發明，並輔以橫跨多種任務的全面實證評估。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    學術誠信聲明——明確區分方法的原創性與規模化貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段承擔了預防性反駁的功能：預見到審稿者可能質疑「方法本身缺乏新意」，主動承認並重新框定貢獻——「規模化驗證」本身就是有價值的科學工作，特別是在揭示湧現特性方面。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    此段的坦誠值得讚賞，但也暴露了論文的核心張力：若方法本身不新，那麼論文的價值完全取決於實驗的深度與洞見的品質。若實驗僅為「堆算力」而未揭示新的理解，則學術貢獻可能被質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 預訓練 ====== -->
+    <h3 class="subsection-heading" id="sec-pretrain">3.2 Pre-training — 預訓練</h3>
+
+    <!-- 預訓練段落 1：架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">EVA</span> adopts a <span class="hl-method">vanilla Vision Transformer (ViT)</span> architecture with <span class="hl-evidence">1.0 billion parameters</span>. The configuration comprises <span class="hl-evidence">40 Transformer layers, a hidden dimension of 1408, an MLP dimension of 6144, and 16 attention heads</span>, processing images with a <span class="hl-method">14x14 patch size</span>. Notably, EVA does not employ any hierarchical design, windowed attention, or other architectural modifications commonly found in recent vision foundation models. This <span class="hl-thesis">"vanilla" design choice is deliberate</span> — it aims to demonstrate that the right pretext task, rather than complex architectural engineering, is the key enabler for scaling visual representation learning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">EVA</span> 採用標準的視覺 <span class="hl-method">Transformer</span>（<span class="hl-method">ViT</span>）架構，具有 10 億參數。其配置包含 40 層 <span class="hl-evidence">Transformer</span>、1408 的隱藏維度、6144 的 MLP 維度、以及 16 個注意力頭，以 14x14 的區塊大小處理影像。值得注意的是，<span class="hl-concept">EVA</span> 不使用任何層次式設計、視窗注意力或其他在近期視覺基礎模型中常見的架構修改。此「標準」設計選擇是刻意的——旨在證明正確的前置任務而非複雜的架構工程，才是規模化視覺表示學習的關鍵推動力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構規格——詳述 EVA 的模型配置，強調「標準」設計的哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為方法論的基石：「標準 ViT + 正確的前置任務 = 規模化成功」是全文的核心等式。詳細的參數規格（40 層、1408 維度）既是技術細節的交代，也暗示模型規模之大。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「標準 ViT」的反覆強調是有效的品牌策略——在充斥著複雜設計的領域中，簡潔性本身就是賣點。但 10 億參數的「標準 ViT」是否真的比 SwinV2-G 等層次模型更簡潔？參數量本身就是一種複雜性，只是複雜性的形式不同。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 預訓練段落 2：訓練目標與遮罩策略 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The training objective is to reconstruct <span class="hl-method">masked image-text aligned vision features</span> from visible patches. EVA employs <span class="hl-method">"block-wise masking with a masking ratio of 40%,"</span> corrupting a portion of input patches with <span class="hl-method">[MASK] tokens</span>. The reconstruction targets come from the <span class="hl-concept">"publicly available OpenAI CLIP-L/14 vision tower trained on 224x224 pixel images."</span> The output feature of EVA is <span class="hl-method">"first normalized and then projected to the same dimension as the CLIP feature via a linear layer,"</span> and the training loss is <span class="hl-method">"negative cosine similarity"</span> between the predicted and target features. Only the features at masked positions contribute to the loss.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練目標是從可見區塊重建被遮罩的影像-文字對齊視覺特徵。EVA 採用「區塊式遮罩，遮罩比率為 40%」，將一部分輸入區塊以 [<span class="hl-method">MASK</span>] 標記替換。重建目標來自「公開可取得的 <span class="hl-concept">OpenAI</span> <span class="hl-method">CLIP</span>-L/14 視覺塔，以 224x224 像素影像訓練」。EVA 的輸出特徵「首先經過正規化，然後透過線性層投影至與 CLIP 特徵相同的維度」，訓練損失為預測特徵與目標特徵之間的「負餘弦相似度」。只有遮罩位置的特徵會貢獻至損失函數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練細節——完整描述遮罩策略、目標特徵來源與損失函數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供了完整的技術處方，使讀者能夠複現實驗。40% 的遮罩比率（低於 MAE 的 75%）與負餘弦相似度損失的選擇都是需要解釋的設計決策。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    40% 的遮罩比率顯著低於 MAE 的 75%，這值得深入討論但作者未充分解釋原因。可能的解釋是：CLIP 特徵比原始像素更抽象，因此需要更多的可見上下文來做出準確預測。負餘弦相似度作為損失函數是否最優也未經消融驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 預訓練段落 3：資料與訓練設定 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Pre-training leverages <span class="hl-evidence">29.6 million publicly accessible images</span> aggregated from <span class="hl-evidence">ImageNet-21K, CC12M, CC3M, Object365, COCO, and ADE20K</span>. The authors note that the CLIP features used as targets <span class="hl-rebuttal">"draw benefits from a 400 million image-text dataset"</span> but argue that CLIP is <span class="hl-rebuttal">"widely used in other state-of-the-art representation learning and pre-training works"</span> as well. Training employs <span class="hl-method">AdamW optimization with 0.05 weight decay</span>, a <span class="hl-method">peak learning rate of 1e-3 with cosine decay</span>, and runs for <span class="hl-evidence">150 epochs with batch size 4096</span> on 224x224 resolution images. Regularization includes <span class="hl-method">stochastic depth with a rate of 0.1</span> and <span class="hl-method">RandResizeCrop (0.2, 1.0)</span> for data augmentation. The entire pre-training is completed on <span class="hl-evidence">128 NVIDIA A100 40GB GPUs</span> using <span class="hl-method">DeepSpeed ZeRO stage-1 optimization in fp16 precision</span>, finishing in approximately <span class="hl-evidence">14.5 days</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                預訓練使用了 2,960 萬張公開可取得的影像，匯集自 <span class="hl-evidence">ImageNet</span>-21K、CC12M、CC3M、Object365、COCO 與 ADE20K。作者指出，作為目標的 CLIP 特徵「受益於一個 4 億影像-文字配對的資料集」，但論證 CLIP「也廣泛使用於其他最先進的表示學習與預訓練研究」。訓練使用 <span class="hl-method">AdamW</span> 最佳化器（權重衰減 0.05）、峰值學習率 1e-3（餘弦衰減），在 224x224 解析度影像上以批次大小 4096 訓練 150 個週期。正則化包含隨機深度（比率 0.1）與 <span class="hl-method">RandResizeCrop</span>（0.2, 1.0）作為資料增強。整個預訓練在 128 張 <span class="hl-evidence">NVIDIA</span> A100 40GB GPU 上使用 <span class="hl-method">DeepSpeed</span> ZeRO stage-1 最佳化（fp16 精度）完成，耗時約 14.5 天。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練規格——提供完整的資料、超參數與硬體配置以確保可複現性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段服務於「可複現性」的學術規範，但也蘊含重要的論證訊息：128 張 A100 GPU 訓練 14.5 天的成本，相比需要數千 GPU 訓練數週的競爭者（如 ViT-22B），EVA 的訓練效率是一個實質優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對 CLIP 資料依賴的處理頗為精巧——承認 4 億資料的存在，但以「其他研究也使用 CLIP」將其正常化。這是一種「共同實踐」的辯護策略，在學術上可接受但邏輯上並不完美：其他研究使用 CLIP 不等於 EVA 不依賴該資料。14.5 天的訓練時間相對合理，但仍需 128 張頂級 GPU，可複現性對資源有限的研究者而言仍有門檻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+    <h3 class="subsection-heading" id="sec-cls">4.1 Image Classification — 影像分類</h3>
+
+    <!-- 實驗段落 1：ImageNet-1K 結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">ImageNet-1K</span>, EVA achieves <span class="hl-evidence">89.6% top-1 accuracy with 336x336 inputs</span>, further improving to <span class="hl-evidence">89.7% at higher resolution</span>. The training pipeline includes <span class="hl-method">intermediate fine-tuning on ImageNet-21K for 60 epochs at 224x224 resolution</span>, followed by <span class="hl-method">10 epochs on ImageNet-1K</span>. Notably, <span class="hl-thesis">"EVA simply uses a linear layer as the classifier,"</span> contrasting with competitors that rely on <span class="hl-rebuttal">"multi-head attention pooling and additional pre-trained language towers."</span> On robustness evaluation across <span class="hl-evidence">ImageNet-V2, ReaL, Adversarial, Rendition, and Sketch</span> variants, EVA demonstrates <span class="hl-evidence">"the highest averaged accuracy" with "the smallest performance gap" of only 5.6 percentage points</span> between original ImageNet and variant benchmarks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 <span class="hl-concept">ImageNet-1K</span> 上，<span class="hl-thesis">EVA</span> 以 336x336 輸入達到 89.6% 的 top-1 準確率，在更高解析度下進一步提升至 89.7%。訓練管線包含在 <span class="hl-method">ImageNet</span>-21K 上以 224x224 解析度進行 60 個週期的中間微調，隨後在 <span class="hl-concept">ImageNet-1K</span> 上訓練 10 個週期。值得注意的是，「EVA 僅使用線性層作為分類器」，對比競爭者依賴「多頭注意力池化與額外的預訓練語言塔」。在 <span class="hl-method">ImageNet</span>-V2、<span class="hl-evidence">ReaL</span>、Adversarial、Rendition 與 Sketch 等變體的穩健性評估中，EVA 展現「最高的平均準確率」與「最小的效能落差」，原始 ImageNet 與變體基準之間僅有 5.6 個百分點的差距。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心量化結果——在影像分類的標準基準上展示最先進效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是實證論證的第一支柱：89.6% 的 ImageNet-1K 準確率建立了 EVA 作為頂級視覺編碼器的地位。5.6% 的穩健性差距更強調了表示的通用性而非過擬合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「僅使用線性分類器」的強調暗示 EVA 的表示品質極高——無需複雜的分類頭即可達到頂尖效能。穩健性評估是一個亮點，展示了 EVA 不只是在原始基準上表現好，而是學到了更通用的表示。但 89.6% 到 89.7% 的提升（0.1%）在統計上是否顯著，值得質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：影片動作辨識 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">video action recognition</span>, EVA achieves top-1 accuracies of <span class="hl-evidence">89.7% on Kinetics-400, 89.8% on Kinetics-600, and 82.9% on Kinetics-700</span>. The approach uses <span class="hl-method">"spatial-temporal attention with no specific architectural adaptation for video."</span> Training involves <span class="hl-method">two stages: intermediate fine-tuning on a merged Kinetics-722 dataset (0.63 million videos, 722 classes) for 40 epochs</span>, then fine-tuning on individual datasets for 1-2 epochs. Testing employs <span class="hl-method">"multi-view inference with 4 temporal clips and 3 spatial crops."</span> These results demonstrate that <span class="hl-thesis">EVA's visual representations generalize effectively from images to video</span> without requiring video-specific pre-training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在影片動作辨識方面，<span class="hl-thesis">EVA</span> 在 <span class="hl-evidence">Kinetics</span>-400 上達到 89.7%、<span class="hl-method">Kinetics</span>-600 上達到 89.8%、Kinetics-700 上達到 82.9% 的 top-1 準確率。此方法使用「時空注意力，無針對影片的特定架構調整」。訓練分兩個階段：先在合併的 Kinetics-722 資料集（63 萬部影片、722 個類別）上進行 40 個週期的中間微調，再在個別資料集上微調 1-2 個週期。測試採用「多視角推論，包含 4 個時間剪輯與 3 個空間裁切」。這些結果證明 EVA 的視覺表示能有效地從影像泛化至影片，無需影片專用的預訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    跨模態泛化驗證——展示 EVA 從靜態影像到動態影片的遷移能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    影片辨識結果是 EVA 通用性論證的重要支柱：若一個僅以靜態影像預訓練的模型能在影片任務上達到頂尖效能，這強烈暗示其學到的表示捕捉了深層的視覺結構而非表面統計量。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無影片專用架構」的強調與 ImageNet 的「線性分類器」策略一脈相承——都在突顯 EVA 表示的品質。但 Kinetics-722 的中間微調已使用了大量影片資料，「無需影片專用預訓練」的主張需要更精確的界定。多視角推論的設定（4 clips x 3 crops = 12 views）也相當資源密集。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.2 偵測與分割 ====== -->
+    <h3 class="subsection-heading" id="sec-det">4.2 Object Detection &amp; Instance Segmentation — 物件偵測與實例分割</h3>
+
+    <!-- 實驗段落 3：COCO 偵測結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">COCO</span>, EVA achieves <span class="hl-evidence">64.7 AP<sup>box</sup> and 55.5 AP<sup>mask</sup> on test-dev</span> with test-time augmentation. The paper highlights that <span class="hl-concept">LVIS</span> presents a <span class="hl-rebuttal">"much harder benchmark than COCO"</span> with <span class="hl-evidence">"more than 1,200 object categories"</span> featuring a long-tail distribution. Remarkably, EVA achieves <span class="hl-evidence">"55.0 AP<sup>mask</sup> on both LVIS val and COCO val,"</span> effectively <span class="hl-thesis">closing the performance gap that conventional methods exhibit between these two benchmarks</span>. While the authors acknowledge <span class="hl-rebuttal">"it is inaccurate to say EVA 'solves' the LVIS large vocabulary instance segmentation task,"</span> they argue that <span class="hl-thesis">the achievement of zero gap in AP<sup>mask</sup> represents a "significant breakthrough"</span> reflecting "quantitative changes in scaling" producing "qualitative changes in transfer learning performance."
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 <span class="hl-concept">COCO</span> 上，<span class="hl-rebuttal">EVA</span> 以測試時增強達到 test-dev 上 64.7 AP<sup>box</sup> 與 55.5 AP<sup>mask</sup> 的成績。論文強調 <span class="hl-concept">LVIS</span> 是一個「比 <span class="hl-concept">COCO</span> 困難得多的基準」，擁有「超過 1,200 個物件類別」且呈長尾分布。值得注目的是，EVA 在「<span class="hl-concept">LVIS</span> val 與 <span class="hl-rebuttal">COCO</span> val 上均達到 55.0 AP<sup>mask</sup>」，有效地消弭了傳統方法在這兩個基準之間展現的效能差距。雖然作者承認「說 EVA『解決了』<span class="hl-evidence">LVIS</span> 大詞彙實例分割任務並不準確」，但他們主張零 AP<sup>mask</sup> 差距的成就代表了一個「重大突破」，反映了「規模化的量變」產生「遷移學習效能的質變」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心亮點結果——展示 EVA 在物件偵測與實例分割上的突破性表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的高潮：LVIS 與 COCO AP<sup>mask</sup> 的零差距是「量變引發質變」這一核心主題的最強實證。傳統模型在 LVIS 上通常比 COCO 低 5 分以上，零差距確實令人驚豔。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「量變到質變」的哲學框架在此段得到了最有力的支撐。作者的謙遜語氣（「說 EVA 解決了 LVIS 並不準確」）反而增強了可信度。但零差距也可能部分歸因於更好的偵測框架（如 ViTDet/Cascade Mask R-CNN）而非純粹的預訓練品質——需要控制變數的消融實驗來釐清貢獻來源。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：語意分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concept">semantic segmentation</span>, EVA achieves <span class="hl-evidence">62.3 mIoU<sup>ms</sup> on ADE20K</span> with multi-scale evaluation and <span class="hl-evidence">53.4 mIoU<sup>ss</sup> on COCO-Stuff</span> with single-scale evaluation. The approach follows <span class="hl-method">"ViT-Adapter with Mask2Former as the segmentation head"</span> but uses <span class="hl-rebuttal">"weakened architectural configurations due to GPU memory limitations."</span> Despite these constraints, EVA establishes new state-of-the-art results, demonstrating that <span class="hl-thesis">strong pre-trained representations can compensate for reduced architectural complexity</span> in downstream tasks. The consistent improvements across segmentation benchmarks reinforce the <span class="hl-thesis">universal representational quality of EVA's pre-training</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在語意分割方面，<span class="hl-thesis">EVA</span> 在 ADE20K 上以多尺度評估達到 62.3 mIoU<sup>ms</sup>，在 <span class="hl-evidence">COCO-Stuff</span> 上以單尺度評估達到 53.4 mIoU<sup>ss</sup>。此方法採用「<span class="hl-method">ViT-Adapter</span> 搭配 Mask2Former 作為分割頭」，但因「<span class="hl-rebuttal">GPU</span> 記憶體限制而使用了弱化的架構配置」。儘管受到這些限制，EVA 仍建立了全新的最先進結果，證明強大的預訓練表示能夠補償下游任務中降低的架構複雜度。跨分割基準的一致改進，進一步強化了 EVA 預訓練通用表示品質的論點。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    補充驗證——在語意分割任務上提供額外的效能證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    語意分割結果完成了密集預測任務的三角驗證（偵測、實例分割、語意分割），全面證明 EVA 的表示不僅適合分類任務，也適合需要像素級精度的任務。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「因 GPU 記憶體限制而弱化配置」的坦白是一把雙刃劍——一方面展示了結果的下界（完整配置可能更好），另一方面也暗示 10 億參數模型在實際部署中的資源挑戰。若連作者自己的頂級硬體都需要妥協，那麼一般研究者的處境只會更受限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.3 CLIP 訓練 ====== -->
+    <h3 class="subsection-heading" id="sec-clip">4.3 Contrastive Language-Image Pre-training — CLIP 訓練</h3>
+
+    <!-- 實驗段落 5：EVA CLIP -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                EVA serves as the <span class="hl-method">vision tower initialization</span> for a <span class="hl-concept">1.1 billion parameter CLIP model (EVA CLIP)</span>, trained on <span class="hl-evidence">LAION-400M</span> with <span class="hl-evidence">"11 billion samples seen"</span> — compared to competitors using <span class="hl-rebuttal">12-32 billion samples</span>. The resulting model achieves <span class="hl-evidence">"78.5% zero-shot top-1 accuracy on ImageNet-1K without using any training set labels."</span> EVA CLIP outperforms <span class="hl-concept">Open CLIP-H</span> and <span class="hl-concept">Open CLIP-g</span> on <span class="hl-evidence">10 of 12 zero-shot classification benchmarks</span> while using <span class="hl-evidence">"3x fewer GPUs"</span> and a <span class="hl-evidence">"~5x smaller dataset."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                EVA 作為一個 11 億參數 <span class="hl-concept">CLIP</span> 模型（EVA CLIP）的視覺塔初始化，在 <span class="hl-evidence">LAION-400M</span> 上訓練，「共見過 110 億樣本」——相較之下，競爭者使用了 120-320 億樣本。所得模型「在 <span class="hl-evidence">ImageNet</span>-1K 上達到 78.5% 的零樣本 top-1 準確率，且未使用任何訓練集標籤。」EVA CLIP 在「12 個零樣本分類基準中的 10 個」上超越了 <span class="hl-concept">Open CLIP-H</span> 與 <span class="hl-concept">Open CLIP-g</span>，同時使用「少 3 倍的 GPU」與「約小 5 倍的資料集」。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    多模態樞紐驗證——展示 EVA 作為 CLIP 視覺塔的初始化效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段開闢了第二條貢獻線：EVA 不僅是好的視覺編碼器，更是訓練更大多模態模型的高效跳板。「3 倍少的 GPU、5 倍小的資料集」的效率指標是極具說服力的實踐論證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    效率比較的數字非常醒目（3x GPU, 5x data），但需注意 EVA 預訓練本身的成本未計入此比較。若加上 EVA 的 14.5 天預訓練成本，總資源消耗的優勢可能縮小。此外，78.5% 的零樣本準確率雖然優異，但與 OpenAI 原始 CLIP 的封閉生態（訓練資料未公開）的比較並不完全公平。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 6：訓練穩定性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key practical advantage is <span class="hl-thesis">training stability</span>. The authors report that <span class="hl-evidence">"using fp16 format with dynamic loss scaling is stable enough"</span> for EVA CLIP training, <span class="hl-rebuttal">while competitors require the more expensive bfloat16 format</span> to avoid divergence. This stability advantage is attributed to <span class="hl-method">EVA's pre-trained initialization providing a better starting point in the optimization landscape</span>. Overall, EVA CLIP achieves <span class="hl-evidence">"new state-of-the-art results among all existing self-supervised learning methods"</span> for zero-shot, linear probing, and fine-tuning evaluations on ImageNet-1K, establishing EVA as a <span class="hl-thesis">versatile foundation for both vision-only and vision-language tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個關鍵的實務優勢是訓練穩定性。作者報告「使用 fp16 格式配合動態損失縮放，對 <span class="hl-method">EVA</span> CLIP 訓練而言已足夠穩定」，而競爭者需要成本更高的 bfloat16 格式以避免發散。此穩定性優勢歸因於 EVA 的預訓練初始化提供了最佳化地景中更好的起始點。整體而言，EVA CLIP 在 ImageNet-1K 的零樣本、線性探測與微調評估中「達到所有現有自監督學習方法中的全新最先進結果」，確立了 EVA 作為視覺專用與視覺-語言任務之多用途基礎的地位。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實務洞見——揭示 EVA 初始化帶來的訓練穩定性優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    訓練穩定性的討論將 EVA 的價值從「效能指標」延伸至「工程實務」：在大規模訓練中，穩定性往往比最終準確率更重要——不發散的訓練才是有意義的訓練。fp16 的可行性直接降低了硬體門檻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    訓練穩定性是一個常被忽視但極為重要的實務議題。將此歸因於「更好的初始化」是合理的假說，但缺乏嚴格的因果驗證——穩定性也可能與特定的超參數組合有關。此段有效地將 EVA 定位為不僅效能卓越，更是「容易使用」的基礎模型。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <!-- 結論段落 1：核心貢獻總結 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The authors conclude that they <span class="hl-thesis">"launch EVA, a one billion parameters vanilla ViT encoder to explore the limits of masked visual representation learning."</span> They demonstrate that <span class="hl-thesis">"simple masked feature modeling as a visual learning pretext task scales well on an architecture with minimal vision priors,"</span> achieving state-of-the-art results across image recognition, video action recognition, object detection, instance segmentation, and semantic segmentation — all from a single pre-trained representation. The key insight is that <span class="hl-thesis">combining the semantic richness of CLIP features with the structural learning of masked image modeling</span> unlocks the scaling potential that pixel-level reconstruction alone could not achieve.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                作者總結道，他們「推出 <span class="hl-thesis">EVA</span>，一個十億參數的標準 ViT 編碼器，用以探索遮罩視覺表示學習的極限。」他們證明「簡單的遮罩特徵建模作為視覺學習前置任務，在具有最少視覺先驗的架構上能良好地規模化」，在影像辨識、影片動作辨識、物件偵測、實例分割與語意分割上達到最先進結果——全部來自單一的預訓練表示。關鍵洞見在於，將 <span class="hl-thesis">CLIP</span> 特徵的語意豐富性與遮罩影像建模的結構學習相結合，解鎖了像素級重建單獨無法達成的規模化潛力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結核心貢獻——重申 EVA 的方法選擇與成就。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應緒論的「NLP 啟發」結構，形成完整的論證閉環：從「視覺的遮罩預測為何困難」到「CLIP 特徵讓遮罩預測在大規模下成功」。「最少視覺先驗」的措辭再次強調了方法的簡潔性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「單一預訓練表示達到多任務最先進」是一個強有力的總結。但結論未討論局限性——例如對 CLIP 教師品質的依賴、更大規模下是否仍然有效、以及此方法是否適用於 CLIP 覆蓋不到的專業領域（如醫學影像）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：展望 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Looking forward, the authors express their hope that <span class="hl-thesis">"EVA would bridge the gap between vision and language study via masked modeling, and contributes to the Neon Genesis of vision research."</span> EVA's role as a <span class="hl-concept">vision-centric multi-modal pivot</span> — connecting images and text through its CLIP-aligned representations — suggests a promising direction where <span class="hl-thesis">strong visual pre-training serves as the foundation for increasingly capable multi-modal systems</span>. The demonstrated efficiency gains in CLIP training further indicate that <span class="hl-thesis">the "pre-train then align" paradigm may be more sample-efficient and stable than training multi-modal models from scratch</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                展望未來，作者期望「<span class="hl-thesis">EVA</span> 能透過遮罩建模彌合視覺與語言研究之間的鴻溝，並為視覺研究的新世紀做出貢獻。」EVA 作為以視覺為核心的多模態樞紐——透過其 CLIP 對齊的表示連接影像與文字——指出一個有前景的方向：強大的視覺預訓練作為越來越強大的多模態系統之基礎。在 CLIP 訓練中展現的效率增益進一步表明，「先預訓練再對齊」的範式可能比從零訓練多模態模型更加樣本高效與穩定。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    未來展望——勾勒 EVA 在多模態生態系統中的角色與方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結尾段將 EVA 從一個具體的模型提升為一個範式主張：「先預訓練再對齊」優於「從零開始的多模態訓練」。這為後續研究（如 EVA-02、EVA-CLIP 系列）埋下伏筆。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「Neon Genesis」的動漫引用（新世紀福音戰士）為嚴肅的學術論文增添了文化色彩，在 AI 社群中引發話題性。但未來展望相對寬泛，缺乏具體的技術路線圖——例如如何處理教師模型的瓶頸、如何擴展到更大規模、或如何降低資源門檻以惠及更多研究者。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺的遮罩預訓練<br>難以規模化至十億級
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                以 CLIP 特徵作為<br>遮罩重建目標
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                多任務最先進效能<br>LVIS-COCO 零差距
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                方法非首創但<br>規模化驗證有價值
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                標準 ViT + 正確任務<br>= 規模化成功
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以公開 CLIP 視覺特徵作為遮罩影像建模的重建目標，能讓標準 ViT 有效擴展至十億參數規模，在無需大量標註資料的前提下達到多任務最先進效能，且規模化的量變能引發遷移學習效能的質變。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>LVIS 與 COCO 的零差距突破：</strong>EVA 在擁有 1,200+ 類別的 LVIS 與僅 80 類別的 COCO 上達到相同的 55.0 AP<sup>mask</sup>，有效消弭了長期存在的大詞彙偵測效能鴻溝。此結果不僅是數字上的進步，更是「量變引發質變」這一核心論題最具說服力的實證支撐。搭配 EVA CLIP 以 3 倍少 GPU、5 倍小資料集超越競爭者的效率優勢，構成了效能與效率的雙重論證。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>對 CLIP 教師模型的隱性依賴：</strong>EVA 的「自監督」定位實質上建立在 CLIP-L/14 的 4 億影像-文字配對訓練之上，此間接資料依賴的規模遠超 EVA 自身的 2,960 萬張影像。論文雖以「其他研究也使用 CLIP」辯護，但未正面探討若教師模型品質下降，EVA 的效能上限將如何受限。此外，方法本身並非原創（源自 MVP/MILAN），論文的學術貢獻完全取決於規模化實驗的洞見深度，但對於「為何規模化有效」的機制性解釋相對薄弱。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

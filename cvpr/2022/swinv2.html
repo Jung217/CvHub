@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swin Transformer V2: Scaling Up Capacity and Resolution — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Swin Transformer V2: Scaling Up Capacity and Resolution
+                <span class="course-tag">CVPR 2022</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2111.09883" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-post-norm">3.1 殘差後正規化</a>
+        <a href="#sec-cosine-attn">3.2 餘弦注意力</a>
+        <a href="#sec-log-cpb">3.3 對數間距位置偏差</a>
+        <a href="#sec-simmim">3.4 SimMIM 預訓練</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1：動機與三大挑戰 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Large-scale NLP models</span> have been shown to significantly improve the performance on language tasks with no signs of saturation. They also demonstrate <span class="hl-evidence">amazing few-shot capabilities similar to that of human beings</span>. This paper aims to explore <span class="hl-thesis">large-scale models in computer vision</span>. The authors address three major issues in training and application of large vision models, including <span class="hl-rebuttal">training instability</span>, <span class="hl-rebuttal">resolution gaps between pre-training and fine-tuning</span>, and <span class="hl-rebuttal">hunger for labelled data</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                大規模自然語言處理模型已被證實能顯著提升語言任務的效能，且未顯現飽和跡象。這些模型亦展現了近似人類的驚人少樣本能力。本文旨在探索電腦視覺領域的大規模模型。作者針對大型視覺模型在訓練與應用中的三大核心問題進行處理，包括訓練不穩定性、預訓練與微調之間的解析度落差，以及對標註資料的大量需求。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文動機鋪陳——以自然語言處理的成功經驗為引子，將「大規模化」的命題遷移至視覺領域，並明確界定三大待解問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的前半承擔「問題定義」功能：先以 NLP 的規模化成就建立類比基礎，再以三項挑戰預告全文的技術貢獻結構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 NLP 模型的規模化成功作為動機頗具說服力，但視覺與語言的資料結構與任務性質差異甚大，此類比的適用邊界未被討論。三大問題的列舉清晰地為後續三項技術貢獻一一對應，結構工整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 2：三項技術與成果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Three main techniques are proposed: (1) a <span class="hl-method">residual-post-norm method combined with cosine attention</span> to improve training stability; (2) a <span class="hl-method">log-spaced continuous position bias method</span> that can effectively transfer models pre-trained using low-resolution images to downstream tasks with high-resolution inputs; (3) a <span class="hl-method">self-supervised pre-training method, SimMIM</span>, to reduce the needs of vast labeled images. Using these techniques, the authors successfully trained <span class="hl-thesis">a 3 billion-parameter Swin Transformer V2 model, the largest dense vision model to date</span>, with images of up to <span class="hl-evidence">1,536 x 1,536 resolution</span>. It set new performance records on <span class="hl-evidence">4 representative vision benchmarks</span>: <span class="hl-evidence">ImageNet-V2 image classification (84.0%), COCO object detection (63.1/54.4 box/mask AP), ADE20K semantic segmentation (59.9 mIoU), and Kinetics-400 video classification (86.8%)</span>. Notably, the training required <span class="hl-evidence">40x less labelled data and 40x less training time</span> compared with the previous largest vision model.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出三項主要技術：(1) 殘差後正規化結合餘弦注意力，以改善訓練穩定性；(2) 對數間距連續位置偏差方法，能有效地將以低解析度影像預訓練的模型遷移至需要高解析度輸入的下游任務；(3) 自監督式預訓練方法 SimMIM，以降低對大量標註影像的需求。運用這些技術，作者成功訓練了一個 30 億參數的 Swin Transformer V2 模型——迄今最大的稠密視覺模型——處理高達 1,536 x 1,536 解析度的影像。該模型在四項代表性視覺基準上創下新紀錄：ImageNet-V2 影像分類（84.0%）、COCO 物件偵測（63.1/54.4 box/mask AP）、ADE20K 語意分割（59.9 mIoU）以及 Kinetics-400 影片動作分類（86.8%）。值得注意的是，相較於先前最大的視覺模型，訓練所需的標註資料與訓練時間均僅為其四十分之一。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    成果預告——以具體數據展示三項技術的整合效果與最終性能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的後半承擔「解決方案預告」功能：三項技術一對一回應三大挑戰，四項基準的最佳成績構成實證支撐。「40 倍」的效率優勢進一步強化資料效率論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以四項基準的具體數值作為摘要的收尾極具衝擊力。然而，ImageNet-V1 上的準確率（90.17%）並未超越 CoAtNet-7（90.88%），作者選擇以 V2 基準（84.0%）報告，策略性地挑選了最有利的指標。「40 倍」的比較基準為 JFT-3B 預訓練的模型，公平性有待斟酌。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：NLP 規模化的成功 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The scaling up of <span class="hl-concept">language models</span> has been one of the most impactful advances in AI. Since the <span class="hl-concept">BERT large model</span> with <span class="hl-evidence">340 million parameters</span>, language models have been quickly scaled up by more than <span class="hl-evidence">1,000 times in a few years, reaching 530 billion dense parameters and 1.6 trillion sparse parameters</span>. With increased capacity, the accuracy of various language benchmarks has been significantly improved, and more importantly, these models demonstrate <span class="hl-thesis">amazing few-shot capabilities similar to that of human beings</span>, which is considered a critical step toward <span class="hl-concept">artificial general intelligence</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                語言模型的規模化一直是人工智慧領域最具影響力的進展之一。自擁有 3.4 億參數的 BERT 大型模型以來，語言模型在短短數年間已擴大了逾 1,000 倍，達到 5,300 億稠密參數與 1.6 兆稀疏參數。隨著容量的增長，各項語言基準的準確率顯著提升，更重要的是，這些模型展現了近似人類的驚人少樣本能力，被視為邁向通用人工智慧的關鍵一步。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立參照系——以 NLP 的規模化歷程作為視覺領域應仿效的典範。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先確立「規模化帶來性能飛躍」的前提，為後文「視覺模型也應規模化」的核心主張鋪設邏輯基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「1,000 倍」的增長幅度與「通用人工智慧」的宏大目標開篇，營造強烈的緊迫感。但 NLP 模型的規模化利益（如少樣本學習）在視覺領域能否等效實現，此處未予論證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：視覺模型規模化的落差 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In comparison, the scaling up of <span class="hl-concept">vision models</span> has lagged behind significantly. While larger vision models generally perform better, <span class="hl-rebuttal">the absolute model size was just able to reach about 1-2 billion parameters very recently</span>. More critically, <span class="hl-rebuttal">existing large vision models are applied to the image classification task only</span>. Previous approaches such as <span class="hl-concept">ViT-G</span> and <span class="hl-concept">CoAtNet</span> rely on a <span class="hl-rebuttal">huge image dataset with classification labels (i.e., JFT-3B)</span> and have not demonstrated effectiveness on general vision tasks such as <span class="hl-concept">object detection</span> and <span class="hl-concept">semantic segmentation</span>, which are of critical importance for real-world visual understanding.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                相比之下，視覺模型的規模化顯著落後。儘管較大的視覺模型通常表現更佳，但絕對模型規模直到最近才勉強達到約 10 至 20 億參數。更關鍵的是，現有的大型視覺模型僅被應用於影像分類任務。先前的方法如 <span class="hl-concept">ViT-G</span> 和 <span class="hl-concept">CoAtNet</span> 仰賴龐大的分類標註影像資料集（即 JFT-3B），且未在物件偵測與語意分割等通用視覺任務上展現成效——而這些任務對於實際的視覺理解至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    指出缺口——批判視覺模型規模化的兩大短板：規模不足與任務範圍狹窄。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的 NLP 成就，此段以對比形式凸顯視覺領域的差距，構成「問題-解決方案」論證中的問題深化。「僅分類」的批評為 Swin V2 的通用性主張預留空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 ViT-G 與 CoAtNet 的侷限歸因於「僅分類」頗為精準，但對其 JFT-3B 依賴性的批評暗示了自身的替代方案——此承諾需在後續以 SimMIM 兌現。批評的力度為後文的自監督預訓練方案提供了強烈的合理性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：三大技術挑戰 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To successfully train large general-purpose vision models, the authors identify three key issues. First, <span class="hl-rebuttal">training instability</span>: experiments reveal that <span class="hl-evidence">the discrepancy of activation amplitudes across layers becomes significantly greater in large models</span>. In the pre-normalization configuration, residual unit outputs directly accumulate, causing <span class="hl-evidence">activation values at deeper layers to be significantly larger than those at early layers — with discrepancies reaching an extreme value of 10^4</span>. Second, <span class="hl-rebuttal">resolution gaps</span>: downstream tasks often require high-resolution inputs or large attention windows, and <span class="hl-rebuttal">bi-cubic interpolation of position bias maps is ad-hoc and sub-optimal</span>. Third, <span class="hl-rebuttal">data hunger</span>: larger models demand more data, and previous approaches require massive labeled datasets like <span class="hl-concept">JFT-3B</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為了成功訓練大型通用視覺模型，作者識別出三項關鍵問題。首先是訓練不穩定性：實驗發現在大型模型中，各層之間的激活值振幅差異顯著增大。在前正規化配置下，殘差單元的輸出直接累加，導致較深層的激活值遠大於淺層——差異可達到 10 的 4 次方之極端值。其次是解析度落差：下游任務通常需要高解析度輸入或大型注意力視窗，而對位置偏差圖進行雙三次內插的做法既是權宜之計，效果也不理想。第三是資料飢餓：更大的模型需要更多資料，先前的方法需要如 <span class="hl-concept">JFT-3B</span> 這般龐大的標註資料集。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題具體化——將三大挑戰從概念層面細化至技術層面，提供具體的數據佐證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是從「問題意識」到「技術方案」的橋樑：每項挑戰的描述都暗示了對應的解法方向（前正規化 -> 後正規化；雙三次內插 -> 連續位置偏差；標註資料 -> 自監督）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「10^4 的振幅差異」作為訓練不穩定性的量化證據極具說服力。三項挑戰的平行列舉結構清晰，但每項挑戰被處理為獨立問題，未討論三者之間的交互影響（例如：訓練穩定性是否會因解析度增大而進一步惡化）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：語言模型的規模化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Transformer</span> has served as the standard network architecture since the pioneer work in NLP. The exploration of scaling this architecture has since begun, and the progress has been accelerated by the invention of effective <span class="hl-method">self-supervised learning approaches, such as masked or auto-regressive language modeling</span>. The capacity increase has been dramatic: <span class="hl-evidence">from BERT-340M to the Megatron-Turing-530B and sparse Switch-Transformer-1.6T</span>. With increased capacity, the accuracy of various language benchmarks has been significantly improved, and <span class="hl-thesis">zero-shot or few-shot performance is also significantly improved</span>, which is regarded as foundational to human-like intelligence.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自 NLP 的開創性工作以來，<span class="hl-concept">Transformer</span> 已成為標準的網路架構。對此架構的規模化探索隨之展開，而有效的自監督學習方法（如遮蔽式或自迴歸語言建模）的發明加速了這一進程。容量的增長相當驚人：從 BERT 的 3.4 億參數到 Megatron-Turing 的 5,300 億參數以及稀疏的 Switch-Transformer 的 1.6 兆參數。隨著容量的擴大，各項語言基準的準確率顯著提升，零樣本或少樣本的效能也大幅改善，被視為通向類人智慧的基礎。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻脈絡——回顧 NLP 領域 Transformer 規模化的里程碑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在相關工作中重申 NLP 的規模化譜系，建立「自監督學習催化規模化」的因果敘事，為後文 SimMIM 的角色定位提供理論支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將自監督學習視為規模化的關鍵推動力，巧妙地為 SimMIM 的引入做鋪墊。但 NLP 中的自監督範式（如遮蔽語言模型）與視覺中的對應方法在本質上存在差異，此平行關係的嚴謹性值得審視。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：視覺網路的規模化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">CNNs</span> have long been the standard computer vision networks. From <span class="hl-concept">AlexNet</span> through <span class="hl-concept">ResNet</span>, architectures became progressively deeper and larger, advancing visual tasks. However, <span class="hl-rebuttal">CNN architectures have been further scaled up to about 1 billion parameters, but absolute performance may not be so encouraging, perhaps due to inductive biases in the CNN architecture limiting modeling power</span>. Recently, <span class="hl-concept">Vision Transformers</span> started taking over one representative visual benchmark after another, including <span class="hl-evidence">ImageNet-1K, COCO object detection, ADE20K semantic segmentation, and Kinetics-400 action classification</span>. Despite numerous variants, <span class="hl-rebuttal">only a few works have attempted to scale up vision Transformers</span>, and these <span class="hl-rebuttal">rely on a huge image dataset with classification labels (JFT-3B) and are only applied to image classification problems</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                摺積神經網路長期以來一直是電腦視覺的標準網路。從 <span class="hl-concept">AlexNet</span> 到 <span class="hl-concept">ResNet</span>，架構逐漸變得更深、更大，推動了視覺任務的進展。然而，摺積網路架構雖已擴展至約 10 億參數，但絕對效能表現可能並不盡如人意，或許是因為摺積架構中的歸納偏差限制了建模能力。近來，視覺 Transformer 開始逐一攻佔各項代表性視覺基準，包括 ImageNet-1K、COCO 物件偵測、ADE20K 語意分割以及 Kinetics-400 動作分類。儘管變體眾多，但僅有少數工作嘗試過擴大視覺 Transformer 的規模，且這些嘗試仰賴龐大的分類標註影像資料集（JFT-3B），並僅應用於影像分類問題。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判性回顧——指出視覺網路規模化的不足與 Vision Transformer 的崛起。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立雙重論點：(1) CNN 的規模化遇到瓶頸，暗示 Transformer 是更好的基底架構；(2) 既有 Vision Transformer 的規模化依然不充分，為 Swin V2 定位為「首個通用大型視覺模型」鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 CNN 的規模化瓶頸歸因於「歸納偏差」是一個有趣但未被完全驗證的假說。同時，批評其他 Vision Transformer 僅用於分類，但作者自身的分類預訓練階段同樣仰賴大規模標註（ImageNet-22K-ext 7,000 萬張），只是規模較小。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：位置偏差與跨解析度遷移 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For transferring across window or kernel resolutions, CNN kernel sizes typically remain fixed during pre-training and fine-tuning. <span class="hl-concept">Global Transformers</span> like <span class="hl-concept">ViT</span> compute attention globally, with the equivalent attention window size linearly proportional to the increased input image resolution. <span class="hl-concept">Local Transformers</span> like <span class="hl-concept">Swin</span> allow variable window sizes for flexibility and receptive field tuning. To handle the variable window sizes between pre-training and fine-tuning, <span class="hl-rebuttal">bi-cubic interpolation was the previous common practice</span>, but this approach is <span class="hl-rebuttal">problematic for large resolution variations</span>. In NLP, the <span class="hl-concept">relative position bias</span> method proved beneficial compared to absolute position embedding. In vision, <span class="hl-concept">continuous convolution and variants</span> utilize a <span class="hl-method">meta network to handle irregular data points</span>, which inspires the <span class="hl-concept">Log-CPB</span> approach.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在跨視窗或核心解析度遷移方面，摺積網路的核心大小在預訓練與微調期間通常保持不變。全域 Transformer（如 <span class="hl-concept">ViT</span>）以全域方式計算注意力，其等效注意力視窗大小與輸入影像解析度成正比增長。區域 Transformer（如 <span class="hl-concept">Swin</span>）則允許可變的視窗大小，以提供靈活性與感受野調整。先前處理預訓練與微調之間視窗大小差異的常見做法是雙三次內插，但此方法在解析度差異較大時存在問題。在 NLP 領域，相對位置偏差方法被證實優於絕對位置嵌入。在視覺領域，連續摺積及其變體利用元網路來處理不規則資料點，這啟發了對數間距連續位置偏差（<span class="hl-concept">Log-CPB</span>）方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術背景——回顧位置編碼與跨解析度遷移的各種方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    在引出 Log-CPB 之前，此段系統性地梳理了三類架構（CNN / 全域 Transformer / 區域 Transformer）處理解析度變化的方式，並指出區域 Transformer 面臨的獨特挑戰。連續摺積的引用為元網路的設計提供了學術血統。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 Log-CPB 的靈感溯源至連續摺積文獻，展現了良好的學術脈絡意識。但此段將雙三次內插簡單地判定為「有問題的」，未充分說明在何種程度的解析度差異下內插方法開始失效，定量分析留待實驗章節。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <!-- 方法概述段落 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Swin Transformer</span> is a general-purpose computer vision backbone that has achieved strong performance in various granular recognition tasks such as <span class="hl-evidence">region-level object detection, pixel-level semantic segmentation, and image-level image classification</span>. The architecture introduces several important <span class="hl-method">visual priors into the vanilla Transformer encoder, including hierarchy, locality, and translation invariance</span>. However, when scaling up from small to large sizes, <span class="hl-rebuttal">the activation values at deeper layers increase dramatically</span> — <span class="hl-evidence">the discrepancy between layers with the highest and lowest amplitudes reaches an extreme value of 10^4</span>. At an even larger size of <span class="hl-evidence">658 million parameters</span>, training collapses entirely. Additionally, when directly testing pre-trained models at larger image resolutions through bi-cubic interpolation, <span class="hl-evidence">accuracy drops from 81.7% to 68.7% when window size increases from 8x8 to 24x24</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">Swin Transformer</span> 是一個通用的電腦視覺骨幹網路，在區域級物件偵測、像素級語意分割及影像級分類等多種精細辨識任務上均取得優異表現。該架構在原始 Transformer 編碼器中引入了數項重要的視覺先驗，包括階層性、局部性與平移不變性。然而，在從小型擴展至大型時，較深層的激活值急劇增大——最高與最低振幅層之間的差異達到 10^4 的極端值。在更大的 6.58 億參數規模下，訓練則完全崩潰。此外，在透過雙三次內插於更大影像解析度下直接測試預訓練模型時，當視窗大小從 8x8 增加至 24x24，準確率從 81.7% 驟降至 68.7%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    診斷問題——以量化數據揭示原始 Swin Transformer 在規模化時遇到的具體瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法章節的開端以「診斷」而非「處方」切入，先用精確的數據（10^4 振幅差、13% 準確率下降）建立改進的迫切性，再逐一引出解法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 81.7% -> 68.7% 的劇烈準確率下降作為跨解析度遷移問題的量化證據，極具說服力。10^4 的振幅差異則在數值上突顯了訓練不穩定性的嚴重程度。此段以自身模型的已知問題作為改進動機，體現了坦誠的學術態度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 殘差後正規化 ====== -->
+    <h3 class="subsection-heading" id="sec-post-norm">3.1 Residual Post Normalization — 殘差後正規化</h3>
+
+    <!-- 後正規化段落 1：問題與解法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The original <span class="hl-concept">Swin Transformer</span> employs a <span class="hl-concept">pre-normalization</span> configuration inherited from language Transformers, where <span class="hl-method">layer normalization is applied at the beginning of each residual block</span>. This creates a scaling issue: since the output of each residual block is directly added to the main branch <span class="hl-rebuttal">without normalization</span>, <span class="hl-rebuttal">activation values accumulate layer by layer, and the amplitudes at deeper layers are significantly larger than those at early layers</span>. To address this, <span class="hl-thesis">residual post-normalization</span> is proposed, which <span class="hl-method">moves layer normalization from the beginning of each block to the end</span>. In this configuration, <span class="hl-method">the output of each residual block is normalized before merging back into the main branch</span>, and the amplitude of the main branch does not accumulate as the network goes deeper. The activation amplitudes by this approach are <span class="hl-evidence">much milder than in the original pre-normalization configuration</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                原始 <span class="hl-concept">Swin Transformer</span> 採用繼承自語言 Transformer 的前正規化配置，在每個殘差區塊的開頭施加層正規化。這產生了規模化問題：由於每個殘差區塊的輸出未經正規化便直接加入主幹分支，激活值逐層累積，較深層的振幅顯著大於淺層。為解決此問題，本文提出殘差後正規化，將層正規化從每個區塊的開頭移至結尾。在此配置中，每個殘差區塊的輸出在合併回主幹分支之前先行正規化，因此主幹分支的振幅不會隨著網路加深而累積。此方法所產生的激活振幅遠比原始前正規化配置溫和。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第一項技術貢獻——提出殘差後正規化以解決訓練不穩定性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應緒論中識別的第一項挑戰（訓練不穩定性）。論證結構為：問題（前正規化導致振幅累積）-> 原因分析（未正規化的殘差輸出直接累加）-> 解法（移動正規化位置）-> 效果預告。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    此修改看似微小（僅改變正規化的位置），但影響深遠。值得注意的是，後正規化（Post-LN）在早期 Transformer 中即為預設，後因訓練困難被前正規化取代。作者重新採用後正規化並使其有效運作，需要更多技術細節（如學習率調整策略）才能完整重現。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 後正規化段落 2：額外正規化層與訓練穩定性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For the largest models, <span class="hl-method">an additional layer normalization layer on the main branch every 6 Transformer blocks</span> is introduced to further stabilize training. The effectiveness is demonstrated empirically: <span class="hl-evidence">while the activation values at deeper layers for the original Swin Transformer are almost exploded at large (L) size, those of the new version have much milder behavior</span>. More critically, on a <span class="hl-evidence">huge-size model (658M parameters), the self-supervised pre-training diverges using the original Swin Transformer, while it trains well with Swin Transformer V2</span>. Table 6 shows systematic improvements across model scales: <span class="hl-evidence">Tiny +0.2%, Small +0.4%, Base +0.5%</span>, with greater benefits for larger models. A comparison with other normalization strategies (<span class="hl-concept">sandwich normalization</span>) further validates the superiority of the proposed approach.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對於最大規模的模型，本文引入了額外的層正規化層，每 6 個 Transformer 區塊在主幹分支上施加一次，以進一步穩定訓練。效果由實驗數據驗證：原始 Swin Transformer 在大型（L）規模下，深層的激活值幾近爆炸，而新版本的行為則溫和得多。更關鍵的是，在巨型模型（6.58 億參數）上，原始 Swin Transformer 的自監督預訓練發散，而 Swin Transformer V2 則能順利訓練。表 6 展示了跨模型規模的系統性改進：小型 +0.2%、中型 +0.4%、基礎型 +0.5%，且對更大模型的效益更為顯著。與其他正規化策略（如三明治正規化）的比較進一步驗證了所提方法的優越性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證支撐——以消融實驗與跨規模比較驗證殘差後正規化的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將第一項技術貢獻從「設計提議」提升至「經驗證的方案」，「模型越大、效益越顯著」的趨勢直接支撐了規模化的核心論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「原始版本發散、新版本收斂」的對比是最具說服力的證據——從「不可能」到「可能」的跨越比準確率的微小提升更具衝擊力。但額外每 6 層的正規化層是一個經驗性的設計選擇，其最佳間隔的選取標準未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 餘弦注意力 ====== -->
+    <h3 class="subsection-heading" id="sec-cosine-attn">3.2 Scaled Cosine Attention — 縮放餘弦注意力</h3>
+
+    <!-- 餘弦注意力段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In the original self-attention mechanism, the <span class="hl-concept">similarity between pixel pairs is computed as a dot product of the query and key vectors</span>. However, in large visual models, the authors observe that <span class="hl-rebuttal">the learnt attention maps of some blocks and heads are frequently dominated by a few pixel pairs</span>, leading to <span class="hl-rebuttal">attention collapse</span>. To address this, the <span class="hl-thesis">scaled cosine attention</span> replaces dot-product similarity with <span class="hl-method">cosine similarity divided by a learnable scalar</span>: Sim(q_i, k_j) = cos(q_i, k_j) / tau + B_ij, where tau is a <span class="hl-method">learnable scalar (per attention head per layer, set no smaller than 0.01)</span> and B_ij is the <span class="hl-concept">relative position bias</span>. The <span class="hl-concept">cosine function</span> is naturally normalized, so attention values are <span class="hl-thesis">less likely to fall into extremes</span> and the computation becomes <span class="hl-thesis">irrelevant to the amplitudes of block inputs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在原始的自注意力機制中，像素對之間的相似度透過查詢向量與鍵向量的點積來計算。然而，在大型視覺模型中，作者觀察到某些區塊與注意力頭學習到的注意力圖經常被少數像素對所主導，導致注意力崩潰。為解決此問題，本文提出縮放餘弦注意力，以餘弦相似度除以可學習標量取代點積相似度：Sim(q_i, k_j) = cos(q_i, k_j) / tau + B_ij，其中 tau 為可學習標量（每個注意力頭、每層各一個，下限為 0.01），B_ij 為相對位置偏差。餘弦函數天然具有正規化特性，因此注意力值不易落入極端，且計算變得與區塊輸入的振幅無關。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第二項技術貢獻——提出縮放餘弦注意力以防止注意力崩潰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段與殘差後正規化共同構成訓練穩定性的「雙保險」：後正規化處理激活值振幅的累積，餘弦注意力則處理注意力分布的退化。兩者從不同角度夾擊同一問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    餘弦注意力的核心優勢在於其「振幅無關性」——無論輸入的絕對大小如何，相似度始終在 [-1, 1] 範圍內。但可學習溫度參數 tau 的下限 0.01 意味著相似度可被放大至 100 倍，這是否會重新引入數值不穩定性值得關注。此外，餘弦注意力的概念本身並非全新（已見於部分度量學習文獻），作者的貢獻在於將其整合至視覺 Transformer 的規模化場景中。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 餘弦注意力段落 2：與後正規化的協同 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The combination of <span class="hl-method">residual post-normalization</span> and <span class="hl-method">scaled cosine attention</span> yields compounding benefits. Table 6 demonstrates that applying both techniques together achieves <span class="hl-evidence">overall improvements of +0.2% (Tiny), +0.4% (Small), and +0.5% (Base) on ImageNet-1K</span>, with the improvements being <span class="hl-thesis">more beneficial for larger models</span>. This trend suggests that the techniques will be even more critical at the <span class="hl-concept">Huge (658M)</span> and <span class="hl-concept">Giant (3B)</span> scales, where training without these modifications is <span class="hl-evidence">infeasible due to instability or complete divergence</span>. Compared to alternative normalization methods such as <span class="hl-concept">sandwich normalization</span>, the proposed approach achieves <span class="hl-evidence">superior accuracy (84.1% vs. 83.6% at Base size)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                殘差後正規化與縮放餘弦注意力的組合產生了複合效益。表 6 展示了兩項技術結合後的整體改進：小型 +0.2%、中型 +0.4%、基礎型 +0.5%（ImageNet-1K），且改進幅度對更大模型更為顯著。此趨勢暗示這些技術在巨型（6.58 億）與超大型（30 億）規模下將更加關鍵——缺少這些修改的訓練因不穩定性或完全發散而不可行。與三明治正規化等替代方案相比，所提方法取得了更高的準確率（基礎型 84.1% 對比 83.6%）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    協同效應驗證——展示兩項技術結合的累加效益及其規模化趨勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將兩項獨立技術整合為統一的訓練穩定性解決方案，並以「模型越大、效益越大」的趨勢外推至更大規模，為後文 3B 模型的成功訓練提供邏輯過渡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「更大模型效益更大」的趨勢作為外推依據是合理但未經嚴格驗證的推論——從 +0.2% 到 +0.5% 的趨勢不必然意味著在 3B 規模下仍會持續放大。真正的關鍵證據是「能訓練 vs. 不能訓練」的二元差異，而非準確率的邊際提升。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 對數間距連續位置偏差 ====== -->
+    <h3 class="subsection-heading" id="sec-log-cpb">3.3 Log-Spaced Continuous Position Bias — 對數間距連續位置偏差</h3>
+
+    <!-- Log-CPB 段落 1：連續位置偏差 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than directly optimizing parameterized biases as in the original <span class="hl-concept">Swin Transformer</span>, the <span class="hl-thesis">continuous relative position bias (CPB)</span> method employs a <span class="hl-method">small meta-network on the relative coordinates to generate bias values</span>: B(delta_x, delta_y) = G(delta_x, delta_y), where G is a <span class="hl-method">two-layer MLP with a ReLU activation</span>. Since the meta-network takes any continuous coordinates as input, <span class="hl-thesis">a pre-trained model can freely transfer across window sizes by sharing weights of the meta-network</span>. During inference, the bias values at each relative position can be <span class="hl-method">pre-computed and stored as model parameters</span>, such that the inference is identical to the original parameterized bias approach with <span class="hl-evidence">zero additional computational cost</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                有別於原始 <span class="hl-concept">Swin Transformer</span> 中直接最佳化參數化偏差的做法，連續相對位置偏差（CPB）方法採用一個小型元網路，以相對座標為輸入來生成偏差值：B(delta_x, delta_y) = G(delta_x, delta_y)，其中 G 為具有 ReLU 激活函數的兩層多層感知機。由於元網路能接受任意連續座標作為輸入，預訓練模型可透過共享元網路權重，自由地遷移至不同的視窗大小。在推論階段，每個相對位置的偏差值可預先計算並儲存為模型參數，使得推論過程與原始參數化偏差方法完全一致，不增加任何額外的計算成本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第三項技術貢獻（上半）——提出連續位置偏差的核心機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應緒論中的第二項挑戰（解析度落差）。以「元網路生成偏差」取代「查表偏差」是一個基本但深刻的架構轉變——從離散到連續，從固定到可泛化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「推論零額外成本」的主張是一個重要的工程賣點——這意味著改進不會帶來部署負擔。元網路僅為兩層 MLP，規模極小，但其表達能力是否足以捕捉複雜的位置關係（如長距離依賴）值得探討。此外，元網路的訓練是否容易過擬合至預訓練的視窗大小，也是一個潛在隱憂。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log-CPB 段落 2：對數間距座標 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                When transferring across vastly different window sizes, <span class="hl-rebuttal">large coordinate ranges require significant extrapolation beyond the training distribution</span>. The key innovation is <span class="hl-thesis">log-spaced coordinates</span>: the relative coordinates are transformed as <span class="hl-method">delta_x_hat = sign(delta_x) * log(1 + |delta_x|)</span>, and similarly for delta_y. This transformation <span class="hl-thesis">dramatically reduces extrapolation requirements</span>. For example, transferring from <span class="hl-evidence">8x8 to 16x16 windows, linear-spaced coordinates require extrapolation to 1.14x the original range, while log-spaced coordinates achieve only 0.33x — approximately 4 times smaller extrapolation ratio</span>. Table 1 demonstrates the effectiveness: <span class="hl-evidence">log-spaced CPB consistently outperforms parameterized position bias, particularly at larger window sizes. At W24, accuracy improves from 68.7% (parameterized) to 79.1% (log-spaced CPB) — a 10.4 percentage point gain</span>. Testing with unseen window sizes (e.g., W12) can even yield <span class="hl-evidence">+0.4% higher accuracy than the original pre-training window size</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在跨越差異懸殊的視窗大小進行遷移時，大範圍的座標需要超出訓練分布的顯著外推。關鍵創新在於對數間距座標：相對座標被轉換為 <span class="hl-method">delta_x_hat = sign(delta_x) * log(1 + |delta_x|)</span>，delta_y 亦同。此轉換大幅降低了外推需求。例如，從 8x8 遷移至 16x16 視窗時，線性間距座標需要外推至原始範圍的 1.14 倍，而對數間距座標僅需 0.33 倍——外推比率縮小約 4 倍。表 1 展示了其有效性：對數間距 CPB 一致優於參數化位置偏差，尤其在較大視窗尺寸下更為顯著。在 W24 下，準確率從 68.7%（參數化）提升至 79.1%（對數間距 CPB）——增幅達 10.4 個百分點。以未見過的視窗大小（如 W12）進行測試，甚至能取得比原始預訓練視窗大小高出 0.4% 的準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第三項技術貢獻（下半）——以對數壓縮解決外推問題，並提供量化驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是 Log-CPB 方法的核心論證支柱。從「外推問題」出發，以對數壓縮作為數學解法，再以 10.4% 的準確率提升作為實證，構成完整的「問題-解法-驗證」三段論。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    10.4% 的準確率提升（68.7% -> 79.1%）是全文最具衝擊力的數據之一。「外推比率縮小 4 倍」的量化分析提供了直覺的理解。更令人驚訝的是「未見視窗大小反而更優」的發現，這暗示了 Log-CPB 的泛化能力甚至超越了其設計意圖。然而，79.1% 仍低於 81.7% 的原始準確率，表明跨解析度遷移仍非完美解決。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 SimMIM 自監督預訓練 ====== -->
+    <h3 class="subsection-heading" id="sec-simmim">3.4 Self-Supervised Pre-training with SimMIM — SimMIM 自監督預訓練</h3>
+
+    <!-- SimMIM 段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">Larger models are more data hungry</span>. Previous large vision models relied on enormous labeled datasets such as <span class="hl-concept">JFT-3B</span> (3 billion labeled images). Instead, the authors adopt the <span class="hl-method">self-supervised pre-training method SimMIM</span>, which uses a <span class="hl-method">masked image modeling approach</span> analogous to masked language modeling in NLP. Using this approach, they successfully trained <span class="hl-evidence">a 3 billion-parameter Swin Transformer V2 model that achieves state-of-the-art results on 4 representative visual benchmarks, using only 70 million labelled images — 1/40 of JFT-3B</span>. This demonstrates that <span class="hl-thesis">effective self-supervised pre-training can substantially reduce the dependence on labeled data for training large vision models</span>, mirroring the catalytic role that masked language modeling played for NLP scaling.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                更大的模型對資料的需求更為殷切。先前的大型視覺模型仰賴如 <span class="hl-concept">JFT-3B</span>（30 億張標註影像）這般龐大的標註資料集。作者改而採用自監督預訓練方法 SimMIM，該方法使用遮蔽影像建模策略，類似於 NLP 中的遮蔽語言建模。透過此方法，作者成功訓練了一個 30 億參數的 Swin Transformer V2 模型，僅使用 7,000 萬張標註影像（為 JFT-3B 的四十分之一），便在四項代表性視覺基準上達到最先進水準。這證明了有效的自監督預訓練能大幅降低訓練大型視覺模型對標註資料的依賴，呼應了遮蔽語言建模對 NLP 規模化所發揮的催化作用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    第四項技術貢獻——以 SimMIM 自監督預訓練解決資料效率問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應緒論中的第三項挑戰（資料飢餓），完成三大挑戰-三項技術的對應結構。「1/40」的數據同時回應了對先前工作（ViT-G 等）的批評。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「1/40 的資料達到最先進水準」是極具說服力的效率論述。然而需注意，7,000 萬張的 ImageNet-22K-ext 本身仍非公開資料集，且其與 JFT-3B 的品質差異（策展方式、類別分布等）可能影響比較的公平性。SimMIM 的具體實現細節（遮蔽比例、重建目標等）在此處從略，留待原始 SimMIM 論文。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SimMIM 段落 2：記憶體效率 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training at such large scales also requires addressing <span class="hl-rebuttal">prohibitively high GPU memory consumption</span>. Three optimization techniques are employed. First, <span class="hl-method">Zero-Redundancy Optimizer (ZeRO)</span>: model parameters and optimization states are split and distributed across multiple GPUs using the <span class="hl-concept">DeepSpeed framework (ZeRO stage-1)</span>, with <span class="hl-evidence">little effect on training speed</span>. Second, <span class="hl-method">activation check-pointing</span>: feature maps are recomputed during the backward pass instead of stored, <span class="hl-evidence">significantly reducing memory while making training up to 30% slower</span>. Third, <span class="hl-method">sequential self-attention computation</span>: for extreme scales (e.g., 1,536x1,536 images with 32x32 windows), self-attention is computed sequentially rather than in batch, applied to the first two stages with <span class="hl-evidence">little impact on overall training speed</span>. Together, these techniques enable training the <span class="hl-evidence">3B model on standard A100-40G GPUs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在如此大的規模下訓練還需解決極高的 GPU 記憶體消耗問題。本文採用三項最佳化技術。首先是零冗餘最佳化器（ZeRO）：利用 DeepSpeed 框架（ZeRO 第一階段），將模型參數與最佳化狀態分割並分散至多個 GPU，對訓練速度幾乎無影響。其次是激活檢查點：在反向傳播過程中重新計算特徵圖而非儲存，顯著降低記憶體消耗，但訓練速度最多下降 30%。第三是序列式自注意力計算：對於極端規模（如 1,536x1,536 影像搭配 32x32 視窗），自注意力改以序列方式計算而非批次計算，應用於前兩個階段，對整體訓練速度影響甚微。三項技術結合後，使得 30 億參數模型得以在標準 A100-40G GPU 上進行訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    工程實踐——詳述使大規模訓練在現有硬體上可行的記憶體最佳化策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段處理規模化的「最後一哩路」：即使演算法上可行，若硬體資源需求不切實際，則方法無法推廣。在 A100-40G（而非更高階的 A100-80G）上訓練 3B 模型，增強了方法的可複現性論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項技術均非本文原創（ZeRO、activation checkpointing 皆為已知技術），但其組合與適配是實用的工程貢獻。「30% 的訓練減速」作為誠實揭露值得肯定，但未報告所需的 GPU 總數與總訓練時間，使讀者難以評估實際的計算預算。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：ImageNet 影像分類 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">ImageNet-1K image classification</span>, <span class="hl-concept">SwinV2-G</span> achieves <span class="hl-evidence">90.17% top-1 accuracy on V1 and 84.0% on V2</span>. The ImageNet-V2 result of <span class="hl-evidence">84.0% is +0.7% higher than the previous best (83.3% by ViT-G/14)</span>. For smaller model variants, <span class="hl-evidence">SwinV2-B and SwinV2-L show +0.8% and +0.4% gains over their Swin V1 counterparts</span> on ImageNet-1K. The SwinV2-G model is <span class="hl-thesis">the largest dense vision model to date</span>, with <span class="hl-evidence">3 billion parameters</span>, trained on the privately collected <span class="hl-concept">ImageNet-22K-ext dataset with 70 million images</span>. Pre-training uses <span class="hl-evidence">192x192 resolution</span>, with <span class="hl-method">self-supervised SimMIM pre-training for 20 epochs followed by supervised pre-training for 30 epochs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ImageNet-1K 影像分類上，<span class="hl-concept">SwinV2-G</span> 於 V1 驗證集取得 90.17% 的 top-1 準確率，於 V2 驗證集則為 84.0%。ImageNet-V2 的 84.0% 比先前最佳（ViT-G/14 的 83.3%）高出 0.7%。對於較小的模型變體，SwinV2-B 與 SwinV2-L 分別較 Swin V1 的對應版本提升了 0.8% 與 0.4%。SwinV2-G 是迄今最大的稠密視覺模型，擁有 30 億參數，以私有收集的 ImageNet-22K-ext 資料集（7,000 萬張影像）進行訓練。預訓練使用 192x192 解析度，先進行 20 個回合的自監督 SimMIM 預訓練，再進行 30 個回合的監督式預訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    分類基準成果——展示 SwinV2-G 在影像分類上的最先進表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是四項基準中的第一項，建立 SwinV2-G 作為「最大稠密視覺模型」的地位。在 ImageNet-V2 上的優勢（+0.7%）被特別強調，因為 V2 被認為是更可靠的泛化測試。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇以 ImageNet-V2（而非 V1）作為主要比較基準是策略性的——在 V1 上，SwinV2-G（90.17%）低於 CoAtNet-7（90.88%）。V2 被學術界認為能更好地反映真實泛化能力，此選擇在學術上有理據。但私有資料集（ImageNet-22K-ext）的使用降低了可複現性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：COCO 物件偵測 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">COCO object detection</span>, <span class="hl-concept">SwinV2-G</span> achieves <span class="hl-evidence">63.1 box AP and 54.4 mask AP on test-dev</span>, which is <span class="hl-evidence">+1.8/+1.4 higher than the previous best results (61.3/53.0 by SoftTeacher)</span>. This is a particularly significant result because it demonstrates that <span class="hl-thesis">scaling up vision models is beneficial for dense vision recognition tasks</span>, not just image classification. The training pipeline includes an <span class="hl-method">additional detection pre-training phase using the Objects365 v2 dataset</span> between classification pre-training and COCO fine-tuning. Testing with different window sizes (<span class="hl-evidence">32x32 vs. 48x48</span>) provides additional gains, showcasing the benefit of the <span class="hl-concept">Log-CPB</span> transfer capability.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 COCO 物件偵測上，<span class="hl-concept">SwinV2-G</span> 於 test-dev 取得 63.1 box AP 與 54.4 mask AP，分別比先前最佳成績（SoftTeacher 的 61.3/53.0）高出 1.8 與 1.4。此結果尤其重要，因為它證明了擴大視覺模型的規模對稠密視覺辨識任務同樣有益，而非僅限於影像分類。訓練流程包含一個額外的偵測預訓練階段，使用 Objects365 v2 資料集，介於分類預訓練與 COCO 微調之間。以不同視窗大小（<span class="hl-evidence">32x32 vs. 48x48</span>）進行測試帶來額外增益，展示了 <span class="hl-concept">Log-CPB</span> 遷移能力的優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    偵測基準成果——證明規模化對稠密任務的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是對先前「大型視覺模型僅用於分類」批評的直接回應。1.8 AP 的提升在物件偵測中屬於相當顯著的改進，支撐了「通用大型視覺模型」的核心論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    COCO 上的大幅提升是全文最有力的實證之一，直接反駁了「規模化僅在分類上有效」的潛在質疑。但訓練流程相當繁複（SimMIM -> 分類預訓練 -> Objects365 預訓練 -> COCO 微調），多階段的預訓練策略使得規模化本身的貢獻難以與訓練流程的精心設計分離。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：ADE20K 語意分割與 Kinetics-400 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-concept">ADE20K semantic segmentation</span>, <span class="hl-concept">SwinV2-G</span> achieves <span class="hl-evidence">59.9 mIoU on the validation set, +1.5 higher than the previous best (58.4 by BEiT)</span>. Using larger window sizes at test time provides an <span class="hl-evidence">additional +0.2 gain</span>, likely benefiting from the effective Log-CPB transfer. On <span class="hl-concept">Kinetics-400 video action classification</span>, SwinV2-G achieves <span class="hl-evidence">86.8% top-1 accuracy, +1.4% higher than the previous best (85.4% by TokenLearner)</span>. Similarly, larger window sizes at test time yield <span class="hl-evidence">an additional +0.2% gain</span>. These results across <span class="hl-thesis">four fundamentally different vision tasks — classification, detection, segmentation, and video understanding — collectively demonstrate the generality of the approach</span>. The consistent benefits of test-time window size adjustment further validate the practical utility of Log-CPB.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ADE20K 語意分割上，<span class="hl-concept">SwinV2-G</span> 於驗證集取得 59.9 mIoU，比先前最佳（BEiT 的 58.4）高出 1.5。在測試時使用較大視窗尺寸帶來額外 0.2 的增益，可能得益於 Log-CPB 的有效遷移。在 Kinetics-400 影片動作分類上，SwinV2-G 取得 86.8% 的 top-1 準確率，比先前最佳（TokenLearner 的 85.4%）高出 1.4%。同樣地，測試時的較大視窗尺寸帶來額外 0.2% 的增益。這些橫跨四項根本不同的視覺任務——分類、偵測、分割與影片理解——的成果，共同展現了此方法的通用性。測試時視窗大小調整所帶來的一致性效益，進一步驗證了 Log-CPB 的實用價值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    廣度驗證——以分割與影片任務完成四項基準的全面覆蓋。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段作為實驗章節的收束，以「四項不同任務」的全面覆蓋作為「通用性」主張的最終實證。每項任務均報告最先進成績，構成全方位的量化支持。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    四項基準的全面領先是強有力的論證——特別是影片理解（Kinetics-400）的加入，展示了該方法在時序維度上的遷移能力。但每項任務的訓練設定均不同，且分割與影片的詳細實驗配置在摘要性描述中有所省略。測試時視窗調整的一致性 +0.2 增益雖小但穩定，為 Log-CPB 提供了額外的工程價值佐證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：消融研究 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Ablation studies</span> systematically validate each component. For <span class="hl-method">residual post-normalization and scaled cosine attention</span>, Table 6 shows that both techniques individually contribute to accuracy gains, with compounding benefits when combined. The improvements grow with model size (<span class="hl-evidence">+0.2% Tiny, +0.4% Small, +0.5% Base</span>), confirming the <span class="hl-thesis">scale-dependent nature of the benefit</span>. Table 7 compares normalization strategies: the proposed approach (<span class="hl-evidence">84.1% at Base</span>) outperforms pre-norm (<span class="hl-evidence">83.6%</span>), sandwich norm, and standard post-norm. For <span class="hl-method">window resolution transfer</span>, the most striking result is that <span class="hl-evidence">log-spaced CPB maintains 78.9% accuracy at W24 without fine-tuning, versus 68.7% for parameterized bias</span> — demonstrating robust generalization to unseen window sizes. Fine-tuning further closes the gap, with log-spaced CPB achieving <span class="hl-evidence">the best results across all tested window configurations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究系統性地驗證了每項組件。在殘差後正規化與縮放餘弦注意力方面，表 6 顯示兩項技術各自貢獻了準確率提升，結合後產生複合效益。改進幅度隨模型規模增長（小型 +0.2%、中型 +0.4%、基礎型 +0.5%），確認了效益的規模相關性。表 7 比較了不同正規化策略：所提方法（基礎型 84.1%）優於前正規化（<span class="hl-evidence">83.6%</span>）、三明治正規化及標準後正規化。在視窗解析度遷移方面，最引人注目的結果是，對數間距 CPB 在未經微調的情況下於 W24 維持 78.9% 的準確率，而參數化偏差僅為 68.7%——展現了對未見視窗尺寸的穩健泛化。微調後差距進一步縮小，對數間距 CPB 在所有測試的視窗配置中均取得最佳結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——透過消融實驗確認每項技術貢獻的必要性與獨立效益。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究在論證結構中扮演「排除替代解釋」的角色——證明最終性能並非來自單一技術的偶然效果，而是多項技術各自與協同貢獻的結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融實驗的設計相當完整，涵蓋了組件的獨立與組合效果，以及與替代方案的比較。78.9% vs. 68.7% 的零樣本遷移對比是最具說服力的消融結果。但消融僅在較小規模（Tiny/Small/Base）上進行，在 Huge 或 Giant 規模上的消融因計算成本而缺席，這是可理解但遺憾的限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <!-- 結論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents techniques for <span class="hl-thesis">scaling Swin Transformer up to 3 billion parameters and making it capable of training with images of up to 1,536x1,536 resolution</span>. The key contributions include <span class="hl-method">residual-post-norm and scaled cosine attention</span> for stable capacity scaling, and <span class="hl-method">log-spaced continuous position bias</span> for effective resolution transfer. Combined with <span class="hl-method">SimMIM self-supervised pre-training</span>, the model achieves state-of-the-art performance on <span class="hl-evidence">ImageNet-V2 image classification (84.0%), COCO object detection (63.1/54.4 box/mask AP), ADE20K semantic segmentation (59.9 mIoU), and Kinetics-400 video classification (86.8%)</span> — while requiring <span class="hl-evidence">40x less labelled data</span> than previous approaches.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了將 Swin Transformer 擴展至 30 億參數、並使其能以高達 1,536x1,536 解析度影像進行訓練的技術。核心貢獻包括：殘差後正規化與縮放餘弦注意力用於穩定的容量擴展，對數間距連續位置偏差用於有效的解析度遷移。結合 SimMIM 自監督預訓練，模型在 ImageNet-V2 影像分類（84.0%）、COCO 物件偵測（63.1/54.4 box/mask AP）、ADE20K 語意分割（59.9 mIoU）及 Kinetics-400 影片分類（86.8%）上均達最先進水準——同時所需的標註資料僅為先前方法的四十分之一。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    成就總結——精煉地重述核心技術貢獻與實驗成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的第一段以高度壓縮的形式回顧全文的「問題-解法-成果」三段論，形成與摘要的首尾呼應。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論段的措辭精準，四項基準的數據重新列舉強化了研究的全面性印象。然而，未討論方法的局限性（如私有資料集、計算成本、在其他架構上的適用性）是一個遺憾——頂級論文通常被期待包含更多自我批評。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：展望 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">By scaling up both capacity and resolution of vision models with strong performance on general vision tasks, just like a good language model's performance on general NLP tasks, the authors aim to stimulate more research in this direction so that we can eventually close the capacity gap between vision and language models and facilitate the joint modeling of the two domains.</span> The demonstrated techniques — particularly the <span class="hl-concept">log-spaced continuous position bias</span> and the synergy between <span class="hl-concept">self-supervised pre-training</span> and <span class="hl-concept">architectural innovations</span> — establish a foundation for future scaling efforts in visual representation learning.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                透過在通用視覺任務上擴展視覺模型的容量與解析度以取得優異表現——如同優秀的語言模型在通用 NLP 任務上的表現——作者期望能激發此方向的更多研究，以期最終彌合視覺與語言模型之間的容量差距，並促進兩個領域的聯合建模。所展示的技術——尤其是對數間距連續位置偏差，以及自監督預訓練與架構創新之間的協同效應——為視覺表示學習的未來規模化努力奠定了基礎。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    未來展望——將研究置於視覺-語言融合的更大脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的收尾回到緒論開篇的 NLP 類比，形成完整的論證閉環。「彌合容量差距」與「聯合建模」的展望將研究定位於更宏大的多模態智慧願景中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「彌合視覺與語言的容量差距」作為最終願景極具前瞻性，事後看來（2022 年至今），多模態大型模型（如 GPT-4V、Gemini）確實沿此方向發展。然而，Swin Transformer 架構本身在此後的多模態浪潮中並未成為主流選擇，ViT 風格的架構因其與語言模型更易整合而佔據主導地位。這暗示了區域注意力（locality）這一核心先驗在多模態場景中可能反而成為限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺模型規模化<br>面臨三大瓶頸
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                三項針對性技術<br>突破規模化障礙
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                30 億參數模型<br>四項基準最先進
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                40 倍資料效率<br>通用而非僅分類
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                彌合視覺與語言<br>的模型容量差距
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過殘差後正規化、縮放餘弦注意力與對數間距連續位置偏差三項技術，結合 SimMIM 自監督預訓練，可將 Swin Transformer 成功擴展至 30 億參數，在四項通用視覺基準上達到最先進水準，同時僅需先前方法四十分之一的標註資料。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>四項異質基準的全面最先進表現：</strong>不同於先前的大型視覺模型僅驗證於影像分類，Swin V2 在分類、偵測、分割與影片理解四項涵蓋不同粒度與模態的任務上均取得最佳成績。這直接且有力地支撐了「通用大型視覺模型」的核心主張。Log-CPB 從 68.7% 到 79.1% 的零樣本遷移提升更是技術層面最具說服力的貢獻。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>可複現性與公平比較的隱憂：</strong>關鍵實驗依賴私有資料集（ImageNet-22K-ext，7,000 萬張影像）與多階段的精心訓練流程（SimMIM + 分類預訓練 + 任務特定預訓練 + 微調），使得規模化本身的貢獻難以與訓練策略的設計分離。在 ImageNet-V1 上未超越 CoAtNet-7，以及消融研究無法在最大規模上進行，也削弱了部分論證的完整性。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

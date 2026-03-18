@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DynIBaR: Neural Dynamic Image-Based Rendering — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                DynIBaR: Neural Dynamic Image-Based Rendering
+                <span class="course-tag">CVPR 2023</span>
+                <span class="best-paper-badge">Best Paper Honorable Mention</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2211.11082" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-motion-agg">3.1 運動調整特徵聚合</a>
+        <a href="#sec-cross-time">3.2 跨時間渲染</a>
+        <a href="#sec-static-dynamic">3.3 靜態與動態模型</a>
+        <a href="#sec-regularization">3.4 正則化</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1：問題與動機 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We address the problem of <span class="hl-thesis">synthesizing novel views from a monocular video depicting a complex dynamic scene</span>. State-of-the-art methods based on <span class="hl-concept">dynamic Neural Radiance Fields (NeRF)</span> have demonstrated impressive results on this task. However, they <span class="hl-rebuttal">struggle to scale to long videos featuring complex object motions and uncontrolled camera trajectories</span>, producing blurry or inaccurate renderings that limit their real-world applications.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文致力解決從描繪複雜動態場景的單目影片中合成新視角的問題。基於動態神經輻射場（<span class="hl-concept">NeRF</span>）的最先進方法已在此任務上展示了令人印象深刻的結果。然而，這些方法難以擴展至包含複雜物件運動與無控制攝影機軌跡的長影片，產生模糊或不準確的渲染結果，限制了其真實世界的應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題定義——明確指出動態場景新視角合成的核心挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的前半段採取「肯定-轉折」結構：先承認動態 NeRF 的成就，再以「however」引出其根本局限，為提出新方案奠定基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「模糊或不準確的渲染」直接點出使用者體驗層面的痛點，使讀者產生共鳴。但此處將所有動態 NeRF 方法籠統歸為「難以擴展」，未區分不同方法在不同面向上的能力差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摘要段落 2：提出方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Rather than encoding the entire dynamic scene within the weights of MLPs, we present an approach that adopts <span class="hl-concept">a volumetric image-based rendering (IBR) framework</span> that <span class="hl-thesis">synthesizes new viewpoints by aggregating features from nearby views in a scene-motion-aware manner</span>. Our system retains the advantages of prior methods in its ability to <span class="hl-method">model complex scenes and view-dependent effects</span>, but also enables synthesizing <span class="hl-evidence">photo-realistic novel views from long videos featuring complex scene dynamics with unconstrained camera trajectories</span>. We demonstrate significant improvements over state-of-the-art methods on dynamic scene datasets and show successful application to <span class="hl-evidence">in-the-wild videos</span> with challenging camera and object motion where prior methods fail.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們不再將整個動態場景編碼於多層感知機（MLP）的權重中，而是提出一種採用體積影像基礎渲染（<span class="hl-concept">IBR</span>）框架的方法，以場景運動感知的方式從鄰近視角聚合特徵來合成新視角。我們的系統保留了先前方法在建模複雜場景與視角相關效果方面的優勢，同時能從包含複雜場景動態與無控制攝影機軌跡的長影片中合成照片級真實的新視角。我們在動態場景資料集上展示了顯著的改進，並成功應用於先前方法失敗的、包含挑戰性攝影機與物件運動的實際拍攝影片。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解決方案預告——概述 DynIBaR 的核心理念與優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要後半段完成「問題-解決方案」的論證迴路：以 IBR 框架取代純 MLP 編碼，直接回應前段指出的擴展性瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「保留優勢」與「同時克服」的雙重承諾頗具說服力，但「in-the-wild」影片的範圍定義模糊——其實際適用條件（如視角變化幅度、物件運動速度上限）需待實驗章節檢驗。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：研究背景 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Computer vision has achieved <span class="hl-evidence">high-quality free-viewpoint renderings of static 3D scenes</span>. However, <span class="hl-thesis">novel view synthesis from monocular video of dynamic scenes</span> — featuring moving people or objects — presents significantly greater challenges. Recent progress has emerged through <span class="hl-concept">time-varying neural volumetric representations</span> like <span class="hl-concept">HyperNeRF</span> and <span class="hl-concept">Neural Scene Flow Fields (NSFF)</span>, which encode spatiotemporally varying scene content within <span class="hl-method">coordinate-based MLPs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                電腦視覺已能實現靜態三維場景的高品質自由視角渲染。然而，從描繪動態場景——包含移動的人物或物件——的單目影片合成新視角，面臨顯著更大的挑戰。近期的進展來自時變神經體積表示，如 <span class="hl-concept">HyperNeRF</span> 與神經場景流場（<span class="hl-concept">NSFF</span>），它們將時空變化的場景內容編碼於基於座標的多層感知機中。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——從靜態場景的成功過渡到動態場景的挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以靜態場景作為已解決的基準線，凸顯動態場景的難度落差，為本文的研究必要性提供背景脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以對比手法（靜態 vs. 動態）開場，簡潔有效。提及 HyperNeRF 與 NSFF 作為代表性方法，建立了讀者對該領域的認知錨點，為後續批評鋪路。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：既有方法的具體限制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Despite these achievements, <span class="hl-rebuttal">dynamic NeRF methods face fundamental limitations preventing their application to casual, in-the-wild videos</span>. Local scene flow-based methods like <span class="hl-concept">NSFF</span> <span class="hl-rebuttal">struggle to scale to longer input videos captured with unconstrained camera motions</span>: the NSFF paper only claims good performance for <span class="hl-evidence">1-second, forward-facing videos</span>. Methods like <span class="hl-concept">HyperNeRF</span> that construct <span class="hl-method">canonical models</span> remain mostly constrained to <span class="hl-rebuttal">object-centric scenes with relatively small object motion and controlled camera paths</span>, and fail on scenes exhibiting complex object motion.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                儘管取得了上述成就，動態 <span class="hl-rebuttal">NeRF</span> 方法面臨阻礙其應用於日常實際拍攝影片的根本限制。以局部場景流為基礎的方法如 <span class="hl-concept">NSFF</span>，難以擴展至以無控制攝影機運動拍攝的較長影片：<span class="hl-concept">NSFF</span> 論文僅聲稱在一秒鐘的前向拍攝影片上有良好表現。採用典型模型的方法如 <span class="hl-concept">HyperNeRF</span> 大多受限於物件中心的場景，其物件運動相對較小且攝影機路徑受控，在展現複雜物件運動的場景中則會失敗。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——逐一剖析兩類動態 NeRF 的具體缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「場景流方法」與「典型空間方法」兩條路線的失敗，構成一個「兩難困境」——無論哪種路線都無法滿足實際需求，從而為第三條路線的必要性提供論據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    引用 NSFF 論文自身的限制聲明（「1 秒」）極具說服力，是以對手的自我揭露來佐證批評。但此處將兩類方法各取最弱面向評判，未考慮後續改進版本可能已部分克服這些限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：DynIBaR 的解決方案 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a new approach that is <span class="hl-thesis">scalable to dynamic videos captured with (1) long time duration, (2) unbounded scenes, (3) uncontrolled camera trajectories, and (4) fast and complex object motion</span>. Our approach retains the advantages of <span class="hl-method">volumetric scene representations</span> that can model intricate scene geometry with view-dependent effects, while significantly improving rendering fidelity for both static and dynamic scene content. Our inspiration comes from <span class="hl-concept">recent static scene rendering methods</span> that synthesize novel images by <span class="hl-method">aggregating local image features from nearby views along epipolar lines</span>. However, moving scene elements <span class="hl-rebuttal">violate epipolar constraints</span>. We propose aggregating multi-view image features in <span class="hl-method">"scene motion-adjusted" ray space</span>, enabling proper reasoning about spatio-temporally varying geometry and appearance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種新方法，能夠擴展至以下動態影片：(1) 長時間拍攝、(2) 無界場景、(3) 無控制攝影機軌跡、(4) 快速且複雜的物件運動。我們的方法保留了體積場景表示在建模精細場景幾何與視角相關效果方面的優勢，同時顯著提升了靜態與動態場景內容的渲染保真度。我們的靈感來自近期靜態場景渲染方法，它們透過沿極線聚合鄰近視角的局部影像特徵來合成新影像。然而，運動中的場景元素會違反極線約束。我們提出在「場景運動調整」的射線空間中聚合多視角影像特徵，使系統能正確推理時空變化的幾何與外觀。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——以四項能力指標定義 DynIBaR 的目標，並揭示核心技術洞見。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成「困境-突破」的敘事轉折：從靜態 IBR 的成功出發，點出動態場景中極線約束失效的障礙，再以「運動調整射線空間」作為解方，邏輯鏈完整且環環相扣。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以四項條件清單（長時間、無界、無控制、快速運動）構成明確的「能力規格」，使讀者可在後續實驗中逐一驗證。但「運動調整射線空間」的抽象描述需等方法章節才能完全理解，此處略顯跳躍。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 4：技術貢獻摘要 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We encountered efficiency and robustness challenges in scaling aggregation-based methods to dynamic scenes. We represent scene motion using <span class="hl-method">motion trajectory fields described in terms of learned basis functions</span> that efficiently model motion across multiple frames. We introduce a new <span class="hl-method">temporal photometric loss</span> operating in motion-adjusted ray space that achieves <span class="hl-thesis">temporal coherence</span>. We also propose a <span class="hl-method">scene factorization into static and dynamic components</span> through <span class="hl-method">IBR-based motion segmentation within a Bayesian framework</span> that improves novel view quality. On two dynamic scene benchmarks, our approach renders highly detailed scene content with <span class="hl-evidence">average LPIPS error reductions exceeding 50%</span> across entire scenes and dynamic object regions. We hope that our work <span class="hl-thesis">advances the applicability of dynamic view synthesis methods to real-world videos</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在將基於聚合的方法擴展至動態場景的過程中，我們遇到了效率與穩健性的挑戰。我們以學習式基底函數描述的運動軌跡場來表示場景運動，高效地建模跨越多幀的運動。我們引入了在運動調整射線空間中運作的新型時間光度損失，以實現時間一致性。我們還提出透過貝氏框架下的 IBR 運動分割，將場景分解為靜態與動態組件，藉此提升新視角品質。在兩個動態場景基準測試上，我們的方法渲染出高度細緻的場景內容，在整體場景與動態物件區域上的平均 <span class="hl-evidence">LPIPS</span> 誤差降低超過 50%。我們期望本研究能推進動態視角合成方法在真實世界影片中的適用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    列舉技術貢獻與關鍵成果——以具體數字與三項創新總結論文價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    緒論的收束段，將前述問題與解方凝練為三項技術貢獻（運動軌跡場、時間光度損失、靜動分解），並以「LPIPS 降低 50%」的量化成果強化說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「LPIPS 降低超過 50%」是極為顯著的改進幅度，作為標題級成果具有強大的衝擊力。但 LPIPS 為感知相似度指標，讀者可能更關心 PSNR 等傳統指標是否同等改進，以全面評估方法的優劣。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：新視角合成 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Classic <span class="hl-concept">image-based rendering (IBR)</span> methods synthesize novel views by integrating pixel information from input images, categorized by their dependence on explicit geometry. <span class="hl-concept">Light field</span> or <span class="hl-concept">lumigraph</span> rendering methods generate new views by filtering and interpolating sampled rays without explicit geometric models. To handle sparser input views, numerous approaches leverage <span class="hl-method">pre-computed proxy geometry such as depth maps or meshes</span>. Recently, <span class="hl-concept">neural representations</span> have demonstrated high-quality novel view synthesis, with <span class="hl-concept">Neural Radiance Fields (NeRF)</span> achieving unprecedented fidelity by encoding continuous scene radiance fields within MLPs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                經典的影像基礎渲染（<span class="hl-concept">IBR</span>）方法透過整合輸入影像的像素資訊來合成新視角，依其對顯式幾何的依賴程度可分為不同類別。光場或光圖渲染方法無需顯式幾何模型，而是透過濾波與內插取樣射線來生成新視角。為處理更稀疏的輸入視角，許多方法利用預先計算的代理幾何，如深度圖或網格。近期，神經表示已展現出高品質的新視角合成能力，其中神經輻射場（<span class="hl-concept">NeRF</span>）透過在 MLP 中編碼連續場景輻射場，達到了前所未有的保真度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——從經典 IBR 到 NeRF，建立新視角合成的技術演進脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為方法論選擇提供歷史依據：IBR 是一條成熟的技術路線，而 NeRF 代表最新突破。DynIBaR 的設計哲學正是融合這兩者的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「光場 -> 代理幾何 -> 神經表示」的線性演進敘事，暗示技術發展有一條清晰的收斂路徑。此架構化的文獻呈現方式有助讀者理解，但可能過度簡化了各方法間的平行競爭關係。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：IBRNet -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Among NeRF-based methods, <span class="hl-concept">IBRNet</span> proves most relevant to this work. <span class="hl-thesis">IBRNet combines classical IBR techniques with volume rendering to produce a generalized IBR module that can render high-quality views without per-scene optimization.</span> We extend <span class="hl-method">volumetric IBR frameworks designed for static scenes to more challenging dynamic scenes</span>, focusing on higher-quality novel view synthesis for long videos with complex camera and object motion rather than generalization across scenes.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在基於 NeRF 的方法中，<span class="hl-concept">IBRNet</span> 與本研究最為相關。<span class="hl-concept">IBRNet</span> 結合了經典 <span class="hl-thesis">IBR</span> 技術與體積渲染，產生一個能在無需逐場景最佳化的情況下渲染高品質視角的通用 <span class="hl-method">IBR</span> 模組。我們將設計用於靜態場景的體積 IBR 框架擴展至更具挑戰性的動態場景，專注於為包含複雜攝影機與物件運動的長影片提供更高品質的新視角合成，而非追求跨場景的泛化能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位核心前置工作——明確 DynIBaR 與 IBRNet 的繼承與差異關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立最直接的學術譜系：IBRNet (靜態) -> DynIBaR (動態)。同時釐清研究目標的差異——本文追求的是品質而非泛化。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    明確聲明「不追求泛化」是誠實的範圍界定，避免了讀者在後續實驗中提出不公平的比較要求。但這也暗示每場景需重新訓練，計算成本可能相當高昂。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：動態場景視角合成 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Most prior work on novel view synthesis for dynamic scenes <span class="hl-rebuttal">requires multiple synchronized input videos</span>, limiting real-world applicability. More recently, many works propose synthesizing novel views of dynamic scenes from <span class="hl-concept">single cameras</span>. With neural rendering advances, NeRF-based dynamic view synthesis methods show state-of-the-art results. Approaches like <span class="hl-concept">Nerfies</span> and <span class="hl-concept">HyperNeRF</span> represent scenes using <span class="hl-method">deformation fields mapping local observations to canonical scene representations</span>. <span class="hl-rebuttal">These methods can handle long videos, but are mostly limited to object-centric scenes with relatively small object motion and controlled camera paths.</span> Other methods represent scenes as <span class="hl-concept">time-varying NeRFs</span>. <span class="hl-concept">NSFF</span> particularly uses neural scene flow fields capturing fast and complex 3D scene motion for in-the-wild videos. <span class="hl-rebuttal">However, this method only works well for short (1-2 second), forward-facing videos.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前大多數關於動態場景新視角合成的研究需要多部同步輸入影片，限制了其在真實世界中的適用性。近期有許多研究提出從單一攝影機合成動態場景的新視角。隨著神經渲染的進展，基於 NeRF 的動態視角合成方法展現了最先進的結果。如 <span class="hl-concept">Nerfies</span> 與 <span class="hl-concept">HyperNeRF</span> 等方法使用變形場將局部觀測映射至典型場景表示。這些方法能處理長影片，但大多受限於物件中心的場景，物件運動相對較小且攝影機路徑受控。其他方法則將場景表示為時變 NeRF。<span class="hl-concept">NSFF</span> 特別使用神經場景流場來捕捉實際拍攝影片中快速且複雜的三維場景運動。然而，此方法僅在短時間（1-2 秒）的前向拍攝影片上表現良好。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統性批評——逐一指出動態場景方法的兩大路線各自的瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段精確地將既有方法分為「變形場方法」（能處理長影片但限於簡單場景）與「場景流方法」（能處理複雜運動但限於短影片），構成互補的缺陷矩陣，強化了 DynIBaR 同時克服兩者的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將兩類方法的優缺點以互補形式呈現是高明的論證策略——它暗示完美解法必須兼具兩者之長。但此二分法可能過於簡化，實際上存在混合方法（如結合變形場與場景流）的中間路線。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Dynamic Image-Based Rendering — 動態影像基礎渲染</h2>
+
+    <!-- 方法段落 0：問題設定 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given <span class="hl-method">monocular video frames (I_1, I_2, ..., I_N) with known camera parameters (P_1, P_2, ..., P_N)</span>, our goal is to synthesize novel viewpoints at any desired time within the video. Like many approaches, we first optimize a model via <span class="hl-method">per-video training that reconstructs input frames</span>, then use it for rendering novel views. Rather than encoding 3D color and density directly in MLP weights as recent dynamic NeRF methods do, we integrate <span class="hl-concept">classical IBR ideas</span> into a <span class="hl-concept">volumetric rendering framework</span>. <span class="hl-thesis">Compared to explicit surfaces, volumetric representations can more readily model complex scene geometry with view-dependent effects.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                給定單目影片幀序列 (I_1, I_2, ..., I_N) 及其已知的攝影機參數 (P_1, P_2, ..., P_N)，我們的目標是在影片中任意期望的時間點合成新視角。如同許多方法，我們首先透過逐影片訓練最佳化一個能重建輸入幀的模型，再用其渲染新視角。與近期動態 NeRF 方法將三維顏色與密度直接編碼於 MLP 權重不同，我們將經典 <span class="hl-concept">IBR</span> 概念整合至體積渲染框架中。相較於顯式曲面，體積表示能更容易地建模複雜場景幾何與視角相關效果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題設定與設計哲學——定義輸入輸出規格，並闡明選擇體積 IBR 的理由。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法章節的開場段落確立了兩項核心設計決策：(1) 逐影片訓練而非泛化式推論；(2) 體積 IBR 而非純 MLP 編碼。這為後續的技術細節提供了框架性指引。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「已知攝影機參數」是重要的前提假設——實務上需依賴 COLMAP 等工具估計，對動態場景的姿態估計品質可能不佳，但作者未在此討論這一潛在薄弱環節。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 運動調整特徵聚合 ====== -->
+    <h3 class="subsection-heading" id="sec-motion-agg">3.1 Motion-Adjusted Feature Aggregation — 運動調整特徵聚合</h3>
+
+    <!-- 3.1 段落 1：基本框架 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We synthesize new views by <span class="hl-method">aggregating features extracted from temporally nearby source views</span>. To render an image at time i, source views I_j within <span class="hl-method">temporal radius r frames</span> are identified as j in N(i) = [i-r, i+r]. For each source view, a <span class="hl-method">shared convolutional encoder extracts 2D feature map F_i</span>, forming input tuple {I_j, P_j, F_j}. For static scenes, points along target rays lie along corresponding <span class="hl-concept">epipolar lines</span> in neighboring source views, allowing potential correspondence aggregation. However, <span class="hl-rebuttal">moving scene elements violate epipolar constraints</span>, leading to inconsistent feature aggregation without motion accounting.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們透過聚合從時間鄰近的來源視角中提取的特徵來合成新視角。為渲染時間 i 的影像，辨識時間半徑 r 幀內的來源視角 I_j，即 j 屬於 N(i) = [i-r, i+r]。對每個來源視角，一個共享的摺積編碼器提取二維特徵圖 F_i，形成輸入元組 {I_j, P_j, F_j}。對於靜態場景，目標射線上的點位於鄰近來源視角的對應極線上，可進行潛在對應點的聚合。然而，運動中的場景元素會違反極線約束，導致在未考慮運動的情況下產生不一致的特徵聚合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立基礎框架——描述靜態場景下的特徵聚合機制，並揭示動態場景的核心障礙。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以「先靜態、後動態」的對比方式引出核心問題：極線約束在動態場景中失效。這是整個方法設計的出發點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將靜態場景下的極線幾何作為「理想情況」呈現，再指出動態場景如何打破此假設，邏輯推導自然且嚴謹。時間半徑 r 的選取對效能與品質的影響，此處未詳述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.1 段落 2：運動軌跡場 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We perform <span class="hl-method">"motion-adjusted" feature aggregation</span>. Determining correspondence in dynamic scenes could straightforwardly estimate <span class="hl-concept">scene flow fields</span> via MLP to determine motion-adjusted 3D locations. <span class="hl-rebuttal">However, this strategy is computationally infeasible in a volumetric IBR framework due to recursive unrolling of the MLPs.</span> Instead, we represent scene motion using <span class="hl-concept">motion trajectory fields</span> described through <span class="hl-method">learned basis functions</span>. For a 3D point x along target ray r at time i, trajectory coefficients are encoded with MLP G_MT: {phi_i^l(x)} = G_MT(gamma(x), gamma(i)), where phi_i^l are basis coefficients and gamma denotes <span class="hl-method">positional encoding</span>. We choose <span class="hl-evidence">L=6 bases and 16 linearly increasing frequencies</span>, based on the assumption that scene motion tends toward low frequency.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們執行「運動調整」特徵聚合。在動態場景中確定對應關係，可直接透過 MLP 估計場景流場來確定運動調整後的三維位置。然而，此策略在體積 <span class="hl-rebuttal">IBR</span> 框架中因 MLP 的遞迴展開而在計算上不可行。取而代之，我們使用以學習式基底函數描述的運動軌跡場來表示場景運動。對於時間 i 的目標射線 r 上的三維點 x，軌跡係數由 MLP G_MT 編碼：{phi_i^l(x)} = G_MT(gamma(x), gamma(i))，其中 phi_i^l 為基底係數，gamma 表示位置編碼。我們選擇 L=6 個基底與 16 個線性遞增頻率，基於場景運動傾向於低頻的假設。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術創新——提出運動軌跡場作為場景流的高效替代方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決了從「需要運動補償」到「如何高效實現」的關鍵跳躍。先否定直觀的場景流方案（計算不可行），再提出基底函數分解作為替代，展現了「問題-嘗試-失敗-改進」的研究歷程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「場景運動傾向低頻」的假設是整個基底分解方案的理論基石。L=6 的選擇雖有效，但對於高頻運動（如快速揮手、衣物擺動）可能不夠。作者未提供此參數的敏感度分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.1 段落 3：軌跡計算與特徵聚合流程 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-method">global learnable motion basis {h_i^l}</span> spanning every input video time step is optimized jointly with the MLP. The motion trajectory is defined as Gamma_{x,i}(j) = sum_l h_j^l * phi_i^l(x), and the relative displacement between x and its 3D correspondence x_{i->j} at time j is: Delta_{x,i}(j) = Gamma_{x,i}(j) - Gamma_{x,i}(i). With this representation, finding 3D correspondences for a query point in neighboring views requires <span class="hl-thesis">just a single MLP query</span>, enabling efficient multi-view feature aggregation. We initialize the basis with <span class="hl-method">DCT basis</span> but <span class="hl-rebuttal">fine-tune it during optimization, as fixed DCT basis fails to model wide-ranging real-world motions</span>. The resulting source features across neighbor views are aggregated through <span class="hl-method">weighted average pooling</span>, then processed by a <span class="hl-concept">ray transformer network</span> with time embedding, predicting per-sample colors and densities.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一組涵蓋每個輸入影片時間步的全域可學習運動基底 {h_i^l} 與 <span class="hl-thesis">MLP</span> 聯合最佳化。運動軌跡定義為 Gamma_{x,i}(j) = sum_l h_j^l * phi_i^l(x)，x 與其在時間 j 的三維對應點 x_{i->j} 之間的相對位移為：Delta_{x,i}(j) = Gamma_{x,i}(j) - Gamma_{x,i}(i)。藉由此表示法，在鄰近視角中尋找查詢點的三維對應僅需一次 MLP 查詢，實現了高效的多視角特徵聚合。我們以離散餘弦轉換（<span class="hl-method">DCT</span>）基底初始化，但在最佳化過程中進行微調，因固定的 <span class="hl-rebuttal">DCT</span> 基底無法建模範圍廣泛的真實世界運動。鄰近視角的來源特徵透過加權平均池化進行聚合，再由具有時間嵌入的射線轉換器網路處理，預測每個取樣點的顏色與密度。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節推導——完整描述從運動軌跡到顏色密度預測的完整管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將抽象的「運動軌跡場」概念具體化為可實作的數學公式。「僅需一次 MLP 查詢」直接回應前段提出的計算效率問題，形成緊密的論證鏈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    全域基底 {h_i^l} 與局部係數 phi_i^l(x) 的分離設計巧妙地平衡了表達力與效率。以 DCT 初始化但允許微調的策略體現了實用的工程思維。但射線轉換器的具體架構設計在此未詳述，讀者需參考補充材料。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 跨時間渲染 ====== -->
+    <h3 class="subsection-heading" id="sec-cross-time">3.2 Cross-Time Rendering for Temporal Consistency — 跨時間渲染以確保時間一致性</h3>
+
+    <!-- 3.2 段落 1：過擬合風險 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Optimizing the dynamic scene representation by comparing the rendered image C_hat_i with ground truth C_i alone <span class="hl-rebuttal">risks overfitting</span>: the representation might perfectly reconstruct input views but fail at rendering correct novel views. The representation has the capacity to <span class="hl-rebuttal">reconstruct completely separate models for each time instance without utilizing or accurately reconstructing scene motion</span>. To recover consistent scenes with physically plausible motion, <span class="hl-thesis">temporal coherence enforcement becomes necessary</span>. One way to define temporal coherence is that scenes at two neighboring times i and j should remain consistent after accounting for scene motion.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                僅透過比較渲染影像 C_hat_i 與真值 C_i 來最佳化動態場景表示，存在過擬合的風險：該表示可能完美重建輸入視角，卻無法渲染正確的新視角。該表示有能力為每個時間實例重建完全獨立的模型，而不利用或準確重建場景運動。為了恢復具有物理合理運動的一致場景，強制執行時間一致性變得必要。定義時間一致性的一種方式是：在考慮場景運動後，兩個相鄰時間 i 與 j 的場景應保持一致。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出問題——揭示純重建損失的過擬合風險。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段扮演「自我質疑」的角色：在描述完基本框架後，主動指出其潛在缺陷（可能為每幀建立獨立模型而非連貫的動態場景），為下一段的解決方案創造需求。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    主動揭露方法的潛在弱點是誠實且有效的學術寫作策略——它展現了作者對問題的深入理解，同時為即將提出的解方增加可信度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 段落 2：跨時間渲染機制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We specifically enforce temporal photometric consistency through <span class="hl-method">"cross-time rendering in motion-adjusted ray space."</span> The idea is to render a view at time i but <span class="hl-method">"via" some nearby time j</span>, called <span class="hl-concept">cross-time rendering</span>. For each nearby time j in N(i), rather than directly using points x along ray r, we consider points x_{i->j} along <span class="hl-method">motion-adjusted ray r_{i->j}</span>, treating them as if lying along rays at time j. Having computed motion-adjusted points, the MLP queries predict coefficients of "new" trajectories, using these to compute corresponding 3D points for images k in temporal window N(j). These new 3D correspondences then render pixels exactly as described in Section 3.1, except now along a <span class="hl-method">curved, motion-adjusted ray</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們特別透過「運動調整射線空間中的跨時間渲染」來強制時間光度一致性。其概念是渲染時間 i 的視角，但「經由」某個鄰近時間 j——稱為跨時間渲染。對於每個鄰近時間 j，我們不直接使用射線 r 上的點 x，而是考慮運動調整射線 r_{i->j} 上的點 x_{i->j}，將它們視為位於時間 j 的射線上。計算出運動調整點後，MLP 查詢預測「新」軌跡的係數，用以計算時間視窗 N(j) 中影像 k 的對應三維點。這些新的三維對應然後以與 3.1 節相同的方式渲染像素，只是現在沿著一條彎曲的運動調整射線進行。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之二——描述跨時間渲染的具體實現機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應上段提出的過擬合問題：透過強制不同時間的渲染結果保持一致，迫使模型學習真實的場景運動而非逐幀獨立的模型。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「彎曲的運動調整射線」概念頗為直覺——它本質上是將時間 i 的射線透過運動場「彎曲」到時間 j 的空間中。此設計的精妙之處在於它同時利用了多個時間步的觀測來約束運動估計，但計算成本因此倍增。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 段落 3：光度損失 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Comparing the cross-time rendered color C_hat_{j->i}(r) with target pixel C_i(r) proceeds via a <span class="hl-method">motion-disocclusion-aware RGB reconstruction loss</span>: L_pho = sum_r sum_{j in N(i)} W_hat_{j->i}(r) * rho(C_i(r), C_hat_{j->i}(r)), where a <span class="hl-method">generalized Charbonnier loss</span> is applied for RGB loss rho. W_hat_{j->i}(r) represents a <span class="hl-method">motion disocclusion weight</span> computed by accumulated alpha weight differences between times i and j, addressing <span class="hl-concept">motion disocclusion ambiguity</span>. When j=i, no scene motion-induced displacement occurs, meaning C_hat_{j->i} = C_hat_i and no disocclusion weights apply.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                將跨時間渲染的顏色 C_hat_{j->i}(r) 與目標像素 C_i(r) 進行比較，透過運動遮蔽感知的 <span class="hl-method">RGB</span> 重建損失進行：L_pho = sum_r sum_{j in N(i)} W_hat_{j->i}(r) * rho(C_i(r), C_hat_{j->i}(r))，其中 rho 採用廣義 <span class="hl-method">Charbonnier</span> 損失。W_hat_{j->i}(r) 表示運動遮蔽權重，由時間 i 與 j 之間的累積透明度權重差異計算而得，用以處理運動遮蔽歧義。當 j=i 時，不存在場景運動引起的位移，意即 C_hat_{j->i} = C_hat_i，且不套用遮蔽權重。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    損失函數設計——詳述跨時間渲染的監督信號與遮蔽處理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將跨時間渲染的概念轉化為可最佳化的損失函數。遮蔽權重的引入展現了作者對實際場景中遮蔽問題的深入考量。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    運動遮蔽權重的設計參考了 NSFF 的做法，是實用的工程選擇。Charbonnier 損失相較 L2 更能容忍異常值。但 j=i 的特殊情況處理（退化為標準重建損失）確保了損失函數的數學一致性——這一細節體現了嚴謹的設計思維。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 靜態與動態模型 ====== -->
+    <h3 class="subsection-heading" id="sec-static-dynamic">3.3 Combining Static and Dynamic Models — 結合靜態與動態模型</h3>
+
+    <!-- 3.3 段落 1：雙模型架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                As observed in NSFF, synthesizing novel views using small temporal windows proves <span class="hl-rebuttal">insufficient for recovering complete, high-quality static scene region content</span>, since contents may only appear in spatially distant frames due to uncontrolled camera paths. Following NSFF, we model entire scenes using <span class="hl-method">two separate representations</span>. <span class="hl-concept">Dynamic content (c_i, sigma_i)</span> is represented through <span class="hl-method">time-varying models</span> used for cross-time rendering during optimization. <span class="hl-concept">Static content (c, sigma)</span> is represented through <span class="hl-method">time-invariant models</span>, rendering identically to time-varying models but aggregating multi-view features <span class="hl-method">without scene motion adjustment (i.e., along epipolar lines)</span>. Dynamic and static predictions are combined and rendered to a single output color using <span class="hl-concept">NeRF-W</span> methods for combining static and transient models.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                如 NSFF 所觀察到的，使用小時間視窗合成新視角不足以恢復完整且高品質的靜態場景區域內容，因為在無控制攝影機路徑下，某些內容可能僅出現在空間上遙遠的幀中。依循 NSFF 的思路，我們使用兩個獨立的表示來建模整個場景。動態內容 (c_i, sigma_i) 透過時變模型表示，在最佳化期間用於跨時間渲染。靜態內容 (c, sigma) 透過時不變模型表示，渲染方式與時變模型相同，但在不進行場景運動調整的情況下聚合多視角特徵（即沿極線聚合）。動態與靜態的預測使用 <span class="hl-concept">NeRF-W</span> 中結合靜態與暫態模型的方法，合併並渲染為單一輸出顏色。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構設計——闡述靜態/動態雙模型分離的必要性與實現方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決了一個實際問題：純動態模型受限於時間視窗，無法利用遠處幀中的靜態資訊。雙模型設計讓靜態內容能從更大的時間範圍聚合特徵，是務實的工程決策。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    靜態模型沿極線聚合（無運動調整）而動態模型沿運動調整射線聚合，此分工簡潔明瞭。但場景中靜態與動態區域的判定直接影響兩個模型的訓練品質，接下來的分割機制便成為關鍵。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 段落 2：運動分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Without initialization, scene factorization tends to be dominated by either the time-invariant or time-varying representation. To facilitate factorization, <span class="hl-rebuttal">prior work initializes using semantic segmentation masks, assuming all moving objects can be captured via semantic segmentation labels with temporally accurate masks. These assumptions fail in many real-world scenarios.</span> We propose a new <span class="hl-concept">motion segmentation module</span> producing segmentation masks that supervise the two-component scene representation. Our idea is inspired by <span class="hl-method">Bayesian learning techniques</span>, integrated into <span class="hl-method">volumetric IBR representations for dynamic videos</span>. Before training the main two-component representation, two lightweight models are jointly trained to obtain motion segmentation mask M_i for each input frame. Static content is modeled with <span class="hl-method">IBRNet rendering via epipolar line feature aggregation</span>; dynamic content is modeled with a <span class="hl-method">2D convolutional encoder-decoder network D</span> predicting opacity, confidence, and RGB.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在缺乏初始化的情況下，場景分解往往由時不變或時變表示中的一方主導。為促進分解，先前的研究使用語義分割遮罩進行初始化，假設所有移動物件都能透過語義分割標籤以時間準確的遮罩捕捉。這些假設在許多真實世界場景中會失敗。我們提出新的運動分割模組，產生監督雙組件場景表示的分割遮罩。我們的概念受貝氏學習技術啟發，整合至動態影片的體積 <span class="hl-method">IBR</span> 表示中。在訓練主要雙組件表示之前，先聯合訓練兩個輕量模型以獲取每個輸入幀的運動分割遮罩 M_i。靜態內容以沿極線特徵聚合的 <span class="hl-method">IBRNet</span> 渲染建模；動態內容以二維摺積編碼器-解碼器網路 D 建模，預測透明度、信心度與 RGB。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新之三——提出基於貝氏學習的運動分割模組，取代語義分割的假設。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決了雙模型架構的關鍵前置問題：如何自動判定哪些區域是靜態、哪些是動態。先批評語義分割的假設過強，再提出更穩健的貝氏運動分割方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    指出語義分割假設的脆弱性（例如靜止的人或移動的背景）是有力的批評。貝氏學習框架的引入增添了理論深度，但其分割品質直接影響最終結果，若分割不準確，錯誤將級聯傳播至主模型。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 段落 3：分割損失與監督 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The full reconstructed images composite pixelwise from two model outputs: B_hat_i^full(r) = alpha_i^dy(r) * B_hat_i^dy(r) + (1 - alpha_i^dy(r)) * B_hat^st(r). Segmenting moving objects assumes observed pixel color undergoes <span class="hl-method">heteroscedastic aleatoric uncertainty</span>, modeled with <span class="hl-method">Cauchy distributions</span> with time-dependent confidence beta_i^dy. Taking the negative log-likelihood yields a <span class="hl-method">segmentation loss as weighted reconstruction loss</span>. The main time-varying and time-invariant models are then initialized with masks M_i, applying reconstruction loss to time-varying model renderings in dynamic regions and time-invariant model renderings in static regions. <span class="hl-method">Morphological erosion and dilation</span> apply to M_i near mask boundaries, and <span class="hl-method">mask supervision weights decay by factor 5 every 50K steps</span> for dynamic regions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                完整重建影像由兩個模型的輸出逐像素合成：B_hat_i^full(r) = alpha_i^dy(r) * B_hat_i^dy(r) + (1 - alpha_i^dy(r)) * B_hat^st(r)。分割移動物件時假設觀測到的像素顏色具有異質性隨機不確定性，以具有時間相關信心度 beta_i^dy 的柯西分布建模。取負對數概似度可得出加權重建損失形式的分割損失。主要的時變與時不變模型隨後以遮罩 M_i 初始化，在動態區域對時變模型的渲染套用重建損失，在靜態區域對時不變模型的渲染套用重建損失。在遮罩邊界附近對 M_i 套用形態學侵蝕與膨脹，且動態區域的遮罩監督權重每 50K 步衰減 5 倍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    數學推導——完整描述分割損失的設計與漸進式訓練策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將貝氏分割的概念落實為具體的損失函數與訓練排程。權重衰減策略確保模型在訓練後期能逐漸超越初始分割遮罩的限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    使用柯西分布（而非高斯分布）建模不確定性是巧妙的選擇——柯西分布的重尾特性更能容忍異常值。形態學操作處理邊界模糊性、權重漸進衰減避免過度依賴初始遮罩，展現了豐富的工程經驗。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.4 正則化 ====== -->
+    <h3 class="subsection-heading" id="sec-regularization">3.4 Regularization — 正則化</h3>
+
+    <!-- 3.4 段落 1：正則化項 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Monocular reconstruction of complex dynamic scenes is <span class="hl-rebuttal">highly ill-posed</span>, and <span class="hl-rebuttal">photometric consistency alone is insufficient to avoid bad local optimization minima</span>. Therefore, we adopt regularization schemes consisting of three main parts: L_reg = L_data + L_MT + L_cpt. <span class="hl-method">L_data constitutes data-driven terms</span> with L1 <span class="hl-concept">monocular depth</span> and <span class="hl-concept">optical flow</span> consistency priors using estimates from Zhang et al. and RAFT. <span class="hl-method">L_MT represents motion trajectory regularization</span> encouraging estimated trajectory fields toward <span class="hl-method">cycle-consistency and spatial-temporal smoothness</span>. <span class="hl-method">L_cpt denotes compactness priors</span> encouraging scene decomposition toward binary outcomes via <span class="hl-method">entropy loss</span> and mitigating floaters through <span class="hl-method">distortion losses</span>. The final combined loss optimizing the main representation is: <span class="hl-thesis">L = L_pho + L_mask + L_reg</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                單目動態複雜場景的重建是高度不適定的問題，光度一致性本身不足以避免糟糕的局部最佳化極小值。因此，我們採用包含三個主要部分的正則化機制：L_reg = L_data + L_MT + L_cpt。L_data 由資料驅動項組成，包含使用 Zhang 等人與 RAFT 估計的 L1 單目深度與光流一致性先驗。L_MT 為運動軌跡正則化，鼓勵估計的軌跡場趨向循環一致性與時空平滑性。L_cpt 為緊湊性先驗，透過熵損失鼓勵場景分解趨向二元結果，並透過畸變損失抑制浮動偽影。最佳化主要表示的最終組合損失為：<span class="hl-thesis">L = L_pho + L_mask + L_reg</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    正則化設計——系統性列舉三類正則化項及其各自的功能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段承認單目動態重建的不適定性，並以三重正則化作為回應：資料先驗（利用預訓練模型）、運動約束（物理一致性）、緊湊性（防止退化解）。最終損失函數的呈現完成了整個方法的數學描述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三類正則化展現了作者對問題病態性的深刻理解。但依賴預訓練深度與光流估計（L_data）意味著系統的品質上限受限於這些外部模型。循環一致性約束雖強大，但也可能過度限制非剛體運動的表達能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.4 段落 2：實作細節 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Camera pose estimation uses <span class="hl-method">COLMAP</span>. For each ray, <span class="hl-method">coarse-to-fine sampling strategies employ 128 per-ray samples</span>. Separate models train from scratch for each scene using <span class="hl-method">Adam optimizer</span>. The main representation network architectures are variant <span class="hl-concept">IBRNet architectures</span>. Scenes are reconstructed in <span class="hl-method">Euclidean space without special scene parameterization</span>. Full system optimization on <span class="hl-evidence">10-second videos requires approximately two days using 8 NVIDIA A100s</span>, with rendering taking roughly <span class="hl-evidence">20 seconds for 768x432 frames</span>. For in-the-wild videos, we synthesize images at <span class="hl-method">eight randomly sampled nearby viewpoints</span> for every input time via estimated depths, providing additional source images to avoid <span class="hl-rebuttal">degenerate solutions when camera and object motions are mostly colinear</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                攝影機姿態估計使用 <span class="hl-method">COLMAP</span>。對每條射線，採用粗到細的取樣策略，使用 128 個逐射線取樣。每個場景從頭訓練獨立模型，使用 <span class="hl-method">Adam</span> 最佳化器。主要表示網路架構為 <span class="hl-concept">IBRNet</span> 的變體。場景在歐幾里得空間中重建，無特殊的場景參數化。完整系統在 10 秒影片上的最佳化約需兩天，使用 8 張 <span class="hl-evidence">NVIDIA</span> A100，渲染 768x432 幀約需 20 秒。對於實際拍攝影片，我們透過估計深度在每個輸入時間合成八個隨機取樣的鄰近視角影像，提供額外的來源影像以避免攝影機與物件運動大致共線時的退化解。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實作細節與計算需求——揭示方法的實際部署成本。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從理論轉向實踐，提供了可重現性所需的關鍵參數。同時揭示了方法的計算成本（8 張 A100、兩天訓練），讓讀者能評估其實用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    訓練成本相當高昂（8 張 A100 兩天），這是方法的重要限制但以中性語氣呈現。虛擬視角合成來避免退化解是實用的工程技巧，但也暗示了方法對輸入條件的敏感性——在運動退化的情況下仍需額外手段。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：資料集與基準方法 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Numerical evaluations are conducted on <span class="hl-evidence">Nvidia Dynamic Scene Dataset and UCSD Dynamic Scenes Dataset</span>. Each dataset comprises eight forward-facing dynamic scenes recorded by synchronized multi-view cameras, with each video containing <span class="hl-evidence">100 to 250 frames</span>. We compare our approach against state-of-the-art monocular view synthesis methods: three <span class="hl-concept">canonical space-based methods (Nerfies, HyperNeRF)</span> and two <span class="hl-concept">scene flow-based methods (NSFF, Dynamic View Synthesis from Gao et al.)</span>. For fair comparisons, the same <span class="hl-method">depth, optical flow, and motion segmentation masks</span> used for our approach serve as inputs to other methods. We report rendering quality using <span class="hl-evidence">PSNR, SSIM, and LPIPS</span>, calculating errors both over entire scenes and restricted to moving regions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                數值評估在 <span class="hl-evidence">Nvidia</span> 動態場景資料集與 UCSD 動態場景資料集上進行。每個資料集包含八個由同步多視角攝影機錄製的前向動態場景，每段影片包含 100 至 250 幀。我們將本方法與最先進的單目視角合成方法進行比較：三種典型空間方法（<span class="hl-concept">Nerfies</span>、HyperNeRF）與兩種場景流方法（<span class="hl-concept">NSFF</span>、Gao 等人的動態視角合成）。為公平比較，本方法所使用的深度、光流與運動分割遮罩同樣作為輸入提供給其他方法。我們使用 <span class="hl-evidence">PSNR</span>、SSIM 與 LPIPS 報告渲染品質，在整體場景與僅限移動區域上計算誤差。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗設定——定義資料集、基準方法與評估指標。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了公平比較的框架：統一輸入條件、明確評估指標、涵蓋兩類競爭方法。這為後續定量結果的可信度提供了保障。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提供相同的深度/光流/分割遮罩給所有方法是極為公平的實驗設計——它排除了因預處理品質差異而產生的不公平優勢。分別報告全場景與動態區域的指標也展現了對評估完整性的重視。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：定量結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Quantitative results on two benchmark datasets show our approach <span class="hl-thesis">significantly improves over prior state-of-the-art methods across all error metrics</span>. On the <span class="hl-evidence">Nvidia Dynamic Scene Dataset</span>, our method achieves <span class="hl-evidence">0.957 SSIM, 30.86 PSNR, and 0.027 LPIPS</span>, compared to NSFF's <span class="hl-evidence">0.927 SSIM, 28.90 PSNR, and 0.062 LPIPS</span>. On the <span class="hl-evidence">UCSD Dynamic Scenes Dataset</span>, results show <span class="hl-evidence">0.983 SSIM, 36.47 PSNR, and 0.014 LPIPS</span> versus NSFF's <span class="hl-evidence">0.952 SSIM, 31.75 PSNR, and 0.034 LPIPS</span>. Notably, <span class="hl-thesis">PSNR improvements over second-best methods reach 2dB and 4dB on the two datasets respectively</span>, and <span class="hl-thesis">LPIPS error reductions exceed 50%</span>, suggesting our framework is much more effective at recovering highly detailed scene contents.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                兩個基準資料集的定量結果顯示，我們的方法在所有誤差指標上顯著優於先前最先進的方法。在 <span class="hl-evidence">Nvidia</span> 動態場景資料集上，本方法達到 0.957 <span class="hl-evidence">SSIM</span>、30.86 <span class="hl-thesis">PSNR</span> 與 0.027 <span class="hl-thesis">LPIPS</span>，相比 NSFF 的 0.927 <span class="hl-evidence">SSIM</span>、28.90 PSNR 與 0.062 LPIPS。在 <span class="hl-evidence">UCSD</span> 動態場景資料集上，結果為 0.983 <span class="hl-evidence">SSIM</span>、36.47 PSNR 與 0.014 LPIPS，相比 NSFF 的 0.952 <span class="hl-evidence">SSIM</span>、31.75 PSNR 與 0.034 LPIPS。值得注意的是，在兩個資料集上，PSNR 較次佳方法分別改進了 2dB 與 4dB，且 LPIPS 誤差降低超過 50%，表明我們的框架在恢復高度細緻的場景內容方面遠為有效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    關鍵實證——以具體數字展示全面且顯著的效能優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是整篇論文的實證核心，直接驗證了緒論中提出的四項能力指標。PSNR 2-4dB 與 LPIPS 50% 的改進幅度在該領域屬於非常顯著的進步。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    具體數字的羅列極具說服力——三個指標全面改進消除了「某些指標改進而其他退步」的疑慮。LPIPS 超過 50% 的降幅尤為突出，因為 LPIPS 與人類感知高度相關。但需注意這些基準主要包含前向拍攝場景，對更自由視角變化的適用性仍有待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：定性評估 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Qualitative comparisons reveal that <span class="hl-rebuttal">prior dynamic-NeRF methods have difficulty rendering details of moving objects</span>, showing <span class="hl-evidence">excessively blurred dynamic content including the texture of balloons, human faces, and clothing</span>. In contrast, our approach <span class="hl-evidence">synthesizes photo-realistic novel views of both static and dynamic scene content closest to ground truth images</span>. On <span class="hl-evidence">in-the-wild footage of complex dynamic scenes</span>, our approach synthesizes photo-realistic novel views, whereas prior dynamic-NeRF methods <span class="hl-rebuttal">fail to recover high-quality details of both static and moving scene contents, such as shirt wrinkles and dog fur</span>. <span class="hl-rebuttal">Explicit depth warping produces holes at regions near disocclusions and out-of-view areas.</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                定性比較揭示先前的動態 <span class="hl-rebuttal">NeRF</span> 方法難以渲染移動物件的細節，呈現過度模糊的動態內容，包括氣球紋理、人臉與衣物。相比之下，我們的方法合成了最接近真值影像的照片級真實新視角，涵蓋靜態與動態場景內容。在包含複雜動態場景的實際拍攝影片上，我們的方法合成了照片級真實的新視角，而先前的動態 NeRF 方法無法恢復靜態與移動場景內容的高品質細節，如衣服皺褶與狗毛。顯式深度扭曲則在遮蔽消除區域附近與視野外區域產生空洞。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    視覺佐證——以具體場景細節展示質性優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補充定量結果，以直觀的視覺比較讓讀者理解 LPIPS 改進背後的實際意義——更清晰的紋理、更少的模糊、更完整的遮蔽處理。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇「氣球紋理」、「衣服皺褶」、「狗毛」等富含高頻細節的例子作為展示，是最大化視覺衝擊力的策略。但讀者需注意定性比較的選擇性偏差——作者自然會選擇自身方法表現最好的案例。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：消融研究 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Ablation studies</span> on the Nvidia Dynamic Scene Dataset validate the effectiveness of our proposed components. Configuration A (baseline IBRNet with time embedding) achieves only <span class="hl-evidence">0.905 SSIM, 25.33 PSNR</span>. Configuration B (<span class="hl-evidence">without temporal consistency via cross-time rendering</span>) reaches 0.911 SSIM, 27.57 PSNR. Configuration C (scene flow fields instead of trajectories) gets <span class="hl-evidence">0.935 SSIM, 29.42 PSNR</span>. Configuration E (<span class="hl-evidence">without time-invariant static model</span>) drops to 0.919 SSIM, 28.19 PSNR. The <span class="hl-thesis">complete system achieves 0.957 SSIM, 30.77 PSNR, 0.028 LPIPS</span>, confirming that <span class="hl-thesis">motion trajectory representation, cross-time rendering, static-dynamic decomposition, motion segmentation, and regularization are all essential components</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Nvidia 動態場景資料集上的消融研究驗證了我們所提出各組件的有效性。配置 A（基線 IBRNet 加時間嵌入）僅達到 0.905 <span class="hl-evidence">SSIM</span>、25.33 PSNR。配置 B（無跨時間渲染的時間一致性）達到 0.911 <span class="hl-evidence">SSIM</span>、27.57 PSNR。配置 C（以場景流場取代軌跡）獲得 0.935 <span class="hl-thesis">SSIM</span>、29.42 PSNR。配置 E（無時不變靜態模型）降至 0.919 SSIM、28.19 PSNR。完整系統達到 0.957 SSIM、30.77 PSNR、0.028 LPIPS，確認運動軌跡表示、跨時間渲染、靜動態分解、運動分割與正則化均為不可或缺的組件。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    組件驗證——透過系統性消融確認每項創新的獨立貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融研究是論證完整性的最後一環：它證明改進並非來自單一技巧，而是多項創新的協同效果。基線到完整系統的 PSNR 從 25.33 提升至 30.77（超過 5dB），展現了累積性的改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    七種消融配置涵蓋了主要技術組件，設計嚴謹。從 A 到完整系統的逐步改進清楚展示了每個組件的邊際貢獻。但某些配置的組合效果（如同時移除 B 和 C）未被探索，可能存在組件間的交互作用。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Discussion and Conclusion — 討論與結論</h2>
+
+    <!-- 結論段落 1：局限性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our method has several <span class="hl-rebuttal">limitations</span>. It is limited to <span class="hl-rebuttal">relatively small viewpoint changes</span> compared with methods designed for static or quasi-static scenes. It cannot handle <span class="hl-rebuttal">small fast-moving objects due to incorrect initial depth and optical flow estimates</span>. Compared to prior dynamic NeRF methods, <span class="hl-rebuttal">the synthesized views are not strictly multi-view consistent</span>, and rendering quality of static content <span class="hl-rebuttal">depends on which source views are selected</span>. The approach exhibits <span class="hl-rebuttal">sensitivity to degenerate motion patterns</span> from in-the-wild videos where object and camera motion are mostly colinear, though heuristics handle such cases. Additionally, the method can only <span class="hl-rebuttal">synthesize dynamic contents appearing at distant times within limited temporal windows</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的方法存在若干局限性。相較於為靜態或準靜態場景設計的方法，它受限於相對較小的視角變化。由於初始深度與光流估計不正確，它無法處理小型快速移動的物件。與先前的動態 NeRF 方法相比，合成的視角並非嚴格的多視角一致，且靜態內容的渲染品質取決於所選擇的來源視角。本方法對實際拍攝影片中的退化運動模式（即物件與攝影機運動大致共線的情況）具有敏感性，儘管啟發式方法能處理此類情況。此外，本方法僅能在有限的時間視窗內合成出現於遠處時間的動態內容。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    誠實揭露局限——系統性列舉方法的六項已知限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展現學術誠信：在取得顯著改進之後，主動且詳細地列出方法的邊界條件。這些限制大多源自 IBR 框架本身的特性（依賴來源視角品質）與外部依賴（深度/光流估計）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    六項限制的坦承既是學術美德，也為後續研究提供了清晰的改進方向。特別是「非嚴格多視角一致」的限制揭示了 IBR 框架相對於純 NeRF 方法的根本取捨——以品質換取擴展性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：總結 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We presented a new approach for <span class="hl-thesis">space-time view synthesis from a monocular video depicting a complex dynamic scene</span>. By representing a dynamic scene within a <span class="hl-concept">volumetric IBR framework</span>, our approach <span class="hl-thesis">overcomes limitations of recent methods that cannot model long videos with complex camera and object motion</span>. We have shown that our method can <span class="hl-evidence">synthesize photo-realistic novel views from in-the-wild dynamic videos</span>, and can achieve <span class="hl-evidence">significant improvements over prior state-of-the-art methods on the dynamic scene benchmarks</span>. We hope that our work <span class="hl-thesis">advances the applicability of dynamic view synthesis methods to real-world videos</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一種從描繪複雜動態場景的單目影片進行時空視角合成的新方法。透過在體積 <span class="hl-concept">IBR</span> 框架中表示動態場景，我們的方法克服了近期方法無法建模包含複雜攝影機與物件運動之長影片的限制。我們已展示本方法能從實際拍攝的動態影片中合成照片級真實的新視角，並在動態場景基準測試上取得顯著優於先前最先進方法的改進。我們期望本研究能推進動態視角合成方法在真實世界影片中的適用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心貢獻並表達展望。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段與摘要形成呼應，完成論證閉環：從「動態 NeRF 方法的局限」出發，到「體積 IBR 框架的解方」，最終以「推進真實世界適用性」的願景收束。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「我們期望」的謙遜措辭與前段的局限性討論形成一致的謙虛基調。結論適度聚焦，未過度誇大方法的適用範圍。但作為 Best Paper Honorable Mention，讀者可能期待更具體的未來研究方向指引。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 3：更廣泛的影響 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our key contributions include: (1) a <span class="hl-method">motion trajectory field representation</span> based on learned basis functions that efficiently models scene motion across multiple frames with just a single MLP query; (2) a <span class="hl-method">cross-time rendering scheme</span> in motion-adjusted ray space that enforces temporal coherence; (3) an <span class="hl-method">IBR-based Bayesian motion segmentation</span> module that avoids unreliable semantic segmentation assumptions; and (4) a complete system that <span class="hl-thesis">advances the state-of-the-art in dynamic view synthesis by significant margins on standard benchmarks while extending applicability to challenging in-the-wild scenarios</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的關鍵貢獻包括：(1) 基於學習式基底函數的運動軌跡場表示法，僅需一次 MLP 查詢即可高效建模跨越多幀的場景運動；(2) 在運動調整射線空間中的跨時間渲染機制，用以強制時間一致性；(3) 基於 IBR 的貝氏運動分割模組，避免了不可靠的語義分割假設；(4) 一個完整系統，在標準基準測試上以顯著差距推進了動態視角合成的最先進水準，同時將適用性擴展至具挑戰性的實際拍攝場景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    貢獻清單——以條列式總結四項核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以結構化的方式回顧全文的技術創新，讓讀者在離開時對論文的核心價值有清晰的印象。每項貢獻都對應了方法章節中的一個主要子節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    四項貢獻涵蓋了表示法、損失設計、分割模組與完整系統四個層次，展現了論文的多面向創新。第 (4) 點以「顯著差距」收束，強化了作為 Best Paper Honorable Mention 的資格感。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                動態 NeRF 難以擴展至<br>長影片與複雜運動場景
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                體積 IBR 框架搭配<br>運動感知特徵聚合
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                LPIPS 降低超過 50%<br>PSNR 改進 2-4 dB
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                視角變化有限、依賴<br>外部深度與光流估計
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                推進動態視角合成<br>在真實世界的適用性
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    將動態場景表示於體積影像基礎渲染框架中，透過運動軌跡場驅動的跨時間特徵聚合，能從單目影片合成照片級真實的新視角，克服既有動態 NeRF 方法在長影片與複雜運動場景上的根本限制。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>運動軌跡場的效率設計：</strong>以學習式基底函數分解場景運動，僅需一次 MLP 查詢即可獲取跨時間的三維對應，在保持表達力的同時將計算複雜度從遞迴展開降至常數級。跨時間渲染機制則以自監督方式強制時間一致性，在實驗中帶來了最顯著的改進（消融研究中移除後 PSNR 下降約 3dB）。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>外部依賴與計算成本的雙重隱憂：</strong>系統嚴重依賴預訓練的深度估計（Zhang 等人）與光流估計（RAFT）作為正則化先驗，這些外部模型的誤差會級聯傳播。此外，8 張 A100 訓練兩天的計算成本、以及僅支援小視角變化的限制，使得方法在實際部署中面臨顯著障礙。非嚴格多視角一致性也意味著 IBR 框架相對於純 NeRF 方法存在本質上的取捨。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

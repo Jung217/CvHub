@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generative Image Dynamics — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-title .best-paper-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f6d365, #d4a017);
+            color: #1a2332;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Generative Image Dynamics
+                <span class="course-tag">CVPR 2024</span>
+                <span class="best-paper-badge">Best Paper Award</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2309.07906" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-overview">3. 概述</a>
+        <a href="#sec-motion-rep">4.1 運動表示</a>
+        <a href="#sec-motion-diff">4.2 擴散模型預測</a>
+        <a href="#sec-rendering">5. 影像渲染</a>
+        <a href="#sec-applications">6. 應用</a>
+        <a href="#sec-experiments">7. 實驗</a>
+        <a href="#sec-conclusion">8. 討論與結論</a>
+        <a href="#sec-arg-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present an approach to modeling <span class="hl-thesis">an image-space prior on scene motion</span>. Our method learns this prior from <span class="hl-method">motion trajectories extracted from real video sequences</span> depicting natural, oscillatory dynamics such as <span class="hl-evidence">trees, flowers, candles, and clothes swaying in the wind</span>. We model scene motion in the <span class="hl-concept">Fourier domain</span>: given a single image, our trained model uses <span class="hl-method">a frequency-coordinated diffusion sampling process to predict a spectral volume</span>, which can be converted into a <span class="hl-concept">motion texture</span> that spans an entire video. This approach enables <span class="hl-thesis">turning still images into seamlessly looping videos</span>, and allows users to <span class="hl-thesis">realistically interact with objects in real pictures</span> by interpreting the spectral volumes as <span class="hl-concept">image-space modal bases</span>, which approximate object dynamics.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種<span class="hl-thesis">建模影像空間場景運動先驗</span>的方法。我們的方法從<span class="hl-method">真實影片序列中擷取的運動軌跡</span>學習此先驗，這些影片描繪了自然的振盪動態，例如<span class="hl-evidence">樹木、花朵、燭火與衣物在風中搖曳</span>。我們在<span class="hl-concept"><span class="hl-concept">傅立葉</span>域</span>中建模場景運動：給定一張靜態影像，訓練好的模型透過<span class="hl-method">頻率協調擴散取樣過程預測一個<span class="hl-method">頻譜體積</span></span>，並可將其轉換為跨越整段影片的<span class="hl-concept">運動紋理</span>。此方法能<span class="hl-thesis">將靜態影像轉化為無縫循環的影片</span>，並允許使用者透過將頻譜體積詮釋為<span class="hl-concept">影像空間模態基底</span>來與真實照片中的物件<span class="hl-thesis">進行擬真互動</span>，藉此近似物件的動態行為。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以遞進方式從「運動先驗」到「頻譜體積」再到「應用場景」，完整預告論文的核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔「問題定義、方法概述與應用預告」的三重功能：先界定場景運動先驗的研究目標，再以頻譜體積作為表示手段，最終展示靜態影像動畫化與互動式操作兩大應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體的自然場景（樹木、花朵、燭火）為例，讓讀者直覺理解「振盪動態」的意涵。然而，「自然振盪」的範疇限縮了方法的適用性——非週期性運動（如行人行走）被排除在外，摘要未明確揭示此局限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：動機與觀察 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">The natural world is always in motion</span>, with even seemingly static scenes containing <span class="hl-concept">subtle oscillations</span> as a result of factors such as wind, water currents, respiration, or other natural rhythms. <span class="hl-concept">Motion is one of the most salient visual signals</span>, and humans are particularly sensitive to it. While it is easy for humans to interpret or imagine motion in scenes, <span class="hl-rebuttal">training a model to learn realistic scene motion is far from trivial</span>. The underlying physical dynamics are <span class="hl-rebuttal">hard to measure and capture at scale</span>, but fortunately, in many cases measuring them is unnecessary — <span class="hl-thesis">the necessary signals for producing plausible motion can often be extracted from observed 2D motion</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">自然世界時刻處於運動之中</span>，即使看似靜態的場景也因風力、水流、呼吸或其他自然節律而蘊含細微的<span class="hl-concept">振盪</span>。<span class="hl-concept">運動是最顯著的視覺訊號之一</span>，人類對此格外敏感。然而，儘管人類能輕易地詮釋或想像場景中的運動，<span class="hl-rebuttal">訓練模型學習寫實的場景運動卻絕非易事</span>。潛在的物理動態<span class="hl-rebuttal">難以大規模量測與擷取</span>，但幸運的是，在許多情況下並不需要量測它們——<span class="hl-thesis">產生合理運動所需的訊號通常可以從觀察到的二維運動中擷取</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——從自然界的普遍運動現象出發，指出計算建模的挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以直覺性觀察（「世界時刻運動」）建立共鳴，再指出模型學習的困難，最終以「二維運動即足夠」為突破口引出方法論基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從人類感知出發建立動機是有效的修辭策略。「二維運動即足夠」的主張在振盪場景中成立，但對於涉及深度變化或遮擋的複雜運動則未必適用，此處為後文方法範疇設下了隱含前提。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：可預測性與生成模型 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Real-world observed motion is <span class="hl-concept">multi-modal</span> and grounded in <span class="hl-concept">complex physical effects</span>, yet often <span class="hl-thesis">predictable: candles will flicker in certain ways, trees will sway</span>. This predictability is ingrained in our human perception of real scenes: by viewing a still image, we can <span class="hl-thesis">imagine a distribution of natural motions conditioned on that image</span>. <span class="hl-evidence">Recent advances in generative models, in particular conditional diffusion models</span>, have enabled us to model rich distributions, including distributions of real images conditioned on text. In this paper, we explore <span class="hl-thesis">modeling a generative prior for image-space scene motion</span>, i.e., the motion of all pixels in a single image, trained on <span class="hl-method">motion trajectories automatically extracted from a large collection of real video sequences</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                真實世界中觀察到的運動是<span class="hl-concept">多模態</span>的，根植於複雜的<span class="hl-concept">物理效應</span>，但通常具有<span class="hl-thesis">可預測性：燭火會以特定方式閃爍，樹木會搖擺</span>。這種可預測性深植於人類對真實場景的感知之中：僅憑觀看一張靜態影像，我們便能<span class="hl-thesis">想像以該影像為條件的自然運動分布</span>。<span class="hl-evidence">近年來<span class="hl-evidence">生成模型</span>的進展——特別是條件式擴散模型</span>——已使我們能夠建模豐富的分布，包括以文字為條件的真實影像分布。本文探索<span class="hl-thesis">為影像空間場景運動建模生成式先驗</span>，即單張影像中所有像素的運動，訓練資料來自從<span class="hl-method">大量真實影片序列中自動擷取的運動軌跡</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    橋接動機與方法——從運動的可預測性過渡到擴散模型的應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成關鍵的類比推理：既然擴散模型能建模影像分布，那麼同樣的框架也能用於建模運動分布。這為後文採用潛在擴散模型提供了正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「燭火閃爍、樹木搖擺」具象化多模態運動的概念，降低了理解門檻。但從影像分布到運動分布的跳躍預設了兩者在表示學習上具有相似的結構，此假設的有效性需要實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：頻譜體積表示與優勢 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We compute motion in the form of <span class="hl-concept">a spectral volume</span>, a <span class="hl-method">frequency-domain representation of dense, long-range pixel trajectories</span> suited to scenes that exhibit oscillatory dynamics. We train a generative model that, <span class="hl-method">conditioned on a single image, can sample spectral volumes from its learned distribution</span>. The predicted spectral volume transforms into a <span class="hl-concept">motion texture</span> — a set of per-pixel, long-range pixel motion trajectories — that can be used to animate the image. <span class="hl-thesis">Compared with priors over raw RGB pixels, priors over motion capture more fundamental, lower-dimensional underlying structure that efficiently explains long-range variations in pixel values</span>, leading to <span class="hl-evidence">more coherent long-term generation and more fine-grained control over animations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們以<span class="hl-concept">頻譜體積</span>的形式計算運動——這是一種<span class="hl-method">密集、長程像素軌跡的頻域表示</span>，適用於展現振盪動態的場景。我們訓練一個生成模型，<span class="hl-method">以單張影像為條件，從學習到的分布中取樣頻譜體積</span>。預測的頻譜體積會轉換為<span class="hl-concept">運動紋理</span>——一組逐像素的長程運動軌跡——可用於將影像動畫化。相較於以原始 RGB 像素為對象的先驗，<span class="hl-thesis">運動先驗捕捉了更根本、更低維的底層結構，能有效解釋像素值的長程變化</span>，從而帶來<span class="hl-evidence">更連貫的長期生成效果與更精細的動畫控制能力</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心貢獻預告——闡明頻譜體積表示的設計理念與相對優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是緒論的關鍵主張：以運動先驗取代像素先驗，從根本上改變了影片生成的思路。「更低維的底層結構」是整個方法能高效運作的理論支撐。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將運動先驗定位為比像素先驗「更根本」是一個強有力的論述。然而，這隱含了一個前提：場景的視覺變化主要由運動驅動，而非光照變化或材質變形。對於涉及大幅光影變化的場景，此論述的強度可能減弱。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：生成式合成與影像動畫 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Generative synthesis</span>: Recent advances in generative models have enabled <span class="hl-evidence">photorealistic synthesis of images conditioned on text prompts</span>. These models can be augmented to synthesize video sequences by extending the generated image tensors along a time dimension. While these methods produce plausible video sequences, the resulting videos often suffer from <span class="hl-rebuttal">artifacts such as incoherent motion, unrealistic temporal variation in textures, and violations of physical constraints</span> like preservation of mass. <span class="hl-concept">Animating images</span>: Other techniques take a still picture and animate it. Many recent deep learning methods adopt a <span class="hl-method">3D-UNet architecture</span> to produce video volumes directly, but because these models are effectively the same video generation models conditioned on image information instead of text, <span class="hl-rebuttal">they exhibit similar artifacts</span>. One way to overcome these limitations is to animate an input source image through <span class="hl-method">explicit or implicit image-based rendering</span>, moving the image content around according to motion derived from external sources. Animating images according to motion fields yields <span class="hl-evidence">greater temporal coherence and realism</span>, but <span class="hl-rebuttal">prior methods require additional guidance signals or user input, or utilize limited motion representations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">生成式合成</span>方面：近年來生成模型的進展已實現以文字<span class="hl-evidence"><span class="hl-evidence">提示</span>為條件的逼真影像合成</span>。這些模型可透過在時間維度上擴展來合成影片序列。然而，所產生的影片常出現<span class="hl-rebuttal">不連貫的運動、不自然的紋理時序變化，以及違反質量守恆等物理約束的瑕疵</span>。<span class="hl-concept">影像動畫</span>方面：另有一些技術以靜態影像作為輸入進行動畫化。許多近期的深度學習方法採用 <span class="hl-method">3D-UNet 架構</span>直接產生影片體積，但由於這些模型本質上與影片生成模型相同，只是以影像資訊而非文字為條件，因此<span class="hl-rebuttal">展現類似的瑕疵</span>。一種克服此限制的方式是透過<span class="hl-method">顯式或隱式的影像基礎<span class="hl-method">渲染</span></span>來動畫化來源影像，但<span class="hl-rebuttal">先前的方法需要額外的引導訊號或使用者輸入，或僅使用有限的運動表示</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性梳理生成式合成與影像動畫兩大領域的現狀與瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「直接生成」與「基於運動的渲染」兩條路線組織相關工作，為自身方法的定位奠定基礎——本文屬於後者的延伸，但克服了「需外部引導」的限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    對影片生成方法的批評（「不連貫運動」）雖屬普遍觀察，但隨著技術快速發展，部分方法已大幅改善這些問題。以 2023 年的視角來看，此處的批評有時效性風險。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：運動模型與動態紋理 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Motion models and motion priors</span>: In computer graphics, natural oscillatory 3D motion has long been modeled with <span class="hl-method">noise shaped in the Fourier domain</span> and then converted via an <span class="hl-method">inverse Fourier transform to time-domain motion fields</span>. Some of these methods rely on a <span class="hl-concept">modal analysis</span> of the underlying dynamics. These spectral techniques were adapted to animate plants, water, and clouds from single 2D pictures by Chuang et al. with additional user annotations. Our work is particularly inspired by <span class="hl-concept">Davis et al.</span>, who showed how to <span class="hl-method">connect modal analysis of a scene with the motions observed in video</span>, and how to use this analysis to <span class="hl-thesis">simulate interactive dynamics from a video</span>. We adopt the <span class="hl-concept">spectral volume</span> representation from Davis et al., extract this representation from a large set of training videos, and show that it is <span class="hl-thesis">suitable for predicting motion from single images with diffusion models</span>. <span class="hl-concept">Videos as textures</span>: Certain moving scenes can be thought of as <span class="hl-concept">dynamic textures</span> that model videos as space-time samples of a stochastic process. In contrast to much of previous work, <span class="hl-thesis">our method learns priors in advance that can then be applied to single images</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">運動模型與運動先驗</span>方面：在電腦圖學中，自然的振盪三維運動長期以來透過在<span class="hl-method"><span class="hl-method">傅立葉</span>域中塑形的雜訊</span>建模，再經由<span class="hl-method">反傅立葉轉換轉為時域運動場</span>。部分方法依賴底層動態的<span class="hl-concept">模態分析</span>。Chuang 等人將這些頻譜技術改編為從單張二維影像動畫化植物、水面與雲層，但需要額外的使用者標註。本研究特別受到 <span class="hl-concept">Davis 等人</span>的啟發，他們展示了如何<span class="hl-method">將場景的模態分析與影片中觀察到的運動相連結</span>，並利用此分析<span class="hl-thesis">從影片模擬互動式動態</span>。我們採用 Davis 等人的<span class="hl-concept">頻譜體積</span>表示，從大量訓練影片中擷取此表示，並證明它<span class="hl-thesis">適合以<span class="hl-thesis">擴散模型</span>從單張影像預測運動</span>。<span class="hl-concept">影片即紋理</span>方面：特定的動態場景可視為<span class="hl-concept">動態紋理</span>。與先前的大部分研究不同，<span class="hl-thesis">本方法預先學習先驗知識，再將其應用於單張影像</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    學術譜系建構——將方法定位於模態分析與頻譜運動表示的傳統之上。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立了關鍵的學術傳承鏈：傅立葉域運動建模 -> Davis 等人的頻譜體積 -> 本文的擴散模型預測。此段為方法的表示選擇提供了歷史正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 Davis 等人明確標示為靈感來源展現了學術誠信，同時巧妙地將本文定位為「從影片到單張影像」的重要推進。但此定位也暗示了方法高度依賴頻譜體積表示的品質——若該表示本身有局限（如難以捕捉非週期運動），方法亦將受限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 概述 ====== -->
+    <h2 class="section-heading" id="sec-overview">3. Overview — 概述</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Given a single picture I<sub>0</sub>, our goal is to <span class="hl-thesis">generate a video of length T featuring oscillation dynamics</span> such as those of trees, flowers, or candle flames moving in the breeze. Our system has two modules: <span class="hl-method">a motion prediction module and an image-based rendering module</span>. We first use <span class="hl-concept">a latent diffusion model (LDM)</span> to predict a <span class="hl-concept">spectral volume</span> for the input image. The predicted spectral volume is then <span class="hl-method">transformed to a sequence of motion displacement fields (a motion texture) using an inverse discrete Fourier transform</span>. This motion determines the position of each input pixel at each future time step. Given a predicted motion texture, our rendering module <span class="hl-method">animates the input RGB image using an image-based rendering technique that splats encoded features from the input image</span> and decodes these splatted features into an output frame with an <span class="hl-concept">image synthesis network</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                給定一張靜態影像 I<sub>0</sub>，我們的目標是<span class="hl-thesis">生成一段長度為 T 的影片，呈現樹木、花朵或燭火在微風中搖曳等振盪動態</span>。系統包含兩個模組：<span class="hl-method">運動預測模組與影像基礎<span class="hl-method">渲染</span>模組</span>。我們首先使用<span class="hl-concept">潛在<span class="hl-concept">擴散模型</span></span>預測輸入影像的<span class="hl-concept">頻譜體積</span>，再透過反離散<span class="hl-method">傅立葉</span>轉換將預測的頻譜體積<span class="hl-method">轉換為一系列運動位移場（即運動紋理）</span>。此運動決定了每個輸入像素在每個未來時間步的位置。給定預測的運動紋理，渲染模組透過影像基礎渲染技術，將輸入影像的<span class="hl-method">編碼特徵進行投射</span>，並以<span class="hl-concept">影像合成網路</span>將這些投射後的特徵解碼為輸出影格。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    系統架構概述——以簡潔方式勾勒兩階段管線的運作流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段扮演「路線圖」的角色，讓讀者在深入技術細節之前先掌握全貌：LDM 預測頻譜 -> 反 FFT 轉為運動場 -> 影像渲染。後續章節逐一展開各模組的細節。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將系統分解為「預測」與「渲染」兩個模組使架構清晰可理解。此解耦設計的優勢在於各模組可獨立改進，但也意味著預測模組的誤差會直接傳播至渲染階段，系統的端對端最佳化可能受限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 預測運動 ====== -->
+    <h2 class="section-heading" id="sec-motion-rep">4. Predicting Motion — 預測運動</h2>
+    <h3 class="subsection-heading">4.1 Motion Representation — 運動表示</h3>
+
+    <!-- 運動表示段落 1：運動紋理定義 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Formally, a <span class="hl-concept">motion texture</span> is a sequence of <span class="hl-method">time-varying 2D displacement maps</span>, where the 2D displacement vector at each pixel coordinate from input image I<sub>0</sub> defines the position of that pixel at a future time t. If our goal is to produce a video via a motion texture, then one choice would be to <span class="hl-rebuttal">predict a time-domain motion texture directly</span>, but the size of the motion texture would need to <span class="hl-rebuttal">scale with the length of the video: generating T output frames implies predicting T displacement fields</span>. To avoid predicting such a large output representation, many prior animation methods either generate video frames <span class="hl-rebuttal">autoregressively</span>, or predict each future output frame independently via an extra time embedding. However, <span class="hl-rebuttal">neither strategy ensures long-term temporal consistency</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                形式上，<span class="hl-concept">運動紋理</span>是一系列隨<span class="hl-method">時間變化的二維位移圖</span>，其中每個像素座標處的二維位移向量定義了該像素在未來時間 t 的位置。若目標是透過運動紋理產生影片，一種選擇是<span class="hl-rebuttal">直接預測時域運動紋理</span>，但其大小需<span class="hl-rebuttal">隨影片長度線性增長：生成 T 個輸出影格意味著預測 T 個位移場</span>。為避免預測如此龐大的輸出表示，許多先前的動畫方法要麼以<span class="hl-rebuttal">自迴歸</span>方式生成影格，要麼透過額外的時間嵌入獨立預測每個未來影格。然而，<span class="hl-rebuttal">這兩種策略都無法確保長期的時間一致性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題界定——指出時域運動表示的效率與一致性瓶頸。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「排除法」推進論證：先排除直接時域預測（規模問題）、自迴歸（誤差累積）、獨立預測（缺乏一致性），為引入頻域表示鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    系統性列舉三種替代方案的缺陷是有效的論證策略。但「長期時間一致性」的界定較模糊——對於某些應用（如短影片生成），自迴歸方法的一致性可能已足夠。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 運動表示段落 2：頻譜體積 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Fortunately, many natural motions can be described as <span class="hl-thesis">a superposition of a small number of harmonic oscillators</span> represented with different frequencies, amplitudes, and phases. Because the underlying motions are <span class="hl-concept">quasi-periodic</span>, it is natural to model them in the <span class="hl-method">frequency domain</span>. We adopt an efficient frequency space representation called a <span class="hl-concept">spectral volume</span> from Davis et al. A spectral volume is <span class="hl-method">the temporal Fourier transform of pixel trajectories extracted from a video, organized into images called modal images</span>. Davis et al. further show that, under certain assumptions, the spectral volume evaluated at certain frequencies forms an <span class="hl-concept">image-space modal basis</span> that is a projection of the <span class="hl-concept">vibration modes</span> of the underlying scene. <span class="hl-evidence">Prior work in real-time animation has observed that most natural oscillation motions are composed primarily of low-frequency components. We validated this observation: the power spectrum of the motion decreases exponentially with increasing frequency</span>. In practice, we found that <span class="hl-evidence">the first K=16 Fourier coefficients are sufficient</span> to realistically reproduce the original natural motion.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                幸運的是，許多自然運動可描述為<span class="hl-thesis">少量諧波振盪子的疊加</span>，以不同頻率、振幅與相位表示。由於底層運動具有<span class="hl-concept">準週期性</span>，在<span class="hl-method">頻域</span>中建模是自然的選擇。我們採用 Davis 等人提出的高效頻率空間表示——<span class="hl-concept">頻譜體積</span>。頻譜體積是從<span class="hl-method">影片中擷取的像素軌跡的時間<span class="hl-method">傅立葉</span>轉換，組織為稱作模態影像的圖像</span>。Davis 等人進一步證明，在特定假設下，在特定頻率處求值的頻譜體積構成了<span class="hl-concept">影像空間模態基底</span>，是底層場景<span class="hl-concept">振動模態</span>的投影。<span class="hl-evidence">先前關於<span class="hl-evidence">即時</span>動畫的研究已觀察到大多數自然振盪運動主要由低頻成分構成。我們驗證了此觀察：運動的功率頻譜隨頻率增加呈指數衰減</span>。實際上，前 <span class="hl-evidence">K=16 個傅立葉係數便足以</span>寫實地重現原始的自然運動。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心表示引入——以物理直覺與實證資料支持頻譜體積作為運動表示的選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的基石：「準週期性 -> 頻域建模 -> 低頻即足夠」的推理鏈為整個架構的效率提供了理論與實證雙重支撐。K=16 的選擇將預測問題從 T 個位移場壓縮至 16 個頻譜係數。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以功率頻譜的指數衰減為實證支持，說服力強。但「準週期性」的假設明確將方法限制於振盪類運動，對於含有突發事件（如物體掉落）的場景，此表示將無法捕捉非週期性成分。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.2 擴散模型預測 ====== -->
+    <h3 class="subsection-heading" id="sec-motion-diff">4.2 Predicting Motion with a Diffusion Model — 以擴散模型預測運動</h3>
+
+    <!-- 擴散模型段落 1：基本架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We select <span class="hl-concept">a latent diffusion model (LDM)</span> as the backbone for our motion prediction module, as LDMs are <span class="hl-evidence">more computationally efficient than pixel-space diffusion models while preserving generation quality</span>. A standard LDM consists of two main modules: (1) a <span class="hl-concept">Variational Autoencoder (VAE)</span> that compresses the input to a latent space through an encoder z=E(I), then reconstructs via a decoder I=D(z); and (2) a <span class="hl-concept">U-Net based diffusion model</span> that learns to iteratively denoise latent features starting from Gaussian random noise. Our training applies this not to input images but to <span class="hl-method">motion spectra from real video sequences</span>, which are encoded and then diffused for n steps with a pre-defined variance schedule to produce noisy latents z<sup>n</sup>. The 2D U-Nets are trained to <span class="hl-method">denoise the noisy latents by iteratively estimating the noise</span> used to update the latent feature at each step.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們選擇<span class="hl-concept">潛在<span class="hl-concept">擴散模型</span></span>作為運動預測模組的骨幹，因為 LDM <span class="hl-evidence">相較像素空間擴散模型更具計算效率，同時維持生成品質</span>。標準 LDM 包含兩個主要模組：(1) <span class="hl-concept">變分自編碼器（<span class="hl-concept">VAE</span>）</span>，透過編碼器 z=E(I) 將輸入壓縮至潛在空間，再透過解碼器 I=D(z) 重建；(2) 基於 <span class="hl-concept"><span class="hl-concept">U-Net</span> 的擴散模型</span>，學習從高斯隨機雜訊出發，迭代去噪潛在特徵。我們的訓練並非應用於輸入影像，而是應用於從<span class="hl-method">真實影片序列中擷取的運動頻譜</span>。這些頻譜經編碼後以預定義的變異數排程進行 n 步擴散以產生含噪潛在表示 z<sup>n</sup>，2D U-Net 則被訓練透過<span class="hl-method">迭代估計雜訊來對含噪潛在表示去噪</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術框架建立——介紹 LDM 的基本架構及其應用於運動頻譜的調整方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將成熟的 LDM 框架「移植」至運動預測領域，關鍵修改在於將 VAE 與擴散模型的對象從影像改為頻譜體積。這種借用成熟架構的策略降低了方法的新穎性風險。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇 LDM 而非像素空間擴散模型的決策以效率為理由，合理且實用。但 VAE 的壓縮可能損失運動頻譜中的細微資訊，特別是高頻運動細節可能在潛在空間中被平滑化。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 擴散模型段落 2：頻率自適應正規化 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Frequency Adaptive Normalization</span>: One issue we observed is that motion textures have particular <span class="hl-rebuttal">distribution characteristics across frequencies — the amplitude spans a range of 0 to 100 and decays approximately exponentially with increasing frequency</span>. As diffusion models require output values between 0 and 1 for stable training, we must normalize the coefficients. If we simply <span class="hl-rebuttal">scale the magnitudes based on image width and height, almost all coefficients at higher frequencies will end up close to zero</span>. Models trained on such data can produce inaccurate motions, since even <span class="hl-rebuttal">small prediction errors lead to large relative errors after denormalization</span>. To address this, we employ <span class="hl-method">a frequency adaptive normalization technique: we independently normalize Fourier coefficients at each frequency</span> based on statistics computed from the training set. At each individual frequency f<sub>j</sub>, we compute <span class="hl-method">the 97th percentile of the Fourier coefficient magnitudes</span> over all input samples as a per-frequency scaling factor. Furthermore, we apply <span class="hl-method">a square root transform</span> to each scaled coefficient to pull it away from extremely small or large values.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">頻率自適應正規化</span>：我們觀察到運動紋理在不同頻率上具有特殊的分布特性——<span class="hl-rebuttal">振幅範圍從 0 到 100，且隨頻率增加近似指數衰減</span>。由於擴散模型需要輸出值介於 0 與 1 之間以確保穩定訓練，必須正規化係數。若僅依據影像寬度與高度縮放振幅，<span class="hl-rebuttal">幾乎所有高頻係數都會趨近於零</span>。以此類資料訓練的模型會產生不準確的運動，因為<span class="hl-rebuttal">即便微小的預測誤差在反正規化後也會導致巨大的相對誤差</span>。為解決此問題，我們採用<span class="hl-method">頻率自適應正規化技術：根據訓練集計算的統計量，在每個頻率上獨立正規化<span class="hl-method">傅立葉</span>係數</span>。具體而言，在每個頻率 f<sub>j</sub> 上，計算所有輸入樣本中傅立葉係數振幅的第 <span class="hl-method">97 百分位數</span>作為逐頻率縮放因子，並對每個縮放後的係數施加<span class="hl-method">平方根轉換</span>，使其遠離極小或極大值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術問題解決——辨識並解決頻率域中數值分布不均的訓練難題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示了從問題觀察到解決方案的完整推理：分布不均 -> 簡單縮放失效 -> 逐頻率正規化 + 平方根轉換。這種「發現問題-分析原因-提出方案」的結構是工程導向研究的典型論述模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    第 97 百分位數的選擇是一個實用但有些任意的設計——為何不是 95 或 99？平方根轉換的選擇同樣缺乏理論依據（作者僅提及經驗上優於對數或倒數轉換）。這些超參數的穩健性未被充分探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 擴散模型段落 3：頻率協調去噪 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Frequency-Coordinated Denoising</span>: The straightforward way to predict a spectral volume with K frequency bands is to <span class="hl-rebuttal">output a tensor of 4K channels from a standard diffusion U-Net, but training a model to produce such a large number of channels tends to produce over-smoothed and inaccurate output</span>. An alternative would be to <span class="hl-rebuttal">independently predict a motion spectrum map at each individual frequency, but this results in uncorrelated predictions leading to unrealistic motion</span>. Therefore, we propose a <span class="hl-method">frequency-coordinated denoising strategy</span>. We first train an LDM to predict a spectral volume texture map at each individual frequency f<sub>j</sub> with <span class="hl-method">extra frequency embedding along with time-step embedding</span>. We then freeze the parameters and <span class="hl-method">introduce attention layers interleaved with 2D spatial layers across K frequency bands</span>. The <span class="hl-method">frequency attention layers coordinate the pre-trained motion latent features across all frequency channels</span> to produce coherent spectral volumes. <span class="hl-evidence">The average VAE reconstruction error improves from 0.024 to 0.018 when switching from a standard 2D U-Net to our frequency-coordinated denoising module</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">頻率協調去噪</span>：預測具有 K 個頻帶的頻譜體積，最直接的方式是<span class="hl-rebuttal">從標準擴散 <span class="hl-rebuttal">U-Net</span> 輸出 4K 通道的張量，但訓練模型產生如此大量的通道往往導致過度平滑且不準確的輸出</span>。另一種選擇是<span class="hl-rebuttal">在每個頻率上獨立預測運動頻譜圖，但這會產生不相關的預測，導致不自然的運動</span>。因此，我們提出<span class="hl-method">頻率協調去噪策略</span>。首先訓練一個 LDM，在每個頻率 f<sub>j</sub> 上預測頻譜體積紋理圖，注入額外的<span class="hl-method">頻率<span class="hl-method">嵌入</span>與時間步嵌入</span>。接著凍結參數，<span class="hl-method">引入<span class="hl-method">注意力</span>層並將其與跨 K 個頻帶的二維空間層交錯排列</span>。<span class="hl-method">頻率注意力層協調所有頻率通道上的<span class="hl-method">預訓練</span>運動潛在特徵</span>，以產生連貫的頻譜體積。從標準 2D U-Net 切換至頻率協調去噪模組後，平均 <span class="hl-evidence"><span class="hl-evidence">VAE</span> 重建誤差從 0.024 改善至 0.018</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——提出頻率協調去噪作為聯合預測多頻帶的折衷方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    延續排除法的論證策略：排除「全通道聯合」（過平滑）與「獨立預測」（不連貫）後，提出介於兩者之間的方案——先獨立訓練再以注意力機制協調。「凍結+注意力微調」的兩階段訓練降低了最佳化難度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體的 VAE 重建誤差改善（0.024 -> 0.018）提供量化支持，增強說服力。但此指標僅反映重建能力的上界，實際生成品質還取決於擴散模型的取樣過程。此外，「凍結再微調」的訓練策略雖實用，但可能不如端對端聯合訓練能達到全域最佳。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 影像基礎渲染 ====== -->
+    <h2 class="section-heading" id="sec-rendering">5. Image-based Rendering — 影像基礎渲染</h2>
+
+    <!-- 渲染段落 1：運動場轉換與投射 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We now describe how we take a spectral volume predicted for a given input image I<sub>0</sub> and render a future frame at time t. We first derive <span class="hl-method">motion trajectory fields in the time domain using the inverse temporal FFT</span> applied at each pixel. The motion trajectory fields determine the position of every input pixel at every future time step. To produce a future frame, we adopt a <span class="hl-method">deep image-based rendering technique and perform splatting with the predicted motion field</span> to forward warp the encoded I<sub>0</sub>. Since <span class="hl-rebuttal">forward warping can lead to holes, and multiple source pixels can map to the same output 2D location</span>, we adopt the <span class="hl-concept">feature pyramid softmax splatting strategy</span> proposed in prior work on frame interpolation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                現在描述如何取得為給定輸入影像 I<sub>0</sub> 預測的頻譜體積，並<span class="hl-method">渲染</span>時間 t 的未來影格。首先在每個像素處施加反時間 FFT，<span class="hl-method">推導出時域中的運動軌跡場</span>。運動軌跡場決定了每個輸入像素在每個未來時間步的位置。為產生未來影格，我們採用<span class="hl-method">深度影像基礎渲染技術，以預測的運動場進行投射</span>，將編碼後的 I<sub>0</sub> 前向扭曲。由於<span class="hl-rebuttal">前向扭曲可能導致空洞，且多個來源像素可能映射到同一個輸出二維位置</span>，我們採用先前影格內插研究中提出的<span class="hl-concept">特徵金字塔 <span class="hl-concept">softmax</span> 投射策略</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    渲染管線起始——從頻譜體積到影格生成的技術流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段連接「預測」與「渲染」兩大模組：頻譜體積經反 FFT 轉為運動場後，進入渲染管線。選擇 softmax 投射而非簡單的前向扭曲，是為了解決空洞與多對一映射的經典問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    明確指出前向扭曲的問題（空洞、衝突映射）並引用成熟的解決方案（softmax 投射），展示了工程上的周密考量。但 softmax 投射的計算成本未被討論，對即時應用可能構成瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 渲染段落 2：權重策略與合成網路 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We encode I<sub>0</sub> through a <span class="hl-method">feature extractor network to produce a multi-scale feature map</span>. For each individual feature map at scale j, we resize and scale the predicted 2D motion field according to the resolution. As in Davis et al., we use <span class="hl-method">predicted flow magnitude as a proxy for depth</span> to determine the contributing weight of each source pixel: <span class="hl-method">W(p) = 1/T sum_t ||F_t(p)||_2</span>, computed as the average magnitude of the predicted motion trajectory fields. In other words, we assume <span class="hl-thesis">large motions correspond to moving foreground objects, and small or zero motions correspond to background objects</span>. We use motion-derived weights instead of learnable ones because in the single-view case, <span class="hl-rebuttal">learnable weights are not effective for addressing disocclusion ambiguities</span>. The warped features are then injected into intermediate blocks of an <span class="hl-concept">image synthesis decoder network</span> to produce the final rendered image. We jointly train the feature extractor and synthesis networks with <span class="hl-method">start and target frames randomly sampled from real videos</span>, supervising predictions with a <span class="hl-method">VGG perceptual loss</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們透過<span class="hl-method">特徵擷取網路</span>將 I<sub>0</sub> 編碼為多尺度<span class="hl-method">特徵圖</span>。對於每個尺度 j 的特徵圖，根據解析度調整並縮放預測的二維運動場。如同 Davis 等人，我們以<span class="hl-method">預測的光流量值作為深度的代理變數</span>，決定每個來源像素的貢獻權重：<span class="hl-method">W(p) = 1/T sum_t ||F_t(p)||_2</span>，計算為預測運動軌跡場的平均量值。換言之，我們假設<span class="hl-thesis">大幅運動對應於移動的前景物件，而微小或零運動對應於背景物件</span>。我們使用運動衍生的權重而非可學習的權重，因為在單視角情況下，<span class="hl-rebuttal">可學習的權重無法有效解決去遮擋歧義</span>。扭曲後的特徵注入<span class="hl-concept">影像合成解碼網路</span>的中間區塊以產生最終渲染影像。我們以從<span class="hl-method">真實影片中隨機取樣的起始與目標影格</span>聯合訓練特徵擷取器與合成網路，以 <span class="hl-method">VGG 感知損失</span>監督預測結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    渲染細節完善——權重計算策略、合成網路架構與訓練方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成渲染模組的技術閉環。「運動量值即深度」的假設將運動預測與渲染權重直接連結，避免了額外的深度估計模組。VGG 感知損失的選擇確保了視覺品質而非僅像素精確度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「大運動 = 前景」的假設在風中搖曳的場景中大致成立，但在攝影機運動或背景含大幅運動的場景中會失效。此外，ResNet-34 特徵擷取器與 StyleGAN 架構的合成網路之間的搭配未被充分討論其設計理由。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 應用 ====== -->
+    <h2 class="section-heading" id="sec-applications">6. Applications — 應用</h2>
+
+    <!-- 應用段落 1：影像轉影片與無縫循環 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Image-to-video</span>: Our system enables the animation of a single still picture by first predicting a spectral volume and generating an animation by applying the rendering module. Since the method <span class="hl-thesis">explicitly models scene motion</span>, this allows production of <span class="hl-evidence">slow-motion videos by linearly interpolating the motion displacement fields</span> and magnifying or minifying animated motions by adjusting the amplitude of predicted spectral volume coefficients. <span class="hl-concept">Seamless looping</span>: It is sometimes useful to generate videos with motion that loops seamlessly. Unfortunately, it is hard to find a large collection of seamlessly looping videos for training. Instead, we devise <span class="hl-method">a motion self-guidance technique that guides the motion denoising sampling process using explicit looping constraints</span>: at each iterative denoising step during inference, <span class="hl-method">an additional motion guidance signal is incorporated alongside standard classifier-free guidance</span>, where each pixel's position and velocity at the start and end frames are enforced to be as similar as possible.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">影像轉影片</span>：我們的系統透過先預測頻譜體積再應用渲染模組來將單張靜態影像動畫化。由於方法<span class="hl-thesis">顯式地建模場景運動</span>，因此可透過線性內插運動位移場來產生<span class="hl-evidence">慢動作影片</span>，並透過調整預測頻譜體積係數的振幅來放大或縮小動畫運動。<span class="hl-concept">無縫循環</span>：有時需要生成運動能無縫循環的影片。遺憾的是，難以找到大量無縫循環影片用於訓練。因此，我們設計了一種<span class="hl-method">運動自引導技術，以顯式的循環約束引導運動去噪取樣過程</span>：在推論階段的每個迭代去噪步驟中，在標準無分類器引導之外加入<span class="hl-method">額外的運動引導訊號</span>，強制每個像素在起始與結束影格的位置和速度盡可能相似。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    應用展示——展現頻譜體積表示帶來的實際應用能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將理論方法轉化為具體應用，證明頻域表示的優勢：慢動作只需內插、振幅調整控制運動幅度、循環約束可在推論時注入。這些應用是像素域方法難以直接實現的。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    無縫循環的「運動自引導」是一個巧妙的推論時技巧，無需額外訓練資料。但此引導可能導致生成的運動偏離自然分布——為了滿足循環約束，模型可能犧牲運動的真實感。此權衡未被深入討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 應用段落 2：互動式動態 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Interactive dynamics from a single image</span>: As shown by Davis et al., the image-space motion spectrum from an observed video, under certain assumptions, <span class="hl-method">is proportional to the projections of vibration mode shapes</span>, and thus a spectral volume can be interpreted as an <span class="hl-concept">image-space modal basis</span>. The modal shapes capture underlying oscillation dynamics at different frequencies, and hence can be used to <span class="hl-thesis">simulate the object's response to a user-defined force such as poking or pulling</span>. We adopt the <span class="hl-method">modal analysis technique</span>, assuming the motion can be explained by the <span class="hl-method">superposition of a set of harmonic oscillators</span>. This allows the image-space 2D motion displacement field for the object's physical response to be written as <span class="hl-method">a weighted sum of Fourier spectrum coefficients modulated by the state of complex modal coordinates</span> at each simulated time step. The state is simulated via a <span class="hl-method">forward Euler method applied to the equations of motion for a decoupled mass-spring-damper system</span>. <span class="hl-thesis">Our method produces an interactive scene from a single picture, whereas prior methods required a video as input</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">從單張影像產生互動式動態</span>：如 Davis 等人所示，在特定假設下，從觀察影片中取得的影像空間運動頻譜與<span class="hl-method">振動模態形狀的投影成正比</span>，因此頻譜體積可被詮釋為<span class="hl-concept">影像空間模態基底</span>。模態形狀捕捉了不同頻率下的底層振盪動態，因此可用於<span class="hl-thesis">模擬物件對使用者施加的力（如戳或拉）的回應</span>。我們採用<span class="hl-method"><span class="hl-method">模態分析</span>技術</span>，假設運動可由一組<span class="hl-method">諧波振盪子的疊加</span>來解釋。這使得物件物理回應的影像空間二維運動位移場可寫為<span class="hl-method"><span class="hl-method">傅立葉</span>頻譜係數的加權和，由每個模擬時間步的複數模態座標狀態所調變</span>。狀態透過將<span class="hl-method">前向尤拉法應用於解耦質量-彈簧-阻尼系統的運動方程</span>來模擬。<span class="hl-thesis">本方法僅需單張影像即可產生互動式場景，而先前的方法則需要影片作為輸入</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    延伸應用——展示頻譜體積作為模態基底的物理詮釋與互動能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文最具區隔性的應用：將頻譜體積重新詮釋為物理系統的模態基底，橋接了機器學習預測與物理模擬。「單張影像即可互動」直接將方法與 Davis 等人（需要影片）區隔。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    模態分析的物理詮釋為方法增添了深度，但需要「小位移線性假設」成立。對於大幅度的使用者互動（如大力拉扯），線性模態疊加可能無法準確模擬非線性物理回應。此外，前向尤拉法的數值穩定性在大時間步長下可能成為問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">7. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：實作細節與資料 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Implementation</span>: We use an LDM as the backbone with a <span class="hl-method">VAE of continuous latent dimension 4</span>, trained with an L1 reconstruction loss, a multi-scale gradient consistency loss, and a KL-divergence loss. A 2D U-Net is trained with MSE loss, and attention layers adopted for frequency-coordinated denoising. The VAE and LDM are trained on <span class="hl-evidence">images of size 256x160, taking approximately 6 days to converge using 16 Nvidia A100 GPUs</span>. For inference, the motion diffusion model runs with <span class="hl-method">DDIM for 250 steps</span>. Generated videos up to <span class="hl-evidence">512x288 resolution</span> are created by fine-tuning on higher resolution data. <span class="hl-method">ResNet-34</span> is adopted as the feature extractor, and the image synthesis network is based on a <span class="hl-concept">co-modulation StyleGAN architecture</span>. The rendering module runs in <span class="hl-evidence">real-time at 25 FPS on a Nvidia V100 GPU</span>. <span class="hl-concept">Data</span>: We collected a set of <span class="hl-evidence">3,015 videos</span> of natural oscillatory phenomena, yielding <span class="hl-evidence">more than 150K samples</span> of image-motion pairs after preprocessing.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">實作</span>方面：我們以 LDM 為骨幹，搭配連續潛在維度為 4 的 <span class="hl-method">VAE</span>，以 L1 重建損失、多尺度梯度一致性損失與 KL 散度損失進行訓練。2D U-Net 以 MSE 損失訓練，並採用注意力層實現頻率協調去噪。VAE 與 LDM 在 <span class="hl-evidence">256x160 大小的影像上訓練，使用 16 張 Nvidia A100 GPU 約需 6 天收斂</span>。推論時，運動擴散模型以 <span class="hl-method">DDIM 執行 250 步</span>。透過在更高解析度資料上微調，可產生高達 <span class="hl-evidence">512x288 解析度</span>的影片。特徵擷取器採用 <span class="hl-method">ResNet-34</span>，影像合成網路基於共調變 <span class="hl-concept">Style<span class="hl-concept">GAN</span> 架構</span>。渲染模組在 Nvidia V100 GPU 上以每秒 25 影格的速度<span class="hl-evidence"><span class="hl-evidence">即時</span>運行</span>。<span class="hl-concept">資料</span>方面：我們收集了 <span class="hl-evidence">3,015 支</span>自然振盪現象的影片，前處理後產生超過 <span class="hl-evidence">150K 組</span>影像-運動配對樣本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗基礎設定——完整揭露實作細節與資料規模。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段確保可複現性，同時透過具體數字（16 張 A100、6 天訓練、25 FPS 推論）展示方法的實用性。渲染模組的即時效能是重要的工程成就。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    16 張 A100 GPU 的訓練需求暗示了相當高的計算門檻。資料集規模（3,015 支影片、150K 樣本）相對於大規模影片生成研究偏小，可能限制了方法的泛化能力。此外，資料收集與篩選的細節（如過濾標準）對可複現性至關重要。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：定量結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Quantitative results</span>: Our approach <span class="hl-thesis">significantly outperforms prior single-image animation baselines</span> in terms of both image and video synthesis quality. Specifically, we achieve <span class="hl-evidence">FID of 4.03, KID of 0.08 (x100), FVD of 47.1, and DTFVD of 2.53</span>, compared to the best prior methods achieving FID of 10.4 (Endo et al.) and FVD of 166.0. Our <span class="hl-evidence">much lower FVD and DT-FVD distances suggest that our generated videos are more realistic and more temporally coherent</span>. Sliding window analysis shows that thanks to the <span class="hl-concept">global spectral volume representation</span>, our generated videos <span class="hl-evidence">do not suffer from drift or degradation over time</span>, maintaining consistent quality across the entire video length. <span class="hl-evidence">Ablation studies confirm</span> that <span class="hl-evidence">K=16 provides optimal performance</span>; <span class="hl-evidence">frequency adaptive normalization improves over simple scaling</span>; and <span class="hl-evidence">frequency-coordinated denoising outperforms both independent prediction and volume-based prediction</span>. The full model also benefits from <span class="hl-evidence">feature pyramid softmax splatting over average splatting and baseline splatting</span> in the rendering module.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-evidence">定量結果</span>：我們的方法在影像與影片合成品質上均<span class="hl-thesis">顯著優於先前的單張影像動畫基準線</span>。具體而言，我們達到 <span class="hl-evidence">FID 4.03、KID 0.08（x100）、FVD 47.1 與 DTFVD 2.53</span>，而先前最佳方法的 FID 為 10.4（Endo 等人）、FVD 為 166.0。<span class="hl-evidence">大幅降低的 FVD 與 DT-FVD 距離表明我們生成的影片更為寫實且時間上更加連貫</span>。滑動視窗分析顯示，得益於<span class="hl-concept">全域<span class="hl-concept">頻譜體積</span>表示</span>，我們生成的影片<span class="hl-evidence">不會隨時間出現漂移或退化</span>，在整段影片長度上維持一致的品質。<span class="hl-evidence"><span class="hl-evidence">消融</span>研究確認</span> <span class="hl-evidence">K=16 提供最佳效能</span>；<span class="hl-evidence">頻率自適應正規化優於簡單縮放</span>；<span class="hl-evidence">頻率協調去噪優於獨立預測與體積預測</span>。完整模型亦受益於渲染模組中<span class="hl-evidence">特徵金字塔 <span class="hl-evidence">softmax</span> 投射對比平均投射與基準線投射</span>的優勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實證——以全面的定量指標驗證方法的優越性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文實證支柱，覆蓋四個維度：(1) 影像品質（FID/KID）；(2) 影片品質（FVD/DTFVD）；(3) 長期穩定性（滑動視窗分析）；(4) 組件必要性（消融研究）。數據壓倒性的優勢（FID 從 10.4 降至 4.03、FVD 從 166 降至 47.1）為方法提供了強力支持。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    數據上的巨大優勢令人印象深刻，但需注意所有基準線方法均在相同的（較小規模）資料集上訓練。部分基準線原本設計用於更大規模的訓練資料，在此受限的資料條件下可能無法發揮全部潛力。此外，DTFVD 指標雖更貼切但較新穎，社群對其可靠性的共識尚未完全建立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：定性結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Qualitative results</span>: Spatio-temporal <span class="hl-method">X-t slice visualizations</span> demonstrate that our generated video dynamics <span class="hl-evidence">more strongly resemble the motion patterns observed in corresponding real reference videos</span>, compared to other methods. Baselines such as <span class="hl-concept">Stochastic I2V and MCVD</span> <span class="hl-rebuttal">fail to model both appearance and motion realistically over time</span>. <span class="hl-concept">Endo et al.</span> produces frames with fewer artifacts but <span class="hl-rebuttal">exhibits over-smooth or non-oscillation motions</span>. Comparisons of individual generated frames at t=128 show that our frames <span class="hl-evidence">exhibit fewer artifacts and distortions</span>, and our 2D motion fields <span class="hl-evidence">most resemble the reference displacement fields from real videos</span>. In contrast, <span class="hl-rebuttal">background content generated by other methods tends to drift</span>, and <span class="hl-rebuttal">video frames from other methods exhibit significant color distortion or ghosting artifacts</span>, suggesting that baselines are less stable when generating videos with long time duration.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-evidence">定性結果</span>：時空 <span class="hl-method">X-t 切片視覺化</span>展示了我們生成的影片動態<span class="hl-evidence">與對應真實參考影片中觀察到的運動模式更為相似</span>。<span class="hl-concept">Stochastic I2V 與 MCVD</span> 等基準線<span class="hl-rebuttal">無法在時間上寫實地建模外觀與運動</span>。<span class="hl-concept">Endo 等人</span>產生的影格瑕疵較少，但<span class="hl-rebuttal">呈現過度平滑或非振盪的運動</span>。在 t=128 處對個別生成影格的比較顯示，我們的影格<span class="hl-evidence">瑕疵與失真更少</span>，二維運動場<span class="hl-evidence">最接近從真實影片估計的參考位移場</span>。相比之下，<span class="hl-rebuttal">其他方法生成的背景內容傾向漂移</span>，且影格展現顯著的<span class="hl-rebuttal">色彩失真或鬼影瑕疵，表明基準線在生成長時間影片時較不穩定</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    視覺證據補強——以定性分析深化定量結果的說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    定性結果與定量指標相互呼應：X-t 切片直觀展示了「時間一致性」（對應低 FVD）、「運動寫實性」（對應低 DTFVD）。對基準線的逐一分析確認了不同類型的失敗模式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    X-t 切片是展示時間一致性的有效視覺化工具。但定性比較可能存在挑選偏差——作者傾向展示己方最佳、他方最差的案例。讀者需關注補充材料中的更多範例以評估方法的普遍性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 8. 討論與結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">8. Discussion and Conclusion — 討論與結論</h2>
+
+    <!-- 結論段落 1：局限性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-rebuttal">Limitations</span>: Since our approach only predicts spectral volumes at lower frequencies, <span class="hl-rebuttal">it might fail to model general non-oscillating motions or high-frequency vibrations such as those of musical instruments</span>. Furthermore, the quality of generated videos <span class="hl-rebuttal">relies on the quality of the motion trajectories estimated from real video sequences</span>. Thus, animation quality can degrade if the motion in training videos consists of <span class="hl-rebuttal">large displacements</span>. Moreover, since the approach is based on <span class="hl-method">image-based rendering from input pixels</span>, animation quality can also degrade if the generated videos require the <span class="hl-rebuttal">creation of large amounts of content unseen in the input frame</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-rebuttal">局限性</span>：由於我們的方法僅預測較低頻率的頻譜體積，<span class="hl-rebuttal">可能無法建模一般的非振盪運動或如樂器等的高頻振動</span>。此外，生成影片的品質<span class="hl-rebuttal">取決於從真實影片序列中估計的運動軌跡品質</span>，因此若訓練影片中的運動包含<span class="hl-rebuttal">大幅位移</span>，動畫品質可能會下降。再者，由於方法基於從輸入像素的<span class="hl-method">影像基礎<span class="hl-method">渲染</span></span>，若生成的影片<span class="hl-rebuttal">需要建立大量在輸入影格中未見的內容</span>，動畫品質同樣可能退化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    誠實揭露局限——列舉方法在運動類型、資料品質與內容創造上的限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段承擔「自我批判」的功能，為讀者劃定方法的適用邊界。三項限制分別對應：(1) 頻域表示的固有約束；(2) 訓練資料管線的品質依賴；(3) 影像基礎渲染的內容創造能力限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    局限性討論全面且坦誠，但每項限制的嚴重程度未被量化。例如，「大幅位移」的閾值為何？何種程度的未見內容會導致品質退化？更具體的失敗案例分析將有助於使用者判斷方法的適用性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：結語 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a new approach for <span class="hl-thesis">modeling natural oscillation dynamics from a single still picture</span>. Our image-space motion prior is represented with <span class="hl-concept">spectral volumes</span>, a frequency representation of per-pixel motion trajectories, which we find to be <span class="hl-thesis">highly suitable for prediction with diffusion models</span>, and which we learn from <span class="hl-method">collections of real world videos</span>. The spectral volumes are predicted using our <span class="hl-concept">frequency-coordinated latent diffusion model</span> and are used to animate future video frames using a <span class="hl-method">neural image-based rendering module</span>. We show that our approach produces <span class="hl-evidence">photo-realistic animations from a single picture</span> and <span class="hl-evidence">significantly outperforms prior baseline methods</span>, and that it can enable other downstream applications such as <span class="hl-thesis">creating seamless loops and interactive animations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種<span class="hl-thesis">從單張靜態影像建模自然振盪動態</span>的新方法。我們的影像空間運動先驗以<span class="hl-concept">頻譜體積</span>表示——一種逐像素運動軌跡的頻率表示——我們發現其<span class="hl-thesis">高度適合以<span class="hl-thesis">擴散模型</span>進行預測</span>，且從<span class="hl-method">真實世界影片集合</span>中學習。頻譜體積透過我們的<span class="hl-concept">頻率協調<span class="hl-concept">潛在擴散</span>模型</span>預測，並用於以<span class="hl-method">神經影像基礎<span class="hl-method">渲染</span>模組</span>動畫化未來影格。我們展示本方法能<span class="hl-evidence">從單張影像產生逼真的動畫</span>，<span class="hl-evidence">顯著優於先前的基準線方法</span>，並能實現<span class="hl-thesis">無縫循環與互動式動畫</span>等下游應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——重申核心貢獻與方法的獨特價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段呼應摘要的結構，形成完整的論證閉環：頻譜體積表示 -> 頻率協調 LDM 預測 -> 神經渲染 -> 逼真動畫。三大應用（影片生成、無縫循環、互動動態）再次強調方法的多面向價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論措辭自信但適度，以「顯著優於」而非「解決了所有問題」收尾。然而，未來方向的討論偏薄——讀者可能期待對擴展至非振盪運動、更高解析度、或與文字引導結合等方向的展望。作為 Best Paper，更深入的前瞻性討論將使結論更加完整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-arg-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                靜態影像動畫化缺乏<br>長期時間一致性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                頻譜體積作為運動先驗<br>適合擴散模型預測
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                FID 4.03 / FVD 47.1<br>全面超越基準線
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                僅適用振盪運動<br>依賴影像基礎渲染
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                頻域運動先驗實現<br>逼真互動式動畫
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以頻譜體積表示影像空間的運動先驗，搭配頻率協調潛在擴散模型，能從單張靜態影像生成時間連貫、物理合理的振盪動態影片，並實現無縫循環與互動式操作。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>頻域表示的精準選擇：</strong>以「自然運動的功率頻譜隨頻率指數衰減」的實證觀察為基礎，將預測目標從 T 個時域位移場壓縮至 K=16 個傅立葉係數，在效率與表達力之間取得最佳平衡。配合頻率協調去噪策略，FVD 從先前最佳的 166.0 大幅降至 47.1，量化指標上呈壓倒性優勢。頻譜體積同時支持多種下游應用（慢動作、循環、互動），展示了表示選擇的深遠影響力。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>適用範疇的根本限制：</strong>方法的核心假設——「場景運動為準週期性振盪」——從根本上排除了非週期運動（行人行走、車輛行駛、物體墜落等），使方法僅適用於風中搖曳的自然場景這一相對狹窄的領域。此外，影像基礎渲染無法產生輸入影像中不存在的內容，在遮擋區域揭露或大幅場景變化的情境下將導致品質退化。論文對這些局限的討論雖然坦誠，但缺乏對可能解決路徑的深入探討。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

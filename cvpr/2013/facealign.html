@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detecting and Aligning Faces by Image Retrieval — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Detecting and Aligning Faces by Image Retrieval
+                <span class="course-tag">CVPR 2013</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://openaccess.thecvf.com/content_cvpr_2013/papers/Shen_Detecting_and_Aligning_2013_CVPR_paper.pdf" target="_blank" class="navbar-home-link" style="margin-left:16px;">CVF 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-retrieval">3. 基於檢索的偵測</a>
+        <a href="#sec-voting">4. 投票機制</a>
+        <a href="#sec-alignment">5. 對齊與驗證</a>
+        <a href="#sec-experiments">6. 實驗</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present an approach that combines <span class="hl-concept">image retrieval</span> with <span class="hl-concept">machine learning</span> for robust <span class="hl-concept">face detection</span>. Our method leverages <span class="hl-method">a large database of faces with bounding rectangles and facial landmark locations</span> to train <span class="hl-concept">exemplar-based classifiers</span>. Rather than using traditional <span class="hl-rebuttal">sliding-window techniques</span>, we employ a <span class="hl-method">voting-based method</span> where these classifiers evaluate test images through image retrieval, with face locations identified by <span class="hl-method">selecting the modes from the voting maps</span>. The framework handles <span class="hl-thesis">challenging conditions without requiring explicit modeling of facial variations</span>. Beyond detection, we extend the methodology to <span class="hl-method">face validation (to remove false positives) and face alignment/landmark localization</span>. Our exemplar-based approach achieves <span class="hl-evidence">state-of-the-art performance on benchmark datasets</span> and generalizes to other tasks including <span class="hl-evidence">attribute recognition and object detection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種結合影像檢索與機器學習的方法，用於穩健的人臉偵測。我們的方法利用具有定界框與臉部特徵點位置的大型人臉資料庫來訓練基於範例的分類器。我們不使用傳統的滑動窗口技術，而是採用投票式方法，讓這些分類器透過影像檢索評估測試影像，透過從投票圖中選取眾數來辨識人臉位置。此框架無需顯式建模臉部變異即可處理具挑戰性的條件。除了偵測之外，我們將方法論擴展至人臉驗證（移除誤判）與人臉對齊/特徵點定位。我們的範例式方法在基準資料集上達成最先進的效能，並泛化至包含屬性辨識與物件偵測在內的其他任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「檢索取代滑動窗口」為核心概念，概述偵測、驗證與對齊的統一框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以「偵測 -> 驗證 -> 對齊」的遞進順序呈現完整管線，並以泛化能力作為結尾亮點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需顯式建模臉部變異」是強有力的主張——傳統方法需要針對姿態、光照、表情等分別建模。但此隱式處理的代價可能是需要更大的範例資料庫，記憶體與檢索效率需要考量。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Face detection</span> is one of the most well-studied problems in computer vision, with the <span class="hl-concept">Viola-Jones detector</span> achieving practical real-time performance over a decade ago. However, detecting faces <span class="hl-rebuttal">in the wild — under large pose variations, partial occlusion, extreme lighting, and low resolution — remains challenging</span>. Traditional detectors use <span class="hl-method">sliding-window approaches</span> with <span class="hl-method">hand-crafted features (Haar, HOG, LBP)</span> and <span class="hl-method">cascade classifiers</span>. While effective for frontal faces, these approaches <span class="hl-rebuttal">struggle with non-frontal views and require separate models for different pose ranges</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                人臉偵測是電腦視覺中研究最為充分的問題之一，Viola-Jones 偵測器在十多年前就達成了實用的即時效能。然而，在自然環境中偵測人臉——在大幅姿態變化、部分遮擋、極端光照與低解析度下——仍然具有挑戰性。傳統偵測器使用滑動窗口方法搭配手工設計特徵（Haar、HOG、LBP）與級聯分類器。雖然對正面人臉有效，但這些方法在非正面視角下表現不佳，且需要針對不同姿態範圍建立分別的模型。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——回顧人臉偵測歷史並指出「自然環境」挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 Viola-Jones 的成功作為對比基準，指出其在自然環境中的不足，為新方法建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「自然環境」挑戰列為四個維度（姿態、遮擋、光照、解析度），全面但可能過於寬泛。此外，DPM 等方法已在多姿態偵測上有所進展，此處未提及。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose an <span class="hl-concept">exemplar-based approach</span> that <span class="hl-thesis">leverages a large database of annotated face images to implicitly handle all sources of variation</span>. The key idea is to <span class="hl-method">train a set of exemplar-specific linear classifiers</span>, each associated with a face image that has known <span class="hl-method">bounding box and landmark annotations</span>. At test time, these classifiers <span class="hl-method">vote for potential face locations</span> in a Hough-transform-like scheme. This approach offers several advantages: <span class="hl-thesis">it naturally handles pose variation (different exemplars cover different poses), provides both detection and alignment simultaneously, and can be easily updated by adding new exemplars without retraining</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種範例式方法，利用大型標註人臉影像資料庫來隱式處理所有變異來源。核心概念是訓練一組範例專屬的線性分類器，每個分類器關聯一張具有已知定界框與特徵點標註的人臉影像。在測試時，這些分類器以類似霍夫轉換的方案為潛在人臉位置投票。此方法提供多項優勢：它自然地處理姿態變異（不同範例涵蓋不同姿態）、同時提供偵測與對齊、且可透過新增範例輕鬆更新而無需重新訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——概述範例式偵測框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了方法的核心洞見：用資料庫的多樣性取代模型的複雜性。霍夫投票機制是連接檢索與偵測的橋樑。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三項優勢的列舉清晰有力。但「無需重新訓練即可更新」的承諾需要考量範例數量增加時的檢索效率下降問題。此外，每個範例訓練一個分類器的策略可能導致大量的分類器儲存需求。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Exemplar-based methods</span> have gained renewed interest with works on <span class="hl-concept">Exemplar-SVM</span> for object detection and <span class="hl-concept">scene retrieval</span> approaches. The idea of training <span class="hl-method">one classifier per exemplar</span> allows explicit association between detections and specific training examples, enabling <span class="hl-method">attribute transfer and fine-grained recognition</span>. For face detection specifically, <span class="hl-concept">deformable part models (DPM)</span> have shown strong results by <span class="hl-method">modeling faces as collections of parts with spatial constraints</span>. <span class="hl-concept">Face alignment</span> methods range from <span class="hl-concept">Active Shape Models (ASM)</span> to <span class="hl-concept">regression-based approaches</span>. Our work unifies <span class="hl-thesis">detection and alignment within a single retrieval-based framework</span>, avoiding the need for separate specialized models.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                範例式方法隨著 Exemplar-SVM 用於物件偵測及場景檢索方法的研究而重新受到關注。每個範例訓練一個分類器的概念允許偵測結果與特定訓練樣本的顯式關聯，從而實現屬性轉移與細粒度辨識。在人臉偵測方面，可變形部件模型（DPM）透過將人臉建模為具空間約束的部件集合而展現優異成果。人臉對齊方法涵蓋從主動形狀模型（ASM）到基於迴歸的方法。我們的工作在單一的基於檢索的框架中統一了偵測與對齊，避免了對分別專門化模型的需求。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——在範例式學習與人臉分析的交叉點上定位本文。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立兩條學術脈絡（範例式學習、人臉偵測/對齊）的交匯，突顯本文「統一框架」的獨特定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將偵測與對齊統一的主張具有吸引力，但 DPM 本身也能同時提供偵測與部件定位。本文的優勢需以定量比較來驗證，而非僅以概念上的「統一」作為論據。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 基於檢索的偵測 ====== -->
+    <h2 class="section-heading" id="sec-retrieval">3. Retrieval-based Detection — 基於檢索的偵測</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our face database contains <span class="hl-evidence">N annotated face images, each with a bounding box and K landmark points</span>. For each exemplar face i, we train a <span class="hl-concept">linear SVM classifier</span> w_i using <span class="hl-method">HOG features</span>: the positive example is the exemplar itself, and negatives are sampled from non-face images via <span class="hl-method">hard negative mining</span>. At test time, given an input image, we <span class="hl-method">densely compute HOG features and score each location with all N classifiers</span>. High-scoring locations indicate that the local appearance matches a particular exemplar. These scores form <span class="hl-concept">N response maps</span>, from which we construct a <span class="hl-method">unified voting map for face center locations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們的人臉資料庫包含 N 張標註的人臉影像，每張具有定界框與 K 個特徵點。對於每個範例人臉 i，我們使用 HOG 特徵訓練線性 SVM 分類器 w_i：正樣本為範例本身，負樣本透過困難負例挖掘從非人臉影像中取樣。在測試時，給定輸入影像，我們密集計算 HOG 特徵並以所有 N 個分類器為每個位置評分。高分位置表示局部外觀匹配特定範例。這些分數形成 N 個回應圖，從中我們建構人臉中心位置的統一投票圖。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法核心——定義範例分類器的訓練與測試流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了方法的計算管線：範例 SVM 訓練 -> 密集評分 -> 回應圖。每個範例一個分類器的策略雖計算量大但概念簡單。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    方法的簡潔性令人欣賞，但 N 個分類器的密集評分在大型資料庫上的計算成本不容忽視。作者需說明如何在保持精確度的前提下加速推論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 投票機制 ====== -->
+    <h2 class="section-heading" id="sec-voting">4. Voting Mechanism — 投票機制</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Each exemplar classifier that fires at a location casts a <span class="hl-method">vote for the face center, offset by the known displacement from the exemplar's detection window to its face center</span>. The votes from all exemplars are accumulated in a <span class="hl-concept">Hough voting space</span>. We identify face detections by finding <span class="hl-method">modes (peaks) in the voting map using mean-shift clustering</span>. This voting approach is <span class="hl-thesis">inherently robust: even if some exemplar matches are incorrect, the correct matches will produce coherent votes that reinforce each other, while incorrect votes are spatially scattered</span>. The mode locations give face center estimates, and the associated exemplars provide <span class="hl-method">bounding box and landmark predictions through simple geometric transfer</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                每個被觸發的範例分類器以已知的從範例偵測窗口到其人臉中心的位移偏移量，為人臉中心投下一票。所有範例的投票在霍夫投票空間中累積。我們透過使用均值漂移聚類在投票圖中尋找眾數（峰值）來辨識人臉偵測結果。此投票方法本質上具有穩健性：即使部分範例匹配不正確，正確的匹配仍會產生相互增強的一致投票，而錯誤的投票則在空間上分散。眾數位置給出人臉中心的估計，而關聯的範例透過簡單的幾何轉移提供定界框與特徵點預測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    投票整合——解釋如何從多個範例回應中提取最終偵測。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解釋了從「多對一投票」到「偵測結果」的轉換。穩健性論證（正確投票聚集、錯誤投票分散）是方法的關鍵賣點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「本質上穩健」的論證直觀但非嚴格——當大量範例都產生系統性偏差的投票時（如特定背景模式被多個範例誤匹配），錯誤投票也可能聚集，導致假陽性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 對齊與驗證 ====== -->
+    <h2 class="section-heading" id="sec-alignment">5. Alignment and Validation — 對齊與驗證</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A key advantage of our exemplar-based framework is that <span class="hl-thesis">detection naturally provides alignment</span>. Since each matched exemplar carries <span class="hl-method">annotated landmark positions</span>, we can <span class="hl-method">transfer these landmarks to the detected face through the geometric mapping between the exemplar and the detection</span>. When multiple exemplars vote for the same face, we compute the <span class="hl-method">median landmark positions across all contributing exemplars</span> for robust estimation. For <span class="hl-concept">face validation</span>, we train a <span class="hl-method">secondary classifier on features extracted from the aligned face</span>, which effectively removes false positives by verifying that the detection exhibits face-like structure when properly aligned. This <span class="hl-evidence">reduces the false positive rate by over 50% while maintaining recall</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們範例式框架的關鍵優勢是偵測自然地提供對齊。由於每個匹配的範例攜帶標註的特徵點位置，我們可透過範例與偵測之間的幾何映射將這些特徵點轉移到偵測到的人臉。當多個範例為同一張人臉投票時，我們計算所有貢獻範例的中位數特徵點位置以進行穩健估計。對於人臉驗證，我們在從對齊人臉提取的特徵上訓練次級分類器，透過驗證偵測結果在正確對齊後是否展現人臉結構來有效移除假陽性。這在維持召回率的同時將假陽性率降低超過 50%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    擴展應用——從偵測延伸至對齊與驗證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展示了範例式框架的「一石三鳥」效果：偵測、對齊、驗證共享同一表示。中位數特徵點是穩健統計在幾何估計中的典型應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    假陽性率降低 50% 的數字令人印象深刻。但幾何映射假設範例與偵測之間的變換是簡單的（仿射或相似變換），在大幅三維姿態差異時，此假設可能不成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">6. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on <span class="hl-evidence">FDDB (2,845 images, 5,171 faces)</span> and <span class="hl-evidence">AFW (205 images with diverse poses)</span> for face detection, and <span class="hl-evidence">LFPW and LFW</span> for face alignment. Using a database of <span class="hl-evidence">approximately 20,000 exemplar faces</span>, our method achieves <span class="hl-evidence">competitive detection performance on FDDB</span>, outperforming the <span class="hl-concept">Viola-Jones</span> and <span class="hl-concept">DPM-face</span> baselines. On <span class="hl-evidence">AFW with large pose variations, our method significantly outperforms all baselines</span>, demonstrating the benefit of exemplar diversity. For alignment on <span class="hl-evidence">LFPW, we achieve mean error below 5% of inter-ocular distance</span>, competitive with specialized alignment methods. The framework also generalizes to <span class="hl-evidence">pedestrian detection and car detection</span>, showing consistent improvements over vanilla Exemplar-SVM.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在 FDDB（2,845 張影像、5,171 張人臉）和 AFW（205 張具多樣姿態的影像）上評估人臉偵測，在 LFPW 和 LFW 上評估人臉對齊。使用約 20,000 個範例人臉的資料庫，我們的方法在 FDDB 上達成具競爭力的偵測效能，優於 Viola-Jones 與 DPM-face 基準線。在具有大幅姿態變化的 AFW 上，我們的方法顯著優於所有基準線，展現了範例多樣性的效益。在 LFPW 的對齊方面，我們達到平均誤差低於眼間距離 5%，與專門的對齊方法具有競爭力。此框架也泛化至行人偵測與車輛偵測，展現相較於原始 Exemplar-SVM 的持續改善。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供多面向的實驗證據——偵測、對齊及泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支柱，覆蓋：(1) 標準偵測基準（FDDB）；(2) 困難姿態場景（AFW）；(3) 對齊精度（LFPW）；(4) 跨類別泛化。AFW 上的顯著優勢直接支持「範例多樣性」的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多資料集、多任務的評估令人信服。但「具競爭力」措辭暗示在標準基準上可能未取得最佳，僅在困難場景（AFW）上有顯著優勢。20,000 個範例的資料庫大小對效能的影響未被系統分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 7. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented an <span class="hl-concept">exemplar-based framework</span> that <span class="hl-thesis">unifies face detection, alignment, and validation through image retrieval</span>. By leveraging a <span class="hl-method">large annotated database and voting-based aggregation</span>, our approach <span class="hl-thesis">implicitly handles the full range of facial variation without requiring explicit modeling of pose, lighting, or expression</span>. The framework is <span class="hl-evidence">flexible, easily extensible, and applicable beyond face detection</span>. Future directions include <span class="hl-rebuttal">scaling to larger databases with efficient indexing</span> and <span class="hl-rebuttal">incorporating deep features</span> to replace HOG representations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出了一個範例式框架，透過影像檢索統一人臉偵測、對齊與驗證。藉由利用大型標註資料庫與基於投票的聚合，我們的方法隱式處理臉部變異的完整範圍，無需顯式建模姿態、光照或表情。此框架具有靈活性、易於擴展且可應用於人臉偵測以外的領域。未來方向包括以高效索引擴展至更大的資料庫，以及納入深度特徵以取代 HOG 表示。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申統一框架的價值並展望未來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論回扣摘要的統一主題，以「靈活、可擴展」作為實用價值的總結。未來方向坦承了當前方法的兩個瓶頸：效率與特徵品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「深度特徵取代 HOG」的展望在 2013 年極具前瞻性，預示了後續 CNN 人臉偵測器的革命。但也間接承認了 HOG 特徵可能是當前方法的性能瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                傳統滑動窗口偵測器<br>難以處理姿態多樣性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                範例式檢索+投票<br>隱式涵蓋所有變異
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                AFW 多姿態場景<br>顯著優於基準線
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                驗證步驟移除<br>50% 以上假陽性
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                統一框架兼顧<br>偵測、對齊、驗證
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    以大型標註人臉資料庫中的範例作為分類器，透過霍夫投票機制聯合實現人臉偵測、特徵點定位與驗證，無需針對各種臉部變異進行顯式建模。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>偵測-對齊的自然統一：</strong>範例式方法的核心優勢在於每個偵測結果都自動攜帶特徵點資訊，無需額外的對齊步驟。霍夫投票的穩健性確保了即使部分範例匹配錯誤，最終結果仍然可靠。在多姿態 AFW 資料集上的顯著優勢直接驗證了「範例多樣性取代顯式建模」的核心理念。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>計算效率與可擴展性：</strong>N 個範例分類器的密集評分導致推論時間與資料庫規模成線性關係，在大型資料庫上可能不實際。此外，HOG 特徵的表達力在極端光照或低解析度下有限，這可能是方法在 FDDB 標準基準上僅「具競爭力」而非最佳的原因。效率與精確度之間的取捨未被充分分析。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

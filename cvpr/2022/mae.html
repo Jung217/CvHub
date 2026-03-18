@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masked Autoencoders Are Scalable Vision Learners — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Masked Autoencoders Are Scalable Vision Learners
+                <span class="course-tag">CVPR 2022</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2111.06377" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-masking">3.1 遮罩策略</a>
+        <a href="#sec-encoder">3.2 MAE 編碼器</a>
+        <a href="#sec-decoder">3.3 MAE 解碼器</a>
+        <a href="#sec-target">3.4 重建目標</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-transfer">5. 遷移學習</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper shows that <span class="hl-concept">masked autoencoders (MAE)</span> are <span class="hl-thesis">scalable self-supervised learners for computer vision</span>. Our MAE approach is simple: we <span class="hl-method">mask random patches of the input image and reconstruct the missing pixels</span>. It is based on two core designs. First, we develop an <span class="hl-method">asymmetric encoder-decoder architecture</span>, with an <span class="hl-method">encoder that operates only on the visible subset of patches (without mask tokens)</span>, along with a lightweight decoder that reconstructs the original image from the latent representation and mask tokens. Second, we find that <span class="hl-thesis">masking a high proportion of the input image, e.g., 75%, yields a nontrivial and meaningful self-supervisory task</span>. Coupling these two designs enables us to train large models efficiently and effectively: we can <span class="hl-evidence">accelerate training by 3x or more and improve accuracy</span>. Our scalable approach allows for learning high-capacity models that generalize well: e.g., a vanilla <span class="hl-evidence">ViT-Huge model achieves the best accuracy (87.8%) among methods using only ImageNet-1K data</span>. <span class="hl-evidence">Transfer performance in downstream tasks outperforms supervised pre-training</span> and shows promising scaling behavior.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文展示<span class="hl-concept">遮罩自編碼器（MAE）</span>是<span class="hl-thesis">可擴展的電腦視覺自監督學習器</span>。MAE 的方法十分簡潔：<span class="hl-method">隨機遮罩輸入影像的區塊並重建缺失的像素</span>。其核心設計有二。第一，採用<span class="hl-method">非對稱編碼器-解碼器架構</span>，<span class="hl-method">編碼器僅處理可見的區塊子集（不使用遮罩標記）</span>，搭配輕量解碼器從潛在表示與遮罩標記重建原始影像。第二，<span class="hl-thesis">以極高比例（如 75%）遮罩輸入影像，可產生有意義且非平凡的自監督任務</span>。結合這兩項設計，能有效率地訓練大型模型：<span class="hl-evidence">訓練加速三倍以上且提升準確率</span>。此可擴展的方法能學習到泛化良好的高容量模型：例如，原生 <span class="hl-evidence">ViT-Huge 模型在僅使用 ImageNet-1K 資料的方法中達到最佳準確率（87.8%）</span>。<span class="hl-evidence">在下游任務的遷移表現優於監督式預訓練</span>，並展現出良好的擴展趨勢。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精煉語句概括 MAE 的設計理念、核心成果與遷移表現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要扮演「承諾與預告」的雙重功能：先承諾 MAE 是可擴展的自監督方法，再以「兩大核心設計」與「87.8% 準確率」等具體數字支撐此承諾，最後以遷移學習結果擴大論文的影響範圍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「簡潔」一詞被反覆強調，與深度學習社群偏好簡約解的審美呼應。但 87.8% 的成績需要 ViT-Huge 模型與 448 尺寸微調，計算成本本身並不「簡潔」——作者的「簡潔」指方法論設計而非實際資源需求，這點讀者需加以區辨。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：NLP 自監督的成功與視覺的落差 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Deep learning architectures continue growing in capability and capacity, yet <span class="hl-rebuttal">models easily overfit one million images and demand hundreds of millions of labeled images</span>. <span class="hl-concept">Self-supervised pre-training</span> has successfully addressed this in natural language processing through <span class="hl-concept">autoregressive language modeling (GPT)</span> and <span class="hl-concept">masked autoencoding (BERT)</span>, enabling training of <span class="hl-evidence">models exceeding one hundred billion parameters</span>. The methodological gap between NLP and vision motivates a fundamental question: <span class="hl-thesis">what makes masked autoencoding different between vision and language?</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                深度學習架構的能力與容量持續增長，然而<span class="hl-rebuttal">模型容易在百萬張影像上過擬合，且需要數億張標註影像</span>。<span class="hl-concept">自監督預訓練</span>透過<span class="hl-concept">自迴歸語言建模（GPT）</span>和<span class="hl-concept">遮罩自編碼（BERT）</span>，已在自然語言處理領域成功解決此問題，使得<span class="hl-evidence">超過千億參數的模型訓練成為可能</span>。自然語言處理與電腦視覺之間的方法論落差引出了一個核心問題：<span class="hl-thesis">遮罩自編碼在視覺與語言之間的差異究竟源於何處</span>？
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題意識——指出視覺領域在自監督預訓練上落後於 NLP 的現象。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：以 NLP 的巨大成功作為參照系，凸顯視覺領域的「未竟之業」。「什麼使得遮罩自編碼在視覺與語言之間不同」這個提問為全文的三段式分析（架構、資訊密度、解碼器角色）奠定了框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 NLP 的成功為錨點來框定視覺問題，是一種強有力的修辭策略——暗示視覺只要找到正確的方法就能複製 NLP 的成功。但兩個領域的根本差異（連續像素 vs. 離散語彙）使得直接類比未必成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：三個視角分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We attempt to answer this question from three perspectives. <strong>(i) Architectural differences:</strong> Until recently, <span class="hl-concept">convolutional networks</span> dominated vision, and convolutions operate on regular grids, making it <span class="hl-rebuttal">nontrivial to integrate mask tokens or positional embeddings</span>. <span class="hl-concept">Vision Transformers (ViT)</span> have addressed this architectural gap. <strong>(ii) Information density:</strong> Languages are human-generated signals that are <span class="hl-concept">highly semantic and information-dense</span>. Images, in contrast, are natural signals with <span class="hl-concept">heavy spatial redundancy</span> — a missing patch can be recovered from neighboring patches with little high-level understanding of parts, objects, and scenes. To overcome this difference, we show that <span class="hl-thesis">masking a very high portion of random patches (e.g., 75%) largely reduces redundancy and creates a challenging self-supervisory task</span> that requires holistic understanding. <strong>(iii) The decoder's role differs between vision and language.</strong> In vision, the decoder <span class="hl-method">reconstructs pixels</span>, which is a <span class="hl-rebuttal">task of a lower semantic level</span> than recognition. In language, the decoder predicts missing words that contain rich semantic information. In BERT, the decoder can be trivial (an MLP), whereas in our method, the <span class="hl-thesis">decoder design plays a key role in determining the semantic level of the learned latent representations</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們從三個視角嘗試回答此問題。（一）架構差異：直到近期，<span class="hl-concept">摺積網路</span>主導了視覺領域，而摺積在規則網格上運作，<span class="hl-rebuttal">難以直接整合遮罩標記或位置嵌入</span>。<span class="hl-concept">視覺 Transformer（ViT）</span>的出現彌補了此架構落差。（二）資訊密度：語言是人類產生的訊號，<span class="hl-concept">語義豐富且資訊密度極高</span>。影像則是帶有<span class="hl-concept">大量空間冗餘</span>的自然訊號——缺失的區塊可從鄰近區塊恢復，幾乎不需對物件或場景的高階理解。為克服此差異，我們發現<span class="hl-thesis">以極高比例（如 75%）遮罩隨機區塊，能大幅降低冗餘並創造需要整體性理解的高難度自監督任務</span>。（三）解碼器的角色在視覺與語言中截然不同。在視覺中，解碼器<span class="hl-method">重建像素</span>，這是<span class="hl-rebuttal">語義層次較低的任務</span>；在語言中，解碼器預測包含豐富語義的缺失詞彙。BERT 中解碼器可以是簡單的 MLP，而在本方法中，<span class="hl-thesis">解碼器的設計對所學潛在表示的語義層次起著關鍵作用</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    分析框架建構——系統性地拆解視覺與語言在遮罩自編碼上的三層差異。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這段是全文智識深度的核心所在。三層分析各自引出一個設計決策：(i) 架構 -> 使用 ViT；(ii) 資訊密度 -> 高遮罩比例；(iii) 解碼器角色 -> 非對稱設計。每個觀察都自然銜接到 MAE 的對應設計，展現了問題驅動的方法論建構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    三段式分析極具條理，但「影像具有大量空間冗餘」的論斷是否普適值得商榷——高頻紋理區域的冗餘遠低於平滑區域。此外，將像素重建定位為「語義層次較低的任務」為後續實驗中 MAE 確實學到高階語義的結果埋下了認知張力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：MAE 方法概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our MAE approach <span class="hl-method">masks random patches from the input image and reconstructs the missing pixels</span>. It has an <span class="hl-method">asymmetric encoder-decoder design</span>. Our encoder is a <span class="hl-concept">ViT</span> that <span class="hl-method">operates only on the visible (unmasked) subset of patches, with no mask tokens</span>. Our decoder is lightweight and <span class="hl-method">reconstructs the full image from the latent representation together with mask tokens</span>. Shifting the mask tokens to the small decoder reduces computation greatly. Under this design, a <span class="hl-thesis">very high masking ratio (e.g., 75%) achieves a win-win scenario: it optimizes accuracy while allowing the encoder to process only a small portion (e.g., 25%) of patches</span>, reducing overall pre-training time by <span class="hl-evidence">3x or more</span>, and similarly reducing memory consumption. This enables training even larger models. MAE can train <span class="hl-evidence">ViT-Large/-Huge on ImageNet-1K with improved generalization performance</span>. With MAE pre-training, we can train data-hungry models like <span class="hl-evidence">ViT-Large/-Huge on ImageNet-1K, achieving 87.8% when fine-tuned on ImageNet-1K</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MAE 的方法是<span class="hl-method">遮罩輸入影像的隨機區塊並重建缺失的像素</span>，採用<span class="hl-method">非對稱編碼器-解碼器設計</span>。編碼器是一個 <span class="hl-concept">ViT</span>，僅處理可見（未遮罩）的區塊子集，不使用遮罩標記。解碼器是輕量的，從潛在表示與遮罩標記共同重建完整影像。將遮罩標記移至小型解碼器大幅降低了計算量。在此設計下，<span class="hl-thesis">極高的遮罩比例（如 75%）實現了雙贏</span>：既最佳化準確率，又讓編碼器僅處理少量區塊（如 25%），將整體預訓練時間減少三倍以上，記憶體消耗亦同步降低，從而能訓練更大的模型。MAE 可在 ImageNet-1K 上訓練 ViT-Large 與 ViT-Huge，並在微調後達到 87.8% 的準確率。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方案預覽——將前述分析直接映射為具體的設計方案，並給出效率與精度數字。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接三段分析，此段完成「問題 -> 方案」的過渡。「雙贏」一詞是修辭亮點：高遮罩既是更困難的學習任務（提升表示品質），又減少了計算量（提升效率），這種正向耦合關係是 MAE 設計中最具說服力的論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「雙贏」的論述具有強大的說服力，但需注意此處報告的 87.8% 是在 448 尺寸下微調的結果，而非標準 224 尺寸。此外，ViT-Huge 模型本身的參數量龐大，「簡潔」的定位與大模型的使用之間存在一定的張力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：遮罩語言建模與自編碼器 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Masked language modeling</span> and its autoregressive counterpart, as represented by <span class="hl-concept">BERT</span> and <span class="hl-concept">GPT</span>, are highly successful methods for pre-training in NLP. These methods hold out a portion of the input sequence and train models to predict the removed content. They <span class="hl-evidence">scale excellently and show strong evidence of generalization across downstream tasks</span>. <span class="hl-concept">Autoencoding</span> is a classical approach to representation learning: an encoder maps inputs to a latent representation and a decoder reconstructs the input. <span class="hl-concept">Denoising autoencoders (DAE)</span>, a key variant, corrupt the input signal and learn to reconstruct the original. Masked image modeling can be viewed as a form of denoising autoencoding where the corruption is patch removal.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                遮罩語言建模及其自迴歸變體（以 <span class="hl-concept">BERT</span> 和 <span class="hl-concept">GPT</span> 為代表）是 NLP 中極為成功的預訓練方法。這些方法保留輸入序列的部分內容，訓練模型預測被移除的部分，展現出卓越的可擴展性與跨下游任務的泛化能力。自編碼器是表示學習的經典方法：編碼器將輸入映射至潛在表示，解碼器則重建輸入。去噪自編碼器（DAE）是其重要變體，透過損壞輸入訊號並學習重建原始訊號。遮罩影像建模可視為一種去噪自編碼，其中「損壞」即為區塊移除。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻脈絡建構——將 MAE 置於 NLP 預訓練與經典自編碼器的交匯處。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    建立 MAE 的學術譜系：BERT/GPT（NLP 遮罩建模）+ DAE（經典自編碼）-> MAE（視覺遮罩自編碼）。這種雙重傳承賦予 MAE 既有理論根基又有實踐先例的定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將遮罩影像建模定位為 DAE 的特例，降低了方法的新穎性門檻，使之更易被接受。但這也引出一個問題：如果 DAE 的概念早已存在，為何此方法現在才成功？作者在緒論中以 ViT 的出現來回答此問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：遮罩影像編碼與對比學習 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Masked image encoding</span> methods learn representations from mask-corrupted images. Context Encoder <span class="hl-method">inpaints large missing regions using convolutional networks</span>. More recent Transformer-based methods include <span class="hl-concept">iGPT</span>, which operates on pixel sequences, <span class="hl-concept">ViT</span> studies that explore masked patch prediction, and <span class="hl-concept">BEiT</span>, which predicts <span class="hl-method">discrete visual tokens</span> from a pre-trained tokenizer. Meanwhile, <span class="hl-concept">self-supervised contrastive learning</span> methods have gained prominence, modeling image similarity and dissimilarity across augmented views. <span class="hl-rebuttal">Contrastive methods depend heavily on data augmentation strategies</span>, whereas autoencoding pursues a conceptually different direction. Our approach is related to all these works but <span class="hl-thesis">differs in its simplicity and effectiveness</span>: we demonstrate that simple pixel reconstruction with an asymmetric design outperforms or matches more complex token-based or contrastive approaches.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                遮罩影像編碼方法從遮罩損壞的影像中學習表示。Context Encoder 使用摺積網路修復大面積缺失區域。近期基於 Transformer 的方法包括：操作像素序列的 <span class="hl-concept">iGPT</span>、探索遮罩區塊預測的 <span class="hl-concept">ViT</span> 研究，以及使用預訓練分詞器預測離散視覺標記的 <span class="hl-concept">BEiT</span>。與此同時，自監督對比學習方法日漸受到重視，透過建模增強視圖之間的影像相似性與差異性。對比學習方法高度依賴資料增強策略，而自編碼走的是另一條路線。MAE 與上述研究皆有關聯，但以簡潔性與有效性為區別：簡單的像素重建搭配非對稱設計，即可超越或比肩更複雜的標記式或對比式方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    差異化定位——將 MAE 與近期遮罩影像方法及對比學習進行對比。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了 MAE 在當前研究圖譜中的座標：非 iGPT（不操作像素序列）、非 BEiT（不需分詞器）、非對比學習（不依賴增強策略）。透過排除法，MAE 的「簡潔性」優勢自然浮現。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    強調對比學習依賴資料增強是一個策略性的對比——MAE 的高遮罩比例本身也扮演類似資料增強的角色，只是以不同的形式呈現。此外，BEiT 的分詞器雖增添了複雜度，但也可能捕捉到像素空間所缺乏的語義結構。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Approach — 方法</h2>
+
+    <!-- 3.1 遮罩策略 -->
+    <h3 class="subsection-heading" id="sec-masking">3.1 Masking — 遮罩策略</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Following ViT, we divide an image into <span class="hl-method">regular non-overlapping patches</span>. Then we <span class="hl-method">sample a subset of patches and mask (i.e., remove) the remaining ones</span>. Our sampling strategy is straightforward: we sample random patches <span class="hl-method">without replacement, following a uniform distribution</span>. We refer to this as <span class="hl-concept">"random sampling"</span>. <span class="hl-thesis">Random sampling with a high masking ratio largely eliminates redundancy</span>, thus creating a task that <span class="hl-thesis">cannot be easily solved by extrapolation from visible neighboring patches</span>. The <span class="hl-method">uniform distribution prevents potential center bias</span> that could arise from other sampling strategies. Furthermore, the highly sparse input creates an opportunity for an <span class="hl-thesis">efficient encoder design that processes only visible patches</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                依循 ViT 的作法，將影像分割為規則、不重疊的區塊。接著取樣一個區塊子集，並將其餘區塊遮罩（即移除）。取樣策略十分直截：依<span class="hl-method">均勻分布進行無放回的隨機取樣</span>。<span class="hl-thesis">高遮罩比例的隨機取樣大幅消除了冗餘</span>，從而創造出<span class="hl-thesis">無法僅靠鄰近可見區塊外推即可輕易解決的任務</span>。均勻分布防止了其他取樣策略可能產生的中心偏差。此外，高度稀疏的輸入為<span class="hl-thesis">僅處理可見區塊的高效編碼器設計提供了契機</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第一步——定義遮罩的規則與取樣策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    遮罩策略是整個方法的起點，且直接影響後續的編碼器效率設計。「隨機取樣 + 高比例遮罩」同時服務於兩個目標：任務難度（學習品質）與計算效率。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將簡單的均勻隨機取樣定位為刻意的設計選擇（防止中心偏差、消除冗餘），而非僅是預設選項，展現了有目的的方法論建構。後續消融研究會比較區塊式與網格式取樣，進一步驗證此選擇的合理性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 MAE 編碼器 -->
+    <h3 class="subsection-heading" id="sec-encoder">3.2 MAE Encoder — MAE 編碼器</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our encoder is a <span class="hl-concept">Vision Transformer (ViT)</span> but <span class="hl-thesis">applied only to visible, unmasked patches</span>. Just as in a standard ViT, our encoder embeds patches by a <span class="hl-method">linear projection with added positional embeddings</span>, and then processes the resulting set of tokens through a series of <span class="hl-concept">Transformer blocks</span>. However, our encoder <span class="hl-thesis">only operates on a small subset (e.g., 25%) of the full set</span>. <span class="hl-method">Masked patches are removed; no mask tokens are used</span>. This allows us to <span class="hl-thesis">train very large encoders with only a fraction of compute and memory</span>. The full set is handled by a lightweight decoder, described next.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                編碼器是一個<span class="hl-concept">視覺 Transformer（ViT）</span>，但<span class="hl-thesis">僅作用於可見的未遮罩區塊</span>。如同標準 ViT，編碼器透過線性投影加上位置嵌入來嵌入區塊，然後將所得的標記集合送入一系列 Transformer 區塊處理。然而，編碼器<span class="hl-thesis">僅處理完整集合的一小部分（如 25%）</span>。<span class="hl-method">被遮罩的區塊直接移除，不使用遮罩標記</span>。這使得<span class="hl-thesis">僅需一小部分計算量與記憶體即可訓練極大的編碼器</span>。完整集合的處理由接下來描述的輕量解碼器負責。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心設計之一——說明編碼器僅處理可見區塊的關鍵設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「不使用遮罩標記」是 MAE 相對於 BERT 和 BEiT 最關鍵的架構差異。此設計直接帶來效率優勢（處理 25% 的標記），且消除了預訓練與部署之間的分布偏移問題（部署時不存在遮罩標記）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    此設計看似簡單，但打破了 BERT 的慣例（BERT 在編碼器中使用 [MASK] 標記）。作者將此定位為效率創新，但更深層的意義在於：編碼器永遠只看到真實區塊，學到的表示更貼近下游部署場景。這一洞察對後續的視覺基礎模型設計產生了深遠影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 MAE 解碼器 -->
+    <h3 class="subsection-heading" id="sec-decoder">3.3 MAE Decoder — MAE 解碼器</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The MAE decoder is applied to the full set of tokens consisting of (i) <span class="hl-method">encoded visible patches</span>, and (ii) <span class="hl-method">mask tokens</span>. Each mask token is a <span class="hl-concept">shared, learned vector</span> that indicates the presence of a missing patch to be predicted. We <span class="hl-method">add positional embeddings to all tokens in this full set</span>; without positional embeddings, mask tokens would have no information about their location in the image. The decoder has another series of <span class="hl-concept">Transformer blocks</span>. The MAE decoder is <span class="hl-thesis">only used during pre-training to perform the image reconstruction task</span>. Therefore, the decoder architecture can be <span class="hl-method">flexibly designed in a manner that is independent of the encoder design</span>. We experiment with <span class="hl-evidence">very small decoders, narrower and shallower than the encoder</span>. For example, our default decoder has <span class="hl-evidence">&lt;10% computation per token vs. the encoder</span>. With this asymmetrical design, the full set of tokens is only processed by the lightweight decoder, <span class="hl-thesis">significantly reducing pre-training time</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MAE 解碼器作用於完整的標記集合，包含：(i) 經編碼的可見區塊，與 (ii) 遮罩標記。每個遮罩標記是一個共享的可學習向量，表示需要預測的缺失區塊。在完整集合的所有標記上加入位置嵌入——若無位置嵌入，遮罩標記將缺乏關於其在影像中位置的資訊。解碼器包含另一系列 Transformer 區塊。MAE 解碼器<span class="hl-thesis">僅在預訓練階段用於執行影像重建任務</span>，因此解碼器架構可獨立於編碼器設計進行靈活配置。<span class="hl-evidence">實驗使用極小的解碼器，比編碼器更窄更淺</span>。例如，預設解碼器每個標記的計算量<span class="hl-evidence">不到編碼器的 10%</span>。透過此非對稱設計，完整的標記集合僅由輕量解碼器處理，<span class="hl-thesis">顯著降低了預訓練時間</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心設計之二——詳述輕量解碼器的設計與非對稱架構的效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    解碼器的「用後即棄」特性是效率與品質雙贏的關鍵機制：既然解碼器僅在預訓練時使用，將計算負擔從編碼器轉移到輕量解碼器就不會影響下游推論效率。這種「預訓練時間的成本 vs. 推論時間的品質」的取捨極為精巧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「不到 10% 的計算量」是一個令人印象深刻的數字，清楚傳達了非對稱設計的效率。但值得注意的是，解碼器雖小，卻處理完整的標記集合（100%），而編碼器雖大卻僅處理 25%。整體的計算平衡需要更細緻的分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.4 重建目標 -->
+    <h3 class="subsection-heading" id="sec-target">3.4 Reconstruction Target — 重建目標</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our MAE <span class="hl-method">reconstructs the input by predicting the pixel values for each masked patch</span>. Each element in the decoder's output is a vector of pixel values representing a patch. The last layer of the decoder is a <span class="hl-method">linear projection whose number of output channels equals the number of pixel values in a patch</span>. The <span class="hl-method">loss function computes the mean squared error (MSE) between the reconstructed and original images in the pixel space</span>. We compute the loss <span class="hl-method">only on masked patches</span>, similar to BERT. We also study a variant whose reconstruction target is the <span class="hl-method">normalized pixel values of each masked patch</span>. Specifically, we compute the mean and standard deviation of all pixels in a patch and use them to normalize this patch. Using <span class="hl-evidence">per-patch normalized pixels as the reconstruction target improves representation quality</span> in our experiments.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MAE 透過預測每個被遮罩區塊的像素值來重建輸入。解碼器輸出的每個元素是一個像素值向量，代表一個區塊。解碼器的最後一層是線性投影，其輸出通道數等於一個區塊中的像素值數量。損失函數在像素空間中計算重建影像與原始影像之間的均方誤差（MSE），且僅在被遮罩的區塊上計算，類似於 BERT。亦研究了一個變體，以每個被遮罩區塊的正規化像素值作為重建目標——具體而言，計算區塊內所有像素的平均值與標準差來進行正規化。實驗顯示，<span class="hl-evidence">使用逐區塊正規化像素作為重建目標能改善表示品質</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——定義損失函數與重建目標的選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    重建目標的選擇直接回應緒論中「像素重建是低語義任務」的擔憂。逐區塊正規化提升了高頻成分的權重，暗示學習局部對比度比學習絕對亮度更有助於表示品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    僅在遮罩區塊上計算損失是一個重要的設計選擇（相較於在所有像素上計算）。作者報告全像素損失導致約 0.5% 的準確率下降，但未深入分析原因。此外，逐區塊正規化雖有效，卻使模型忽略了全局亮度資訊，可能在某些下游任務中造成影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.5 簡潔實作 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Simple implementation.</strong> MAE pre-training can be implemented efficiently, and <span class="hl-method">does not need any specialized sparse operations</span>. First, we <span class="hl-method">generate tokens for every input patch (with linear projection and positional embeddings)</span>. Next, we <span class="hl-method">randomly shuffle the list of tokens and remove the last portion according to the masking ratio</span>. This is equivalent to sampling patches without replacement. After encoding, we <span class="hl-method">append a list of mask tokens to the list of encoded patches, and unshuffle this full list</span> to align all tokens with their targets. The decoder is applied to this full list (with positional embeddings added). As noted, <span class="hl-thesis">no sparse operations are needed</span>. This simple implementation introduces <span class="hl-evidence">negligible overhead as random shuffling and unshuffling are fast</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                MAE 預訓練的實作非常高效，不需要任何特殊的稀疏運算。首先，為每個輸入區塊生成標記（透過線性投影與位置嵌入）。接著，隨機打亂標記列表並依遮罩比例移除末尾部分，等價於無放回取樣。編碼後，將遮罩標記列表附加到已編碼區塊列表中，並反向打亂此完整列表以對齊所有標記與其目標。解碼器作用於此完整列表（加入位置嵌入）。不需要稀疏運算，此簡潔的實作僅引入可忽略的額外開銷，因為隨機打亂與反向打亂都極為快速。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    工程實現——展示 MAE 的實作簡潔性與工程可行性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將方法論的簡潔性從理論層面延伸到工程層面：無需稀疏運算、僅用 shuffle/unshuffle 即可實現，大幅降低了重現門檻。這對方法的社群影響力至關重要。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「shuffle + remove + unshuffle」替代稀疏索引是一個精巧的工程技巧，使得標準 Transformer 框架無需修改即可使用。這種實作友善性是 MAE 被廣泛採用的重要原因之一，體現了「好方法不僅要有效，還要容易實現」的設計哲學。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. ImageNet Experiments — ImageNet 實驗</h2>
+
+    <!-- 實驗段落 1：基線與遮罩比例消融 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Self-supervised pre-training is performed on <span class="hl-evidence">ImageNet-1K (IN1K)</span>. We then evaluate representations by (i) <span class="hl-method">end-to-end fine-tuning</span> or (ii) <span class="hl-method">linear probing</span>, and report top-1 validation accuracy on ImageNet-1K. We use <span class="hl-concept">ViT-Large (ViT-L/16)</span> as the backbone for ablation studies. ViT-L is very large and <span class="hl-rebuttal">tends to overfit when trained from scratch</span>: the original ViT-L achieved only <span class="hl-evidence">76.5%</span> from scratch, while our improved implementation achieves <span class="hl-evidence">82.5%</span> from scratch. <span class="hl-evidence">MAE pre-training boosts this to 84.9%</span> with fine-tuning for only 50 epochs (vs. 200 from scratch). On <span class="hl-thesis">masking ratio</span>: the optimal ratio is surprisingly high at <span class="hl-evidence">75%</span> for both fine-tuning and linear probing. This is in stark contrast with <span class="hl-rebuttal">BERT's typical 15% masking ratio</span>, and also much higher than related work in vision (20-50%).
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                自監督預訓練在 ImageNet-1K 上執行，隨後以端到端微調或線性探測評估表示品質，報告 ImageNet-1K 的 top-1 驗證準確率。使用 ViT-Large（ViT-L/16）作為消融研究的骨幹網路。ViT-L 模型極大，從頭訓練時容易過擬合：原始 ViT-L 從頭訓練僅達 <span class="hl-evidence">76.5%</span>，改進的實作達 <span class="hl-evidence">82.5%</span>。<span class="hl-evidence">MAE 預訓練將此提升至 84.9%</span>，僅需微調 50 個訓練週期（對比從頭訓練的 200 個）。關於遮罩比例：最佳比例出乎意料地高達 <span class="hl-evidence">75%</span>，無論微調或線性探測皆然。這與 BERT 典型的 15% 遮罩比例形成鮮明對比，也遠高於視覺相關工作的 20-50%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心消融——以嚴謹的實驗驗證基線提升與最佳遮罩比例。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段用具體數字回答緒論提出的「視覺與語言的差異」：75% vs. 15% 的遮罩比例差距，量化了視覺資料中「空間冗餘」的程度。從 76.5% 到 82.5% 再到 84.9% 的遞進，清楚展示了 MAE 預訓練的增量價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    75% 遮罩比例是本文最具「驚喜感」的實驗發現，挑戰了社群的直覺預期。但值得注意的是，基線從 76.5% 提升至 82.5% 的改進來自訓練策略（強正則化），而非 MAE 本身。作者誠實地報告了此點，但讀者可能將全部改進歸功於 MAE。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：解碼器設計與遮罩標記消融 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Decoder design.</strong> Our MAE decoder can be flexibly designed. <span class="hl-evidence">Sufficiently deep decoders are important for linear probing</span> — this is explained by the gap between the pixel reconstruction task and recognition: the last several layers in an autoencoder are more specialized for reconstruction but less relevant for recognition. A reasonably deep decoder can account for the reconstruction specialization, <span class="hl-evidence">leaving the latent representations at a more abstract level, yielding up to 8% improvement in linear probing</span>. With fine-tuning, however, the last layers of the encoder can be tuned for recognition, and <span class="hl-evidence">decoder depth is less influential — a single-block decoder performs strongly (84.8%)</span>. For decoder width, <span class="hl-evidence">512 dimensions perform well</span>; our default decoder has 8 blocks, 512-d width, comprising only <span class="hl-evidence">9% of ViT-L FLOPs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                解碼器設計可靈活配置。足夠深的解碼器對線性探測很重要——這可由像素重建任務與辨識任務之間的落差來解釋：自編碼器的後幾層更專注於重建，與辨識較不相關。深度合理的解碼器能吸收重建的特化需求，讓潛在表示保持在更抽象的層次，線性探測可提升達 8%。但在微調場景下，編碼器的最後幾層可調整為辨識用途，解碼器深度的影響便不那麼顯著——單一區塊的解碼器即可達到 84.8% 的強勁表現。解碼器寬度方面，512 維表現良好；預設解碼器為 8 層、512 維，僅佔 ViT-L 浮點運算量的 9%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融分析——量化解碼器設計選擇對不同評估協定的影響。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段揭示了一個深刻的洞察：解碼器深度對線性探測影響巨大（8%），但對微調影響甚微。這說明 MAE 的潛在表示在不同抽象層次上都蘊含有用資訊，只是需要不同的讀取方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    線性探測與微調結果的分離是重要發現。作者對此的解釋（重建特化 vs. 辨識抽象）具有說服力，但也暗示 MAE 的線性可分離性不如對比學習方法，可能在某些僅支援線性分類器的應用場景中處於劣勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 3：遮罩標記與資料增強 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Mask token in encoder.</strong> If the encoder uses mask tokens, its accuracy <span class="hl-evidence">drops by 14% under linear probing</span>. With mask tokens, there is a gap between pre-training and deploying: the encoder has a large portion of mask tokens in its input during pre-training, which <span class="hl-rebuttal">do not exist in uncorrupted images during deployment</span>. Removing mask tokens from the encoder constrains it to <span class="hl-thesis">always see real patches, improving representation quality</span>. Moreover, encoder mask token removal <span class="hl-evidence">reduces training computation by 3.3x in total FLOPs</span>, enabling a <span class="hl-evidence">2.8x wall-clock speedup</span>. <strong>Data augmentation.</strong> MAE works well with <span class="hl-method">cropping-only augmentation</span>. Surprisingly, it performs decently <span class="hl-evidence">even without augmentation (center-crop only)</span>. This is dramatically different from <span class="hl-rebuttal">contrastive learning</span>, where removing augmentation leads to <span class="hl-evidence">13% and 28% drops for BYOL and SimCLR respectively</span>. In MAE, <span class="hl-thesis">random masking plays the role of data augmentation</span>: masks create new training samples at every iteration regardless of augmentation.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                若編碼器使用遮罩標記，<span class="hl-evidence">線性探測準確率下降 14%</span>。使用遮罩標記時，預訓練與部署之間存在分布偏移：預訓練時編碼器輸入中有大量遮罩標記，但部署時的完整影像中並不存在。移除編碼器中的遮罩標記<span class="hl-thesis">迫使其永遠只看到真實區塊，從而提升表示品質</span>。此外，移除遮罩標記使<span class="hl-evidence">總浮點運算量降低 3.3 倍，達到 2.8 倍的實際加速</span>。在資料增強方面，MAE 僅需裁切增強即可良好運作。出人意料的是，即使完全不使用增強（僅中心裁切），表現仍然可接受。這與對比學習形成鮮明對比——BYOL 和 SimCLR 在移除增強後分別下降 13% 和 28%。在 MAE 中，<span class="hl-thesis">隨機遮罩本身即扮演了資料增強的角色</span>：不論使用何種增強策略，遮罩在每次迭代中都會創造出新的訓練樣本。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    兩項關鍵消融——驗證「無遮罩標記」與「低增強依賴」的設計優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    14% 的線性探測下降明確量化了「預訓練-部署偏移」問題的嚴重性，為「編碼器不使用遮罩標記」這一設計提供了強力的反面證據。資料增強消融則進一步強化了 MAE 相對於對比學習的差異化定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「遮罩即增強」的觀點極具洞察力，將遮罩從被動的任務設定提升為主動的正則化機制。與 BYOL/SimCLR 的對比數字（13%/28% 下降）十分有效地凸顯了 MAE 的穩健性。但這也意味著 MAE 的訓練樣本多樣性完全來自遮罩的隨機性，若遮罩模式存在系統性偏差，可能對學習產生未察覺的影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 4：與先前方法比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Comparisons with previous results.</strong> We compare MAE with self-supervised ViT results. For <span class="hl-concept">ViT-B</span>, methods perform closely. For <span class="hl-concept">ViT-L</span>, gaps between methods become larger, suggesting challenges in reducing overfitting for larger models. <span class="hl-thesis">MAE scales easily</span> with steady improvements for bigger models. <span class="hl-evidence">ViT-H (224 size) achieves 86.9% accuracy; fine-tuning at 448 size yields 87.8%</span> using only ImageNet-1K data. Previous best ImageNet-only methods achieved <span class="hl-evidence">87.1% (at 512 size) based on advanced network designs</span>. Comparing with <span class="hl-concept">BEiT</span>: MAE is <span class="hl-evidence">more accurate while being simpler and faster</span>. MAE reconstructs pixels rather than discrete tokens; BEiT reported <span class="hl-evidence">1.8% degradation when reconstructing pixels with ViT-B</span>. MAE requires no dVAE pre-training and is <span class="hl-evidence">considerably faster (3.5x per epoch)</span> than BEiT. Even with 1600-epoch training, <span class="hl-evidence">MAE total pre-training time is 31 hours on 128 TPU-v3 cores, versus MoCo v3's 36 hours for only 300 epochs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                與自監督 ViT 方法進行比較。在 <span class="hl-concept">ViT-B</span> 上，各方法表現接近。在 <span class="hl-concept">ViT-L</span> 上，方法之間的差距擴大，顯示更大模型的過擬合問題更具挑戰性。<span class="hl-thesis">MAE 展現了良好的可擴展性</span>，隨模型增大持續改善。ViT-H（224 尺寸）達 86.9% 準確率；448 尺寸微調達 87.8%，僅使用 ImageNet-1K 資料。先前僅使用 ImageNet 的最佳方法（基於進階網路設計、512 尺寸）達 87.1%。與 <span class="hl-concept">BEiT</span> 相比：<span class="hl-evidence">MAE 更準確，同時更簡潔更快速</span>。MAE 重建像素而非離散標記；BEiT 在 ViT-B 上以像素重建時報告了 1.8% 的準確率下降。MAE 不需 dVAE 預訓練，且每訓練週期快 3.5 倍。即使訓練 1600 個週期，MAE 在 128 個 TPU-v3 核心上的總預訓練時間為 31 小時，而 MoCo v3 僅 300 個週期就需 36 小時。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全面比較——在準確率、效率、簡潔性三個維度上確立 MAE 的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的高潮，以三組對比鎖定 MAE 的定位：(1) vs. 從頭訓練 -> 可擴展性；(2) vs. BEiT -> 更簡潔更準確；(3) vs. MoCo v3 -> 更快速。87.8% 的數字超越了先前所有僅使用 ImageNet 的方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    87.8% 是在 448 尺寸下微調的結果，而 87.1% 的先前最佳是在 512 尺寸下。尺寸差異使得直接比較需謹慎。此外，1600 個訓練週期仍是相當長的訓練——31 小時 vs. 36 小時的比較在每個週期的計算量不對等的情況下，需要更仔細的成本分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 5：部分微調 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Partial fine-tuning</strong> provides insight into representation quality beyond linear probing and full fine-tuning. We fine-tune the <span class="hl-method">last several Transformer blocks while freezing the rest</span>. <span class="hl-evidence">Fine-tuning only one Transformer block significantly boosts accuracy from 73.5% (linear probing) to 81.0%</span>. Fine-tuning only the final block's <span class="hl-evidence">MLP sub-block achieves 79.1%</span>, far better than linear probing. Fine-tuning a few blocks (4 or 6) <span class="hl-evidence">closely approaches full fine-tuning accuracy</span>. Comparisons with <span class="hl-concept">MoCo v3</span> are revealing: MoCo v3 has <span class="hl-evidence">higher linear probing accuracy</span> but <span class="hl-evidence">all MAE partial fine-tuning results outperform MoCo v3</span>, with gaps reaching <span class="hl-evidence">2.6% when tuning 4 blocks</span>. While MAE representations have lower linear separability, they possess <span class="hl-thesis">stronger nonlinear features that perform very well when even minimal non-linear heads are tuned</span>. This observation suggests <span class="hl-thesis">linear separability is not the sole metric for representation quality</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                部分微調提供了超越線性探測與完整微調的表示品質洞察。凍結部分 Transformer 區塊，僅微調最後幾個區塊。僅微調一個 Transformer 區塊即可將準確率從線性探測的 73.5% 大幅提升至 81.0%。僅微調最後一個區塊的 MLP 子區塊即達 79.1%，遠優於線性探測。微調少量區塊（4 或 6 個）即可接近完整微調的準確率。與 <span class="hl-concept">MoCo v3</span> 的比較揭示了有趣的現象：MoCo v3 的線性探測準確率更高，但 MAE 在所有部分微調設定下均優於 MoCo v3，差距在微調 4 個區塊時達 2.6%。MAE 的表示雖然線性可分離性較低，但具有<span class="hl-thesis">更強的非線性特徵，即使僅調整最小限度的非線性讀取頭也能表現出色</span>。此觀察顯示，<span class="hl-thesis">線性可分離性並非衡量表示品質的唯一指標</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深度分析——透過部分微調揭示 MAE 表示的非線性特徵品質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應了一個潛在的批評：MAE 的線性探測表現不如對比學習方法。作者不是迴避此弱點，而是以部分微調實驗證明 MAE 的表示蘊含更豐富的非線性特徵，進而質疑「線性探測是表示品質黃金標準」的預設假設。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    這是一個高明的論證策略：將弱點（線性探測較低）轉化為洞察（線性可分離性不等於表示品質）。73.5% -> 81.0% 的躍升（僅調一個區塊）確實支持此論點。但此論述也間接承認，MAE 的表示需要更多的適配才能釋放其潛力，這在資源受限的場景中可能是劣勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 遷移學習 ====== -->
+    <h2 class="section-heading" id="sec-transfer">5. Transfer Learning Experiments — 遷移學習實驗</h2>
+
+    <!-- 遷移學習段落 1：物件偵測與分割 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate transfer learning on <span class="hl-concept">object detection and instance segmentation</span> using <span class="hl-method">Mask R-CNN on COCO</span>, with ViT backbones adapted for use with FPN. Compared with <span class="hl-concept">supervised pre-training</span>, <span class="hl-evidence">MAE performs better under all configurations</span>. With <span class="hl-concept">ViT-B</span>, MAE exceeds supervised by <span class="hl-evidence">2.4 box AP (50.3 vs. 47.9)</span>. More significantly, with <span class="hl-concept">ViT-L</span>, MAE <span class="hl-evidence">outperforms supervised by 4.0 box AP (53.3 vs. 49.3)</span>. The gains are larger for bigger models, indicating the <span class="hl-thesis">scalability benefit of MAE pre-training in transfer scenarios</span>. Pixel-based MAE <span class="hl-evidence">matches or exceeds token-based BEiT</span>, while being simpler and faster. Both MAE and BEiT <span class="hl-evidence">outperform MoCo v3</span>, which only matches supervised pre-training.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 COCO 上使用 Mask R-CNN 評估物件偵測與實例分割的遷移學習表現，ViT 骨幹網路經適配後搭配 FPN 使用。相比監督式預訓練，<span class="hl-evidence">MAE 在所有配置下皆表現更佳</span>。使用 <span class="hl-concept">ViT-B</span> 時，MAE 超越監督式 2.4 box AP（50.3 vs. 47.9）。更顯著的是，使用 <span class="hl-concept">ViT-L</span> 時，MAE 領先監督式 4.0 box AP（53.3 vs. 49.3）。更大模型的增益更大，顯示 <span class="hl-thesis">MAE 預訓練在遷移場景中的可擴展性優勢</span>。基於像素的 MAE 在表現上與基於標記的 BEiT 相當或更優，同時更簡潔更快速。MAE 與 BEiT 皆優於 MoCo v3，而 MoCo v3 僅與監督式預訓練持平。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    遷移驗證——在偵測與分割任務上證明 MAE 表示的通用性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    遷移學習結果是判斷預訓練方法實際價值的關鍵證據。ViT-L 上 4.0 AP 的差距比 ViT-B 上 2.4 AP 的差距更大，直接支持了「MAE 的優勢隨模型規模增大而放大」的可擴展性論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    較大模型的更大增益是非常有力的論據，暗示 MAE 的可擴展性在未來更大的模型上可能帶來更顯著的收益。但 COCO 的評估使用了特定的 ViT-FPN 適配方案，不同的偵測框架可能產生不同的相對排序。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遷移學習段落 2：語義分割與分類 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <strong>Semantic segmentation</strong> on <span class="hl-evidence">ADE20K</span> using <span class="hl-method">UperNet</span> shows <span class="hl-evidence">significant improvements over supervised pre-training, e.g., 3.7 mIoU points for ViT-L</span>. Pixel-based MAE <span class="hl-evidence">outperforms token-based BEiT</span> on this task as well. <strong>Classification on other datasets:</strong> On <span class="hl-evidence">iNaturalists</span>, MAE exhibits strong scaling behavior — <span class="hl-evidence">bigger models improve considerably, surpassing previous best results</span>. On <span class="hl-evidence">Places</span>, MAE outperforms previous best results that were obtained through <span class="hl-rebuttal">pre-training on billions of images</span>. These transfer results collectively demonstrate that <span class="hl-thesis">MAE pre-training learns representations that generalize well across diverse visual tasks, and the benefits scale with model capacity</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 <span class="hl-evidence">ADE20K</span> 上使用 <span class="hl-method">UperNet</span> 進行語義分割，結果顯示相對於監督式預訓練有顯著改善，例如 ViT-L 提升 3.7 mIoU。基於像素的 MAE 在此任務上同樣優於基於標記的 BEiT。在其他分類資料集上：<span class="hl-evidence">iNaturalists</span> 上展現出強勁的擴展趨勢——更大模型的準確率大幅提升，超越先前最佳結果。<span class="hl-evidence">Places</span> 上 MAE 超越了先前透過數十億張影像預訓練所取得的最佳結果。這些遷移學習結果共同證明，<span class="hl-thesis">MAE 預訓練所學的表示能跨多樣化的視覺任務良好泛化，且效益隨模型容量而擴展</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    延伸驗證——在分割與多資料集分類上進一步確認 MAE 的泛化能力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成遷移學習實驗的全景圖：偵測、分割、細粒度分類、場景辨識四大任務皆優於監督式預訓練。在 Places 上以 ImageNet 預訓練超越數十億影像預訓練的結果，是尤為有力的證據。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    超越「數十億影像預訓練」的結果暗示 MAE 的成功不僅來自資料量，更來自學習目標的設計品質。但需注意不同方法使用的模型架構可能不同，直接歸因於預訓練策略需謹慎。整體而言，多任務的一致性優勢是最具說服力的論據。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Discussion and Conclusion — 討論與結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">Simple algorithms that scale well are the core of deep learning.</span> In NLP, simple self-supervised pre-training methods (e.g., masked language modeling) have enabled benefits from the exponential scaling of models. In computer vision, <span class="hl-rebuttal">supervised pre-training has dominated despite progress in self-supervised methods</span>. This study observes, on ImageNet and in transfer tasks, that <span class="hl-thesis">autoencoders — a simple self-supervised method conceptually similar to techniques in NLP — provide scalable benefits in computer vision</span>. Self-supervised learning in vision may now follow a similar trajectory as in NLP.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">能良好擴展的簡潔演算法是深度學習的核心</span>。在自然語言處理中，簡潔的自監督預訓練方法（如遮罩語言建模）使得模型的指數級擴展帶來了實際效益。在電腦視覺中，<span class="hl-rebuttal">儘管自監督方法有所進展，監督式預訓練仍佔主導地位</span>。本研究在 ImageNet 與遷移任務上觀察到，<span class="hl-thesis">自編碼器——一種概念上類似 NLP 技術的簡潔自監督方法——在電腦視覺中提供了可擴展的效益</span>。視覺領域的自監督學習或許正走向與 NLP 相似的軌跡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    宏觀定位——將 MAE 置於深度學習發展的歷史脈絡中。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的第一部分不急於總結技術細節，而是提出一個更宏大的主張：視覺自監督可能複製 NLP 的成功軌跡。這將 MAE 從一個具體方法提升為一個範式轉移的信號。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「簡潔演算法是深度學習的核心」是一個強有力的開場，呼應了深度學習社群對 Occam's Razor 的信仰。但 NLP 與視覺的類比需要謹慎——NLP 的成功伴隨著資料集規模的爆炸性增長，而視覺領域的無標註資料雖然豐富，品質與多樣性的保證機制仍不成熟。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On the other hand, we note that <span class="hl-rebuttal">images and languages are signals of a different nature and this difference must be addressed carefully</span>. Images are merely recorded light without a semantic decomposition into the visual analogue of words. Rather than removing objects, our method <span class="hl-method">removes random patches that are unlikely to form a semantic segment</span>. Likewise, our MAE <span class="hl-method">reconstructs pixels, which are not semantic entities</span>. Nonetheless, we observe that our MAE <span class="hl-thesis">infers complex, holistic reconstructions, suggesting it has learned numerous visual concepts, i.e., semantics</span>. We hypothesize this behavior occurs via the <span class="hl-thesis">rich hidden representations inside the MAE</span>. We hope this perspective will inspire future work.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                另一方面，<span class="hl-rebuttal">影像與語言本質上是不同性質的訊號，此差異必須審慎對待</span>。影像只是被記錄的光線，沒有類似詞彙的語義分解。本方法移除的是隨機區塊，不太可能構成語義片段；重建的也是像素，同樣不是語義實體。儘管如此，MAE <span class="hl-thesis">能夠推斷出複雜、整體性的重建結果，暗示它已學習到大量的視覺概念，亦即語義</span>。我們假設此行為源於 <span class="hl-thesis">MAE 內部豐富的隱藏表示</span>。期望此觀點能啟發未來的研究。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    反思與展望——坦承視覺與語言的本質差異，並提出語義湧現的假說。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段展現了學術誠實性：在宣稱「視覺可複製 NLP 軌跡」後，立即指出兩者的根本差異。「像素非語義實體，但 MAE 學到了語義」的觀察形成了一個耐人尋味的謎題，為後續研究留下了開放空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「語義湧現」的假說是全文最具啟發性但也最缺乏嚴謹驗證的論點。作者僅以定性重建結果為證，未進行系統性的語義探測（如注意力圖分析或潛在空間的語義結構研究）。這種「留白」策略既保持了學術謙遜，也為後續大量的跟進研究開闢了空間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺自監督落後於 NLP<br>遮罩自編碼在視覺中<br>為何未成功？
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                非對稱編碼-解碼<br>+ 75% 高遮罩比例<br>= 可擴展的視覺學習
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                ViT-H 達 87.8%<br>COCO / ADE20K / Places<br>全面超越監督式預訓練
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                線性探測不如對比學習<br>但部分微調全面勝出<br>線性可分離性非唯一指標
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                簡潔的自編碼方法<br>可使視覺自監督<br>走向 NLP 的成功軌跡
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過非對稱編碼器-解碼器架構與極高遮罩比例，遮罩自編碼器能夠作為可擴展的視覺自監督學習器，使大型 ViT 模型僅在 ImageNet-1K 上預訓練即可達到或超越先前需要大規模標註資料或複雜方法才能達到的效能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>三段式問題分析與設計對應：</strong>從架構（ViT 解鎖了遮罩標記的使用）、資訊密度（75% 遮罩消除冗餘）、解碼器角色（非對稱設計分離重建與辨識）三個視角系統性地分析視覺與語言的差異，每個分析都自然導出一個設計決策。加上全面的消融研究與多任務遷移驗證（偵測、分割、分類一致勝出），形成了從原理到實踐的完整論證閉環。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>語義湧現的機制缺乏深入剖析：</strong>MAE 重建像素（非語義實體），卻宣稱學到了語義——此核心矛盾僅以定性的重建可視化為證，缺乏系統性的表示分析。此外，線性探測表現劣於對比學習方法這一事實，雖被巧妙地以「線性可分離性非唯一指標」化解，但在許多實際部署場景（如凍結骨幹加線性分類器）中，此劣勢仍然具有實際影響。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

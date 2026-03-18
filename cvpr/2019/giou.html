@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generalized Intersection over Union — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄批注 */
+        .right-col {
+            flex: 1 1 37%;
+        }
+
+        .annotation-card {
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .annotation-card p {
+            margin: 4px 0;
+        }
+
+        .annotation-card strong {
+            font-weight: 600;
+        }
+
+        /* 批注卡片配色 */
+        .ann-function   { background: #f5f0e0; border-left: 4px solid #c9a84c; }
+        .ann-logic      { background: #eef3fb; border-left: 4px solid #5b9bd5; }
+        .ann-technique  { background: #f0f7f0; border-left: 4px solid #6abf69; }
+        .ann-weakness   { background: #fdf0f0; border-left: 4px solid #d46b6b; }
+        .ann-evidence   { background: #f0f0fa; border-left: 4px solid #8b7ec8; }
+
+        /* ===== 五類高亮標注 ===== */
+        .hl-thesis   { background-color: rgba(255, 235, 59, 0.35); padding: 1px 3px; border-radius: 2px; } /* 黃色 = 核心論點 */
+        .hl-concept  { background-color: rgba(244, 67, 54, 0.20);  padding: 1px 3px; border-radius: 2px; } /* 紅色 = 關鍵概念 */
+        .hl-evidence { background-color: rgba(33, 150, 243, 0.20);  padding: 1px 3px; border-radius: 2px; } /* 藍色 = 實證證據 */
+        .hl-concession { background-color: rgba(76, 175, 80, 0.22); padding: 1px 3px; border-radius: 2px; } /* 綠色 = 讓步/反駁 */
+        .hl-method   { background-color: rgba(156, 39, 176, 0.18);  padding: 1px 3px; border-radius: 2px; } /* 紫色 = 方法論 */
+
+        /* ===== 底部論證結構總覽 ===== */
+        .overview-section {
+            margin-top: 60px;
+            padding: 30px;
+            background: #ffffff;
+            border: 1px solid #d6d0c4;
+            border-radius: 6px;
+        }
+
+        .overview-section h2 {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .overview-card {
+            padding: 18px;
+            border-radius: 4px;
+            background: #faf8f5;
+            border: 1px solid #e0dbd2;
+        }
+
+        .overview-card h3 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin-bottom: 10px;
+        }
+
+        .overview-card p, .overview-card li {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: #3a3a3a;
+        }
+
+        .overview-card ul {
+            padding-left: 20px;
+        }
+
+        .overview-card li {
+            margin: 4px 0;
+        }
+
+        .logic-flow {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .logic-flow .flow-step {
+            background: #1a2332;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .logic-flow .flow-arrow {
+            color: #8a7e6b;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .strength-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+        .badge-strong { background: #e8f5e9; color: #2e7d32; }
+        .badge-weak   { background: #fce4ec; color: #c62828; }
+
+        /* ===== 頁尾 ===== */
+        .footer {
+            background-color: #1a2332;
+            color: #a0aab4;
+            padding: 28px 30px;
+            text-align: center;
+            font-size: 0.82rem;
+        }
+
+        .footer a {
+            color: #5b9bd5;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== 響應式設計 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .left-col {
+                flex: 1 1 100%;
+                max-width: 100%;
+            }
+
+            .right-col {
+                flex: 1 1 100%;
+            }
+
+            .overview-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .top-navbar {
+                padding: 14px 16px;
+            }
+
+            .section-nav {
+                padding: 0 16px;
+            }
+
+            .main-container {
+                padding: 20px 16px 40px;
+            }
+
+            .navbar-title {
+                font-size: 0.95rem;
+            }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== 頂部導航欄 ===== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression
+                <span class="course-tag">CVPR 2019</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&#8592; 返回論文列表</a>
+            <a href="https://arxiv.org/abs/1902.09630" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+        </div>
+        <!-- 顏色圖例 -->
+        <div class="color-legend">
+            <div class="legend-item"><span class="legend-swatch" style="background:#ffeb3b;"></span>核心論點 Thesis</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#f44336;"></span>關鍵概念 Key Concept</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#2196f3;"></span>實證證據 Evidence</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#4caf50;"></span>讓步／反駁 Concession</div>
+            <div class="legend-item"><span class="legend-swatch" style="background:#9c27b0;"></span>方法論 Methodology</div>
+        </div>
+    </div>
+</nav>
+
+<!-- ===== 章節導航條（黏性） ===== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 引言</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-giou">3. GIoU 方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ===== 主體內容 ===== -->
+<div class="main-container">
+
+    <!-- ==================== 摘要 ==================== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">GIoU addresses limitations of standard IoU in bounding box regression.</span>
+                While <span class="hl-concept">IoU</span> is the primary evaluation metric, a gap exists between
+                optimizing standard <span class="hl-concept">distance losses</span> and maximizing IoU values.
+                <span class="hl-concession">"IoU has a plateau making it infeasible to optimize in the case of non-overlapping bounding boxes."</span>
+                <span class="hl-thesis">GIoU serves as both metric and loss</span>, incorporated into
+                <span class="hl-evidence">Faster R-CNN, Mask R-CNN, and YOLO v3</span>.
+                Results on <span class="hl-evidence">PASCAL VOC and MS COCO</span> demonstrate consistent improvements.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">廣義交集比（GIoU）</span>針對標準 <span class="hl-concept">IoU</span> 在<span class="hl-concept">邊界框迴歸</span>中的侷限性提出解決方案。儘管 IoU 是最主要的評估指標，但<span class="hl-thesis">優化標準距離損失與最大化 IoU 值之間存在落差</span>。由於 <span class="hl-rebuttal">IoU 在不重疊邊界框的情況下會形成平臺區域，導致無法進行有效的梯度優化</span>。<span class="hl-thesis">GIoU 同時扮演指標與損失函數的雙重角色</span>，並被整合至 <span class="hl-evidence">Faster R-CNN</span>、<span class="hl-evidence">Mask R-CNN</span> 及 <span class="hl-evidence">YOLO v3</span> 等主流偵測框架中，在 <span class="hl-evidence">PASCAL VOC 與 MS COCO 資料集上展現出一致性的效能提升</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-function">
+                <span class="ann-label">段落功能：全文摘要</span>
+                <p><strong>段落功能：</strong>提出核心問題（IoU 的優化困境）並預告解決方案（GIoU），同時交代實驗驗證範圍。</p>
+                <p><strong>邏輯角色：</strong>作為全文的濃縮版，建立「問題 → 方案 → 驗證」的論證骨架。</p>
+                <p><strong>論證技巧：</strong>直接點出 IoU 作為評估指標卻無法作為損失函數的矛盾，用引號強調 plateau 問題，製造學術張力。列舉三個主流框架增強說服力。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 1. 引言 ==================== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction 引言</h2>
+
+    <!-- 引言段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Bounding box regression</span> is fundamental in 2D/3D vision. As Figure 1 demonstrates,
+                bounding boxes can have <span class="hl-evidence">identical &#8467;&#8322; and &#8467;&#8321; distances but vastly different IoU values</span>.
+                <span class="hl-thesis">"No strong correlation exists between minimizing parametric-representation-based losses and improving IoU values."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                邊界框迴歸是 2D 與 3D 電腦視覺的基礎任務。如圖 1 所示，不同的邊界框配置可能具有完全相同的 &#8467;&#8322; 和 &#8467;&#8321; 距離，卻呈現截然不同的 IoU 值。換言之，最小化基於參數表示的損失函數與提升 IoU 值之間並不存在強相關性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-logic">
+                <span class="ann-label">邏輯分析</span>
+                <p><strong>段落功能：</strong>引出核心問題——現有損失函數與評估指標之間的脫節。</p>
+                <p><strong>邏輯角色：</strong>論證鏈起點，透過反例（相同距離、不同 IoU）建立研究動機。</p>
+                <p><strong>論證技巧：</strong>以具體的視覺化證據（Figure 1）作為開場，讓抽象的數學不一致性變得直觀可感。引用格式凸顯此為本文核心主張。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引言段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">&#8467;&#8345;-norm objectives</span> lack <span class="hl-concept">scale invariance</span>.
+                <span class="hl-concession">"IoU in this case can be backpropagated, i.e. it can be directly used as the objective function."</span>
+                For <span class="hl-concept">non-overlapping objects</span>, IoU equals zero with zero gradient,
+                <span class="hl-thesis">preventing optimization</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                &#8467;&#8345; 範數目標函數缺乏尺度不變性，這意味著對大小不同的物件會產生不一致的懲罰。理論上 IoU 可以被反向傳播，直接作為目標函數使用，然而一旦兩個邊界框不重疊，IoU 即為零且梯度同樣為零，這使得基於梯度的優化完全失效。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-weakness">
+                <span class="ann-label">問題剖析</span>
+                <p><strong>段落功能：</strong>深化問題描述——指出 IoU 雖可微分，但存在根本性的梯度消失缺陷。</p>
+                <p><strong>邏輯角色：</strong>承接上段的相關性問題，進一步揭示 IoU 自身的致命弱點，為 GIoU 的提出做鋪墊。</p>
+                <p><strong>論證技巧：</strong>先讓步承認 IoU 的可微分優勢，再以「然而」轉折指出零梯度問題。這種「先揚後抑」的結構使論證更具說服力。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 2. 相關工作 ==================== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">IoU</span> serves as <span class="hl-thesis">de facto evaluation metric</span>.
+                <span class="hl-evidence">PASCAL VOC uses fixed IoU threshold 0.5</span>,
+                <span class="hl-evidence">MS COCO averages across multiple thresholds</span>.
+                <span class="hl-method">YOLO v1: direct regression with square root</span>.
+                <span class="hl-method">R-CNN: location/size offsets with &#8467;&#8322; loss</span>.
+                <span class="hl-method">Fast R-CNN: &#8467;&#8321;-smooth loss</span>.
+                <span class="hl-method">Faster R-CNN: dense anchor boxes</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">IoU</span> 已成為物件偵測領域事實上的標準評估指標。PASCAL VOC 採用固定的 <span class="hl-concept">IoU</span> 閾值 0.5 來判定偵測結果，而 MS COCO 則透過在多個閾值上取平均來進行更精細的評估。在損失函數的發展脈絡中，<span class="hl-method">YOLO v1</span> 採用直接迴歸配合平方根轉換，<span class="hl-method">R-CNN</span> 使用位置與尺寸偏移量搭配 &#8467;&#8322; 損失，<span class="hl-method">Fast R-CNN</span> 引入 &#8467;&#8321;-smooth 損失，而 <span class="hl-method">Faster R-CNN</span> 則提出密集錨框策略。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <span class="ann-label">文獻脈絡</span>
+                <p><strong>段落功能：</strong>建立技術脈絡，說明現有方法如何處理邊界框迴歸。</p>
+                <p><strong>邏輯角色：</strong>透過梳理歷史發展，暗示所有先前方法都依賴參數化距離損失，間接支持本文提出的「指標與損失不一致」論點。</p>
+                <p><strong>論證技巧：</strong>按時間線列舉四個代表性方法，形成清晰的技術演進鏈。但未深入分析各方法的具體缺陷，略顯單薄。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 3. GIoU 方法 ==================== -->
+    <h2 class="section-heading" id="sec-giou">3. Generalized Intersection over Union 廣義交集比</h2>
+
+    <!-- 3.1 標準 IoU -->
+    <h3 class="subsection-heading">3.1 標準 IoU 定義</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Standard IoU: |A&#8745;B| / |A&#8746;B|</span>.
+                Two features: (1) <span class="hl-concept">as distance satisfies metric properties</span>,
+                (2) <span class="hl-concept">invariant to scale</span>.
+                Critical weakness: <span class="hl-concession">when |A&#8745;B|=0, IoU=0</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                標準 <span class="hl-concession">IoU</span> 的定義為兩個區域交集面積除以聯集面積，即 |A&#8745;B| / |A&#8746;B|。其具備兩項重要特性：（1）作為距離度量時滿足度量空間的公理性質；（2）對尺度具有不變性。然而其關鍵弱點在於：當兩個區域無交集（|A&#8745;B|=0）時，IoU 值恆為零。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-logic">
+                <span class="ann-label">定義鋪陳</span>
+                <p><strong>段落功能：</strong>提供 IoU 的形式化定義，並明確列出其優勢與致命缺陷。</p>
+                <p><strong>邏輯角色：</strong>作為 GIoU 推導的前置條件，先建立讀者對標準 IoU 的完整認知。</p>
+                <p><strong>論證技巧：</strong>以「兩項優勢 + 一項致命弱點」的結構呈現，使讀者自然認同需要改進方案。度量性質與尺度不變性的強調也為後續 GIoU 保留這些性質埋下伏筆。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 GIoU 定義 -->
+    <h3 class="subsection-heading">3.2 GIoU 公式推導</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">GIoU solution: find smallest convex shape C enclosing both</span>, then
+                <span class="hl-method">GIoU = IoU &#8722; |C\(A&#8746;B)| / |C|</span>.
+                Properties: <span class="hl-concept">satisfies metric properties</span>,
+                <span class="hl-concept">scale invariant</span>,
+                <span class="hl-concept">always lower bound of IoU</span>,
+                <span class="hl-evidence">range [&#8722;1, 1]</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">GIoU</span> 的解決方案是：首先找出能同時包圍 A 與 B 的最小凸包 C，然後計算 <span class="hl-method">GIoU = IoU &#8722; |C\(A&#8746;B)| / |C|</span>，其中 |C\(A&#8746;B)| 表示凸包 C 中不屬於 A 或 B 的空白區域面積。G<span class="hl-method">IoU</span> 具備以下性質：滿足度量空間公理、尺度不變性、永遠是 <span class="hl-concept">IoU</span> 的下界，且值域為 [&#8722;1, 1]。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-technique">
+                <span class="ann-label">核心方法</span>
+                <p><strong>段落功能：</strong>提出本文的核心技術貢獻——GIoU 的數學定義。</p>
+                <p><strong>邏輯角色：</strong>論證鏈的核心環節，直接回應前文提出的 IoU 零梯度問題。</p>
+                <p><strong>論證技巧：</strong>公式設計的精妙之處在於：透過減去「空白比例」項，即使在不重疊的情況下（IoU=0），GIoU 仍能提供非零值和有效梯度。四項性質的列舉有力地證明 GIoU 是 IoU 的嚴格推廣。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 GIoU 梯度分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                For <span class="hl-concession">non-overlapping cases, GIoU maintains gradients</span>.
+                <span class="hl-thesis">"GIoU loss can be used as the optimal bounding box regression loss
+                in all applications which require 2D bounding box regression."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在不重疊的情況下，GIoU 依然能維持有效的梯度訊號，這是其相對於標準 IoU 的關鍵優勢。作者主張 GIoU 損失可作為所有需要 2D 邊界框迴歸的應用中的最優損失函數。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-function">
+                <span class="ann-label">核心主張</span>
+                <p><strong>段落功能：</strong>明確宣示 GIoU 的普適性地位。</p>
+                <p><strong>邏輯角色：</strong>將技術貢獻升華為通用性主張，是全文最強的論點聲明。</p>
+                <p><strong>注意：</strong>「所有應用中的最優損失函數」是一個相當強的聲明。作者使用引號形式突顯此為正式宣言，但缺乏嚴格的最優性證明——這是潛在的論證漏洞。後續 DIoU/CIoU 等工作也確實提出了改進方案。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 4. 實驗 ==================== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments 實驗</h2>
+
+    <!-- 4.1 YOLO v3 -->
+    <h3 class="subsection-heading">4.1 YOLO v3 實驗結果</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">YOLO v3 on PASCAL VOC: AP improved 3.45%, AP75 improved 5.56%</span>.
+                On <span class="hl-evidence">MS COCO: AP improved 6.69%, AP75 improved 9.12%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 YOLO v3 框架上，GIoU 損失於 PASCAL VOC 資料集取得 AP 提升 3.45%、AP75 提升 5.56% 的成績；於 <span class="hl-evidence">MS COCO</span> 資料集上則分別取得 AP 提升 6.69% 和 AP75 提升 9.12% 的更顯著改進。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <span class="ann-label">實證資料</span>
+                <p><strong>段落功能：</strong>以 YOLO v3 為首個驗證平臺，提供量化改進資料。</p>
+                <p><strong>邏輯角色：</strong>實證支撐環節，驗證 GIoU 在單階段偵測器上的有效性。</p>
+                <p><strong>論證技巧：</strong>AP75（高 IoU 閾值）的改進幅度大於 AP，這符合預期——GIoU 直接優化 IoU，自然在高精度要求下受益更多。MS COCO 改進更大可能因為其多閾值評估更能反映 IoU 改善。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4.2 Faster R-CNN & Mask R-CNN -->
+    <h3 class="subsection-heading">4.2 Faster R-CNN 與 Mask R-CNN 實驗結果</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">Faster R-CNN on PASCAL VOC: AP improved 5.95%, AP75 improved 12.85%</span>.
+                <span class="hl-evidence">MS COCO: AP improved 2.50%</span>.
+                <span class="hl-evidence">Mask R-CNN: AP improved 2.73%</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                Faster R-CNN 在 PASCAL VOC 上取得 AP 提升 5.95%、AP75 大幅提升 12.85% 的亮眼成績；在 <span class="hl-evidence">MS COCO</span> 上 AP 提升 2.50%。<span class="hl-evidence">Mask R-CNN</span> 則取得 AP 提升 2.73% 的改進。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <span class="ann-label">跨框架驗證</span>
+                <p><strong>段落功能：</strong>擴展驗證至兩階段偵測器與實例分割框架。</p>
+                <p><strong>邏輯角色：</strong>強化普適性論點——GIoU 在不同架構範式中均有效。</p>
+                <p><strong>論證技巧：</strong>Faster R-CNN 在 PASCAL VOC 上 AP75 提升 12.85% 是所有實驗中最大的改進，極具說服力。但 MS COCO 上改進幅度較小（2.50%），作者未深入分析此差異的原因，是一個可以追問的方向。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 5. 結論 ==================== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">GIoU generalizes IoU addressing non-overlapping weakness</span>.
+                Preserves <span class="hl-concept">metric structure</span> and <span class="hl-concept">scale invariance</span>.
+                <span class="hl-method">Analytical solution enables direct application as loss</span>.
+                Future work: <span class="hl-method">analytical GIoU for rotating rectangular cuboids in 3D detection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                GIoU 作為 IoU 的廣義化版本，成功解決了不重疊邊界框情況下的梯度消失問題。它同時保留了度量空間結構與尺度不變性等理論性質。由於存在解析解，GIoU 可直接作為損失函數應用於各種偵測框架。未來的研究方向包括推導旋轉矩形長方體的解析 GIoU，以應用於 3D 物件偵測場景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-function">
+                <span class="ann-label">總結回顧</span>
+                <p><strong>段落功能：</strong>總結全文貢獻並提出未來研究方向。</p>
+                <p><strong>邏輯角色：</strong>論證鏈終點，回應摘要與引言中提出的問題。</p>
+                <p><strong>論證技巧：</strong>結論段精煉地重申三大貢獻（解決零梯度、保留理論性質、提供解析解），並以 3D 擴展作為展望，暗示方法的可延伸性。整體結構首尾呼應，論證閉環完整。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="overview-section" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 全文邏輯骨架 -->
+        <div class="overview-card" style="margin-bottom: 20px;">
+            <h3>全文邏輯骨架</h3>
+            <div class="logic-flow">
+                <span class="flow-step">問題：IoU 不可優化</span>
+                <span class="flow-arrow">&#8594;</span>
+                <span class="flow-step">分析：零梯度根因</span>
+                <span class="flow-arrow">&#8594;</span>
+                <span class="flow-step">方案：GIoU 公式</span>
+                <span class="flow-arrow">&#8594;</span>
+                <span class="flow-step">理論：保留度量性質</span>
+                <span class="flow-arrow">&#8594;</span>
+                <span class="flow-step">實證：三框架驗證</span>
+                <span class="flow-arrow">&#8594;</span>
+                <span class="flow-step">結論：通用損失函數</span>
+            </div>
+        </div>
+
+        <div class="overview-grid">
+            <!-- 核心主張 -->
+            <div class="overview-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>GIoU 透過引入最小凸包的空白比例懲罰項，將 IoU 從一個僅適用於重疊情況的評估指標，推廣為在任意邊界框配置下均可有效優化的通用損失函數。</p>
+            </div>
+
+            <!-- 問題→論點→證據→反駁→結論 -->
+            <div class="overview-card">
+                <h3>論證鏈拆解</h3>
+                <ul>
+                    <li><strong>問題：</strong>&#8467;&#8345; 損失與 IoU 指標之間存在優化目標不一致</li>
+                    <li><strong>論點：</strong>直接優化 IoU 變體比優化替代距離更有效</li>
+                    <li><strong>證據：</strong>三個主流框架、兩個基準資料集的量化改進</li>
+                    <li><strong>反駁：</strong>IoU 本身可微分但存在零梯度平臺（先承認再指出缺陷）</li>
+                    <li><strong>結論：</strong>GIoU 是 2D 邊界框迴歸的最優損失選擇</li>
+                </ul>
+            </div>
+
+            <!-- 論證最強處 -->
+            <div class="overview-card">
+                <h3><span class="strength-badge badge-strong">最強</span>論證最強處</h3>
+                <p>GIoU 的數學定義優雅且直觀——僅增加一個「凸包空白比例」懲罰項即解決零梯度問題，同時嚴格保留 IoU 的所有理論性質（度量公理、尺度不變性）。Faster R-CNN 在 AP75 上高達 12.85% 的提升提供了強有力的實證支撐。</p>
+            </div>
+
+            <!-- 論證最弱處 -->
+            <div class="overview-card">
+                <h3><span class="strength-badge badge-weak">最弱</span>論證最弱處</h3>
+                <p>作者聲稱 GIoU 為「所有 2D 邊界框迴歸應用的最優損失」，但缺乏嚴格的最優性理論證明。此外，GIoU 在重疊情況下退化為標準 IoU，未能進一步提升已重疊邊界框的迴歸精度——後續的 DIoU 和 CIoU 正是針對此問題提出改進。</p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+<!-- ===== 頁尾 ===== -->
+<footer class="footer">
+    <p>CVPR 2019 論文精選集 &mdash; <a href="../../index.html">返回主頁</a></p>
+    <p style="margin-top:6px;">&copy; 2026 CvHub. 本站內容僅供學術研究與教育用途。論文版權歸原作者與出版方所有。</p>
+</footer>
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

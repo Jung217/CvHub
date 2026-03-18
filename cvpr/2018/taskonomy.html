@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskonomy: Disentangling Task Transfer Learning — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-title .best-paper-badge { display: inline-block; background: linear-gradient(135deg, #f6d365, #d4a017); color: #1a2332; padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Taskonomy: Disentangling Task Transfer Learning
+                <span class="course-tag">CVPR 2018</span>
+                <span class="best-paper-badge">Best Paper Award</span>
+            </div>
+            <div>
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1804.08328" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-transfer">3.2 遷移建模</a>
+        <a href="#sec-taxonomy">3.4 全域分類學</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Do visual tasks have a <span class="hl-thesis">relationship to each other</span>? The authors propose <span class="hl-method">a fully computational approach for modeling the structure of the space of visual tasks</span>. This is done via finding <span class="hl-concept">transfer learning</span> dependencies across <span class="hl-evidence">26 tasks</span>, computing a <span class="hl-concept">taxonomy</span> (task structure) using transfer learning as the computational probe. They show that <span class="hl-thesis">the structure in the space of visual tasks is real, discoverable, and useful</span>: e.g., <span class="hl-evidence">the total number of labeled datapoints needed for solving a set of 10 tasks can be reduced by roughly 2/3</span> while maintaining performance, by exploiting the relationships between tasks through systematic transfer.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                視覺任務之間是否存在關聯性？作者提出一種完全基於計算的方法，用以建模視覺任務空間的結構。具體做法是透過遷移學習，探測 26 項任務之間的依賴關係，並以遷移學習作為計算探針來建構分類學（任務結構）。研究顯示，視覺任務空間中的結構是真實的、可發現的、且具實用價值的：例如，透過系統性的遷移來利用任務間的關係，解決 10 項任務所需的標註資料點總量可減少約三分之二，同時維持效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以問題驅動方式引出研究核心：視覺任務間的結構性關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要同時承擔「問題定義」與「成果預告」的功能：先以反問句吸引注意力，再以具體數據（26 項任務、減少 2/3 標註）量化貢獻的規模。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    開頭的反問句修辭極具引導性，暗示答案為肯定。「2/3 標註量的減少」是一個非常強力的數據主張，但需在實驗中驗證其泛化條件。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Computer vision has traditionally solved tasks in <span class="hl-rebuttal">isolation</span>, treating each problem independently. Yet it seems natural that tasks should be <span class="hl-thesis">related</span> — a system that can detect edges might more easily learn to estimate surface normals, and a model that understands depth might transfer well to scene layout estimation. The authors argue that <span class="hl-thesis">"a model aware of the relationships among tasks demands less supervision, uses less computation, and behaves in more predictable ways."</span> However, <span class="hl-rebuttal">the relationships between tasks are largely unknown and are currently established ad hoc or based on intuition</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                電腦視覺傳統上以孤立的方式解決各項任務，將每個問題獨立處理。然而，任務之間理應存在關聯——一個能偵測邊緣的系統，或許能更容易地學習估計表面法向量；一個理解深度的模型，或許能良好地遷移至場景佈局估計。作者主張：「一個理解任務間關係的模型，需要更少的監督、更少的計算，且表現更可預測。」然而，任務間的關係在很大程度上是未知的，目前僅以臨時性方法或基於直覺來建立。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立動機——指出孤立解決視覺任務的低效率，並以直覺例子暗示任務間的潛在關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈起點：先以「孤立」vs.「關聯」的對比建立張力，再指出目前缺乏系統性方法來發現這些關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以日常直覺（邊緣 -> 法向量）作為動機，使論點平易近人。但「ad hoc」一詞暗示現有做法皆缺乏方法論基礎，可能低估了多工學習社群的既有成果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper proposes a <span class="hl-concept">fully computational approach</span> to map out the <span class="hl-concept">task structure</span>. The approach involves <span class="hl-method">training task-specific networks for each of 26 visual tasks</span>, then <span class="hl-method">systematically probing transfer learning performance from every source task to every target task</span>. The resulting <span class="hl-concept">affinity matrix</span> is normalized and solved as a <span class="hl-method">combinatorial optimization problem</span> to produce a <span class="hl-concept">taxonomy</span> — a principled mapping of which tasks should transfer to which. The <span class="hl-evidence">dataset consists of 4 million images from indoor scenes, annotated for all 26 tasks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種完全基於計算的方法來繪製任務結構。該方法包含為 26 項視覺任務各訓練任務專屬網路，接著系統性地探測從每個來源任務到每個目標任務的遷移學習效能。所得的親和矩陣經正規化後，以組合最佳化問題求解，產生一套分類學——即任務間遷移的原則性對應。資料集包含來自室內場景的 400 萬張影像，全部標註了 26 項任務。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方案概述——概括介紹四階段管線的整體架構。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從「問題」過渡到「方案」：以計算方式取代直覺判斷，為後續方法章節鋪路。400 萬影像的資料規模也預告了本文的實驗厚度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「完全基於計算」的主張具有科學客觀性的修辭效果，但計算管線本身的設計選擇（如編碼器架構、遷移網路大小）已隱含了主觀決策。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The work relates to several research areas. <span class="hl-concept">Multi-task learning</span> jointly trains models on multiple tasks but <span class="hl-rebuttal">does not explicitly model the relations among tasks or extract a meta-structure</span>. <span class="hl-concept">Transfer learning</span> and <span class="hl-concept">domain adaptation</span> focus on transferring knowledge between tasks or domains, but usually between <span class="hl-rebuttal">a single source-target pair</span>. <span class="hl-concept">Self-supervised learning</span> discovers representations from unlabeled data, but the <span class="hl-rebuttal">choice of pretext task is typically based on intuition rather than a principled understanding of task relationships</span>. Unlike all prior approaches, this work <span class="hl-thesis">explicitly models the full structure of the task space</span> to guide transfer decisions.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究與數個研究領域相關。多工學習聯合訓練模型處理多項任務，但未明確建模任務間的關係或抽取元結構。遷移學習與領域適應專注於任務或領域間的知識遷移，但通常僅處理單一來源—目標配對。自監督學習從未標註資料中發現表示，但前置任務的選擇通常基於直覺而非對任務關係的原則性理解。與所有先前方法不同，本研究明確建模任務空間的完整結構來指導遷移決策。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——將本文與多工學習、遷移學習、自監督學習等領域區分開來。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過列舉相鄰領域的侷限性，精確定義本文的獨特貢獻：不是「做遷移」，而是「理解遷移的結構」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「不同於所有先前方法」的措辭建立新穎性，但多工學習中如 cross-stitch networks 等方法其實也在學習任務關係，只是方式不同。此處的區分可能過於絕對。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 Task-Specific Modeling — 任務專屬建模</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The first step trains <span class="hl-method">independent encoder-decoder networks for each of the 26 tasks</span>. All networks share a <span class="hl-method">common encoder architecture</span> to ensure that representations are comparable across tasks. The encoder is based on a <span class="hl-concept">ResNet-like architecture</span> producing a fixed-size representation, while decoders are <span class="hl-method">task-specific</span>. The <span class="hl-evidence">26 tasks span four categories: 2D tasks (e.g., edge detection, texture), 2.5D tasks (e.g., depth, surface normals), 3D tasks (e.g., scene layout, vanishing points), and semantic tasks (e.g., object classification, semantic segmentation)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第一步為 26 項任務各訓練獨立的編碼器—解碼器網路。所有網路共享相同的編碼器架構，以確保表示在不同任務間具有可比性。編碼器採用類 ResNet 架構，產生固定大小的表示；解碼器則針對各任務設計。26 項任務橫跨四大類別：二維任務（如邊緣偵測、紋理）、2.5 維任務（如深度、表面法向量）、三維任務（如場景佈局、消失點）及語意任務（如物件分類、語意分割）。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第一階段——建立基準模型，為後續遷移探測奠定基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    共享編碼器架構是確保「公平比較」的關鍵設計決策：若編碼器不同，遷移表現的差異可能源於架構而非任務關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    26 項任務的選擇覆蓋面廣，但「任務字典」的邊界本身是主觀的——為何是這 26 項而非其他？任務的粒度也不一致（如「物件分類」vs.「語意分割」的難度差異懸殊）。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.2 遷移建模 -->
+    <h3 class="subsection-heading" id="sec-transfer">3.2 Transfer Modeling — 遷移建模</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In the second step, <span class="hl-method">small readout functions are trained to map from the frozen encoder representation of a source task to the target task</span>. These transfer networks are deliberately kept <span class="hl-method">shallow (1-2 layers)</span> to measure whether information is <span class="hl-thesis">"easily extractable"</span> rather than whether it can be computed de novo. This is done for <span class="hl-evidence">all source-target pairs, yielding a 26x26 transfer affinity matrix</span>. Additionally, <span class="hl-method">higher-order transfers</span> are tested, where <span class="hl-method">representations from multiple source tasks are combined</span> to predict a single target.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                第二步中，訓練小型讀出函數，將來源任務的凍結編碼器表示映射至目標任務。遷移網路刻意保持淺層（1-2 層），以衡量資訊是否「容易提取」，而非是否能從頭計算。這對所有來源—目標配對進行，產生一個 26x26 的遷移親和矩陣。此外，還測試了高階遷移，即結合多個來源任務的表示來預測單一目標。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第二階段——建立遷移探測機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    「淺層讀出」的設計是核心洞見：它將問題從「能否遷移」轉化為「遷移是否容易」，這對實際應用更有意義。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「容易提取」的定義透過網路深度操作化，但這隱含了「遷移的品質可用淺層網路的表現來衡量」的假設。對於需要深層非線性轉換的任務關係，此方法可能低估遷移潛力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.3 正規化 -->
+    <h3 class="subsection-heading">3.3 Normalization — 正規化</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Different tasks use <span class="hl-rebuttal">different loss functions with incomparable scales</span>, making direct comparison of transfer qualities impossible. To address this, the authors employ the <span class="hl-method">Analytic Hierarchy Process (AHP)</span>, a decision-making framework that uses <span class="hl-method">pairwise tournament matrices</span> to normalize affinities. For each target task, source tasks are compared pairwise based on their transfer performance, producing <span class="hl-method">ordinal rankings that are scale-invariant</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                不同任務使用不同的損失函數，其尺度無法直接比較，使得遷移品質的直接對比不可行。為解決此問題，作者採用層級分析法（AHP），這是一種決策框架，使用成對競賽矩陣來正規化親和度。對於每個目標任務，來源任務基於遷移表現進行成對比較，產生與尺度無關的序數排名。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第三階段——解決跨任務比較的技術障礙。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    處理一個容易被忽視但至關重要的問題：若不正規化，分類學的結論可能被損失函數的尺度差異所扭曲。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    引用 AHP 這一成熟的決策理論工具增添了方法論的嚴謹性。但 AHP 本身在處理大量替代方案時可能存在排名反轉問題，作者未討論此限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3.4 全域分類學 -->
+    <h3 class="subsection-heading" id="sec-taxonomy">3.4 Computing the Taxonomy — 計算全域分類學</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The final step formulates taxonomy computation as a <span class="hl-method">Binary Integer Programming (BIP) problem</span>. Given a <span class="hl-method">supervision budget</span> (how many tasks can be trained from scratch), the optimization selects a <span class="hl-method">subgraph of the task transfer graph that maximizes total transfer performance</span>. The BIP constraint ensures each target task receives transfer from <span class="hl-method">at most a specified number of source tasks</span>. The resulting taxonomy is a <span class="hl-concept">directed hypergraph</span> where edges represent feasible transfers, weighted by expected performance gains.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                最後一步將分類學計算形式化為二元整數規劃（BIP）問題。在給定監督預算（可從頭訓練多少任務）的條件下，最佳化選出任務遷移圖的一個子圖，使總遷移表現最大化。BIP 約束確保每個目標任務至多從指定數量的來源任務接收遷移。所得的分類學是一個有向超圖，其中邊代表可行的遷移，以預期效能增益為權重。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法最終階段——將任務結構發現轉化為可求解的最佳化問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    四階段管線的收束：從離散的遷移測量（階段 1-2）經正規化（階段 3）到全域最佳化（階段 4），形成完整的計算管線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    BIP 保證了全域最優解（在給定的離散化下），這是比貪婪搜尋更強的理論保證。但 BIP 的計算複雜度隨任務數指數增長，若任務字典大幅擴展，此方法的可擴展性值得質疑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The taxonomy is evaluated across multiple dimensions. First, <span class="hl-evidence">task-specific network quality is validated: win rates versus random representations ranged from 60.2% to 100%</span> across tasks, confirming that encoders learn meaningful features. Second, <span class="hl-evidence">the computed taxonomy outperformed all other connectivities by a large margin</span> — including random transfer policies, expert intuition-based transfers, and single-source transfers. Third, the approach demonstrates strong generalization: <span class="hl-evidence">cross-dataset validation on Places and ImageNet achieved Spearman correlations of 0.857 and 0.823 respectively</span>. Perhaps most strikingly, <span class="hl-evidence">solving 10 tasks requires only ~37% of the labeled data needed for independent training</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                分類學從多個維度進行評估。首先，驗證任務專屬網路的品質：相對於隨機表示的勝率在各任務間從 60.2% 到 100% 不等，確認編碼器學到了有意義的特徵。其次，計算所得的分類學以大幅度優勢超越所有其他連接方式——包括隨機遷移策略、基於專家直覺的遷移、以及單一來源遷移。再者，該方法展現強勁的泛化能力：在 Places 和 ImageNet 上的跨資料集驗證分別達到 0.857 和 0.823 的 Spearman 相關係數。最引人注目的是，解決 10 項任務僅需獨立訓練所需標註資料的約 37%。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實證驗證——以多角度數據支撐分類學的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    四重驗證策略：(1) 基礎模型品質；(2) 對比實驗；(3) 跨資料集泛化；(4) 標註效率。層層遞進地建立信心。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    Spearman 相關係數顯示結構可跨資料集泛化，這是一個強有力的結果。但 37% 的標註量節省是在特定任務集合與預算下的數字，不同組合可能有不同的節省比例。作者未提供標準差或置信區間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Several <span class="hl-evidence">surprising findings</span> emerge from the taxonomy. <span class="hl-evidence">Surface normals transfer to depth estimation better than vice versa</span>, contradicting the common intuition that depth is more "fundamental." <span class="hl-evidence">2D texture and edge features provide surprisingly strong transfer to 3D tasks</span>. Higher-order transfers — combining multiple sources — often outperform any single-source transfer, suggesting that <span class="hl-thesis">tasks provide complementary information that can be leveraged jointly</span>. The taxonomy also reveals clear <span class="hl-evidence">cluster structures: semantic tasks form one cluster, geometric tasks another, with 2.5D tasks serving as bridges</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                分類學中浮現了若干令人驚訝的發現。表面法向量遷移至深度估計的效果優於反方向，這與深度更「基礎」的常見直覺相矛盾。二維紋理和邊緣特徵對三維任務提供了出乎意料的強遷移效果。高階遷移——結合多個來源——往往優於任何單一來源的遷移，這顯示任務提供了可聯合利用的互補資訊。分類學也揭示了清晰的群集結構：語意任務形成一個群集，幾何任務形成另一個，而 2.5 維任務充當兩者的橋樑。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    呈現發現——揭示反直覺的任務關係。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    這些「驚訝」發現強化了本文的核心論點：任務結構需要計算方法來發現，而非依賴直覺。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以反直覺的結果吸引讀者注意力並間接論證方法的價值。但「法向量優於深度」的發現可能與特定的編碼器架構和資料集有關，是否為普遍規律尚不確定。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The paper demonstrates that <span class="hl-thesis">the space of visual tasks possesses a discoverable, exploitable structure</span>. The proposed computational approach — combining <span class="hl-method">task-specific networks, transfer probing, normalization, and combinatorial optimization</span> — yields a taxonomy that <span class="hl-evidence">significantly reduces the supervision needed for solving multiple tasks simultaneously</span>. The authors note several limitations: the findings are <span class="hl-rebuttal">dependent on the specific model architecture and dataset</span>, and <span class="hl-rebuttal">transitive transfer chaining was found to be ineffective</span>. The taxonomy, dataset, models, and an interactive solver are made publicly available at <span class="hl-evidence">taskonomy.vision</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文證明視覺任務空間擁有可發現、可利用的結構。所提出的計算方法——結合任務專屬網路、遷移探測、正規化與組合最佳化——產生的分類學顯著減少了同時解決多項任務所需的監督量。作者指出若干限制：研究結果取決於特定的模型架構與資料集，且遞移式遷移鏈結被發現無效。分類學、資料集、模型及互動式求解器已公開於 taskonomy.vision。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心發現、承認限制、並提供開放資源。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段完成論證閉環：從「任務是否有結構？」（緒論）到「結構是真實的、可計算的、且有用的」（結論）。公開資源的承諾增強了研究的可重製性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    誠實地列出限制（架構依賴、遞移無效）增強了學術可信度。但「遞移無效」的發現其實是一個重要的負面結果，值得更深入的討論——它暗示任務關係可能不具傳遞性，這對分類學的理論基礎有重要影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺任務孤立解決<br>忽略任務間關係
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                任務空間存在<br>可計算的結構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                26 項任務的遷移實驗<br>標註量減少 2/3
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                架構與資料依賴<br>遞移鏈結無效
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                任務結構真實且有用<br>系統性遷移優於直覺
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    視覺任務之間存在可透過計算方法發現的結構性關係，系統性地利用此結構進行遷移學習，可大幅減少解決多項視覺任務所需的標註資料量。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>四階段計算管線的完整性：</strong>從任務建模、遷移探測、正規化到全域最佳化，每個環節都有明確的理論動機與技術解決方案。跨資料集的高 Spearman 相關係數（0.823-0.857）有力地證明了發現的結構具有泛化性，而非僅為特定資料集的人為產物。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>任務字典的封閉性假設：</strong>26 項任務的選擇本身是主觀的，且分類學的結構可能隨任務字典的擴展或修改而劇變。此外，遞移式遷移鏈結的失敗暗示任務關係可能不具傳遞性，這對利用分類學進行多步推理提出了根本性質疑。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

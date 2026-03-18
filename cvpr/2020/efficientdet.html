@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EfficientDet: Scalable and Efficient Object Detection — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .color-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.3); }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                EfficientDet: Scalable and Efficient Object Detection
+                <span class="course-tag">CVPR 2020</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">← 返回主頁</a>
+                <a href="https://arxiv.org/abs/1911.09070" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+        <div class="color-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#fff3cd;"></div><span>核心論點 / Thesis</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f8d7da;"></div><span>關鍵概念 / 術語</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#cce5ff;"></div><span>實證證據 / 資料</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#d4edda;"></div><span>讓步 / 反駁處理</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#e2d5f1;"></div><span>方法論說明</span></div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-bifpn">3. BiFPN</a>
+        <a href="#sec-scaling">3.1 複合縮放</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, we systematically study neural network architecture design choices for
+                <span class="hl-concept">object detection</span> and propose several key optimizations to improve efficiency.
+                First, we propose a weighted <span class="hl-concept">bi-directional feature pyramid network (BiFPN)</span>,
+                which allows <span class="hl-method">easy and fast multiscale feature fusion</span>.
+                Second, we propose a <span class="hl-method">compound scaling method</span> that
+                <span class="hl-thesis">uniformly scales the resolution, depth, and width for all backbone,
+                feature network, and box/class prediction networks at the same time</span>.
+                Based on these optimizations, we develop a new family of object detectors, called
+                <span class="hl-concept">EfficientDet</span>, which consistently achieve
+                <span class="hl-evidence">much better efficiency than prior art across a wide spectrum of
+                resource constraints</span>.
+                In particular, <span class="hl-evidence">EfficientDet-D7 achieves 55.1 AP on COCO test-dev
+                with 77M parameters and 410B FLOPs, being 4x-9x smaller and using 13x-42x fewer FLOPs
+                than previous detectors</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文系統性地研究物件偵測的神經網路架構設計選擇，並提出數項關鍵最佳化以提升效率。首先，我們提出加權雙向特徵金字塔網路（BiFPN），實現簡便且快速的多尺度特徵融合。其次，我們提出複合縮放方法，能同時統一縮放骨幹網路、特徵網路及框/類別預測網路的解析度、深度與寬度。基於這些最佳化，我們開發了一系列名為 <span class="hl-concept">EfficientDet</span> 的物件偵測器，在各種資源限制條件下持續達到遠優於先前技術的效率。具體而言，EfficientDet-D7 以 7700 萬參數與 4100 億次浮點運算，在 COCO test-dev 上達到 55.1 AP，體積比先前偵測器小 4 至 9 倍，浮點運算量減少 13 至 42 倍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以兩項技術貢獻（BiFPN + 複合縮放）與壓倒性的效率數據總結全文。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要採用「系統性研究 → 兩項創新 → 整合成產品（EfficientDet）→ 數據佐證」的四段式結構。最後以具體的參數量與 FLOPs 數據作結，極具衝擊力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    4-9 倍參數減少、13-42 倍 FLOPs 減少的數據令人印象深刻。但「倍數」的表述取決於比較對象的選擇——若對比的是已知效率較低的模型（如 NAS-FPN + AmoebaNet），則數字會被誇大。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Object detection</span> has been driven by the development of more
+                <span class="hl-rebuttal">powerful but also increasingly expensive backbone networks</span>.
+                While <span class="hl-rebuttal">accuracy has steadily improved, the computational cost has
+                grown even faster</span>, making deployment on resource-constrained devices challenging.
+                A natural question is: <span class="hl-thesis">is it possible to build a scalable detection
+                architecture that achieves both higher accuracy and better efficiency?</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">物件偵測</span>的進步一直由更<span class="hl-rebuttal">強大但也愈加昂貴的骨幹網路</span>所驅動。儘管<span class="hl-rebuttal">準確度穩步提升，運算成本的成長速度卻更快</span>，使得在資源受限的裝置上部署變得困難。一個自然的問題是：<span class="hl-thesis">是否有可能建構一個可擴展的偵測架構，同時實現更高的準確度與更佳的效率？</span>
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——指出物件偵測中準確度與效率的矛盾。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「準確度提升但成本增長更快」的矛盾作為切入點，製造「效率危機」的急迫感，為 EfficientDet 的設計哲學鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以反問句引導讀者，是有效的修辭策略。但「可擴展」的定義需更精確——是指跨不同計算預算的擴展，還是跨不同任務的擴展？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We identify two main challenges:
+                (1) <span class="hl-thesis">efficient multi-scale feature fusion</span> — previous methods like
+                <span class="hl-concept">FPN</span> treat all input features equally, but
+                <span class="hl-rebuttal">"features at different resolutions often contribute to the fused
+                output feature unequally"</span>;
+                (2) <span class="hl-thesis">model scaling</span> — prior works
+                <span class="hl-rebuttal">scale only the backbone or feature network independently</span>,
+                leading to suboptimal accuracy-efficiency trade-offs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們識別出兩項主要挑戰：(1) 高效的多尺度特徵融合——先前的方法（如 <span class="hl-concept">FPN</span>）將所有輸入特徵等同對待，但不同解析度的特徵對融合輸出特徵的貢獻往往並不均等；(2) 模型縮放——先前的工作僅獨立地縮放骨幹網路或特徵網路，導致次優的準確度-效率權衡。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    問題分解——將效率挑戰拆解為兩個獨立且可解決的子問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為後續方法章節建立結構：挑戰 (1) 將由 BiFPN 解決，挑戰 (2) 將由複合縮放解決。一對一的問題-解決對應使論文結構清晰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「等同對待 vs. 加權」的批判對 FPN 而言是準確的，但 PANet 等後續工作已嘗試解決此問題，此處未充分區分 BiFPN 與 PANet 的差異。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Feature Pyramid Network (FPN)</span> introduces a
+                <span class="hl-method">top-down pathway to fuse multi-scale features</span>.
+                <span class="hl-concept">PANet</span> adds a <span class="hl-method">bottom-up path on top of FPN</span>.
+                <span class="hl-concept">NAS-FPN</span> uses <span class="hl-method">neural architecture search</span> to find
+                the optimal feature network topology, but it is
+                <span class="hl-rebuttal">irregular, hard to interpret, and expensive to modify</span>.
+                For model scaling, <span class="hl-concept">EfficientNet</span> demonstrated that
+                <span class="hl-method">compound scaling of depth, width, and resolution</span> is more effective than
+                single-dimension scaling for image classification.
+                We extend this idea to <span class="hl-thesis">object detection, jointly scaling the backbone,
+                BiFPN, and prediction networks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                特徵金字塔網路（FPN）引入自頂向下的路徑來融合多尺度特徵。<span class="hl-concept">PANet</span> 在 FPN 之上增加了自底向上的路徑。<span class="hl-concept">NAS-FPN</span> 使用神經架構搜尋來尋找最佳特徵網路拓撲，但其結構不規則、難以解釋且修改成本高昂。在模型縮放方面，<span class="hl-concept">EfficientNet</span> 證明了複合縮放深度、寬度與解析度比單一維度縮放在影像分類上更為有效。我們將此概念延伸至物件偵測，聯合縮放骨幹網路、BiFPN 與預測網路。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——追溯多尺度融合與模型縮放的技術演進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以時間線呈現技術演進（FPN → PANet → NAS-FPN），最後以 EfficientNet 的複合縮放理念為 EfficientDet 提供理論基礎。「延伸至物件偵測」明確標示了本文的貢獻邊界。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    批判 NAS-FPN 的「不規則、難解釋」是有效的差異化策略，暗示 BiFPN 的手工設計具有更好的可解釋性與可修改性。但手工設計與自動搜尋的公平比較需要更多分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. BiFPN ====== -->
+    <h2 class="section-heading" id="sec-bifpn">3. BiFPN — 雙向特徵金字塔網路</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We propose <span class="hl-concept">BiFPN (Bi-directional Feature Pyramid Network)</span> with two key improvements.
+                First, we remove nodes with <span class="hl-method">only one input edge</span>, since
+                <span class="hl-thesis">a node with only one input cannot fuse features and thus contributes less</span>.
+                This simplification leads to a more efficient
+                <span class="hl-method">bi-directional (top-down + bottom-up) topology</span>.
+                Second, unlike FPN which treats all inputs equally, we add
+                <span class="hl-method">learnable weights for each input during feature fusion</span>,
+                allowing the network to <span class="hl-thesis">learn the importance of different resolution features</span>.
+                We use <span class="hl-method">fast normalized fusion: w_i / (sum(w_j) + epsilon)</span>,
+                which achieves <span class="hl-evidence">comparable accuracy to softmax-based fusion
+                but runs 30% faster on GPU</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出 <span class="hl-concept">BiFPN（雙向特徵金字塔網路）</span>，具有兩項關鍵改進。首先，我們移除<span class="hl-method">僅有單一輸入邊的節點</span>，因為<span class="hl-thesis">僅有單一輸入的節點無法進行特徵融合，貢獻較小</span>。此簡化產生了更高效的<span class="hl-method">雙向（自頂向下 + 自底向上）拓撲結構</span>。其次，不同於 FPN 等同對待所有輸入，我們在特徵融合時為每個輸入添加<span class="hl-method">可學習的權重</span>，使網路能夠<span class="hl-thesis">學習不同解析度特徵的重要性</span>。我們使用<span class="hl-method">快速正規化融合：w_i / (sum(w_j) + epsilon)</span>，其<span class="hl-evidence">準確度與基於 softmax 的融合可比，但在 GPU 上執行速度快 30%</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術貢獻之一——BiFPN 的拓撲簡化與加權融合機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接回應緒論提出的挑戰 (1)。兩項改進各解決一個問題：拓撲簡化提升效率，加權融合提升表達能力。快速正規化融合則在兩者間取得實用平衡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「可學習權重」的設計直觀合理，但權重的可解釋性未被充分分析——學到的權重是否符合直覺（如高解析度特徵在小物體偵測中權重較高）？此外，epsilon 的選擇對數值穩定性有影響但未詳細討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 複合縮放 ====== -->
+    <h3 class="subsection-heading" id="sec-scaling">3.1 Compound Scaling — 複合縮放</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Inspired by <span class="hl-concept">EfficientNet</span>, we propose a
+                <span class="hl-method">compound scaling method for object detection</span> that
+                <span class="hl-thesis">jointly scales up all dimensions of the detector</span>.
+                Given a compound coefficient <span class="hl-concept">phi</span>, we scale the
+                <span class="hl-method">backbone network using EfficientNet-B(phi)</span>,
+                the <span class="hl-method">BiFPN width and depth proportionally</span>, and the
+                <span class="hl-method">input resolution using a heuristic formula</span>.
+                The box/class prediction network depth also increases with phi.
+                This produces a family from <span class="hl-evidence">EfficientDet-D0 (3.9M params, 2.5B FLOPs)
+                to EfficientDet-D7 (77M params, 410B FLOPs)</span>,
+                covering a <span class="hl-thesis">wide spectrum of accuracy-efficiency trade-offs
+                with a single unified architecture</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                受 <span class="hl-concept">EfficientNet</span> 啟發，我們提出一種用於物件偵測的複合縮放方法，聯合放大偵測器的所有維度。給定複合係數 phi，我們以 EfficientNet-B(phi) 縮放骨幹網路，按比例縮放 BiFPN 的寬度與深度，並以啟發式公式縮放輸入解析度。框/類別預測網路的深度也隨 phi 增加。這產生了從 EfficientDet-D0（390 萬參數、25 億 FLOPs）到 EfficientDet-D7（7700 萬參數、4100 億 FLOPs）的系列模型，以單一統一架構涵蓋了廣泛的準確度-效率權衡範圍。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術貢獻之二——將複合縮放從分類延伸至偵測。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應緒論的挑戰 (2)。透過單一係數 phi 控制所有維度的縮放，將複雜的多維度設計空間簡化為一維搜尋問題，大幅降低了架構設計的複雜度。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    從 D0 到 D7 的系列設計展示了方法的實用性與靈活性。但啟發式縮放公式的推導未完全透明——各維度的縮放比例如何決定？是否存在更優的縮放策略但因搜尋空間限制而被忽略？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On <span class="hl-evidence">COCO test-dev</span>, the EfficientDet family achieves consistently
+                better accuracy-efficiency trade-offs compared to prior detectors.
+                <span class="hl-evidence">EfficientDet-D0 achieves 34.6 AP with only 3.9M parameters</span>,
+                matching <span class="hl-evidence">YOLOv3's 33.0 AP while being 28x smaller</span>.
+                <span class="hl-evidence">EfficientDet-D7 achieves 55.1 AP</span>, surpassing the previous best
+                <span class="hl-evidence">NAS-FPN + AmoebaNet's 50.7 AP while using 4x fewer parameters
+                and 13x fewer FLOPs</span>.
+                Compared to <span class="hl-concept">RetinaNet</span>,
+                <span class="hl-evidence">EfficientDet-D1 achieves similar accuracy (40.2 vs. 40.4 AP)
+                with 8x fewer parameters and 21x fewer FLOPs</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 <span class="hl-evidence">COCO test-dev</span> 上，EfficientDet 系列持續達到優於先前偵測器的準確度-效率權衡。EfficientDet-D0 僅以 390 萬參數達到 34.6 AP，匹配 YOLOv3 的 33.0 AP，同時體積小 28 倍。EfficientDet-D7 達到 55.1 AP，超越先前最佳的 NAS-FPN + AmoebaNet 之 50.7 AP，同時參數量減少 4 倍、FLOPs 減少 13 倍。相較於 <span class="hl-concept">RetinaNet</span>，EfficientDet-D1 以相似的準確度（40.2 vs. 40.4 AP）達到 8 倍參數減少與 21 倍 FLOPs 減少。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心量化證據——在 COCO 上全面展示效率優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的實證核心。策略性地選擇了三個不同規模的比較（D0 vs. YOLOv3、D7 vs. NAS-FPN、D1 vs. RetinaNet），覆蓋了從輕量到重量的全範圍，證明 EfficientDet 在所有規模上皆具優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    多組「倍數」比較構成強烈的視覺衝擊力。但需注意：(1) 比較的基線發表時間各異，公平性需考量；(2) FLOPs 並不直接等同於推論速度，實際延遲可能受記憶體存取模式影響；(3) 未與同期的輕量偵測器（如 ThunderNet）進行比較。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Ablation studies</span> demonstrate the effectiveness of each component.
+                <span class="hl-evidence">BiFPN improves AP by 4.1 points over the standard FPN baseline</span>.
+                <span class="hl-evidence">Weighted feature fusion adds 0.4 AP over unweighted BiFPN</span>.
+                The <span class="hl-concept">compound scaling</span> consistently outperforms
+                <span class="hl-evidence">single-dimension scaling: at 50B FLOPs, compound scaling achieves
+                46.3 AP vs. 43.9 AP for scaling resolution alone</span>.
+                These results confirm that <span class="hl-thesis">both BiFPN and compound scaling contribute
+                significantly to the final performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">消融研究</span>證明了每個組件的有效性。<span class="hl-evidence">BiFPN 相較於標準 FPN 基線提升了 4.1 個 AP 百分點</span>。<span class="hl-evidence">加權特徵融合在未加權的 BiFPN 之上再增加 0.4 AP</span>。<span class="hl-concept">複合縮放</span>持續優於<span class="hl-evidence">單一維度縮放：在 500 億 FLOPs 下，複合縮放達到 46.3 AP，而僅縮放解析度則為 43.9 AP</span>。這些結果證實<span class="hl-thesis">BiFPN 與複合縮放對最終性能皆有顯著貢獻</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融實驗——分離各組件的貢獻並驗證設計選擇。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融實驗將最終性能的提升歸因於具體組件：BiFPN 貢獻了主要改進（4.1 AP），加權融合提供了邊際增益（0.4 AP），複合縮放則在效率維度上提供了系統性優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融設計全面且數據清晰。但加權融合的增益（0.4 AP）相對較小，需要更多實驗確認其統計顯著性。複合縮放的優勢（46.3 vs. 43.9）則更具說服力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, we systematically study various architecture design choices for
+                efficient object detection and propose <span class="hl-concept">BiFPN</span> for
+                <span class="hl-thesis">efficient multi-scale feature fusion</span> and a
+                <span class="hl-method">compound scaling method</span> to
+                <span class="hl-thesis">jointly scale up all components of the detector</span>.
+                These optimizations lead to a new family of detectors, <span class="hl-concept">EfficientDet</span>,
+                that <span class="hl-evidence">achieves 4x-9x parameter reduction and 13x-42x FLOPs reduction
+                while maintaining state-of-the-art accuracy</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文系統性地研究了高效物件偵測的各種架構設計選擇，並提出 <span class="hl-concept">BiFPN</span> 實現高效多尺度特徵融合，以及複合縮放方法聯合放大偵測器的所有組件。這些最佳化催生了新的偵測器系列 <span class="hl-concept">EfficientDet</span>，在維持最先進準確度的同時，實現 4 至 9 倍的參數減少與 13 至 42 倍的浮點運算減少。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——以兩項核心貢獻與效率數據作結。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論完美對應緒論提出的兩項挑戰，形成嚴謹的論證閉環。數據的重複強調加深讀者印象。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論精煉有效，但缺乏對方法局限性的討論——例如 EfficientDet 在邊緣裝置上的實際推論延遲、對特定物體類別（小物體、密集物體）的表現差異、以及複合縮放公式的泛化性等議題均未提及。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                物件偵測效率不足<br>準確度與成本失衡
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                BiFPN + 複合縮放<br>可系統性提升效率
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                COCO 55.1 AP<br>4-9 倍參數減少
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                消融驗證每組件<br>皆有獨立貢獻
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                統一架構覆蓋<br>全範圍效率需求
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過雙向加權特徵金字塔（BiFPN）與統一的複合縮放策略，EfficientDet 系列在所有計算預算範圍內，以數量級的效率優勢達到最先進的物件偵測準確度。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>全範圍的效率優勢：</strong>從 D0 到 D7 的系列設計證明 EfficientDet 並非僅在單一計算預算下有效，而是在從行動裝置到伺服器的所有規模上持續勝出。4-9 倍參數減少與 13-42 倍 FLOPs 減少的數據在物件偵測領域具有里程碑意義，直接推動了高效偵測的研究方向。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>啟發式縮放的理論基礎：</strong>複合縮放的各維度比例由啟發式搜尋決定，缺乏理論最優性保證。此外，FLOPs 作為效率指標的局限性未被充分討論——實際推論延遲受記憶體頻寬、運算元支援等硬體因素影響。加權融合的邊際增益（0.4 AP）在統計上可能不顯著，削弱了此設計選擇的必要性論證。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Image 3D Interpreter Network — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'DFKai-SB', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Single Image 3D Interpreter Network
+                <span class="course-tag">CVPR 2016</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1604.08685" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-projection">3.2 投影層</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents <span class="hl-concept">3D-INN (3D Interpreter Network)</span>, an end-to-end framework that <span class="hl-thesis">sequentially estimates 2D keypoint heatmaps and 3D object structure from a single image</span>. The key innovation is a <span class="hl-concept">Projection Layer</span> that <span class="hl-method">projects estimated 3D structure to 2D space</span>, enabling training with <span class="hl-thesis">real 2D-annotated images without requiring 3D ground truth</span>. The method uses <span class="hl-method">keypoint heatmaps as an intermediate representation bridging real and synthetic data</span>. By combining <span class="hl-method">real images with 2D annotations and synthetic images with 3D annotations</span>, the network learns to recover <span class="hl-concept">3D skeleton structure and viewpoint</span> from a single image.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 3D-INN（三維解譯網路），一個端到端的框架，能從單張影像中依序估計二維關鍵點熱圖與三維物件結構。核心創新在於投影層，將估計的三維結構投射至二維空間，使得以真實的二維標註影像即可訓練而無需三維真實標註。該方法使用關鍵點熱圖作為銜接真實與合成資料的中間表示。透過結合具備二維標註的真實影像與具備三維標註的合成影像，網路學習從單張影像恢復三維骨架結構與視角。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「單張影像到三維結構」為核心任務，預告投影層的關鍵創新。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的核心張力在於「2D 標註訓練 3D 估計」——投影層扮演橋接角色，使得豐富的 2D 標註資源得以被利用來學習 3D 理解。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需 3D 真實標註」的主張需要精確理解：方法仍需合成的 3D 資料作為訓練的一部分，只是真實影像部分不需要 3D 標註。此微妙區別在摘要中未完全說明。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Recovering <span class="hl-concept">3D object structure from a single 2D image</span> is a fundamental yet ill-posed problem in computer vision. Humans can effortlessly infer the 3D shape and pose of objects from a single view, yet <span class="hl-rebuttal">teaching machines to do so remains challenging</span>. Existing approaches either rely on <span class="hl-rebuttal">optimization-based methods that are sensitive to initialization</span>, or <span class="hl-rebuttal">require 3D annotations during training that are expensive to obtain for real images</span>. A key challenge is the <span class="hl-thesis">domain gap between synthetic 3D training data and real test images</span> — models trained on synthetic data alone generalize poorly to real photographs.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                從單張二維影像恢復三維物件結構是電腦視覺中一個基礎但病態的問題。人類能毫不費力地從單一視角推斷物件的三維形狀與姿態，但教導機器做到同樣的事仍具挑戰性。現有方法要麼依賴對初始化敏感的最佳化方法，要麼需要在訓練時提供對真實影像而言昂貴的三維標註。關鍵挑戰在於合成三維訓練資料與真實測試影像之間的領域差距——僅以合成資料訓練的模型難以泛化至真實照片。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——指出單張影像三維恢復的三重挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點以三重對比建立問題的複雜性：(1) 病態性；(2) 標註成本；(3) 領域差距。3D-INN 的設計需同時回應這三個挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「人類能輕易做到」作為動機修辭有效但過度簡化——人類的 3D 推斷依賴終生的視覺經驗，遠非「毫不費力」。更重要的是，病態問題意味著存在本質上的歧義性，此限制未被充分討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3D pose and shape estimation</span> methods can be categorized into <span class="hl-concept">optimization-based</span> and <span class="hl-concept">learning-based</span> approaches. Classical methods like <span class="hl-concept">deformable models</span> fit parameterized shape models to image observations through <span class="hl-rebuttal">iterative optimization that is slow and prone to local minima</span>. Recent deep learning approaches train CNNs to <span class="hl-method">directly regress 3D parameters</span> but typically require <span class="hl-rebuttal">3D-annotated real images for training</span>. Methods using only synthetic training data suffer from the <span class="hl-rebuttal">domain gap problem</span>. <span class="hl-concept">Keypoint-based methods</span> detect 2D keypoints first and then solve for 3D structure, but treat the two stages <span class="hl-rebuttal">independently without end-to-end optimization</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                三維姿態與形狀估計方法可分為基於最佳化與基於學習的方法。經典方法如可形變模型透過迭代最佳化將參數化形狀模型擬合至影像觀測，但速度慢且容易陷入區域最小值。近期的深度學習方法訓練 CNN 直接迴歸三維參數，但通常需要三維標註的真實影像進行訓練。僅使用合成訓練資料的方法則受限於領域差距問題。基於關鍵點的方法先偵測二維關鍵點再求解三維結構，但將兩個階段獨立處理而未進行端到端最佳化。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——以四類方法的侷限性為 3D-INN 的「端到端 + 混合資料」策略鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    每類方法恰好對應一個缺陷，而 3D-INN 的設計逐一回應：端到端（vs. 獨立階段）、混合真實+合成（vs. 僅合成）、投影層（vs. 需 3D 標註）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以四分法覆蓋全面的研究脈絡，使 3D-INN 的定位清晰。但將關鍵點方法的「獨立兩階段」視為純粹的缺點可能過於片面——獨立階段也意味著更強的模組化與可調試性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">3D-INN</span> architecture consists of three components. The <span class="hl-concept">Keypoint Estimator</span> is a <span class="hl-method">multi-scale CNN that produces 2D keypoint heatmaps</span> with an <span class="hl-method">information bottleneck for refinement</span>. The <span class="hl-concept">3D Interpreter</span> uses <span class="hl-method">fully connected layers to infer structural and viewpoint parameters</span> from the estimated keypoints. Objects are represented as <span class="hl-concept">3D skeletons</span>, where <span class="hl-method">3D keypoints are modeled as weighted combinations of deformation basis shapes: Y = sum(alpha_k * B_k)</span>, with alpha_k as internal shape parameters and B_k as basis shapes.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                3D-INN 架構包含三個組件。關鍵點估計器是一個多尺度 CNN，產生二維關鍵點熱圖並透過資訊瓶頸進行精煉。三維解譯器使用全連接層從估計的關鍵點推斷結構與視角參數。物件以三維骨架表示，其中三維關鍵點建模為形變基底形狀的加權組合：Y = sum(alpha_k * B_k)，alpha_k 為內部形狀參數，B_k 為基底形狀。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法架構——描述三組件管線與骨架表示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以基底形狀的線性組合表示三維結構，既保持了低維參數化的效率，又能捕捉類別內的形狀變異。此表示是 3D 解譯器能以全連接層運作的前提。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    線性基底模型（PCA-like）假設形狀空間是線性的，這對剛性物件合理但對可形變物件（如動物、人體）可能不夠表達。此外，基底形狀需從三維資料預先學習，引入了對三維資料庫的隱性依賴。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 投影層 ====== -->
+    <h3 class="subsection-heading" id="sec-projection">3.2 Projection Layer — 投影層</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">Projection Layer</span> is the key enabler for training with 2D supervision. It maps <span class="hl-method">3D coordinates to 2D using: X = P(RY + T)</span>, where <span class="hl-method">R is the rotation matrix, T is the translation vector, and P is perspective projection</span>. This layer is <span class="hl-method">fully differentiable</span>, enabling <span class="hl-thesis">backpropagation through the 3D-to-2D mapping</span>. During training on real images (which have only 2D keypoint annotations), the loss is computed in 2D space after projection, and <span class="hl-thesis">gradients flow backward through the projection to update both the 3D interpreter and the keypoint estimator</span>. This design enables a <span class="hl-method">three-stage training strategy</span>: (1) train keypoint estimator on real 2D-annotated images; (2) train 3D interpreter on synthetic data with known 3D structure; (3) end-to-end fine-tuning on real images using the projection layer.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                投影層是以二維監督進行訓練的關鍵。它將三維座標映射至二維：X = P(RY + T)，其中 R 為旋轉矩陣、T 為平移向量、P 為透視投影。此層完全可微分，使得反向傳播能穿越三維到二維的映射。在真實影像（僅有二維關鍵點標註）上訓練時，損失在投影後的二維空間中計算，梯度反向流經投影以同時更新三維解譯器與關鍵點估計器。此設計實現了三階段訓練策略：(1) 以真實的二維標註影像訓練關鍵點估計器；(2) 以已知三維結構的合成資料訓練三維解譯器；(3) 使用投影層在真實影像上進行端到端微調。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心創新——詳述投影層的數學形式與訓練策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的支柱：投影層的可微分性使「2D 標註 -> 3D 學習」的梯度通路成為可能。三階段訓練策略則巧妙地利用了真實與合成資料各自的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    透視投影的可微分實現是一個優雅的技術貢獻，但 3D -> 2D 的映射存在固有歧義（深度不確定性）。僅以 2D 損失訓練是否足以約束正確的 3D 結構，取決於基底模型的正則化效果。三階段訓練增加了實作複雜性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments evaluate both <span class="hl-evidence">2D keypoint estimation and 3D structure recovery</span>. For 2D keypoints, 3D-INN achieves <span class="hl-evidence">state-of-the-art performance on FLIC (human pose), comparable results on CUB-200-2011 (birds), and superior results on Keypoint-5 (furniture)</span>. For 3D structure recovery, the method achieves <span class="hl-evidence">88.03% average recall on the IKEA dataset</span>, significantly outperforming optimization-based methods, especially on noisy inputs. On <span class="hl-evidence">PASCAL 3D+ for viewpoint estimation</span>, 3D-INN achieves comparable performance to state-of-the-art methods. The framework also enables applications such as <span class="hl-evidence">3D-aware image retrieval and object graph visualization</span>, demonstrating the practical utility of the recovered 3D structure.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗同時評估二維關鍵點估計與三維結構恢復。在二維關鍵點上，3D-INN 在 FLIC（人體姿態）上達到最先進效能，在 CUB-200-2011（鳥類）上達到相當水準，在 Keypoint-5（傢俱）上表現優異。在三維結構恢復上，該方法在 IKEA 資料集上達到 88.03% 平均召回率，顯著優於最佳化方法，尤其在雜訊輸入下。在 PASCAL 3D+ 視角估計上，3D-INN 達到與最先進方法相當的效能。框架亦支援三維感知影像檢索與物件圖視覺化等應用，展示了恢復的三維結構的實用價值。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——涵蓋 2D 與 3D 任務以及實際應用。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    三層驗證：(1) 2D 關鍵點（確認中間表示的品質）；(2) 3D 結構（核心目標的直接驗證）；(3) 下游應用（展示實用價值）。IKEA 上的高召回率特別有力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    跨多個資料集與任務的評估增強了方法的通用性論述。但「comparable performance」在視角估計上的措辭暗示並未超越最先進方法——投影層帶來的 3D 能力在定量指標上可能並未轉化為明顯優勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">3D-INN</span> demonstrates that <span class="hl-thesis">a differentiable Projection Layer enables end-to-end learning of 3D object structure from single images using only 2D annotations on real data</span>. By <span class="hl-method">bridging real and synthetic domains through keypoint heatmaps</span> and leveraging <span class="hl-method">the Projection Layer for gradient flow from 2D to 3D</span>, the method achieves <span class="hl-evidence">strong performance on both 2D keypoint estimation and 3D structure recovery</span>. The approach demonstrates that <span class="hl-thesis">combining the complementary strengths of real and synthetic data through a carefully designed differentiable pipeline</span> is a viable path for single-image 3D understanding.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                3D-INN 證明了可微分投影層能夠實現從單張影像端到端學習三維物件結構，僅需真實資料上的二維標註。透過以關鍵點熱圖銜接真實與合成領域，並利用投影層實現從二維到三維的梯度流，該方法在二維關鍵點估計與三維結構恢復上均達到優異效能。此方法展示了透過精心設計的可微分管線結合真實與合成資料的互補優勢，是單張影像三維理解的可行路徑。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申投影層的核心角色與混合資料策略的價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論將具體的技術貢獻（投影層）昇華為通用原則（可微分管線銜接 2D 與 3D），擴展了論文的影響力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    結論適度聚焦於已驗證的能力，但未深入討論局限性——如骨架表示無法捕捉物體的表面幾何、線性基底模型對複雜形變的表達力不足，以及在自然場景中多物件遮擋下的穩健性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                單張影像 3D 恢復<br>缺乏真實 3D 標註
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                可微分投影層<br>銜接 2D 標註與 3D 學習
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                IKEA 88% 召回<br>多資料集驗證
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                三階段訓練<br>銜接真實與合成資料
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                2D+合成資料<br>足以學習 3D 理解
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過可微分投影層將三維估計結果投射回二維，以二維關鍵點標註間接監督三維結構學習，結合真實與合成資料的三階段訓練策略，實現從單張影像端到端的三維物件理解。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>投影層的雙重貢獻：</strong>可微分投影既解決了「如何以 2D 標註訓練 3D 估計」的技術難題，又透過三階段策略優雅地銜接了真實與合成兩個資料領域。在 IKEA 資料集上 88% 的召回率以及對雜訊輸入的穩健性，有力地佐證了此架構的實用性。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>骨架表示的表達力限制：</strong>以稀疏關鍵點與線性基底描述三維結構，無法捕捉連續表面幾何與複雜的非線性形變。對於不規則形狀的物件或密集的表面重建需求，此表示方式力有未逮。此外，2D -> 3D 映射的固有歧義性（深度模糊）在論文中未被充分分析。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

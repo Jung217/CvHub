@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Momentum Contrast for Unsupervised Visual Representation Learning — 雙欄批注</title>
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', 'DFKai-SB', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .color-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.3); }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'DFKai-SB', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Momentum Contrast for Unsupervised Visual Representation Learning
+                <span class="course-tag">CVPR 2020</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">← 返回主頁</a>
+                <a href="https://arxiv.org/abs/1911.05722" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
+        <div class="color-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#fff3cd;"></div><span>核心論點 / Thesis</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f8d7da;"></div><span>關鍵概念 / 術語</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#cce5ff;"></div><span>實證證據 / 資料</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#d4edda;"></div><span>讓步 / 反駁處理</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#e2d5f1;"></div><span>方法論說明</span></div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-queue">3.1 佇列與動量</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present <span class="hl-concept">Momentum Contrast (MoCo)</span> for
+                <span class="hl-concept">unsupervised visual representation learning</span>.
+                From a perspective of <span class="hl-thesis">contrastive learning as dictionary look-up</span>,
+                we build <span class="hl-method">a dynamic dictionary with a queue and a moving-averaged encoder</span>.
+                This enables building a <span class="hl-thesis">large and consistent dictionary on-the-fly
+                that facilitates contrastive unsupervised learning</span>.
+                MoCo provides competitive results under the common
+                <span class="hl-concept">linear protocol</span> on ImageNet classification.
+                More importantly, the representations learned by MoCo
+                <span class="hl-evidence">transfer well to downstream tasks, outperforming its supervised
+                pre-training counterpart in 7 detection/segmentation tasks on PASCAL VOC and COCO</span>.
+                This suggests that <span class="hl-thesis">the gap between unsupervised and supervised
+                representation learning has been largely closed</span> in many vision tasks.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出<span class="hl-concept">動量對比學習（MoCo）</span>，用於<span class="hl-concept">無監督視覺表徵學習</span>。從「<span class="hl-thesis">對比學習即字典查詢</span>」的視角出發，我們建構了一個具有<span class="hl-method">佇列與移動平均編碼器的動態字典</span>。這使得能夠即時建立一個<span class="hl-thesis">大型且一致的字典，促進對比式無監督學習</span>。MoCo 在 ImageNet 分類的常用<span class="hl-concept">線性評估協定</span>下達到具競爭力的結果。更重要的是，MoCo 所學習的表徵<span class="hl-evidence">能良好地遷移至下游任務，在 PASCAL VOC 和 COCO 的 7 項偵測/分割任務上超越了有監督預訓練的對應方法</span>。這表明<span class="hl-thesis">在許多視覺任務中，無監督與有監督表徵學習之間的差距已大幅縮小</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以「字典查詢」的新穎比喻框架對比學習，並以下游任務超越有監督方法作為核心賣點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要的結構極為精煉：先提出方法（MoCo）、再提供框架（字典查詢）、然後展示結果（超越有監督）。最後一句的宣稱（「差距已大幅縮小」）是全文最具影響力的論斷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「差距已大幅縮小」是一個極具號召力的宣稱，直接挑戰了「有監督學習是金標準」的共識。但此結論僅基於特定的偵測/分割任務，是否適用於所有視覺任務尚待驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In <span class="hl-concept">natural language processing (NLP)</span>,
+                unsupervised representation learning has been enormously successful, as exemplified by
+                <span class="hl-concept">GPT and BERT</span>.
+                In computer vision, however, <span class="hl-rebuttal">supervised pre-training still dominates</span>.
+                The reason may be related to their different signal spaces:
+                <span class="hl-thesis">language tasks use discrete signal spaces (words, sub-word units)
+                that are amenable to building tokenized dictionaries</span>,
+                while <span class="hl-rebuttal">vision tasks use continuous, high-dimensional signals
+                that are not structured for dictionary building</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在<span class="hl-concept">自然語言處理（NLP）</span>領域，無監督表徵學習已取得巨大成功，<span class="hl-concept">GPT 和 BERT</span> 即為典範。然而在電腦視覺中，<span class="hl-rebuttal">有監督預訓練仍居主導地位</span>。原因可能與兩者不同的訊號空間有關：<span class="hl-thesis">語言任務使用離散的訊號空間（詞、子詞單元），適合建構記號化的字典</span>；而<span class="hl-rebuttal">視覺任務使用連續的高維訊號，其結構不利於字典的建構</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究動機——以 NLP 的成功為對照，指出電腦視覺在無監督學習上的落後。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以跨領域對比開篇，效果極佳：NLP 已經成功 → 視覺為何不行？→ 因為訊號空間不同 → 那我們如何建構視覺的「字典」？為 MoCo 的設計動機鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 NLP 與視覺的差異歸因於「離散 vs. 連續」是一個有洞察力的分析。但此歸因可能過度簡化——視覺任務的困難也來自空間結構、多尺度特性等因素。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We hypothesize that it is possible to build an
+                <span class="hl-thesis">effective visual dictionary for contrastive learning</span>.
+                We present <span class="hl-concept">Momentum Contrast (MoCo)</span> as a way of building
+                <span class="hl-method">large and consistent dictionaries for unsupervised learning with a contrastive loss</span>.
+                We maintain the dictionary as a <span class="hl-method">queue of data samples</span>:
+                the encoded representations of the current mini-batch are enqueued, and the oldest are dequeued.
+                The dictionary keys are encoded by a <span class="hl-method">slowly progressing (momentum-updated) encoder</span>,
+                making the key representations <span class="hl-thesis">more consistent across different mini-batches</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們假設有可能為對比學習建構一個<span class="hl-thesis">有效的視覺字典</span>。本文提出<span class="hl-concept">動量對比學習（MoCo）</span>，作為一種為<span class="hl-method">無監督學習建構大型且一致字典</span>的方式，並搭配對比損失函數。我們將字典維護為一個<span class="hl-method">資料樣本的佇列</span>：當前小批次的編碼表徵被入列，最舊的則被出列。字典鍵值由一個<span class="hl-method">緩慢演進的（動量更新的）編碼器</span>編碼，使得鍵值表徵<span class="hl-thesis">在不同小批次之間更具一致性</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出核心方法——佇列 + 動量編碼器的雙重設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    從上段的「問題」（視覺缺乏字典）直接過渡到「解法」（MoCo 就是視覺字典）。佇列解決「大」的問題，動量編碼器解決「一致」的問題。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    佇列與動量更新的設計直覺清晰、易於理解。但動量係數的選擇（0.999 vs. 0.9）對性能的影響大，而最優值需要大量實驗調校。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Contrastive learning</span> traces back to
+                <span class="hl-concept">contrastive losses and NCE (Noise-Contrastive Estimation)</span>.
+                Recent work includes <span class="hl-concept">InstDisc</span> which stores features in a
+                <span class="hl-method">memory bank</span> for all images, and
+                <span class="hl-concept">SimCLR</span> which relies on
+                <span class="hl-method">large batch sizes for a large set of negatives</span>.
+                The memory bank approach <span class="hl-rebuttal">suffers from stale representations</span>
+                since stored features are from different training epochs.
+                The large-batch approach <span class="hl-rebuttal">requires expensive multi-GPU synchronization
+                and is limited by GPU memory</span>.
+                MoCo offers a third perspective that
+                <span class="hl-thesis">decouples dictionary size from mini-batch size</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                對比學習可追溯至對比損失與雜訊對比估計（NCE）。近期工作包括 <span class="hl-concept">InstDisc</span>——在記憶體庫中儲存所有影像的特徵；以及 <span class="hl-concept">SimCLR</span>——依賴大批次量來獲得大量負樣本。記憶體庫方法的問題在於表徵過時，因為儲存的特徵來自不同的訓練輪次。大批次方法則需要昂貴的多 GPU 同步，且受限於 GPU 記憶體。MoCo 提供了第三種視角，將字典大小與小批次量解耦。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——系統性地對比三種對比學習的字典建構策略。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「字典」的統一框架重新詮釋既有方法：記憶體庫（大但不一致）、大批次（一致但受記憶體限制）、MoCo（大且一致）。三分法使 MoCo 的優勢一目了然。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以統一框架歸納競爭方法，是極有效的學術策略。但 SimCLR 後來的改進版（SimCLR v2）已部分緩解了記憶體問題，此處的批判可能有時效性限制。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We consider <span class="hl-thesis">contrastive learning as training an encoder for a dictionary look-up task</span>.
+                Consider an encoded query <span class="hl-concept">q</span> and a set of encoded samples
+                {<span class="hl-concept">k_0, k_1, k_2, ...</span>} that are the keys of a dictionary.
+                Assume there is a single key <span class="hl-concept">k_+</span> that q matches.
+                A <span class="hl-method">contrastive loss (InfoNCE)</span> is a function whose value is low when
+                <span class="hl-method">q is similar to its positive key k_+ and dissimilar to all other keys</span>.
+                The loss takes the form of a <span class="hl-method">softmax-based classifier
+                that classifies q as k_+ among K negative keys</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們將對比學習視為訓練編碼器執行字典查詢任務。考慮一個編碼後的查詢 q 與一組編碼後的樣本 {<span class="hl-concept">k_0, k_1, k_2, ...</span>} 作為字典的鍵值。假設存在一個與 q 匹配的正鍵 k_+。對比損失（InfoNCE）是一個在 q 與正鍵 k_+ 相似且與所有其他鍵不相似時取低值的函數。此損失採用基於 softmax 的分類器形式，在 K 個負鍵中將 q 分類為 k_+。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法框架——以字典查詢的比喻定義對比學習的數學形式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將對比學習重新框架為「字典查詢」，使抽象的數學公式獲得直觀的理解。InfoNCE 損失的引入為後續佇列設計提供數學基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「字典查詢」的比喻是本文最重要的概念貢獻之一——它將對比學習從一個訓練技巧提升為一個可分析的框架。但 InfoNCE 的理論基礎（與互資訊的關係）在此處未深入展開。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 佇列與動量 ====== -->
+    <h3 class="subsection-heading" id="sec-queue">3.1 Queue and Momentum Update — 佇列與動量更新</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">dictionary as a queue</span> allows us to
+                <span class="hl-method">decouple the dictionary size from the mini-batch size</span>.
+                The dictionary size can be much larger than a typical mini-batch size, and can be
+                <span class="hl-method">flexibly and independently set as a hyperparameter</span>.
+                The samples in the dictionary are <span class="hl-method">progressively replaced:
+                the current mini-batch is enqueued and the oldest mini-batch is dequeued</span>.
+                The <span class="hl-concept">momentum update</span> of the key encoder uses the formula
+                <span class="hl-method">theta_k = m * theta_k + (1-m) * theta_q</span>, where
+                <span class="hl-evidence">m = 0.999 works much better than smaller values like 0.9</span>.
+                This slow update makes the key encoder <span class="hl-thesis">evolve smoothly,
+                so the representations in the queue remain relatively consistent</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                將字典視為佇列使我們能夠將字典大小與小批次量解耦。字典大小可以遠大於典型的小批次量，且可作為超參數靈活獨立地設定。字典中的樣本被漸進式替換：當前小批次入列，最舊的小批次出列。鍵值編碼器的動量更新使用公式 <span class="hl-method">theta_k = m * theta_k + (1-m) * theta_q</span>，其中 m = 0.999 的效果遠優於較小的值（如 0.9）。此緩慢更新使鍵值編碼器平滑地演進，因此佇列中的表徵保持相對一致性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心技術細節——闡述佇列機制與動量更新的運作方式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文技術貢獻的核心。佇列解決「規模」問題（大字典），動量更新解決「一致性」問題（穩定表徵）。0.999 vs. 0.9 的對比提供了具體的實作指引。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「解耦」是一個有力的工程設計原則——讓字典大小成為獨立超參數，大幅增加了方法的靈活性。但佇列中的表徵仍有時間不一致性（較舊的鍵值由較早的編碼器產生），動量更新只是緩解而非消除此問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Under the <span class="hl-concept">linear classification protocol</span> on ImageNet,
+                MoCo with a <span class="hl-evidence">ResNet-50 encoder achieves 60.6% top-1 accuracy</span>,
+                competitive with <span class="hl-evidence">SimCLR's 69.3% (which uses 8x larger batch size and stronger augmentation)</span>.
+                The key finding is in <span class="hl-concept">transfer learning</span>:
+                when fine-tuned on <span class="hl-evidence">PASCAL VOC object detection</span>,
+                MoCo pre-training achieves <span class="hl-evidence">AP of 57.4 vs. 57.2 for supervised ImageNet pre-training</span>.
+                On <span class="hl-evidence">COCO object detection and instance segmentation</span>,
+                MoCo <span class="hl-evidence">outperforms the supervised counterpart in all 7 metrics</span>.
+                These results demonstrate that <span class="hl-thesis">unsupervised pre-training can surpass
+                supervised pre-training when the target task is different from ImageNet classification</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 ImageNet <span class="hl-concept">線性分類評估協定</span>下，採用 <span class="hl-evidence">ResNet-50 編碼器的 MoCo 達到 60.6% 的 top-1 準確率</span>，與 <span class="hl-evidence">SimCLR 的 69.3%（使用 8 倍大的批次量與更強的資料增強）</span>具有競爭力。關鍵發現在於<span class="hl-concept">遷移學習</span>：在 <span class="hl-evidence">PASCAL VOC 物件偵測</span>上微調時，<span class="hl-evidence">MoCo 預訓練達到 AP 57.4，而有監督 ImageNet 預訓練為 57.2</span>。在 <span class="hl-evidence">COCO 物件偵測與實例分割</span>上，MoCo <span class="hl-evidence">在全部 7 項指標上超越有監督的對應方法</span>。這些結果證明，<span class="hl-thesis">當目標任務與 ImageNet 分類不同時，無監督預訓練可以超越有監督預訓練</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心實驗證據——分別在線性評估與遷移學習上驗證 MoCo 的效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是論文的實證支柱。策略性地將重點放在遷移學習（而非線性評估）上，因為遷移學習的結果更具說服力——在實際應用場景中超越有監督方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將「遷移學習」而非「線性分類」作為主要賣點，是明智的策略——因為在線性分類上 MoCo 落後 SimCLR 近 9 個百分點。VOC 和 COCO 的改進幅度雖然顯著但數值較小（57.4 vs. 57.2），需注意統計顯著性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Ablation experiments</span> reveal several important findings.
+                <span class="hl-evidence">Dictionary size matters: increasing K from 256 to 65536 steadily improves performance</span>.
+                The <span class="hl-evidence">momentum coefficient m = 0.999 significantly outperforms m = 0.9
+                (60.6% vs. 55.2% on ImageNet linear evaluation)</span>,
+                confirming that <span class="hl-thesis">representation consistency is crucial for contrastive learning</span>.
+                Compared to the <span class="hl-concept">end-to-end approach</span> (limited by batch size) and the
+                <span class="hl-concept">memory bank approach</span> (inconsistent features),
+                <span class="hl-evidence">MoCo achieves the best trade-off between dictionary size and consistency</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">消融實驗</span>揭示了幾項重要發現。<span class="hl-evidence">字典大小至關重要：將 K 從 256 增加至 65536 能穩定地提升性能</span>。<span class="hl-evidence">動量係數 m = 0.999 顯著優於 m = 0.9（ImageNet 線性評估上 60.6% vs. 55.2%）</span>，證實<span class="hl-thesis">表徵一致性對於對比學習至關重要</span>。相較於<span class="hl-concept">端對端方法</span>（受限於批次量）和<span class="hl-concept">記憶體庫方法</span>（特徵不一致），<span class="hl-evidence">MoCo 在字典大小與一致性之間達到了最佳平衡</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    消融與比較實驗——驗證設計選擇並量化各組件的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    消融實驗直接回應方法設計中的兩個關鍵問題：(1) 字典要多大？(2) 動量要多少？具體數值的對比使論證具有說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    5.4 個百分點的差異（m=0.999 vs. 0.9）是強有力的證據。但消融實驗僅在 ImageNet 上進行，未在下游任務上重複，無法確認結論的遷移性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Our experiments show that <span class="hl-concept">MoCo</span> is an effective mechanism for building
+                <span class="hl-thesis">large and consistent dictionaries for unsupervised contrastive learning</span>.
+                The learned representations <span class="hl-evidence">transfer strongly to downstream detection and segmentation tasks</span>,
+                in many cases <span class="hl-thesis">surpassing their supervised pre-training counterparts</span>.
+                We believe MoCo is a <span class="hl-thesis">simple and general framework</span> applicable beyond
+                <span class="hl-concept">visual representation learning</span>.
+                We hope this work will help <span class="hl-thesis">rethink the role of supervised pre-training
+                in computer vision</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗表明 <span class="hl-concept">MoCo</span> 是建構大型且一致字典以進行無監督對比學習的有效機制。所學習的表徵能強力遷移至下游偵測與分割任務，在許多情況下超越有監督預訓練的對應方法。我們認為 MoCo 是一個簡潔且通用的框架，其應用範圍超越視覺表徵學習。我們希望本工作能促使學界重新思考有監督預訓練在電腦視覺中的角色。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心發現並提出更廣泛的學術啟示。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論從具體結果（遷移學習優勢）上升至範式層面的啟示（重新思考有監督預訓練），展現了本文超越技術細節的學術影響力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「重新思考有監督預訓練」的呼籲極具前瞻性，事後看來（DINO、MAE 等後續工作）確實引領了自監督學習的浪潮。但結論中的「簡潔且通用」宣稱略為模糊，未具體說明通用性的邊界。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                視覺無監督學習缺乏<br>有效的字典建構機制
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                佇列 + 動量編碼器<br>可建構大型一致字典
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                7 項下游任務<br>超越有監督預訓練
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                字典大小與批次量<br>成功解耦
+            </div>
+            <div class="arg-arrow">→</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                無監督與有監督<br>的差距大幅縮小
+            </div>
+        </div>
+
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過佇列式動態字典與動量更新編碼器，MoCo 實現了大規模且一致的對比學習，其無監督表徵在多項下游偵測與分割任務上超越了有監督預訓練的表現。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>遷移學習的實證突破：</strong>在 PASCAL VOC 和 COCO 共 7 項偵測/分割任務上全面超越有監督預訓練，這一結果直接挑戰了學界對有監督預訓練不可替代性的共識。「字典查詢」的統一框架也為理解對比學習提供了清晰的概念工具，催生了後續大量的方法改進。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>線性評估的相對落後：</strong>在 ImageNet 線性分類協定上（60.6%），MoCo 顯著落後於同期的 SimCLR（69.3%），表明在特徵品質的某些維度上仍有差距。此外，佇列中的時間不一致性問題僅被動量更新「緩解」而非「消除」，其對訓練穩定性的長期影響未被充分分析。遷移學習的改進幅度（如 57.4 vs. 57.2）雖然一致但數值較小，統計顯著性值得進一步檢驗。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DN-DETR: Accelerate DETR Training by Introducing Query DeNoising — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                DN-DETR: Accelerate DETR Training by Introducing Query DeNoising
+                <span class="course-tag">CVPR 2022</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2203.01305" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-denoising">3.1 查詢去噪</a>
+        <a href="#sec-attention-mask">3.2 注意力遮罩</a>
+        <a href="#sec-training">3.3 訓練策略</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-ablation">4.2 消融研究</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <!-- 摘要段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a novel denoising training method to <span class="hl-thesis">accelerate DETR (DEtection TRansformer) training</span> and offer a deepened understanding of the slow convergence issue of DETR-like methods. We show that the slow training convergence of DETR is largely attributed to <span class="hl-concept">the instability of bipartite graph matching</span>, which causes <span class="hl-rebuttal">inconsistent optimization goals in early training stages</span>. To address this, we introduce <span class="hl-concept">query denoising</span> as a new training paradigm: in addition to the Hungarian matching part, we <span class="hl-method">feed ground-truth bounding boxes with noises into the Transformer decoder</span> and train the model to <span class="hl-method">reconstruct the original boxes</span>. This approach bypasses the bipartite matching and provides a <span class="hl-thesis">more stable and consistent training signal</span>. Our method, <span class="hl-concept">DN-DETR</span>, achieves <span class="hl-evidence">44.1 AP with a ResNet-50 backbone in 50 epochs</span>, a <span class="hl-evidence">+1.9 AP improvement over DAB-DETR</span> with negligible extra computation. DN-DETR can be <span class="hl-thesis">easily plugged into any DETR-like method</span> to boost performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出一種新穎的去噪訓練方法，用以加速 DETR（偵測變換器）的訓練，並深入理解 DETR 類方法收斂緩慢的問題。我們指出 DETR 訓練收斂緩慢的主因在很大程度上歸因於二部圖匹配的不穩定性，這導致訓練初期的最佳化目標不一致。為此，我們引入查詢去噪作為新的訓練範式：在匈牙利匹配之外，將帶有噪聲的真實邊界框送入 Transformer 解碼器，訓練模型重建原始邊界框。此方法繞過了二部匹配，提供更穩定且一致的訓練訊號。我們的方法 <span class="hl-concept">DN-DETR</span> 在使用 ResNet-50 骨幹網路、訓練 50 個週期的設定下達到 44.1 AP，較 DAB-DETR 提升 +1.9 AP，且幾乎不增加額外計算量。DN-DETR 可輕鬆嵌入任何 DETR 類方法以提升效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——依循「問題-原因-方案-成果」四段式結構，濃縮全文核心貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要承擔雙重任務：(1) 診斷 DETR 緩慢收斂的根本原因（匹配不穩定）；(2) 提出去噪訓練的解決方案。以具體數據（44.1 AP、+1.9 AP）作為實證背書，並以「可嵌入任何 DETR」擴大方法的影響範圍。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將收斂緩慢問題精確歸因於「二部匹配不穩定」而非其他因素（如位置編碼、注意力稀疏性），此歸因雖有實驗支持，但可能過度簡化。「可嵌入任何 DETR」的泛化承諾在摘要階段尚未得到充分驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：DETR 的革新與問題 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">DETR (DEtection TRansformer)</span> has revolutionized object detection by formulating it as a <span class="hl-concept">set prediction problem</span> and eliminating the need for hand-crafted components such as <span class="hl-concept">anchor generation and non-maximum suppression (NMS)</span>. This elegant end-to-end framework uses a <span class="hl-method">Transformer encoder-decoder architecture</span> with <span class="hl-concept">learnable object queries</span> and <span class="hl-concept">bipartite matching loss</span> to directly predict detection results. Despite its conceptual simplicity, <span class="hl-rebuttal">DETR suffers from prohibitively slow training convergence</span>, requiring <span class="hl-evidence">500 training epochs</span> compared to only <span class="hl-evidence">12 epochs for Faster R-CNN</span> to achieve competitive performance on COCO.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DETR（偵測變換器）透過將物體偵測公式化為集合預測問題，消除了錨框生成與非極大值抑制等手工設計元件的需求，從而徹底革新了物體偵測領域。這一優雅的端到端框架使用 Transformer 編碼器-解碼器架構，搭配可學習的物件查詢與二部匹配損失，直接預測偵測結果。然而，儘管概念上極為簡潔，DETR 飽受訓練收斂極度緩慢之苦——在 COCO 上需要 500 個訓練週期才能達到具競爭力的效能，而 Faster R-CNN 僅需 12 個週期。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——肯定 DETR 的革新貢獻，同時指出其關鍵缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先以「革命性」的正面評價建立 DETR 的重要性，再以 500 vs. 12 週期的鮮明對比凸顯收斂問題的嚴重性，為後續方案奠定動機基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    500 vs. 12 的數字對比極具衝擊力，但忽略了兩者在每個週期的計算量差異。Faster R-CNN 的「12 週期」實際上包含更多的訓練迭代。作者以週期數而非總計算量作為比較基準，可能放大了收斂差距的感知。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：既有改進方法的不足 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Several approaches have been proposed to accelerate DETR training. <span class="hl-concept">Deformable DETR</span> introduces <span class="hl-method">multi-scale deformable attention</span> to improve spatial resolution handling. <span class="hl-concept">Conditional DETR</span> and <span class="hl-concept">Anchor DETR</span> redesign the <span class="hl-method">cross-attention mechanism with spatial priors</span>. More recently, <span class="hl-concept">DAB-DETR</span> formulates queries as <span class="hl-method">dynamic anchor boxes</span> that are iteratively updated. While these methods improve convergence to varying degrees, <span class="hl-rebuttal">they primarily focus on architectural modifications and do not directly address the fundamental instability in the bipartite matching process</span>. The matching inconsistency — <span class="hl-thesis">where the same query is matched to different objects across epochs</span> — remains a critical bottleneck.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                已有多種方法被提出以加速 DETR 訓練。<span class="hl-concept">Deformable DETR</span> 引入多尺度可變形注意力以改善空間解析度處理。<span class="hl-concept">Conditional DETR</span> 與 <span class="hl-concept">Anchor DETR</span> 透過空間先驗重新設計交叉注意力機制。更近期的 <span class="hl-concept">DAB-DETR</span> 將查詢公式化為動態錨框，並進行迭代更新。儘管這些方法在不同程度上改善了收斂速度，但它們主要聚焦於架構層面的修改，並未直接處理二部匹配過程中的根本不穩定性。匹配不一致性——即同一查詢在不同週期中被匹配到不同物件——仍然是關鍵瓶頸。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判現有方案——系統性指出現有改進方法的共同盲點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，進一步區分「架構改進」與「訓練機制改進」兩條路線。將所有現有方法歸入前者，為 DN-DETR 開闢後者的獨占位置。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將現有方法統一定性為「僅關注架構修改」是有效的對比策略，但 Deformable DETR 等方法的多尺度設計也間接改善了匹配穩定性（透過更精確的特徵表示）。作者可能低估了架構改進對匹配穩定性的間接正面影響。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：DN-DETR 方案概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                In this paper, we propose <span class="hl-concept">DN-DETR</span>, which introduces <span class="hl-thesis">a denoising training approach that directly provides stable optimization targets</span> to the decoder. Our key insight is straightforward: instead of relying solely on Hungarian matching to assign ground-truth targets, we <span class="hl-method">additionally feed noised versions of ground-truth bounding boxes and labels as queries into the decoder</span>, and train the model to reconstruct the original clean ground-truth. This <span class="hl-concept">denoising task</span> <span class="hl-thesis">bypasses the bipartite matching entirely for these queries</span>, providing a <span class="hl-thesis">consistent and unambiguous learning signal</span>. An <span class="hl-method">attention mask mechanism</span> prevents information leakage between the denoising part and the matching part. Our approach is <span class="hl-thesis">orthogonal to architectural improvements</span> and can be combined with any DETR variant as a plug-in training strategy.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 <span class="hl-concept">DN-DETR</span>，引入去噪訓練方法，直接為解碼器提供穩定的最佳化目標。我們的核心洞察十分直觀：不再僅仰賴匈牙利匹配來指派真實標註目標，而是額外將帶有噪聲的真實邊界框與標籤作為查詢送入解碼器，訓練模型重建原始的乾淨真實標註。這項去噪任務對這些查詢完全繞過了二部匹配，提供一致且無歧義的學習訊號。注意力遮罩機制防止了去噪部分與匹配部分之間的資訊洩漏。本方法與架構改進正交，可作為外掛訓練策略與任何 DETR 變體結合。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出解決方案——完整概述 DN-DETR 的核心機制與設計哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的核心轉折：從「問題診斷」過渡到「解決方案」。「繞過匹配」直接回應上段的匹配不穩定問題，「正交於架構改進」則擴大方法的適用性主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「正交於架構改進」是一個強有力的定位策略——意味著 DN-DETR 可與所有競爭方法互補而非互斥，極大地擴展了潛在影響力。但去噪訓練在推論時被移除，這意味著改進僅來自更好的權重初始化，其長期效益是否隨訓練週期增加而遞減值得探討。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：傳統偵測器與 DETR -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Object detection</span> has long been dominated by <span class="hl-concept">CNN-based approaches</span>. Two-stage detectors like <span class="hl-concept">Faster R-CNN</span> and <span class="hl-concept">HTC</span> generate region proposals followed by classification and refinement. One-stage methods like <span class="hl-concept">YOLO</span> and <span class="hl-concept">FCOS</span> directly predict bounding boxes from dense feature maps. These methods rely heavily on <span class="hl-rebuttal">hand-designed components including anchor boxes, NMS, and feature pyramid networks</span>. <span class="hl-concept">DETR</span> offered a paradigm shift by treating detection as <span class="hl-method">direct set prediction with bipartite matching</span>, eliminating these hand-crafted modules. However, the <span class="hl-rebuttal">slow convergence and high computational cost</span> limited its practical adoption.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                物體偵測領域長期由基於 CNN 的方法主導。兩階段偵測器如 <span class="hl-concept">Faster R-CNN</span> 與 <span class="hl-concept">HTC</span> 先產生區域提案，再進行分類與精修。單階段方法如 <span class="hl-concept">YOLO</span> 與 <span class="hl-concept">FCOS</span> 則直接從密集特徵圖預測邊界框。這些方法高度依賴手工設計的元件，包括錨框、非極大值抑制與特徵金字塔網路。<span class="hl-concept">DETR</span> 透過將偵測視為搭配二部匹配的直接集合預測，提供了範式轉移，消除了這些手工模組。然而，緩慢的收斂與高計算成本限制了其實際應用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——建立從傳統偵測器到 DETR 的發展脈絡。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「手工設計 vs. 端到端」的對立框架定位 DETR 的歷史意義，同時暗示其收斂問題是阻礙範式轉移的最後障礙。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將傳統偵測器的「手工設計」與 DETR 的「端到端」形成對照，隱含了後者更優雅的價值判斷。但實務上，YOLO 系列等手工設計方法在速度與精度上仍極具競爭力，端到端並非無條件優於手工設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：DETR 變體與查詢設計 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A rich line of work has emerged to improve DETR. <span class="hl-concept">Deformable DETR</span> replaces global attention with <span class="hl-method">deformable attention on multi-scale feature maps</span>, significantly reducing computation and improving convergence. <span class="hl-concept">Conditional DETR</span> decouples <span class="hl-method">content and spatial queries</span> to provide better spatial priors for cross-attention. <span class="hl-concept">Anchor DETR</span> and <span class="hl-concept">DAB-DETR</span> further refine query design by using <span class="hl-method">anchor points or dynamic anchor boxes as positional queries</span> that are iteratively refined across decoder layers. <span class="hl-concept">Efficient DETR</span> initializes queries from encoder outputs. All these methods improve the <span class="hl-rebuttal">decoder's ability to locate objects but do not fundamentally change the training paradigm based on bipartite matching</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為改進 DETR，已湧現出大量研究。<span class="hl-concept">Deformable DETR</span> 以多尺度特徵圖上的可變形注意力取代全域注意力，顯著降低計算量並改善收斂。<span class="hl-concept">Conditional DETR</span> 解耦內容查詢與空間查詢，為交叉注意力提供更好的空間先驗。<span class="hl-concept">Anchor DETR</span> 與 <span class="hl-concept">DAB-DETR</span> 進一步精煉查詢設計，使用錨點或動態錨框作為位置查詢，在解碼器各層之間進行迭代精修。<span class="hl-concept">Efficient DETR</span> 從編碼器輸出初始化查詢。所有這些方法改善了解碼器定位物件的能力，但並未從根本上改變基於二部匹配的訓練範式。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻定位——系統性梳理 DETR 變體的改進路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了清晰的技術譜系：從注意力機制改進（Deformable）到查詢設計改進（DAB-DETR），每一步都是架構層面的努力。最後一句「未改變訓練範式」是關鍵轉折，直接為 DN-DETR 的訓練層面創新騰出空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「改善定位能力但未改變訓練範式」的二分法巧妙地將所有競爭者歸入同一類別，使 DN-DETR 成為唯一佔據「訓練範式」維度的方法。此歸類雖邏輯自洽，但 Deformable DETR 的多尺度設計客觀上也改善了匹配穩定性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：去噪與資料增強 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Denoising</span> has been widely used in <span class="hl-concept">representation learning</span> and <span class="hl-concept">generative modeling</span>. <span class="hl-concept">Denoising autoencoders (DAE)</span> learn robust representations by <span class="hl-method">reconstructing clean inputs from corrupted versions</span>. More recently, <span class="hl-concept">diffusion models</span> have demonstrated the power of iterative denoising for image generation. In the context of object detection, methods like <span class="hl-concept">DiffusionDet</span> treat detection as a denoising process over bounding boxes. Our work draws inspiration from the denoising paradigm but applies it differently: <span class="hl-thesis">we use denoising not as the detection mechanism itself, but as an auxiliary training task</span> that <span class="hl-method">provides additional supervision signals to accelerate convergence</span> while being completely removed during inference.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                去噪已被廣泛應用於表示學習與生成式建模。去噪自編碼器透過從損壞版本重建乾淨輸入來學習穩健表示。更近期的擴散模型展示了迭代去噪在影像生成中的強大能力。在物體偵測的脈絡中，<span class="hl-concept">DiffusionDet</span> 等方法將偵測視為對邊界框的去噪過程。本研究受去噪範式啟發但採用不同的應用方式：我們將去噪不作為偵測機制本身，而是作為輔助訓練任務，提供額外的監督訊號以加速收斂，在推論時則完全移除。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    跨領域連結——將去噪概念從表示學習與生成模型引入偵測訓練。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    為方法提供跨領域的理論支撐：去噪作為學習穩健表示的成熟範式，其在偵測訓練中的應用具有合理的類比基礎。「輔助任務 vs. 偵測機制」的區分精確定位了本文的創新點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 DN-DETR 連結至去噪自編碼器與擴散模型的成功經驗，借用了這些領域的信譽。「推論時完全移除」既是優點（零推論開銷）也是隱憂——若去噪僅改善權重學習而不改變推論架構，其效益是否會隨充分訓練而飽和？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <!-- 方法概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The overall framework of <span class="hl-concept">DN-DETR</span> builds upon <span class="hl-concept">DAB-DETR</span>, which represents queries as <span class="hl-concept">4D anchor boxes (x, y, w, h)</span>. The decoder receives two types of queries: <span class="hl-method">learnable matching queries</span> that undergo standard Hungarian matching with ground-truth, and <span class="hl-method">denoising queries</span> constructed by adding noise to ground-truth boxes and labels. These two groups of queries are processed together in the Transformer decoder but are <span class="hl-method">separated by an attention mask</span> to prevent information leakage. During inference, the denoising queries are simply removed, so <span class="hl-thesis">DN-DETR introduces zero additional computation at test time</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">DN-DETR</span> 的整體框架建構於 <span class="hl-concept">DAB-DETR</span> 之上，後者將查詢表示為四維錨框 (x, y, w, h)。解碼器接收兩種類型的查詢：經由標準匈牙利匹配與真實標註配對的可學習匹配查詢，以及透過對真實邊界框與標籤添加噪聲所建構的去噪查詢。這兩組查詢在 Transformer 解碼器中一同處理，但以注意力遮罩加以分隔，防止資訊洩漏。在推論時，去噪查詢被直接移除，因此 DN-DETR 在測試時不引入任何額外計算量。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構總覽——建立方法的全局圖像，為後續各子模組的詳細說明提供框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為方法章節的路線圖：匹配查詢 + 去噪查詢的雙軌設計是整個方法的骨幹。「推論時零開銷」是重要的工程優勢，直接消除了可能的效率疑慮。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 DAB-DETR 作為基礎而非原始 DETR，既利用了 DAB-DETR 的錨框表示優勢，也使得方法的獨立貢獻更容易釐清。但這也意味著方法的改進需與 DAB-DETR 本身的改進分離衡量。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.1 查詢去噪 ====== -->
+    <h3 class="subsection-heading" id="sec-denoising">3.1 Query DeNoising — 查詢去噪</h3>
+
+    <!-- 去噪段落 1：噪聲添加策略 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The denoising queries are constructed by <span class="hl-method">perturbing ground-truth bounding boxes and class labels</span>. For <span class="hl-concept">box noise</span>, the center coordinates (x, y) are shifted by random offsets satisfying <span class="hl-method">|delta_x| &lt; lambda_1 * w/2</span> and <span class="hl-method">|delta_y| &lt; lambda_1 * h/2</span>, where w and h are the box width and height. The width and height are independently scaled by random factors sampled from <span class="hl-method">[(1 - lambda_2), (1 + lambda_2)]</span>. For <span class="hl-concept">label noise</span>, class labels are <span class="hl-method">randomly flipped to other categories with probability gamma</span>. The default hyperparameters are <span class="hl-evidence">lambda_1 = lambda_2 = 0.4</span> and <span class="hl-evidence">gamma = 0.2</span>. This noise design ensures that <span class="hl-thesis">the noised boxes still overlap significantly with the original ground-truth</span>, making the reconstruction task learnable.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                去噪查詢透過擾動真實邊界框與類別標籤來建構。對於邊界框噪聲，中心座標 (x, y) 被隨機偏移，偏移量滿足 <span class="hl-method">|delta_x| &lt; lambda_1 * w/2</span> 與 <span class="hl-method">|delta_y| &lt; lambda_1 * h/2</span>，其中 w 與 h 分別為邊界框的寬度與高度。寬度與高度各自以從 <span class="hl-method">[(1 - lambda_2), (1 + lambda_2)]</span> 區間取樣的隨機因子進行縮放。對於標籤噪聲，類別標籤以概率 gamma 被隨機翻轉為其他類別。預設超參數為 <span class="hl-evidence">lambda_1 = lambda_2 = 0.4</span>、<span class="hl-evidence">gamma = 0.2</span>。此噪聲設計確保添加噪聲後的邊界框仍與原始真實標註有顯著重疊，使重建任務可學習。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——精確描述噪聲添加的數學機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段提供方法可復現的關鍵細節。噪聲設計的兩個核心考量：(1) 噪聲範圍受邊界框尺寸約束，確保尺度不變性；(2) 噪聲幅度足以產生訓練效果但不至於使任務無法學習。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    噪聲設計的簡潔性（均勻分布、固定比例）既是優點也是潛在限制。作者自承使用了最簡化的噪聲分布——更複雜的噪聲排程（如隨訓練進度調整）或非均勻噪聲可能帶來進一步改進，這是論文未探索的方向。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 去噪段落 2：去噪查詢的結構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Each denoising query consists of two components following the DAB-DETR formulation: a <span class="hl-method">positional part (the noised anchor box)</span> and a <span class="hl-method">content part (an indicator embedding of the noised class label)</span>. The positional part encodes the noised box coordinates through <span class="hl-method">sinusoidal positional encoding followed by an MLP</span>, identical to how matching queries encode their anchor boxes. The content part uses a <span class="hl-method">learnable class embedding</span> that maps the (potentially flipped) label to a feature vector. This unified query representation means that <span class="hl-thesis">the decoder treats denoising queries and matching queries identically in terms of architecture</span>, enabling the denoising task to directly improve the decoder's localization and classification capabilities.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                每個去噪查詢依循 DAB-DETR 的公式化包含兩個組成部分：位置部分（帶噪聲的錨框）與內容部分（帶噪聲類別標籤的指示嵌入）。位置部分透過正弦位置編碼加多層感知器來編碼帶噪聲的框座標，與匹配查詢編碼錨框的方式完全相同。內容部分使用可學習的類別嵌入，將（可能被翻轉的）標籤映射為特徵向量。此統一的查詢表示意味著解碼器在架構層面上以完全相同的方式處理去噪查詢與匹配查詢，使去噪任務能直接改善解碼器的定位與分類能力。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    架構對齊——說明去噪查詢如何與現有查詢格式相容。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回答一個關鍵設計問題：為何去噪任務能有效改善匹配查詢的效能？答案在於兩者共享完全相同的查詢表示與解碼器處理流程，使得去噪學到的定位能力可直接遷移。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「架構一致性」的論點具有強說服力——相同的表示空間確保了任務遷移的可行性。但這也意味著去噪任務的效益受限於 DAB-DETR 的查詢設計。若基礎架構的查詢表示有根本缺陷，去噪訓練可能無法彌補。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 注意力遮罩 ====== -->
+    <h3 class="subsection-heading" id="sec-attention-mask">3.2 Attention Mask — 注意力遮罩</h3>
+
+    <!-- 注意力遮罩段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A critical design element is the <span class="hl-concept">attention mask</span> applied in the <span class="hl-method">self-attention layers of the decoder</span>. Without proper masking, denoising queries could <span class="hl-rebuttal">leak ground-truth information to matching queries</span>, rendering the matching task trivial and the model unable to detect objects at inference (when denoising queries are absent). The attention mask enforces three rules: <span class="hl-method">(1) matching queries cannot attend to any denoising query</span>; <span class="hl-method">(2) denoising queries within one denoising group can attend to each other</span>; and <span class="hl-method">(3) denoising queries from different groups cannot attend to each other</span>. This ensures that each denoising group independently reconstructs its version of the ground-truth.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                一個至關重要的設計元素是應用於解碼器自注意力層中的注意力遮罩。若缺乏適當的遮罩，去噪查詢可能將真實標註資訊洩漏給匹配查詢，使匹配任務變得無意義，且模型在推論時（去噪查詢不存在時）無法偵測物件。注意力遮罩強制執行三條規則：(1) 匹配查詢不得關注任何去噪查詢；(2) 同一去噪群組內的去噪查詢可相互關注；(3) 不同去噪群組之間的去噪查詢不得相互關注。這確保每個去噪群組獨立地重建其版本的真實標註。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    防止資訊洩漏——定義注意力遮罩的三條核心規則。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段解決方法中最關鍵的技術挑戰：如何在同一解碼器中同時處理去噪查詢與匹配查詢而不造成「作弊」。三條規則形成完整的資訊隔離策略，是整個方法可行性的基石。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無遮罩則模型失效」的論點在消融研究中得到強力驗證（AP 從 43.4 驟降至 24.0）。規則設計清晰且最小化——每條規則都有明確的必要性。但遮罩機制引入了查詢之間的非對稱注意力結構，可能限制了解碼器的表達能力。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注意力遮罩段落 2 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The ablation study reveals the <span class="hl-thesis">critical importance of the attention mask</span>. When the mask is removed entirely, the model's AP <span class="hl-evidence">drops catastrophically from 43.4 to 24.0</span>, confirming that information leakage completely undermines the matching-based detection. Interestingly, <span class="hl-rebuttal">allowing denoising queries from different groups to attend to each other</span> also degrades performance, since <span class="hl-rebuttal">a query can "cheat" by directly copying the reconstruction from another group's less-noised version</span> of the same object. The strict group isolation forces each denoising group to genuinely learn the reconstruction mapping independently.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                消融研究揭示了注意力遮罩的關鍵重要性。當完全移除遮罩時，模型的 AP 從 43.4 災難性地下降至 24.0，證實資訊洩漏完全破壞了基於匹配的偵測。有趣的是，允許不同去噪群組的查詢相互關注同樣會降低效能，因為查詢可透過直接複製另一群組中噪聲較小版本的重建結果來「作弊」。嚴格的群組隔離迫使每個去噪群組真正獨立地學習重建映射。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實驗驗證——以消融結果證明遮罩機制的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以定量證據強化上段的設計論證。43.4 vs. 24.0 的巨大落差提供了無可辯駁的因果證據——注意力遮罩不是可選的增強，而是方法運作的前提條件。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    AP 下降幅度之大（近 20 點）使論點極具說服力。「群組間作弊」的解釋也很直觀。但這同時暴露了方法的脆弱性——遮罩設計的任何疏漏都可能導致災難性失敗，這對實作的精確性提出了高要求。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.3 訓練策略 ====== -->
+    <h3 class="subsection-heading" id="sec-training">3.3 Training Strategy — 訓練策略</h3>
+
+    <!-- 訓練策略段落 1：多群組去噪 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To maximize the training signal from denoising, DN-DETR employs <span class="hl-method">multiple denoising groups</span>. Each group creates an independent noised copy of all ground-truth objects in the image. With <span class="hl-evidence">G denoising groups</span> and <span class="hl-evidence">K ground-truth objects</span>, the decoder receives <span class="hl-method">G * K denoising queries plus N matching queries</span> in total. The default number of groups is <span class="hl-evidence">G = 5</span>, and the matching queries remain at <span class="hl-evidence">N = 300</span>. Increasing the number of groups provides <span class="hl-thesis">more diverse noised examples for training</span>, effectively acting as a form of <span class="hl-concept">data augmentation at the query level</span>. The reconstruction loss for denoising includes <span class="hl-method">L1 loss and GIoU loss for boxes</span>, and <span class="hl-method">focal loss for classification</span>, consistent with the matching part.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為最大化去噪帶來的訓練訊號，DN-DETR 採用多個去噪群組。每個群組獨立建立所有真實物件的帶噪聲副本。在 G 個去噪群組與 K 個真實物件的設定下，解碼器總共接收 G * K 個去噪查詢加上 N 個匹配查詢。預設群組數為 <span class="hl-evidence">G = 5</span>，匹配查詢維持 <span class="hl-evidence">N = 300</span>。增加群組數提供更多樣的帶噪聲樣本用於訓練，實質上作為查詢層級的資料增強。去噪的重建損失包含邊界框的 L1 損失與 GIoU 損失，以及分類的焦點損失，與匹配部分一致。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    訓練放大——說明如何透過多群組策略強化去噪訓練效果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段將去噪訓練從「概念」推進到「工程實現」。多群組策略是提升訓練效率的關鍵設計——以計算量的線性增加換取去噪樣本的多樣性。損失函數的一致性（與匹配部分相同）確保了兩個任務的梯度方向相容。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「查詢層級的資料增強」是一個精妙的類比，有助於讀者理解多群組的直覺。但隨著群組數增加，自注意力的計算量呈二次增長（因額外查詢數量），作者未明確量化此訓練開銷與效能增益的權衡關係。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 訓練策略段落 2：推論時移除 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A notable property of DN-DETR is the <span class="hl-thesis">clean separation between training and inference</span>. During training, the total query set consists of both matching and denoising queries, processed jointly through the decoder. During inference, <span class="hl-method">the denoising queries and associated attention mask are simply removed</span>, leaving the decoder identical to the base DAB-DETR architecture. This means that <span class="hl-thesis">DN-DETR adds zero latency and zero parameters at inference time</span>. The entire benefit comes from <span class="hl-thesis">better-optimized decoder weights</span> learned through the auxiliary denoising supervision. This design philosophy — <span class="hl-thesis">enriching the training signal without modifying the inference pipeline</span> — makes DN-DETR exceptionally easy to adopt in practice.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DN-DETR 的一個顯著特性是訓練與推論之間的乾淨分離。在訓練期間，查詢集合由匹配查詢與去噪查詢共同組成，一起通過解碼器處理。在推論時，去噪查詢與相關的注意力遮罩被直接移除，解碼器與基礎的 DAB-DETR 架構完全相同。這意味著 DN-DETR 在推論時不增加任何延遲與參數。全部收益來自透過輔助去噪監督所學習到的更優化解碼器權重。此設計哲學——豐富訓練訊號而不修改推論管線——使 DN-DETR 在實務上極易採用。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    實用性論證——強調方法在部署層面的零成本特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段從工程實用性角度完成方法的最後一塊拼圖。「零推論開銷」是面對實際部署需求時的決定性優勢，使 DN-DETR 的採用門檻降至最低。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「更好的權重最佳化」作為效益來源的解釋是準確的，但也引發一個根本問題：若給予足夠多的訓練週期，標準訓練是否最終能達到相同的權重品質？若是，則 DN-DETR 的核心價值主要在於「節省訓練時間」而非「提升效能上限」。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <!-- 實驗段落 1：主要結果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Experiments are conducted on <span class="hl-evidence">MS-COCO 2017</span> with <span class="hl-evidence">118K training images</span>. Under the standard <span class="hl-evidence">50-epoch</span> training setting with <span class="hl-concept">ResNet-50</span> backbone, <span class="hl-concept">DN-DETR</span> achieves <span class="hl-evidence">44.1 AP</span>, compared to <span class="hl-evidence">42.2 AP</span> for <span class="hl-concept">DAB-DETR</span> (a <span class="hl-evidence">+1.9 AP improvement</span>). With <span class="hl-concept">ResNet-101</span>, DN-DETR reaches <span class="hl-evidence">45.2 AP</span> versus <span class="hl-evidence">43.5 AP</span> for DAB-DETR (<span class="hl-evidence">+1.7 AP</span>). In the more challenging <span class="hl-evidence">12-epoch (1x schedule)</span> setting, the improvement is even more pronounced: <span class="hl-evidence">DN-DETR-DC5-R50 achieves 41.7 AP</span> while <span class="hl-evidence">DAB-DETR reaches only 38.0 AP</span>, a remarkable <span class="hl-evidence">+3.7 AP gap</span>. This confirms that <span class="hl-thesis">the denoising training is most beneficial when training budget is limited</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                實驗在 <span class="hl-evidence">MS-COCO 2017</span> 上進行，包含 118K 張訓練影像。在標準的 50 週期訓練設定下使用 <span class="hl-concept">ResNet-50</span> 骨幹網路，<span class="hl-concept">DN-DETR</span> 達到 <span class="hl-evidence">44.1 AP</span>，相比 <span class="hl-concept">DAB-DETR</span> 的 <span class="hl-evidence">42.2 AP</span> 提升了 +1.9 AP。使用 <span class="hl-concept">ResNet-101</span> 時，DN-DETR 達到 <span class="hl-evidence">45.2 AP</span>，對比 DAB-DETR 的 <span class="hl-evidence">43.5 AP</span>（<span class="hl-evidence">+1.7 AP</span>）。在更具挑戰性的 12 週期（1x 排程）設定下，改進更為顯著：DN-DETR-DC5-R50 達到 41.7 AP，而 DAB-DETR 僅達 38.0 AP，差距高達 +3.7 AP。這證實了去噪訓練在訓練預算有限時效益最大。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心實證——在標準基準上提供全面的定量比較。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文論證的實證基石。跨兩種骨幹網路與兩種訓練排程的一致改進，排除了方法效益僅依賴特定設定的可能性。12 週期下 +3.7 AP 的更大改幅進一步支持「加速收斂」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以短週期（12 epoch）展示更大改進是巧妙的論證策略，直接支持「加速收斂」的主張。然而，50 週期下 +1.9 vs. 12 週期下 +3.7 的差距也暗示：隨著訓練充分，去噪帶來的邊際收益遞減——這與「推論時移除」的設計邏輯一致，但也限制了方法的長期價值。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 實驗段落 2：收斂速度分析 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Convergence analysis shows that <span class="hl-thesis">DN-DETR achieves the baseline's 50-epoch performance in approximately 25 epochs</span>, effectively <span class="hl-evidence">halving the required training time</span>. At 50 epochs, DN-DETR continues to outperform, indicating that the benefit is <span class="hl-rebuttal">not merely earlier convergence but also a higher performance ceiling</span>. Compared to other DETR variants, DN-DETR combined with <span class="hl-concept">Deformable DETR</span> as backbone achieves <span class="hl-evidence">DN-Deformable-DETR-R50++: 46.0 AP in only 12 epochs</span>, setting a new state-of-the-art for DETR-family methods under the 1x training schedule. This demonstrates the <span class="hl-thesis">universal applicability of the denoising training approach</span> across different DETR architectures.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                收斂分析顯示 DN-DETR 約在 25 個週期即達到基線方法 50 個週期的效能，有效將所需訓練時間減半。在 50 個週期時，DN-DETR 持續保持優勢，表明其效益不僅是更早收斂，還包括更高的效能上限。與其他 DETR 變體相比，DN-DETR 結合 <span class="hl-concept">Deformable DETR</span> 作為骨幹架構，以 DN-Deformable-DETR-R50++ 在僅 12 個週期內達到 46.0 AP，在 1x 訓練排程下樹立了 DETR 家族方法的新最先進水準。這展示了去噪訓練方法在不同 DETR 架構上的通用適用性。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    收斂驗證與泛化性——以訓練曲線與跨架構結果強化核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應兩個潛在質疑：(1)「是否只是更快收斂到相同性能？」——不，50 週期時仍有提升；(2)「是否僅適用於 DAB-DETR？」——不，與 Deformable DETR 結合同樣有效。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「更高效能上限」的主張與前文「推論時移除去噪」的設計看似矛盾——若去噪僅是更好的訓練策略，為何能突破效能上限？合理解釋是去噪訓練幫助解碼器跳出局部最小值，但此機制未被深入分析。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4.2 消融研究 ====== -->
+    <h3 class="subsection-heading" id="sec-ablation">4.2 Ablation Studies — 消融研究</h3>
+
+    <!-- 消融研究段落 1：各組件效果 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Detailed ablation studies dissect the contribution of each component. Starting from the <span class="hl-evidence">DAB-DETR baseline at 42.2 AP</span>, adding <span class="hl-method">box denoising alone</span> (without label noise) yields <span class="hl-evidence">42.2 AP</span> — no improvement. Combining <span class="hl-method">box denoising with label denoising</span> raises performance to <span class="hl-evidence">43.0 AP</span>, a <span class="hl-evidence">+0.8 AP gain</span>. Further adding the <span class="hl-method">attention mask</span> achieves <span class="hl-evidence">43.4 AP</span> (<span class="hl-evidence">+1.2 AP total</span>). Scaling to <span class="hl-evidence">5 denoising groups</span> reaches the full <span class="hl-evidence">44.1 AP</span>. These results reveal that <span class="hl-thesis">label denoising and the attention mask are both essential</span> — box denoising alone is ineffective, confirming that the class label signal is crucial for the decoder to benefit from the denoising task.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                詳細的消融研究剖析了每個組件的貢獻。從 DAB-DETR 基線的 <span class="hl-evidence">42.2 AP</span> 出發，僅添加邊界框去噪（無標籤噪聲）得到 42.2 AP——毫無改善。結合邊界框去噪與標籤去噪將效能提升至 <span class="hl-evidence">43.0 AP</span>，增加 +0.8 AP。進一步添加注意力遮罩達到 <span class="hl-evidence">43.4 AP</span>（總計 +1.2 AP）。擴展至 5 個去噪群組達到完整的 <span class="hl-evidence">44.1 AP</span>。這些結果揭示標籤去噪與注意力遮罩均不可或缺——僅有邊界框去噪是無效的，確認類別標籤訊號對解碼器從去噪任務中獲益至關重要。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    逐步拆解——以遞增方式展示每個組件的邊際貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是典型的「累加式消融」，從基線逐步添加組件，清晰展示每一步的增益。最重要的發現是「僅有邊界框去噪無效」——這揭示了方法的核心機制不在於空間去噪本身，而在於位置與類別的聯合去噪。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    邊界框去噪單獨無效（42.2 -> 42.2）是出乎意料的結果，作者將其歸因於「標籤訊號的必要性」。但另一種解釋是：無注意力遮罩的邊界框去噪可能同時引入了資訊洩漏，抵消了正面效果。消融研究的組合順序可能影響結論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融研究段落 2：噪聲尺度與群組數 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">noise scale</span> analysis reveals a clear sweet spot. When <span class="hl-method">lambda_1 and lambda_2 are too small (e.g., 0.1)</span>, the denoising task becomes too easy and provides <span class="hl-rebuttal">insufficient training signal</span>. When <span class="hl-method">too large (e.g., 0.8)</span>, the noised boxes deviate too far from the ground-truth, making <span class="hl-rebuttal">reconstruction too difficult and the task loses its beneficial effect</span>. The optimal range centers around <span class="hl-evidence">lambda_1 = lambda_2 = 0.4</span>. Similarly, the <span class="hl-concept">number of denoising groups</span> shows diminishing returns: performance improves from <span class="hl-evidence">1 group (43.4 AP) to 5 groups (44.1 AP)</span> but <span class="hl-evidence">further increasing to 10 or more groups yields marginal gains</span>. The <span class="hl-concept">label flip ratio</span> gamma is optimal at <span class="hl-evidence">0.2</span>, with higher ratios degrading classification performance.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                噪聲尺度分析揭示了明確的最佳區間。當 lambda_1 與 lambda_2 過小（如 0.1）時，去噪任務過於容易，提供的訓練訊號不足。當過大（如 0.8）時，帶噪聲的框偏離真實標註太遠，重建過於困難而失去正面效果。最佳範圍集中在 <span class="hl-evidence">lambda_1 = lambda_2 = 0.4</span>。類似地，去噪群組數呈現遞減效益：效能從 1 個群組（43.4 AP）改善至 5 個群組（44.1 AP），但進一步增加至 10 個或更多群組僅帶來邊際增益。標籤翻轉比率 gamma 的最佳值為 <span class="hl-evidence">0.2</span>，更高的比率會降低分類效能。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    超參數敏感度——分析關鍵超參數的最佳區間與穩健性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成方法的「可操作性」論證：最佳超參數存在合理的甜蜜點，且方法對超參數變化具有一定穩健性（而非需要極精細的調校）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「過小無效、過大有害、中間最佳」的 U 型曲線是去噪類方法的典型特徵，論證自洽。但作者僅探索了均勻噪聲分布——高斯噪聲、漸進式噪聲排程等變體是否能拓展最佳區間或提升效能上限，留待未來探索。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消融研究段落 3：跨架構適用性 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To validate the <span class="hl-thesis">plug-and-play nature</span> of DN-DETR, the denoising training is applied to multiple DETR variants. When integrated with <span class="hl-concept">Deformable DETR</span>, the denoising approach yields <span class="hl-evidence">consistent improvements across all training schedules</span>. <span class="hl-evidence">DN-Deformable-DETR with ResNet-50 achieves 46.0 AP in the 12-epoch setting</span>, surpassing the original Deformable DETR's 50-epoch result. When applied to the basic DETR architecture with <span class="hl-concept">DC5 (dilated C5)</span> backbone, the gains are even more dramatic due to the baseline's severe convergence issues. These cross-architecture results provide strong evidence that <span class="hl-thesis">the denoising training addresses a fundamental issue in DETR training rather than being architecture-specific</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為驗證 DN-DETR 的即插即用特性，去噪訓練被應用於多種 DETR 變體。整合至 <span class="hl-concept">Deformable DETR</span> 時，去噪方法在所有訓練排程下均展現一致的改進。使用 ResNet-50 的 DN-Deformable-DETR 在 12 週期設定下達到 46.0 AP，超越了原始 Deformable DETR 50 週期的結果。應用於使用 DC5（膨脹 C5）骨幹的基礎 DETR 架構時，由於基線的嚴重收斂問題，增益更為顯著。這些跨架構結果提供了強力證據，表明去噪訓練解決的是 DETR 訓練中的根本問題，而非特定於某一架構。
+                </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    泛化性驗證——以跨架構實驗支持方法的通用性主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段直接兌現緒論中「可嵌入任何 DETR」的承諾。「12 週期超越 50 週期」的結果是論文中最具衝擊力的數據點之一，強有力地支持了「加速收斂」的核心主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    跨架構的一致改進是方法泛化性的最佳證據。但值得注意的是，所有測試架構均屬 DETR 家族（共享二部匹配訓練範式）。將去噪思想擴展至非匹配式偵測器（如 YOLO 系列）是否可行，是一個未被討論的開放問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <!-- 結論段落 1 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                This paper presents <span class="hl-concept">DN-DETR</span>, which introduces <span class="hl-concept">query denoising</span> as <span class="hl-thesis">a new training paradigm for DETR-like object detectors</span>. By identifying the <span class="hl-thesis">instability of bipartite matching as a key factor in slow convergence</span>, we propose to feed noised ground-truth boxes and labels into the decoder and train it to reconstruct the original targets. This <span class="hl-method">denoising task provides stable and consistent optimization signals</span> that complement the Hungarian matching. With an <span class="hl-method">attention mask preventing information leakage</span> and <span class="hl-method">multiple denoising groups enriching training diversity</span>, DN-DETR achieves <span class="hl-evidence">significant improvements across multiple DETR variants and training schedules</span>, particularly excelling in the <span class="hl-evidence">1x (12-epoch) setting</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出 <span class="hl-concept">DN-DETR</span>，引入查詢去噪作為 DETR 類物體偵測器的新訓練範式。透過識別二部匹配的不穩定性為收斂緩慢的關鍵因素，我們提出將帶噪聲的真實邊界框與標籤送入解碼器，訓練其重建原始目標。此去噪任務提供穩定且一致的最佳化訊號，與匈牙利匹配形成互補。藉由防止資訊洩漏的注意力遮罩與豐富訓練多樣性的多去噪群組，DN-DETR 在多種 DETR 變體與訓練排程下均取得顯著改進，尤其在 1x（12 週期）設定下表現出色。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    貢獻回顧——以精煉的語言重述全文的核心發現與方法要素。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論第一段呼應摘要結構，完成論證閉環。從「問題診斷」（匹配不穩定）到「解決方案」（查詢去噪）再到「實證支持」（跨架構改進），三位一體的回顧。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「新訓練範式」的措辭恰如其分——確實是訓練策略而非架構的創新，避免了過度誇大。但結論未充分討論方法的局限性（如對真實標註品質的依賴、噪聲分布的簡化假設），稍顯不完整。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：未來方向 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-thesis">denoising training paradigm opens several future directions</span>. Our current approach uses a <span class="hl-rebuttal">simple uniform noise distribution</span>; more sophisticated <span class="hl-method">noise scheduling strategies — such as curriculum-based noise that starts easy and gradually increases difficulty</span> — may further improve training efficiency. The denoising idea can potentially extend beyond detection to other <span class="hl-concept">set prediction tasks like instance segmentation and pose estimation</span>. We believe that <span class="hl-thesis">rethinking the training paradigm, rather than solely focusing on architectural innovations, is a promising and complementary direction</span> for advancing DETR-based methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                去噪訓練範式開啟了多個未來方向。本文目前的方法使用簡單的均勻噪聲分布；更精密的噪聲排程策略——例如從容易到逐漸增加難度的課程式噪聲——可能進一步改善訓練效率。去噪概念有潛力超越偵測，擴展至實例分割與姿態估計等其他集合預測任務。我們相信重新思考訓練範式，而非僅聚焦於架構創新，是推進 DETR 類方法的有前景且互補的方向。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    展望未來——坦承當前限制並指出延伸可能性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以自我批評（均勻噪聲的簡化）展現學術誠實，同時以「訓練範式 vs. 架構創新」的二分法重申方法的獨特定位，為後續研究指明方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「課程式噪聲排程」的提議極具啟發性——後續工作（如 DINO）確實在此方向上有所發展。將去噪擴展至分割與姿態估計的展望合理但尚屬推測。最後一句關於「訓練範式」的呼籲巧妙地將 DN-DETR 定位為一個研究綱領的開端，而非單一方法。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                DETR 收斂極慢<br>二部匹配不穩定
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                查詢去噪提供<br>穩定最佳化訊號
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                +1.9 AP (50 epochs)<br>+3.7 AP (12 epochs)
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                注意力遮罩防止<br>資訊洩漏與作弊
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                訓練範式革新<br>與架構改進正交互補
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過將帶噪聲的真實邊界框與標籤作為輔助查詢送入解碼器進行去噪重建，可繞過二部匹配的不穩定性，為 DETR 類偵測器提供穩定的訓練訊號，在不改變推論架構的前提下顯著加速收斂並提升效能。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>跨架構的即插即用特性：</strong>去噪訓練在 DAB-DETR、Deformable DETR 等多種架構上均展現一致的改進，且推論時零額外開銷。消融研究精確剖析了各組件（標籤去噪、注意力遮罩、多群組）的必要性，注意力遮罩的移除導致 AP 從 43.4 驟降至 24.0，提供了無可辯駁的因果證據。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>訓練充分時的邊際效益遞減：</strong>12 週期下 +3.7 AP 但 50 週期下僅 +1.9 AP 的差距暗示，隨著訓練充分進行，去噪帶來的加速效益逐漸飽和。方法的核心價值在於「加速收斂」而非「提升效能上限」，但論文未充分正視此限制。此外，僅探索了均勻噪聲分布，更複雜的噪聲策略可能帶來未被挖掘的改進空間。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

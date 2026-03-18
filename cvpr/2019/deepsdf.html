@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSDF: Learning Continuous Signed Distance Functions for Shape Representation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                DeepSDF: Learning Continuous Signed Distance Functions for Shape Representation
+                <span class="course-tag">CVPR 2019</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1901.05103" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-modeling">3. SDF 建模</a>
+        <a href="#sec-latent">4. 潛在空間學習</a>
+        <a href="#sec-results">5. 實驗結果</a>
+        <a href="#sec-conclusion">6. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">DeepSDF</span> introduces a
+                <span class="hl-thesis">learned continuous Signed Distance Function representation for 3D shapes</span>.
+                The method represents <span class="hl-concept">shape surfaces as volumetric fields</span> where
+                <span class="hl-method">magnitude indicates distance to boundary and sign indicates interior/exterior classification</span>.
+                Unlike <span class="hl-rebuttal">classical SDFs that model single shapes</span>,
+                <span class="hl-thesis">DeepSDF represents entire shape classes</span>.
+                The approach achieves <span class="hl-evidence">state-of-the-art performance in 3D shape representation and completion</span>
+                while <span class="hl-evidence">reducing model size by an order of magnitude compared to prior work</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">DeepSDF</span> 提出了一種<span class="hl-concept">經學習的連續符號距離函數</span>表徵方法，用於三維形狀建模。該方法將形狀表面表示為<span class="hl-method">體積場——其幅值代表到表面邊界的距離，而符號則編碼內部與外部的分類資訊</span>。有別於僅能建模單一形狀的傳統符號距離函數，<span class="hl-thesis">DeepSDF 能以單一模型表徵整個形狀類別</span>。該方法在<span class="hl-evidence">三維形狀表徵與補全任務上達到了最先進的效能</span>，同時<span class="hl-evidence">將模型體積縮小了一個數量級</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——以精煉語言勾勒核心貢獻：連續 SDF 表徵、類別層級建模、模型壓縮優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為摘要，此段承擔「設定期望」的功能：先點出「連續表徵」的核心創新，再以「整個形狀類別」與「數量級壓縮」兩大亮點收束，暗示論文兼顧表達能力與效率。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「an order of magnitude」作為定量修辭，極具衝擊力，但摘要未明確定義比較基準。「state-of-the-art」的宣稱需至實驗章節方能驗證其所涵蓋的基準測試範圍。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <!-- 緒論段落 1：問題背景與挑戰 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-rebuttal">Deep convolutional networks face computational challenges when extended to 3D</span>,
+                while <span class="hl-rebuttal">traditional mesh representations pose training difficulties due to variable vertices and arbitrary topology</span>.
+                This work presents a <span class="hl-thesis">novel continuous representation using SDFs learned through neural networks</span>.
+                The continuous representation functions as a
+                <span class="hl-thesis">"shape-conditioned classifier where the decision boundary is the surface of the shape itself."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-rebuttal">深度摺積網路在擴展至三維空間時面臨嚴峻的計算挑戰</span>，而<span class="hl-rebuttal">傳統的網格表徵方式則因頂點數量可變與拓撲結構任意性，導致訓練過程困難重重</span>。本研究提出一種<span class="hl-thesis">新穎的連續表徵方法，透過神經網路學習符號距離函數</span>。此連續表徵的本質是<span class="hl-thesis">「以形狀為條件的分類器，其決策邊界即為形狀表面本身」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    引出問題——點明現有三維表徵方法的兩大困境（計算量與拓撲限制），為新方法的出場鋪路。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證鏈的起點：先建立「現有方法不足」的共識，再以「shape-conditioned classifier」這一精煉定義引入核心概念，使讀者迅速掌握 DeepSDF 的本質定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 SDF 重新詮釋為「分類器」是巧妙的認知框架轉換——讓熟悉分類問題的讀者能直覺理解隱式表面。然而此隱喻可能過度簡化，因 SDF 輸出的是連續距離值而非離散類別。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 2：核心差異與方法定位 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">DeepSDF differs fundamentally from prior work by learning generalizable, continuous 3D generative SDF models</span>
+                rather than <span class="hl-rebuttal">discretizing into regular grids</span>.
+                Key contributions include:
+                (i) <span class="hl-method">formulating generative 3D modeling with continuous implicit surfaces</span>,
+                (ii) <span class="hl-method">developing learning methods based on probabilistic auto-decoders</span>, and
+                (iii) <span class="hl-evidence">demonstrating applications to shape modeling and completion</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">DeepSDF 與先前工作的根本差異在於：它學習的是可泛化的連續三維生成式 SDF 模型</span>，而非<span class="hl-rebuttal">將空間離散化為規則網格</span>。其關鍵貢獻包括：（一）<span class="hl-method">以連續隱式曲面建構生成式三維建模框架</span>；（二）<span class="hl-method">開發基於機率性自解碼器的學習方法</span>；（三）<span class="hl-evidence">驗證該方法在形狀建模與補全任務上的應用效果</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義貢獻——以條列式清晰列出三項核心貢獻，建立論文的學術價值主張。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題陳述，此段完成「問題→解方」的邏輯跳躍，並以三點貢獻預告論文結構：理論建構（貢獻 i）、方法設計（貢獻 ii）、實證驗證（貢獻 iii）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「fundamentally differs」的措辭建立強烈的新穎性宣稱。三點貢獻的遞進結構——從理論到方法到應用——是學術論文的經典寫法，有效引導讀者預期。但「auto-decoder」這一術語在此處首次出現卻未加解釋，可能造成讀者困惑。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 緒論段落 3：記憶體效率 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The method represents <span class="hl-thesis">entire shape classes</span> using only
+                <span class="hl-evidence">7.4 MB of memory</span>,
+                <span class="hl-evidence">"less than half the memory footprint (16.8 MB) of a single uncompressed 512&sup3; 3D bitmap."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                該方法僅需 <span class="hl-evidence">7.4 MB 記憶體</span>即可表徵<span class="hl-thesis">整個形狀類別</span>，此數值<span class="hl-evidence">不到單一未壓縮 512&sup3; 三維點陣圖所需記憶體（16.8 MB）的一半</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供定量證據——以具體數字強化「效率優勢」的論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段以資料佐證摘要中「數量級壓縮」的宣稱，將抽象優勢具象化。7.4 MB 對比 16.8 MB 的對照極具說服力，因為後者僅為「單一形狀」的儲存成本。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    刻意選擇「未壓縮 512&sup3; 點陣圖」作為比較對象，使效率對比最為鮮明。但實際應用中，體素表徵通常會經過壓縮（如八叉樹），若與壓縮後的表徵比較，優勢可能縮小。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <!-- 相關工作段落 1：三大類別概述 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Three primary categories exist for <span class="hl-concept">3D shape learning</span>:
+                <span class="hl-concept">point-based</span>, <span class="hl-concept">mesh-based</span>,
+                and <span class="hl-concept">voxel-based methods</span>.
+                <span class="hl-concept">Point-based approaches like PointNet</span> successfully extract features but
+                <span class="hl-rebuttal">lack topology information</span>.
+                <span class="hl-concept">Mesh-based methods</span> employ template meshes providing high-fidelity results but
+                <span class="hl-rebuttal">restricting topology</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">三維形狀學習</span>主要分為三大類別：<span class="hl-concept">基於點雲的方法</span>、<span class="hl-concept">基於網格的方法</span>以及<span class="hl-concept">基於體素的方法</span>。<span class="hl-concept">基於點雲的方法（如 PointNet）</span>雖能成功擷取特徵，卻<span class="hl-rebuttal">缺乏拓撲資訊</span>。<span class="hl-concept">基於網格的方法</span>採用模板網格，雖能提供高保真度的結果，但<span class="hl-rebuttal">拓撲結構受到限制</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻分類——以三分法組織既有三維表徵方法，為定位 DeepSDF 建立座標系。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    文獻回顧的經典架構：先建立分類體系，再逐一指出各類方法的侷限，最終在第三節引出自身方法作為「跨類別」的解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    每類方法都先肯定優點再指出缺陷（「successfully…but lack…」），營造公正客觀的學術語氣。但三分法可能遺漏混合型方法或其他隱式表徵（如佔據場），作者在此處未提及同期的隱式表面相關工作。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 2：體素方法與解析度限制 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Voxel-based approaches</span> extend 2D learning paradigms naturally but
+                <span class="hl-rebuttal">cubic complexity limits resolution to 128&sup3; or below</span>.
+                <span class="hl-method">Octree methods</span> extend capability to
+                <span class="hl-evidence">512&sup3; resolution</span> but
+                <span class="hl-rebuttal">remain visually uncompelling</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">基於體素的方法</span>能自然地將二維學習範式延伸至三維空間，但<span class="hl-rebuttal">立方級的複雜度將解析度限制在 128&sup3; 或以下</span>。<span class="hl-method">八叉樹方法</span>雖可將能力擴展至 <span class="hl-evidence">512&sup3; 解析度</span>，但<span class="hl-rebuttal">視覺效果仍不夠理想</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判既有方法——聚焦體素方法的解析度瓶頸，強化「連續表徵」的必要性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    延續上段的分類框架，此段深入體素方法的核心侷限（立方複雜度），為 DeepSDF 的「連續、無解析度限制」特性鋪陳對比基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「visually uncompelling」是帶有主觀色彩的評價，缺乏定量支持。128&sup3; 的上限是 2019 年的技術現狀，隨硬體進步此侷限可能弱化，但連續表徵的理論優勢仍然成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 相關工作段落 3：生成模型與自解碼器 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">GANs</span> enable realistic 3D generation but
+                <span class="hl-rebuttal">suffer from training instability</span>.
+                <span class="hl-concept">Auto-encoders</span> use information bottlenecks for feature learning.
+                The <span class="hl-concept">"auto-decoder"</span> approach trains
+                <span class="hl-method">decoder-only networks that simultaneously optimize latent vectors and decoder weights</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">生成對抗網路</span>能實現逼真的三維生成，但<span class="hl-rebuttal">訓練過程存在不穩定性</span>。<span class="hl-concept">自編碼器</span>則利用資訊瓶頸進行特徵學習。而<span class="hl-concept">「自解碼器」</span>方法訓練的是<span class="hl-method">僅含解碼器的網路，同時優化潛在向量與解碼器權重</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    引入關鍵先備概念——從 GAN 和自編碼器的脈絡中引出「自解碼器」，為第四節的方法論奠基。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段完成從「表徵方法」到「生成模型」的文獻回顧轉折。GAN 的不穩定性與自編碼器的冗餘編碼器，共同論證了自解碼器設計的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以遞進式否定（GAN 不穩定→自編碼器有冗餘→自解碼器最優）引導讀者接受作者的設計選擇。但「auto-decoder」並非本文首創，作者借用他人框架的同時需更清楚界定自身的新穎貢獻邊界。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. SDF 建模 ====== -->
+    <h2 class="section-heading" id="sec-modeling">3. Modeling SDFs with Neural Networks — 以神經網路建模 SDF</h2>
+
+    <!-- SDF 建模段落 1：基礎定義 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-concept">signed distance function</span> outputs
+                <span class="hl-method">point distance to closest surface, with sign encoding inside/outside classification</span>:
+                <span class="hl-concept">"SDF(x)=s: x&isin;&real;&sup3;, s&isin;&real;."</span>
+                The core innovation involves
+                <span class="hl-thesis">directly regressing continuous SDFs from point samples using deep networks</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">符號距離函數</span>輸出空間中某一點到最近表面的距離，其符號則<span class="hl-method">編碼該點位於形狀內部或外部的分類資訊</span>，形式化定義為：<span class="hl-concept">SDF(x)=s，其中 x 屬於三維實數空間，s 為實數值</span>。核心創新在於<span class="hl-thesis">利用深度網路直接從點樣本迴歸連續的符號距離函數</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義核心概念——以數學形式化定義 SDF，並點明「以神經網路迴歸 SDF」的創新所在。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法論章節的起始：從數學基礎出發，建立 SDF 的形式化定義後，再將其與深度學習框架連結，完成「傳統數學工具→神經網路學習」的概念橋接。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以簡潔的數學表達式建立精確性，同時避免了過度形式化。「directly regressing」強調了端到端學習的優勢，但隱含了一個前提假設：連續 SDF 可以被有限容量的神經網路足夠精確地逼近，此假設的理論保證並未在此討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SDF 建模段落 2：損失函數與架構 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Networks minimize <span class="hl-method">L1 loss with clamping</span>:
+                <span class="hl-method">"&#8466;(f<sub>&theta;</sub>(x),s)=|clamp(f<sub>&theta;</sub>(x),&delta;)&minus;clamp(s,&delta;)|."</span>
+                The architecture comprises
+                <span class="hl-method">eight fully-connected layers (512-dimensional, ReLU activation, dropout)</span>,
+                with <span class="hl-method">tanh output</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                網路最小化<span class="hl-method">帶有截斷操作的 L1 損失函數</span>，其形式為：<span class="hl-method">損失等於截斷後的預測值與截斷後的真實值之差的絕對值</span>。網路架構由<span class="hl-method">八層全連接層組成（每層 512 維，使用 ReLU 激活函數與 dropout）</span>，輸出層採用 <span class="hl-method">tanh 激活函數</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節——定義損失函數與網路架構的具體設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的概念定義，此段進入實作層面：損失函數的截斷設計確保網路聚焦於表面附近的精確建模（而非遠離表面的空間），八層全連接架構則體現了「足夠深但不過度複雜」的設計哲學。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    截斷（clamping）是關鍵的設計決策——它限制網路只需準確建模表面附近的距離場。使用 L1 而非 L2 損失暗示作者偏好對離群值更穩健的優化。但 512 維、八層的架構選擇缺乏消融實驗支持，讀者難以判斷此配置是否為最優。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 潛在空間學習 ====== -->
+    <h2 class="section-heading" id="sec-latent">4. Learning the Latent Space of Shapes — 形狀潛在空間學習</h2>
+
+    <!-- 潛在空間段落 1：潛在向量映射 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Mapping latent vectors z to 3D shapes</span> enables
+                <span class="hl-thesis">representing diverse shapes with single networks</span>.
+                While <span class="hl-concept">full auto-encoders</span> train encoders for test-time inference,
+                <span class="hl-rebuttal">encoders remain unused during deployment</span>.
+                This motivates <span class="hl-thesis">encoder-less "auto-decoder" training</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">將潛在向量 z 映射至三維形狀</span>，使得<span class="hl-thesis">單一網路即可表徵多樣化的形狀</span>。傳統的<span class="hl-concept">完整自編碼器</span>雖會訓練編碼器以供測試時推論使用，但<span class="hl-rebuttal">編碼器在實際部署階段其實並未被使用</span>。此觀察促成了<span class="hl-thesis">無需編碼器的「自解碼器」訓練策略</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提出動機——從自編碼器的冗餘性出發，論證自解碼器設計的合理性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是方法論的核心轉折點：從「單一形狀建模」躍升至「類別層級建模」。透過指出編碼器在部署時的冗餘性，為省略編碼器的激進設計提供實用主義的正當性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「部署時不使用」作為省略編碼器的理由，邏輯簡潔有力。但此論證忽略了編碼器在訓練階段的潛在好處（如更穩定的收斂、更好的潛在空間結構），以及推論時直接優化潛在向量所帶來的計算成本。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 潛在空間段落 2：機率框架 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-method">posterior over shape codes decomposes with a zero-mean Gaussian prior</span>.
+                <span class="hl-method">Training maximizes joint log posterior</span>.
+                At inference, <span class="hl-method">MAP estimation recovers shape codes</span>.
+                This formulation handles <span class="hl-thesis">arbitrary-sized SDF samples</span>,
+                enabling various <span class="hl-evidence">partial observations including depth maps</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">形狀編碼的後驗分布在零均值高斯先驗下進行分解</span>。<span class="hl-method">訓練階段最大化聯合對數後驗機率</span>。推論時則透過<span class="hl-method">最大後驗估計（MAP）恢復形狀編碼</span>。此建構方式能處理<span class="hl-thesis">任意大小的 SDF 樣本集</span>，從而支援<span class="hl-evidence">包括深度圖在內的各類部分觀測資料</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法論說明——闡述自解碼器的機率推論框架。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段為自解碼器提供嚴謹的機率理論基礎：高斯先驗賦予正則化效果，MAP 估計則是推論時的最優策略。「任意大小樣本」的特性直接連結到形狀補全的應用場景。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以貝葉斯框架包裝優化過程，提升了方法的理論說服力。零均值高斯先驗是常見但可能過於簡化的假設——真實的形狀潛在空間未必呈球對稱分布。此外，MAP 推論在測試時需要迭代優化，相較於前饋式編碼器在速度上存在劣勢。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 實驗結果 ====== -->
+    <h2 class="section-heading" id="sec-results">5. Results — 實驗結果</h2>
+
+    <!-- 結果段落 1：表徵品質比較 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                DeepSDF <span class="hl-evidence">"significantly beats OGN and AtlasNet in Chamfer distance"</span>
+                achieving <span class="hl-evidence">0.084 mean Chamfer Distance</span> compared to
+                <span class="hl-evidence">OGN's 0.167</span> and
+                <span class="hl-evidence">AtlasNet-25's 0.157</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                DeepSDF <span class="hl-evidence">在倒角距離指標上顯著超越 OGN 與 AtlasNet</span>，達到 <span class="hl-evidence">0.084 的平均倒角距離</span>，而 <span class="hl-evidence">OGN 為 0.167</span>、<span class="hl-evidence">AtlasNet-25 為 0.157</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心實證——以定量指標證實 DeepSDF 的表徵優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗章節的首要任務：用數字兌現摘要與緒論中的「state-of-the-art」宣稱。0.084 vs. 0.167 的對比約為 50% 的改進幅度，佐證了方法的有效性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    選擇倒角距離作為主要評估指標是合理的（該指標為三維形狀比較的標準）。但僅報告均值可能掩蓋分布特性——某些類別的表現差異未在此處呈現。此外，比較對象的公平性（超參數調優程度、訓練資料量）需讀者自行至附錄驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果段落 2：細節與拓撲 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">AtlasNet</span> struggles with topologically complex shapes;
+                <span class="hl-evidence">"AtlasNet fails to represent the fine detail of the back of the chair."</span>
+                <span class="hl-evidence">Shape completion from single-view depth outperforms 3D-EPN</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">AtlasNet</span> 在處理拓撲結構複雜的形狀時表現不佳，特別是<span class="hl-evidence">「無法表徵椅背的精細細節」</span>。<span class="hl-evidence">在單視角深度圖的形狀補全任務上，DeepSDF 的表現優於 3D-EPN</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定性佐證——以具體失敗案例強化定量結果的說服力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補充上段的定量比較：數字告訴讀者「好多少」，而具體案例告訴讀者「為何好」。椅背細節的失敗案例直指 AtlasNet 基於圖譜映射的拓撲侷限。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以競爭者的具體失敗案例進行對比，是極具說服力的論證手法。但精心挑選的案例可能存在偏頗——讀者應關注 DeepSDF 在哪些類型的形狀上表現不佳，而非僅看作者展示的成功案例。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果段落 3：潛在空間插值 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Interpolating latent vectors</span> produces meaningful intermediate shapes,
+                demonstrating <span class="hl-thesis">"our learned shape embedding is complete and continuous."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">在潛在向量之間進行插值</span>能產生有意義的中間形狀，證實了<span class="hl-thesis">「所學習的形狀嵌入空間是完整且連續的」</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    驗證潛在空間品質——以插值實驗證明嵌入空間的結構性質。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段回應第四節的理論預期：若潛在空間確實捕捉了形狀的語義結構，則插值應產生平滑且合理的過渡。此實驗為「自解碼器能學到有意義的潛在空間」提供經驗性佐證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「complete and continuous」是對潛在空間的高度概括性宣稱。插值實驗雖直觀，但僅展示了少數路徑上的連續性，無法保證整個高維空間的完整性。更嚴謹的驗證應包含潛在空間的覆蓋率分析或隨機採樣品質評估。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 6. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+
+    <!-- 結論段落 1：成就總結 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">DeepSDF outperforms benchmarked methods across representation and completion tasks</span>
+                while enabling <span class="hl-evidence">complex topologies, closed surfaces, and high-quality normals</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">DeepSDF 在表徵與補全任務上全面超越了基準方法</span>，同時支援<span class="hl-evidence">複雜拓撲結構、封閉曲面以及高品質法向量</span>的生成。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    成就總結——重申核心優勢並強調附加特性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論的首要任務：以濃縮形式回顧全文的核心成果，呼應摘要與緒論中的宣稱，形成完整的敘事閉環。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「complex topologies, closed surfaces, and high-quality normals」三項附加優勢在實驗章節中均有涉及但篇幅有限，此處的重申有強化印象的效果。封閉曲面是隱式表面的天然優勢，而非 DeepSDF 的特有貢獻。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結論段落 2：侷限與展望 -->
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Current limitations include
+                <span class="hl-rebuttal">canonical pose requirements</span> and
+                <span class="hl-rebuttal">shape completion inference requiring explicit optimization over latent vectors</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                目前的侷限包括：<span class="hl-rebuttal">需要標準姿態的前置假設</span>，以及<span class="hl-rebuttal">形狀補全的推論過程需要對潛在向量進行顯式的迭代優化</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    坦誠侷限——主動揭示方法的限制與未來改進方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    學術論文的結尾慣例：在成就總結之後，誠實地列出侷限性。此舉既展現學術誠信，也為後續研究者指明延伸方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    作者點出的兩項侷限皆為實質性問題：標準姿態假設限制了方法的通用性（真實世界的物體不會自動對齊），而推論時的顯式優化則影響了效率。值得注意的是，作者未提及訓練資料需求量、泛化至未見類別的能力等其他重要侷限。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 全文邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                三維表徵面臨<br>計算與拓撲瓶頸
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                連續隱式 SDF<br>可取代離散表徵
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>方法</strong><br>
+                自解碼器學習<br>形狀潛在空間
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                Chamfer Distance<br>大幅領先基準
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                連續 SDF 在品質<br>與效率上雙重勝出
+            </div>
+        </div>
+
+        <!-- 三欄分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話版本）</h3>
+                <p>以深度神經網路學習連續符號距離函數，能以極小的模型體積表徵整個三維形狀類別，同時在表徵精度與形狀補全任務上全面超越基於體素、點雲及網格的既有方法。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>記憶體效率的定量對比極具說服力：7.4 MB 表徵整個類別 vs. 16.8 MB 僅存儲一個 512&sup3; 點陣圖。此對比不僅展示了數量級的優勢，更凸顯了連續表徵相較離散表徵的根本性效率差異。Chamfer Distance 的大幅改進（0.084 vs. 0.167）進一步以定量資料鞏固了方法的有效性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>推論效率的隱憂被輕描淡寫：自解碼器在測試時需對每個新形狀進行迭代式潛在向量優化（MAP 估計），其計算成本遠高於前饋式編碼器的單次推論。此外，標準姿態的假設在結論中僅被一筆帶過，但對實際應用的限制相當嚴重——真實場景中的物體鮮少處於預定義的標準姿態。</p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

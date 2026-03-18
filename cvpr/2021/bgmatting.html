@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time High-Resolution Background Matting — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332;
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Real-Time High-Resolution Background Matting
+                <span class="course-tag">CVPR 2021</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/2012.07810" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-refinement">3.2 精煉網路</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We introduce a <span class="hl-concept">real-time, high-resolution background matting</span> method that operates at <span class="hl-evidence">4K resolution at 30fps and HD at 60fps on a modern GPU</span>. Our method requires an <span class="hl-method">additional captured background image</span>, which is typically available in video conferencing and virtual production scenarios. We propose a <span class="hl-method">two-stage architecture</span>: a <span class="hl-concept">base network</span> that processes the entire image at <span class="hl-method">low resolution</span> to produce a coarse alpha matte, foreground, and an error map, followed by a <span class="hl-concept">refinement network</span> that <span class="hl-method">selectively processes only high-resolution patches identified by the error map</span>. This design enables <span class="hl-thesis">real-time performance at very high resolutions while maintaining matting quality comparable to or exceeding offline methods</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種<span class="hl-concept">即時高解析度背景去背</span>方法，在現代 GPU 上能以 <span class="hl-evidence">4K 解析度 30fps 及 HD 解析度 60fps</span> 運行。我們的方法需要一張<span class="hl-method">額外擷取的背景影像</span>，此條件在視訊會議與虛擬製作場景中通常可以滿足。我們提出<span class="hl-method">兩階段架構</span>：<span class="hl-concept">基礎網路</span>在<span class="hl-method">低解析度</span>下處理整張影像，產生粗略的 alpha 遮罩、前景及誤差圖；隨後<span class="hl-concept">精煉網路</span><span class="hl-method">僅選擇性地處理由誤差圖識別的高解析度圖塊</span>。此設計使得<span class="hl-thesis">在極高解析度下實現即時性能的同時，去背品質可媲美甚至超越離線方法</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——點明即時高解析度去背的核心挑戰，並以兩階段架構作為解決方案。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要以具體的性能數字（4K@30fps、HD@60fps）開門見山地展示實用價值，再以兩階段架構的技術概述支撐此承諾，形成「結果→方法」的倒序論述。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以具體的幀率與解析度數字領銜是強有力的工程導向修辭。但「需要額外背景影像」的前提條件被輕描淡寫——在動態背景（如戶外場景）中此假設可能不成立。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Image matting</span> refers to the problem of estimating the <span class="hl-concept">alpha matte</span> and foreground color of a subject from an input image. It is a fundamental operation in <span class="hl-concept">image and video editing</span>, with applications in <span class="hl-evidence">virtual backgrounds for video conferencing, film production, and augmented reality</span>. Traditional methods rely on <span class="hl-rebuttal">user-supplied trimaps</span>, which are <span class="hl-rebuttal">impractical for real-time applications</span>. Recent deep learning approaches achieve impressive quality but are <span class="hl-rebuttal">computationally expensive, often requiring seconds per frame</span>, making them unsuitable for video.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">影像去背（image matting）</span>是指從輸入影像中估計<span class="hl-concept">alpha 遮罩</span>與前景顏色的問題。這是<span class="hl-concept">影像與影片編輯</span>中的基礎操作，應用涵蓋<span class="hl-evidence">視訊會議的虛擬背景、電影製作與擴增實境</span>。傳統方法依賴<span class="hl-rebuttal">使用者提供的三元圖（trimap）</span>，這在<span class="hl-rebuttal">即時應用中不切實際</span>。近期的深度學習方法雖能達到出色的品質，但<span class="hl-rebuttal">計算成本高昂，通常每幀需要數秒</span>，使其不適用於影片場景。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立研究場域——定義去背問題並指出現有方法在即時性上的不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「品質 vs. 速度」的矛盾建構研究缺口：傳統方法需人工介入，深度學習方法太慢。本文的目標即是同時解決這兩個限制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以視訊會議等廣泛應用場景開場，有效建立研究的實際價值。但「每幀數秒」的描述可能過於籠統，不同方法的速度差異顯著。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Background matting</span> is a special case where an <span class="hl-method">additional clean background image is available</span>. This extra information provides a strong signal for foreground-background separation, as <span class="hl-method">the difference between the captured image and the background reveals the foreground region</span>. Our prior work, <span class="hl-concept">Background Matting V1</span>, demonstrated this concept but <span class="hl-rebuttal">operated at low resolution and could not achieve real-time performance</span>. In this work, we propose a fundamentally different architecture that <span class="hl-thesis">achieves both real-time speed and high resolution through a novel selective refinement strategy</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">背景去背</span>是一種特殊情境，其中有一張<span class="hl-method">額外的乾淨背景影像可供使用</span>。此額外資訊為前景-背景分離提供了強烈的訊號，因為<span class="hl-method">擷取影像與背景之間的差異即揭示了前景區域</span>。我們先前的工作 <span class="hl-concept">Background Matting V1</span> 展示了此概念，但<span class="hl-rebuttal">僅能在低解析度下運行且無法達到即時性能</span>。在本研究中，我們提出一種根本不同的架構，透過<span class="hl-thesis">新穎的選擇性精煉策略同時達到即時速度與高解析度</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    自我批判與改進——坦承前作的不足，引出本文的根本性改進。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以自我批判的方式建立信任：承認 V1 的限制（低解析度、非即時），同時預告 V2 的核心創新（選擇性精煉）。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「fundamentally different architecture」的宣稱需要技術細節支撐。自我批判雖增強可信度，但也暗示 V1 的方法存在架構層面的根本問題，而非僅是工程最佳化不足。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Classical matting methods such as <span class="hl-concept">Bayesian matting</span> and <span class="hl-concept">KNN matting</span> require <span class="hl-rebuttal">trimaps or scribbles as user input</span>. Deep learning methods like <span class="hl-concept">Deep Image Matting</span> and <span class="hl-concept">Context-Aware Matting</span> achieve superior quality but <span class="hl-rebuttal">still require trimaps and operate at low speed</span>. <span class="hl-concept">MODNet</span> proposes trimap-free matting but at <span class="hl-rebuttal">limited resolution</span>. <span class="hl-concept">Green screen matting</span> in film production uses a uniform colored background for easy chroma keying, but <span class="hl-rebuttal">requires controlled studio environments</span>. Our approach takes the middle ground: <span class="hl-thesis">requiring only a casually captured background image, which is far easier to obtain than a trimap or green screen, while achieving real-time high-resolution performance</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                經典去背方法如<span class="hl-concept">貝氏去背</span>與<span class="hl-concept">KNN 去背</span>需要<span class="hl-rebuttal">三元圖或筆觸作為使用者輸入</span>。深度學習方法如 <span class="hl-concept">Deep Image Matting</span> 與 <span class="hl-concept">Context-Aware Matting</span> 達到了更優的品質，但<span class="hl-rebuttal">仍需三元圖且運行速度低</span>。<span class="hl-concept">MODNet</span> 提出免三元圖去背，但僅限於<span class="hl-rebuttal">有限解析度</span>。<span class="hl-concept">綠幕去背</span>使用均勻有色背景進行色度鍵控，但<span class="hl-rebuttal">需要受控的攝影棚環境</span>。我們的方法取中間路線：<span class="hl-thesis">僅需要一張隨意擷取的背景影像，取得成本遠低於三元圖或綠幕，同時達到即時高解析度性能</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——以輸入要求與速度為維度，系統性地定位本文方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過「trimap（高成本）→ 綠幕（環境限制）→ 背景影像（低成本）」的光譜，將本文方法定位於實用性最佳的甜蜜點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「middle ground」的定位策略有效避免了與兩端極端方法的正面比較。但「casually captured」的描述隱含了背景影像必須與當前場景高度一致的假設——背景若有變化（如光照、物件移動），方法性能可能大幅下降。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+    <h3 class="subsection-heading">3.1 基礎網路（Base Network）</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">base network</span> takes as input the <span class="hl-method">source image and captured background, both downsampled to low resolution (e.g., 512x288)</span>. It produces three outputs: a <span class="hl-method">coarse alpha matte</span>, a <span class="hl-method">coarse foreground color estimation</span>, and an <span class="hl-concept">error map</span> that <span class="hl-thesis">predicts where the coarse result is likely to be inaccurate</span>. The architecture uses a <span class="hl-method">ResNet-based encoder-decoder</span> with skip connections. The error map is trained with <span class="hl-method">L1 loss between predicted alpha and ground truth</span>, learning to identify regions such as <span class="hl-evidence">hair boundaries, semi-transparent regions, and areas with color spill</span> that require high-resolution refinement.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">基礎網路</span>以<span class="hl-method">來源影像與擷取的背景為輸入，兩者皆下取樣至低解析度（例如 512x288）</span>。其產生三個輸出：<span class="hl-method">粗略 alpha 遮罩</span>、<span class="hl-method">粗略前景顏色估計</span>，以及一張<span class="hl-concept">誤差圖</span>——<span class="hl-thesis">用以預測粗略結果中哪些區域可能不準確</span>。架構使用<span class="hl-method">基於 ResNet 的編碼器-解碼器</span>搭配跳躍連結。誤差圖以<span class="hl-method">預測 alpha 與真值之間的 L1 損失</span>訓練，學習識別需要高解析度精煉的區域，例如<span class="hl-evidence">髮絲邊界、半透明區域以及出現色彩溢出的地帶</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法第一步——描述在低解析度下運行的基礎網路及其誤差預測機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段建立了兩階段策略的「粗略」階段。誤差圖的設計是整個架構的關鍵創新——它將「哪裡需要精煉」的決策交由網路自主學習，而非手工規則。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    誤差圖的概念優雅且直覺——讓網路「自知其不足」。但訓練誤差圖需要高解析度真值，這在真實世界資料中很難取得。此外，誤差圖的閾值選擇（決定哪些區域需要精煉）直接影響速度-品質的取捨。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3.2 精煉網路 ====== -->
+    <h3 class="subsection-heading" id="sec-refinement">3.2 精煉網路（Refinement Network）</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-concept">refinement network</span> operates on <span class="hl-method">selected high-resolution patches</span> identified by the error map. Specifically, <span class="hl-method">patches where the error map exceeds a threshold are cropped from the original high-resolution image and processed individually</span>. The refinement network takes as input the <span class="hl-method">high-resolution patch, its corresponding coarse predictions, and the background patch</span>, and outputs <span class="hl-method">refined alpha and foreground for that patch only</span>. This selective strategy means that <span class="hl-thesis">only a small fraction of the image (typically 5-20%) needs high-resolution processing</span>, dramatically reducing computation. The refined patches are then <span class="hl-method">composited back into the coarse full-resolution output</span> to produce the final result.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">精煉網路</span>在由誤差圖識別的<span class="hl-method">選定高解析度圖塊</span>上運行。具體而言，<span class="hl-method">誤差圖超過閾值的圖塊從原始高解析度影像中裁切出來並逐一處理</span>。精煉網路以<span class="hl-method">高解析度圖塊、其對應的粗略預測及背景圖塊為輸入</span>，<span class="hl-method">僅對該圖塊輸出精煉後的 alpha 與前景</span>。此選擇性策略意味著<span class="hl-thesis">僅需對影像中的小部分（通常 5-20%）進行高解析度處理</span>，大幅降低了計算量。精煉後的圖塊隨後<span class="hl-method">合成回粗略全解析度輸出中</span>，產生最終結果。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    方法核心——描述選擇性精煉策略如何在高解析度下實現即時性能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段是全文技術貢獻的頂點。「僅 5-20% 需要高解析度處理」是支撐即時性能承諾的關鍵量化論據——將 O(HW) 的全解析度處理壓縮為 O(0.05HW~0.2HW)。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「5-20%」的比例假設前景主體佔畫面比例較小且邊緣區域有限。在前景佔畫面大部分的場景（如多人合影），此比例可能大幅上升，即時性能可能無法維持。此外，圖塊之間的邊界處理可能產生接縫偽影。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate on both <span class="hl-evidence">synthetic composites from the Adobe Matting dataset</span> and <span class="hl-evidence">real-world captures using webcam setups</span>. On the synthetic benchmark, our method achieves <span class="hl-evidence">comparable or superior alpha quality (SAD, MSE, Grad metrics) to state-of-the-art offline methods</span> including <span class="hl-evidence">FBA Matting and Index Matting</span>. For speed, our method runs at <span class="hl-evidence">4K (3840x2160) at 30fps, HD (1920x1080) at 60fps, and 512x288 at over 100fps on an NVIDIA RTX 2080 Ti</span>. In comparison, <span class="hl-evidence">FBA Matting requires approximately 4 seconds per 4K frame</span>. Our method is approximately <span class="hl-evidence">120x faster than FBA at 4K resolution</span>. User studies confirm that <span class="hl-evidence">participants rated our results comparably to offline methods for video conferencing scenarios</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在<span class="hl-evidence">合成資料（來自 Adobe Matting 資料集）</span>與<span class="hl-evidence">真實世界的網路攝影機擷取</span>上進行評估。在合成基準上，我們的方法在 <span class="hl-evidence">alpha 品質指標（SAD、MSE、Grad）上達到與最先進離線方法（包括 FBA Matting 與 Index Matting）相當或更優的表現</span>。在速度方面，我們的方法在 NVIDIA RTX 2080 Ti 上以 <span class="hl-evidence">4K（3840x2160）30fps、HD（1920x1080）60fps 及 512x288 超過 100fps</span> 運行。相比之下，<span class="hl-evidence">FBA Matting 處理一幀 4K 影像需要約 4 秒</span>。我們的方法在 4K 解析度下<span class="hl-evidence">比 FBA 快約 120 倍</span>。<span class="hl-evidence">使用者研究確認，受試者在視訊會議場景中對我們的結果與離線方法的評價相當</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供全面的實驗證據——在品質、速度與使用者感知三個維度上驗證方法。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    此段的論證力量在於「品質不犧牲的前提下速度提升 120 倍」。三重驗證（定量指標+速度數字+使用者研究）構成了穩健的證據鏈。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    120x 的速度比是極具衝擊力的數字。但比較對象（FBA）為離線方法，速度並非其設計目標，此比較的公平性可質疑。與 MODNet 等同樣追求即時性的方法的品質比較會更有說服力。使用者研究的規模與控制條件未被詳述。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a <span class="hl-concept">real-time, high-resolution background matting</span> method that achieves <span class="hl-evidence">4K at 30fps</span> through a novel <span class="hl-method">two-stage architecture with selective refinement</span>. By leveraging an <span class="hl-method">error-map-guided patch selection strategy</span>, our method processes only the critical regions at high resolution, enabling <span class="hl-thesis">unprecedented speed-quality trade-off for matting applications</span>. The requirement of an additional background image is <span class="hl-rebuttal">minimal in typical deployment scenarios</span> such as video conferencing. Our method enables <span class="hl-thesis">real-time virtual background replacement at resolutions previously achievable only by offline methods</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們提出一種<span class="hl-concept">即時高解析度背景去背</span>方法，透過新穎的<span class="hl-method">兩階段架構搭配選擇性精煉</span>，達到 <span class="hl-evidence">4K@30fps</span> 的性能。藉由<span class="hl-method">誤差圖引導的圖塊選擇策略</span>，我們的方法僅在關鍵區域進行高解析度處理，實現了<span class="hl-thesis">去背應用中前所未有的速度-品質取捨</span>。額外背景影像的需求在典型部署場景（如視訊會議）中是<span class="hl-rebuttal">極低門檻的條件</span>。我們的方法使得<span class="hl-thesis">即時虛擬背景替換能在先前僅離線方法可達到的解析度上實現</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文——重申核心方法與性能成果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    結論段以「unprecedented speed-quality trade-off」定位本文的獨特貢獻，並以實際應用場景（視訊會議）收束，呼應緒論的動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「minimal requirement」淡化背景影像的需求是策略性的措辭。結論未討論方法在背景變化（如光照變化、相機移動）下的穩健性，以及在非視訊會議場景（如戶外拍攝）中的適用性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                高品質去背太慢<br>無法即時處理高解析度
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                兩階段選擇性精煉<br>僅處理關鍵區域
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                4K@30fps<br>品質媲美離線方法
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>反駁</strong><br>
+                背景影像需求<br>在視訊會議中易滿足
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                即時高解析度去背<br>前所未有的速度-品質取捨
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>
+                    透過兩階段架構搭配誤差圖引導的選擇性高解析度精煉，僅需一張額外背景影像即可在 4K 解析度下以 30fps 實現媲美離線方法品質的即時背景去背。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>
+                    <strong>工程創新的實證說服力：</strong>4K@30fps 與 120x 加速的具體數字，搭配品質指標上與離線方法的可比性，以及使用者研究的主觀驗證，構成了三重交叉驗證的穩健證據鏈。選擇性精煉的核心洞見（僅 5-20% 區域需高解析度處理）既直覺又可量化。
+                </p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>
+                    <strong>適用場景的隱含限制：</strong>「需要額外背景影像」的前提假設背景是靜態且可預先擷取的。在光照變化（如日夜更替）、背景物件移動（如寵物經過），或攝影機位移等真實場景中，此假設的穩健性未被充分驗證。此外，精煉圖塊比例（5-20%）在多人或大面積前景場景下可能大幅增加，威脅即時性能的承諾。
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /.main-container -->
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>

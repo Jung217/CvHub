@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-DeepLab: Hierarchical Neural Architecture Search for Semantic Image Segmentation — 雙欄批注</title>
+    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
+    
+    
+    <!-- 系統字體：Times New Roman + 標楷體 -->
+    <style>
+        /* ===== 全域重設與基礎樣式 ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            background-color: #faf8f5; /* 米白紙張底色 */
+            color: #2c2c2c;
+            line-height: 1.7;
+        }
+
+        /* ===== 頂部導航欄 ===== */
+        .top-navbar {
+            background-color: #1a2332; /* 深海軍藍 */
+            color: #fff;
+            padding: 18px 30px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .navbar-title {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .navbar-title .course-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+
+        .navbar-home-link {
+            color: #ccc;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        .navbar-home-link:hover {
+            color: #fff;
+        }
+
+        /* ===== 章節導航條（黏性） ===== */
+        .section-nav {
+            background-color: #243044;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            padding: 0 30px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 2px solid #1a2332;
+        }
+
+        .section-nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+        }
+
+        .section-nav a {
+            color: #aab;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            display: inline-block;
+            transition: background 0.2s, color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .section-nav a:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-bottom-color: #5b9bd5;
+        }
+
+        /* ===== 主體容器 ===== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 60px;
+        }
+
+        /* 章節標題 */
+        .section-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 50px 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #1a2332;
+            scroll-margin-top: 60px;
+        }
+
+        .section-heading:first-of-type {
+            margin-top: 10px;
+        }
+
+        .subsection-heading {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #2a3a50;
+            margin: 30px 0 6px;
+            scroll-margin-top: 60px;
+        }
+
+        /* ===== 雙欄段落行 ===== */
+        .para-row {
+            display: flex;
+            gap: 28px;
+            margin: 22px 0;
+            align-items: flex-start;
+        }
+
+        /* 左欄 */
+        .left-col {
+            flex: 0 0 63%;
+            max-width: 63%;
+        }
+
+        /* 英文原文 */
+        .en-text {
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+            font-size: 1.02rem;
+            line-height: 1.85;
+            color: #1e1e1e;
+            text-align: justify;
+        }
+
+        /* 英中分隔線 */
+        .lang-divider {
+            height: 1px;
+            background: #d5d0c8;
+            margin: 10px 0;
+        }
+
+        /* 中文譯文塊 */
+        .zh-text {
+            background-color: #f0ece2;
+            border-left: 3px solid #b8a88a;
+            padding: 12px 16px;
+            font-size: 0.96rem;
+            line-height: 1.85;
+            color: #3a3a3a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* 右欄 */
+        .right-col {
+            flex: 0 0 34%;
+            max-width: 34%;
+        }
+
+        /* 批注卡片 */
+        .annotation-card {
+            background: #f7f5f0;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            border: 1px solid #e8e4dc;
+        }
+
+        .annotation-card .ann-label {
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #1a2332;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .annotation-card .ann-section {
+            margin-bottom: 10px;
+        }
+
+        .annotation-card .ann-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 批注卡片的左色邊依據段落類型 */
+        .ann-intro    { border-left: 4px solid #ffc107; }
+        .ann-concept  { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method   { border-left: 4px solid #7b61c4; }
+
+        /* ===== 高亮標注 ===== */
+        .hl-thesis   { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept  { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method   { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+
+        /* ===== 底部論證結構總覽 ===== */
+        .argument-overview {
+            margin-top: 60px;
+            padding: 30px;
+            background: #1a2332;
+            color: #eee;
+            border-radius: 6px;
+        }
+
+        .argument-overview h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 22px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .arg-skeleton {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .arg-step {
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arg-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 6px;
+            font-size: 1.4rem;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .arg-detail-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            padding: 16px;
+        }
+
+        .arg-detail-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #5b9bd5;
+        }
+
+        .arg-detail-card p {
+            font-size: 0.88rem;
+            line-height: 1.65;
+            color: #ccc;
+        }
+
+        /* ===== 響應式：行動裝置單欄 ===== */
+        @media (max-width: 900px) {
+            .para-row {
+                flex-direction: column;
+            }
+            .left-col, .right-col {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .arg-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .arg-skeleton {
+                flex-direction: column;
+                align-items: center;
+            }
+            .arg-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag, .navbar-title .best-paper-badge { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .navbar-links { width: 100%; justify-content: flex-start; gap: 12px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+
+        /* ===== 浮動顏色圖例 ===== */
+        .floating-legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Times New Roman', 'DFKai-SB', serif;
+        }
+        .legend-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2332;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            margin-left: auto;
+        }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel {
+            display: none;
+            background: #1a2332;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            min-width: 200px;
+        }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .legend-panel .fl-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Auto-DeepLab: Hierarchical Neural Architecture Search for Semantic Image Segmentation
+                <span class="course-tag">CVPR 2019</span>
+            </div>
+            <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+            <a href="https://arxiv.org/abs/1901.02985" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-search-space">2. 搜索空間</a>
+        <a href="#sec-methods">3. 方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
+
+<!-- ==================== 主體內容 ==================== -->
+<div class="main-container">
+
+    <!-- ====== 摘要 ====== -->
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The researchers investigate <span class="hl-concept">Neural Architecture Search</span> for
+                <span class="hl-concept">semantic image segmentation</span>. Rather than only searching
+                <span class="hl-rebuttal">cell-level structures</span>, they propose
+                <span class="hl-thesis">searching both cell and network-level architectures hierarchically</span>.
+                Their method uses a <span class="hl-concept">"trellis-like network level search space"</span>
+                combined with cell-level design. The approach employs
+                <span class="hl-method">gradient-based optimization</span>, requiring only
+                <span class="hl-evidence">3 GPU days on Cityscapes</span>. Results show
+                <span class="hl-evidence">competitive performance without ImageNet pretraining</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本研究探討<span class="hl-concept">神經架構搜索（NAS）</span>在<span class="hl-concept">語義影像分割</span>任務中的應用。有別於僅搜索<span class="hl-rebuttal">細胞層級結構</span>的傳統做法，作者提出<span class="hl-thesis">同時以階層式方式搜索細胞層級與網路層級的架構設計</span>。該方法採用<span class="hl-concept">「格狀網路層級搜索空間」</span>，結合細胞層級設計。整體方法基於<span class="hl-method">梯度優化策略</span>，僅需在 Cityscapes 資料集上耗費 <span class="hl-evidence">3 個 GPU 天</span>即可完成搜索。實驗結果顯示，<span class="hl-evidence">即便未使用 ImageNet 預訓練，仍可達到具競爭力的效能表現</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽：點明研究問題、核心貢獻與關鍵成果
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    作為論文入口，建立三個核心主張：（1）搜索層級應擴展至網路級，（2）格狀搜索空間的新穎性，（3）效率與效能的雙重優勢
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    以「3 GPU days」資料強調效率優勢，但未交代具體 GPU 型號與實驗條件，可能造成讀者對計算成本的低估。「competitive performance」的表述相對模糊，留待實驗章節詳述
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 1. 緒論 ====== -->
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">"Naively porting ideas from image classification would not suffice for semantic segmentation."</span>
+                Classification uses <span class="hl-concept">transfer learning</span> from low to high resolution,
+                whereas segmentation must inherently operate on <span class="hl-concept">high-resolution imagery</span>.
+                Modern CNN designs follow a <span class="hl-concept">two-level hierarchy</span> where the outer
+                <span class="hl-concept">network level</span> controls spatial resolution changes and the inner
+                <span class="hl-concept">cell level</span> governs layer computations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">單純將影像分類的設計思路移植到語義分割是行不通的。</span>分類任務透過<span class="hl-concept">遷移學習</span>處理由低至高解析度的特徵，而分割任務則天然需要在<span class="hl-concept">高解析度影像</span>上進行運算。現代摺積神經網路的設計遵循<span class="hl-concept">雙層階層結構</span>：外層的<span class="hl-concept">網路層級</span>控制空間解析度的變化，內層的<span class="hl-concept">細胞層級</span>則負責具體的層間計算。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    引出問題：指出分類與分割任務之間的根本差異
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點——透過對比分類與分割的需求差異，為後續「需要專門的網路級搜索」埋下伏筆
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    使用引用式斷言（直接引號）增強權威性。「two-level hierarchy」的框架化有效簡化了讀者對問題空間的理解，但可能過度簡化了實際架構設計的複雜度
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-rebuttal">Previous NAS work searches only the cell level while hand-designing the network level.</span>
+                This becomes problematic for <span class="hl-concept">dense prediction</span>, which exhibits
+                <span class="hl-thesis">significant network-level architectural variations</span>. Key contributions include
+                <span class="hl-thesis">"one of the first attempts to extend NAS beyond image classification to dense image prediction."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-rebuttal">先前的神經架構搜索研究僅搜索細胞層級結構，而網路層級則依賴人工設計。</span>這種做法對於<span class="hl-concept">密集預測</span>任務而言是有問題的，因為密集預測任務在網路層級上存在<span class="hl-thesis">顯著的架構變異性</span>。本文的關鍵貢獻之一，是<span class="hl-thesis">將 NAS 從影像分類領域首次擴展至密集影像預測的開創性嘗試</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    批判現有方法的局限性，並聲明本文的核心貢獻
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接上段的問題意識，明確指出研究缺口（gap），並以此缺口為基礎定位自身貢獻
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    使用「one of the first」修辭巧妙避免絕對性宣稱，同時保持開創性的語氣。「significant architectural variations」的論述缺乏量化佐證，屬於定性斷言
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 搜索空間 ====== -->
+    <h2 class="section-heading" id="sec-search-space">2. Architecture Search Space — 架構搜索空間</h2>
+
+    <h3 class="subsection-heading" id="sec-cell-level">2.1 Cell Level — 細胞層級</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                A <span class="hl-concept">cell</span> is a small fully convolutional module.
+                Each <span class="hl-concept">block</span> maps two input tensors to one output.
+                Possible layer types include
+                <span class="hl-method">"3&times;3 and 5&times;5 depthwise-separable convolutions, 3&times;3 and 5&times;5 atrous convolutions with rate 2, average and max pooling, skip connection, and zero operation."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">細胞</span>是一個小型的全摺積模組。每個<span class="hl-concept">區塊</span>將兩個輸入張量映射為一個輸出。可選的層類型包括：<span class="hl-method">3&times;3 與 5&times;5 深度可分離摺積、帶擴張率 2 的 3&times;3 與 5&times;5 空洞摺積、平均池化與最大池化、跳躍連接及零操作</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義細胞層級搜索空間的基本構成要素
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    搜索空間設計的第一層——定義微觀層面可搜索的操作集合，為後續的連續鬆弛優化提供操作候選
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    操作集的選擇直接沿用 DARTS 等先前工作的設計，降低了設計空間的原創性。包含「zero operation」的設計使得搜索過程可自動剪枝不必要的連接
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-network-level">2.2 Network Level — 網路層級</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Spatial resolution changes by at most a factor of 2 between layers, with
+                <span class="hl-method">minimum resolution downsampled by 32</span>.
+                The space encompasses popular designs including
+                <span class="hl-concept">DeepLabv3</span>,
+                <span class="hl-concept">Conv-Deconv</span>, and
+                <span class="hl-concept">Stacked Hourglass</span> architectures.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                相鄰層之間的空間解析度變化最多為 2 倍，<span class="hl-method">最小解析度為原始影像的 1/32</span>。這一搜索空間涵蓋了多種主流設計，包括 <span class="hl-concept">DeepLabv3</span>、<span class="hl-concept">摺積-反摺積網路</span>以及<span class="hl-concept">堆疊沙漏架構</span>等。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定義網路層級搜索空間的約束條件與涵蓋範圍
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    搜索空間設計的第二層——透過列舉可被該空間涵蓋的知名架構，間接論證搜索空間的表達能力（expressiveness）
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    以已知優秀架構作為空間涵蓋的「錨點」，增強說服力。然而「涵蓋」不等於「能找到」，搜索演算法是否真能從空間中有效找到這些架構（或更優架構）仍待驗證
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-methods">3. Methods — 方法</h2>
+
+    <h3 class="subsection-heading" id="sec-relaxation">3.1 Continuous Relaxation — 連續鬆弛</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Every block's output connects to all potential inputs via operations with
+                <span class="hl-method">continuous relaxation using softmax-normalized coefficients</span>.
+                Network-level update uses <span class="hl-concept">&beta; parameters</span> as
+                <span class="hl-method">normalized transition probabilities between resolution states</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                每個區塊的輸出透過帶有<span class="hl-method">連續鬆弛機制</span>的操作連接到所有潛在輸入，具體採用 <span class="hl-method">softmax 歸一化係數</span>實現。網路層級的更新使用 <span class="hl-concept">&beta; 參數</span>作為<span class="hl-method">不同解析度狀態之間的歸一化轉移機率</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明將離散搜索問題轉化為連續優化問題的核心方法
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法論核心——連續鬆弛是實現梯度優化的關鍵前提，&beta; 參數的引入是本文對 DARTS 框架的主要擴展
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    將 &beta; 詮釋為「轉移機率」借用了馬可夫鏈的概念框架，使讀者直覺地理解網路路徑選擇。但 softmax 近似離散選擇的有效性在理論上尚有爭議（approximation gap 問題）
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-optimization">3.2 Optimization — 優化策略</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Training data splits into disjoint <span class="hl-method">train<sub>A</sub></span> and
+                <span class="hl-method">train<sub>B</sub></span> sets. Optimization alternates between
+                <span class="hl-method">updating network weights <em>w</em> and architecture parameters (&alpha;, &beta;)</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                訓練資料被拆分為互不重疊的 <span class="hl-method">train<sub>A</sub></span> 與 <span class="hl-method">train<sub>B</sub></span> 兩個子集。優化過程在<span class="hl-method">更新網路權重 <em>w</em> 與架構參數（&alpha;、&beta;）之間交替進行</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    描述雙層優化的具體執行策略
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    承接連續鬆弛的數學框架，說明如何在實踐中進行優化迭代
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    資料拆分避免了架構參數過擬合訓練集的風險（類似於驗證集的角色）。然而，交替優化並不保證收斂至全域最優解，此為雙層優化的固有限制
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="subsection-heading" id="sec-decoding">3.3 Decoding — 解碼策略</h3>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Cell decoded by <span class="hl-method">retaining 2 strongest predecessors per block</span>.
+                Network path found using <span class="hl-method">Viterbi algorithm</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                細胞層級的解碼方式為<span class="hl-method">每個區塊保留 2 個最強的前驅連接</span>。網路層級的路徑則透過<span class="hl-method">維特比演算法</span>（Viterbi algorithm）來確定。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    說明如何從連續空間中提取離散的最終架構
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    方法鏈的最後一環——從搜索到部署的橋樑，將連續權重轉化為可實際訓練的離散網路
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    維特比演算法的引入巧妙地將網路路徑選擇類比為序列解碼問題，展現了跨領域方法遷移的能力。「2 strongest predecessors」的選擇為人工設定的超參數，其最優性未經充分探討
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The joint hierarchical search space contains approximately
+                <span class="hl-evidence">10<sup>19</sup> unique architectures</span>.
+                Search uses <span class="hl-method">L=12 layers, B=5 blocks per cell</span>.
+                Total search time: approximately
+                <span class="hl-evidence">3 days on one P100 GPU</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                聯合階層式搜索空間包含約 <span class="hl-evidence">10<sup>19</sup> 種獨特架構</span>。搜索配置使用 <span class="hl-method">L=12 層、每個細胞包含 B=5 個區塊</span>。總搜索時間約為在<span class="hl-evidence">一塊 P100 GPU 上耗費 3 天</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供搜索空間規模與計算成本的量化資訊
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以具體資料支撐方法的可行性：空間規模之大彰顯搜索問題的困難度，而 3 天的搜索時間則突顯方法的高效性
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    10<sup>19</sup> 的數字形成強烈視覺衝擊，與 3 天搜索時間形成鮮明對比，有效突顯方法效率。但搜索後的重訓練（retraining）成本未被充分揭示
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                On Cityscapes validation: <span class="hl-evidence">Auto-DeepLab-L achieves 80.33% mIoU</span>.
+                On test set without ImageNet pretraining:
+                <span class="hl-evidence">80.4% mIoU</span>. With coarse annotations:
+                <span class="hl-evidence">82.1% mIoU</span>, matching <span class="hl-concept">DeepLabv3+</span>
+                while requiring <span class="hl-evidence">"55.2% fewer Multi-Adds computations."</span>
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 Cityscapes 驗證集上，Auto-DeepLab-L 達到 80.33% mIoU。在未使用 ImageNet 預訓練的測試集上取得 <span class="hl-evidence">80.4% mIoU</span>。加入粗標註資料後達到 <span class="hl-evidence">82.1% mIoU</span>，與 <span class="hl-concept">DeepLabv3+</span> 持平，同時減少了 55.2% 的多重加法運算量。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供 Cityscapes 基準測試上的核心實驗結果
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實證支撐——以具體資料論證方法在主要基準上的效能，並與 DeepLabv3+ 的直接比較強化論點
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    以「55.2% fewer Multi-Adds」量化計算效率優勢，同時效能持平，構成強有力的效率論證。但「matching」DeepLabv3+ 的說法需注意：後者使用了 ImageNet 預訓練，兩者的比較基礎不完全對等
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-evidence">PASCAL VOC 2012 test: 85.6% mIoU</span>.
+                Auto-DeepLab outperforms <span class="hl-concept">RefineNet</span>,
+                <span class="hl-concept">UPerNet</span>, and
+                <span class="hl-concept">PSPNet</span>
+                <span class="hl-thesis">without ImageNet pretraining</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                在 <span class="hl-evidence">PASCAL VOC 2012 測試集上達到 85.6% mIoU</span>。Auto-DeepLab 在<span class="hl-thesis">未使用 ImageNet 預訓練</span>的條件下，超越了 <span class="hl-concept">RefineNet</span>、<span class="hl-concept">UPerNet</span> 與 <span class="hl-concept">PSPNet</span> 等方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供跨資料集的泛化性驗證
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補充論證——在另一主流基準上驗證方法的普適性，避免 Cityscapes 單一資料集的偏見
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    「without ImageNet pretraining」反覆強調此優勢，成為全文的重要論證主軸。然而所比較的方法（RefineNet、PSPNet 等）均使用了預訓練，這種非對等比較是否公允值得商榷——雖然結果對作者有利
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-thesis">One of the initial applications of NAS to dense prediction tasks.</span>
+                The <span class="hl-method">differentiable formulation</span> achieves approximately
+                <span class="hl-evidence">"1000&times; faster search than prior segmentation NAS work."</span>
+                Strong results <span class="hl-evidence">significantly outperforming prior non-pretrained methods</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-thesis">本文是將神經架構搜索應用於密集預測任務的先驅性工作之一。</span>其<span class="hl-method">可微分公式化方法</span>達到了比先前分割領域 NAS 工作快約 <span class="hl-evidence">1000 倍的搜索速度</span>。實驗結果強而有力，<span class="hl-evidence">顯著超越了先前不使用預訓練的方法</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    總結全文貢獻並重申核心成果
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證收束——呼應緒論中提出的研究缺口，以量化成果（1000 倍加速）為全文畫下句點
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧或潛在漏洞</span>
+                    「1000&times; faster」是極具衝擊力的修辭，但此加速倍率的計算基準（與哪些具體方法相比）需要讀者自行查閱。結論部分未討論方法的局限性（如搜索到的架構是否具有跨任務遷移能力），是一個明顯的論述缺口
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 底部論證結構總覽 ==================== -->
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+
+        <!-- 邏輯骨架 -->
+        <div class="arg-skeleton">
+            <div class="arg-step">
+                <strong>問題</strong><br>
+                分類 NAS 無法直接用於分割
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>論點</strong><br>
+                需同時搜索細胞與網路層級架構
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>方法</strong><br>
+                格狀搜索空間 + 梯度優化
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>證據</strong><br>
+                3 GPU 天、80.4% mIoU
+            </div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">
+                <strong>結論</strong><br>
+                首個密集預測 NAS，1000 倍加速
+            </div>
+        </div>
+
+        <!-- 詳細分析 -->
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>作者核心主張（一句話）</h3>
+                <p>透過階層式搜索空間同時優化細胞與網路層級架構，可在極低計算成本下為語義分割任務自動發現高效能架構，且無需依賴 ImageNet 預訓練。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最強處</h3>
+                <p>在未使用 ImageNet 預訓練的前提下，Auto-DeepLab 在 Cityscapes 上與使用預訓練的 DeepLabv3+ 持平，且計算量減少 55.2%——同時以 3 GPU 天完成搜索，效率提升約 1000 倍，形成效能與效率的雙重說服力。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>論證最弱處</h3>
+                <p>連續鬆弛與離散架構之間的近似誤差（approximation gap）未被充分討論；搜索得到的架構在 Cityscapes 以外的資料集（如 ADE20K）上的泛化能力驗證不足；此外，與使用預訓練的方法進行比較時，實驗條件不對等，可能影響結論的公正性。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- 浮動顏色圖例 -->
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+</div>
+
+</body>
+</html>
