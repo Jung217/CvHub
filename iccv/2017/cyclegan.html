@@ -1,11 +1,12 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
-    <title>Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks (CycleGAN) — ICCV 2017 雙欄批注</title>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="../../favicon.svg" rel="icon" type="image/svg+xml"/>
+<title>Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks (CycleGAN) — ICCV 2017 雙欄批注</title>
+<style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
         .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
@@ -78,344 +79,318 @@
     </style>
 </head>
 <body>
-
 <nav class="top-navbar">
-    <div class="navbar-inner">
-        <div class="navbar-top-row">
-            <div class="navbar-title">
+<div class="navbar-inner">
+<div class="navbar-top-row">
+<div class="navbar-title">
                 Unpaired Image-to-Image Translation using Cycle-Consistent Adversarial Networks (CycleGAN)
                 <span class="course-tag">ICCV 2017</span>
-            </div>
-            <div>
-                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
-                <a href="https://arxiv.org/abs/1703.10593" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
-            </div>
-        </div>
-    </div>
-</nav>
-
-<div class="section-nav">
-    <div class="section-nav-inner">
-        <a href="#sec-abstract">摘要</a>
-        <a href="#sec-intro">1. 緒論</a>
-        <a href="#sec-related">2. 相關工作</a>
-        <a href="#sec-formulation">3. 公式化</a>
-        <a href="#sec-cycle">3.2 循環一致性</a>
-        <a href="#sec-impl">4. 實現</a>
-        <a href="#sec-results">5. 結果</a>
-        <a href="#sec-limitations">6. 局限</a>
-        <a href="#sec-overview">論證總覽</a>
-    </div>
 </div>
-
+<div>
+<a class="navbar-home-link" href="../../index.html">← 返回主頁</a>
+<a class="navbar-home-link" href="https://arxiv.org/abs/1703.10593" style="margin-left:16px;" target="_blank">arXiv 原文連結</a>
+</div>
+</div>
+</div>
+</nav>
+<div class="section-nav">
+<div class="section-nav-inner">
+<a href="#sec-abstract">摘要</a>
+<a href="#sec-intro">1. 緒論</a>
+<a href="#sec-related">2. 相關工作</a>
+<a href="#sec-formulation">3. 公式化</a>
+<a href="#sec-cycle">3.2 循環一致性</a>
+<a href="#sec-impl">4. 實現</a>
+<a href="#sec-results">5. 結果</a>
+<a href="#sec-limitations">6. 局限</a>
+<a href="#sec-overview">論證總覽</a>
+</div>
+</div>
 <div class="main-container">
-
-    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
-                <span class="hl-concept">Image-to-image translation</span> is a class of vision and graphics problems where the goal is to learn the mapping between an input image and an output image using a training set of aligned image pairs. However, for many tasks, <span class="hl-rebuttal">paired training data will not be available</span>. We present an approach for learning to translate an image from a source domain X to a target domain Y <span class="hl-thesis">in the absence of paired examples</span>. Our goal is to learn a mapping G: X &rarr; Y such that the distribution of images from G(X) is indistinguishable from the distribution Y using an <span class="hl-method">adversarial loss</span>. Because this mapping is <span class="hl-rebuttal">highly under-constrained</span>, we couple it with an <span class="hl-method">inverse mapping F: Y &rarr; X</span> and introduce a <span class="hl-concept">cycle consistency loss</span> to enforce <span class="hl-method">F(G(X)) &asymp; X (and vice versa)</span>. Results on several tasks demonstrate the effectiveness of our approach, including <span class="hl-evidence">collection style transfer, object transfiguration, season transfer, and photo enhancement</span>.
+<h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
+<span class="hl-concept">Image-to-image translation</span> is a class of vision and graphics problems where the goal is to learn the mapping between an input image and an output image using a training set of aligned image pairs. However, for many tasks, <span class="hl-rebuttal">paired training data will not be available</span>. We present an approach for learning to translate an image from a source domain X to a target domain Y <span class="hl-thesis">in the absence of paired examples</span>. Our goal is to learn a mapping G: X → Y such that the distribution of images from G(X) is indistinguishable from the distribution Y using an <span class="hl-method">adversarial loss</span>. Because this mapping is <span class="hl-rebuttal">highly under-constrained</span>, we couple it with an <span class="hl-method">inverse mapping F: Y → X</span> and introduce a <span class="hl-concept">cycle consistency loss</span> to enforce <span class="hl-method">F(G(X)) ≈ X (and vice versa)</span>. Results on several tasks demonstrate the effectiveness of our approach, including <span class="hl-evidence">collection style transfer, object transfiguration, season transfer, and photo enhancement</span>.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
-                影像到影像轉換是一類視覺與圖學問題，目標是利用一組對齊的影像配對訓練集來學習輸入影像與輸出影像之間的映射。然而，對許多任務而言，配對的訓練資料並不可得。我們提出一種在缺少配對範例的情況下，學習從來源域 X 到目標域 Y 的影像轉換的方法。我們的目標是學習映射 G: X -> Y，使 G(X) 的影像分布透過對抗損失無法與分布 Y 區分。由於此映射高度欠約束，我們將其與逆映射 F: Y -> X 耦合，並引入循環一致性損失以強制 F(G(X)) 約等於 X（反之亦然）。在多項任務上的結果展示了我們方法的有效性，包括集合風格轉換、物件變形、季節轉換與照片增強。
+<div class="lang-divider"></div>
+<div class="zh-text">
+<span class="hl-concept">影像到影像轉換</span>是一類視覺與圖學問題，目標是利用一組對齊的影像配對訓練集來學習輸入影像與輸出影像之間的映射。然而，對許多任務而言，<span class="hl-rebuttal">配對的訓練資料並不可得</span>。我們提出一種<span class="hl-thesis">在缺少配對範例的情況下</span>，學習從來源域 X 到目標域 Y 的影像轉換的方法。我們的目標是學習映射 G: X -&gt; Y，使 G(X) 的影像分布透過<span class="hl-method">對抗損失</span>無法與分布 Y 區分。由於此映射<span class="hl-rebuttal">高度欠約束</span>，我們將其與逆映射 F: Y -&gt; X 耦合，並引入<span class="hl-concept">循環一致性損失</span>以強制 <span class="hl-method">F(G(X)) 約等於 X（反之亦然）</span>。在多項任務上的結果展示了我們方法的有效性，包括<span class="hl-evidence">集合風格轉換、物件變形、季節轉換與照片增強</span>。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-intro">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-intro">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     全文總覽——從配對資料的限制出發，引出無配對影像轉換的核心概念與循環一致性損失。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     摘要以「問題-解決方案」的結構展開：先指出配對資料的不可得性，再以循環一致性作為約束不足的解方。多元的應用示範暗示方法的通用性。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     「高度欠約束」的坦承反而增強了說服力——先承認問題的困難度，再提出優雅的解決方案。但循環一致性假設兩個域之間存在有意義的雙向映射，這在某些任務中（如語意資訊不等價的轉換）可能不成立。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 Consider the task of translating a photograph into the style of a Monet painting. <span class="hl-rebuttal">Obtaining paired training data — the same scene photographed and painted by Monet — is impractical</span>. Yet we can gather a <span class="hl-evidence">collection of Monet paintings and a collection of landscape photographs</span>. We present a method that can <span class="hl-thesis">"learn to do the same: capturing special characteristics of one image collection and figuring out how these characteristics could be translated into the other"</span>. The key challenge is that <span class="hl-rebuttal">adversarial losses alone are under-constrained</span>: a network can map any input to any valid output in the target distribution, causing <span class="hl-concept">mode collapse</span>. Our solution is to introduce <span class="hl-concept">cycle consistency</span>: <span class="hl-thesis">if we translate from X to Y and back to X, we should arrive where we started</span>. This structural assumption significantly reduces the space of possible mappings.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
-                考慮將照片轉換為莫內畫作風格的任務。取得配對訓練資料——同一場景的照片和莫內的畫作——在實務上不可行。然而，我們可以蒐集一組莫內畫作和一組風景照片。我們提出的方法能「學習做到相同的事：擷取一個影像集合的特殊特徵，並推算這些特徵如何能轉換到另一個集合」。核心挑戰在於，僅靠對抗損失是欠約束的：網路可以將任何輸入映射到目標分布中的任何有效輸出，導致模式崩潰。我們的解決方案是引入循環一致性：如果我們從 X 轉換到 Y 再回到 X，應該回到起始點。這一結構性假設顯著縮減了可能映射的空間。
+<div class="lang-divider"></div>
+<div class="zh-text">
+                考慮將照片轉換為莫內畫作風格的任務。<span class="hl-rebuttal">取得配對訓練資料——同一場景的照片和莫內的畫作——在實務上不可行</span>。然而，我們可以蒐集<span class="hl-evidence">一組莫內畫作和一組風景照片</span>。我們提出的方法能<span class="hl-thesis">「學習做到相同的事：擷取一個影像集合的特殊特徵，並推算這些特徵如何能轉換到另一個集合」</span>。核心挑戰在於，<span class="hl-rebuttal">僅靠對抗損失是欠約束的</span>：網路可以將任何輸入映射到目標分布中的任何有效輸出，導致<span class="hl-concept">模式崩潰</span>。我們的解決方案是引入<span class="hl-concept">循環一致性</span>：<span class="hl-thesis">如果我們從 X 轉換到 Y 再回到 X，應該回到起始點</span>。這一結構性假設顯著縮減了可能映射的空間。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-intro">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-intro">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     建立直覺動機——以莫內畫作的生動範例說明無配對轉換的需求與挑戰。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     論證起點：從具體範例（莫內）出發建立直覺，再引入技術挑戰（模式崩潰），最後以循環一致性作為核心解方。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     莫內畫作的範例極具視覺吸引力且易於理解。但風格轉換是較「容易」的應用——更困難的幾何變換（如貓轉狗）在後文中表現不佳，此處的範例選擇可能給讀者過度樂觀的印象。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 Our work builds on <span class="hl-concept">pix2pix</span> (Isola et al.) for image-to-image translation but removes the <span class="hl-rebuttal">paired data requirement</span>. Prior unpaired methods include <span class="hl-concept">CoGAN</span> (using weight-sharing), <span class="hl-concept">BiGAN/ALI</span> (using shared embeddings), and <span class="hl-concept">SimGAN</span> (using self-regularization). The idea of <span class="hl-concept">cycle consistency</span> — using transitivity as regularization — has a long history in visual tracking, 3D structure estimation, and machine translation (<span class="hl-concept">back-translation</span>). Unlike <span class="hl-concept">neural style transfer</span> (Gatys et al.), which matches Gram matrices between single image pairs, CycleGAN <span class="hl-thesis">learns collection-level mappings</span> that capture the overall style of an entire domain rather than mimicking a single exemplar.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
-                我們的研究建構於 pix2pix（Isola 等人）的影像到影像轉換之上，但移除了配對資料的需求。先前的無配對方法包括 CoGAN（使用權重共享）、BiGAN/ALI（使用共享嵌入）與 SimGAN（使用自正則化）。循環一致性——以傳遞性作為正則化——的概念在視覺追蹤、三維結構估計與機器翻譯（回譯）中有悠久歷史。不同於 Gatys 等人的神經風格轉換（匹配單一影像對的 Gram 矩陣），CycleGAN 學習集合層級的映射，擷取整個域的整體風格，而非模仿單一範例。
+<div class="lang-divider"></div>
+<div class="zh-text">
+                我們的研究建構於 <span class="hl-concept">pix2pix</span>（Isola 等人）的影像到影像轉換之上，但移除了<span class="hl-rebuttal">配對資料的需求</span>。先前的無配對方法包括 <span class="hl-concept">CoGAN</span>（使用權重共享）、<span class="hl-concept">BiGAN/ALI</span>（使用共享嵌入）與 <span class="hl-concept">SimGAN</span>（使用自正則化）。<span class="hl-concept">循環一致性</span>——以傳遞性作為正則化——的概念在視覺追蹤、三維結構估計與機器翻譯（<span class="hl-concept">回譯</span>）中有悠久歷史。不同於 Gatys 等人的<span class="hl-concept">神經風格轉換</span>（匹配單一影像對的 Gram 矩陣），CycleGAN <span class="hl-thesis">學習集合層級的映射</span>，擷取整個域的整體風格，而非模仿單一範例。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-concept">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-concept">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     文獻定位——將 CycleGAN 放置於影像轉換與循環一致性的歷史脈絡中。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     透過與 pix2pix 的對比建立直接繼承關係，同時以循環一致性的歷史根基證明此概念的穩健性。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     將循環一致性追溯至多個領域的「長歷史」，巧妙地增強了概念的可信度。但此概念在不同領域的應用形式差異甚大，直接類比可能過度簡化。
                 </div>
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-formulation">3. Formulation — 公式化</h2>
+<h3 class="subsection-heading">3.1 Adversarial Loss — 對抗損失</h3>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
+                We define two mapping functions <span class="hl-method">G: X → Y</span> and <span class="hl-method">F: Y → X</span>, with associated discriminators <span class="hl-method">D_Y and D_X</span>. For the mapping G, the adversarial loss is: <span class="hl-method">L_GAN(G, D_Y, X, Y) = E_y[log D_Y(y)] + E_x[log(1 - D_Y(G(x)))]</span>. G tries to generate images G(x) that look similar to images from domain Y, while D_Y aims to distinguish between translated samples G(x) and real samples y. An analogous adversarial loss is applied to <span class="hl-method">F: Y → X with discriminator D_X</span>. However, with large enough capacity, <span class="hl-rebuttal">a network can map the same set of input images to any random permutation of images in the target domain, any of which could match the target distribution</span>. Thus, adversarial losses alone <span class="hl-rebuttal">cannot guarantee that the learned function can map an individual input x_i to a desired output y_i</span>.
             </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-formulation">3. Formulation — 公式化</h2>
-
-    <h3 class="subsection-heading">3.1 Adversarial Loss — 對抗損失</h3>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
-                We define two mapping functions <span class="hl-method">G: X &rarr; Y</span> and <span class="hl-method">F: Y &rarr; X</span>, with associated discriminators <span class="hl-method">D_Y and D_X</span>. For the mapping G, the adversarial loss is: <span class="hl-method">L_GAN(G, D_Y, X, Y) = E_y[log D_Y(y)] + E_x[log(1 - D_Y(G(x)))]</span>. G tries to generate images G(x) that look similar to images from domain Y, while D_Y aims to distinguish between translated samples G(x) and real samples y. An analogous adversarial loss is applied to <span class="hl-method">F: Y &rarr; X with discriminator D_X</span>. However, with large enough capacity, <span class="hl-rebuttal">a network can map the same set of input images to any random permutation of images in the target domain, any of which could match the target distribution</span>. Thus, adversarial losses alone <span class="hl-rebuttal">cannot guarantee that the learned function can map an individual input x_i to a desired output y_i</span>.
+<div class="lang-divider"></div>
+<div class="zh-text">
+                我們定義兩個映射函數 G: X -&gt; Y 與 F: Y -&gt; X，以及對應的鑑別器 D_Y 與 D_X。對於映射 G，對抗損失為：L_GAN(G, D_Y, X, Y) = E_y[log D_Y(y)] + E_x[log(1 - D_Y(G(x)))]。G 嘗試生成看起來類似於域 Y 影像的 G(x)，而 D_Y 則試圖區分轉換樣本 G(x) 與真實樣本 y。類似的對抗損失應用於 F: Y -&gt; X 與鑑別器 D_X。然而，在足夠大的容量下，網路可以將同一組輸入影像映射到目標域中影像的任意隨機排列，其中任何一種都能匹配目標分布。因此，僅靠對抗損失無法保證學習到的函數能將個別輸入 x_i 映射到期望的輸出 y_i。
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
-                我們定義兩個映射函數 G: X -> Y 與 F: Y -> X，以及對應的鑑別器 D_Y 與 D_X。對於映射 G，對抗損失為：L_GAN(G, D_Y, X, Y) = E_y[log D_Y(y)] + E_x[log(1 - D_Y(G(x)))]。G 嘗試生成看起來類似於域 Y 影像的 G(x)，而 D_Y 則試圖區分轉換樣本 G(x) 與真實樣本 y。類似的對抗損失應用於 F: Y -> X 與鑑別器 D_X。然而，在足夠大的容量下，網路可以將同一組輸入影像映射到目標域中影像的任意隨機排列，其中任何一種都能匹配目標分布。因此，僅靠對抗損失無法保證學習到的函數能將個別輸入 x_i 映射到期望的輸出 y_i。
-            </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-method">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-method">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     方法基礎——定義對抗損失並分析其不足。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     先建立標準 GAN 損失作為基礎，再精確指出其不足之處（無法保證個別映射），為循環一致性損失的引入提供必要性論證。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     「隨機排列」的論點從資訊理論角度清楚說明了問題。此段為循環一致性的引入建立了無可迴避的邏輯必要性。
                 </div>
+</div>
+</div>
+</div>
+<h3 class="subsection-heading" id="sec-cycle">3.2 Cycle Consistency Loss — 循環一致性損失</h3>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
+                To further reduce the space of possible mapping functions, we argue that the learned mappings should be <span class="hl-thesis">cycle-consistent</span>. For each image x from domain X, the image translation cycle should bring x back to the original: <span class="hl-method">x → G(x) → F(G(x)) ≈ x</span> (forward cycle consistency). Similarly, for each image y from domain Y: <span class="hl-method">y → F(y) → G(F(y)) ≈ y</span> (backward cycle consistency). The cycle consistency loss is defined as: <span class="hl-method">L_cyc(G, F) = E_x[||F(G(x)) - x||_1] + E_y[||G(F(y)) - y||_1]</span>, using the <span class="hl-method">L1 norm</span>. The full objective combines adversarial and cycle losses: <span class="hl-method">L(G, F, D_X, D_Y) = L_GAN(G, D_Y, X, Y) + L_GAN(F, D_X, Y, X) + lambda * L_cyc(G, F)</span>, where <span class="hl-evidence">lambda = 10</span>. Training can be viewed as <span class="hl-thesis">training two "autoencoders" F(G): X → X and G(F): Y → Y, with the constraint that the intermediate representation passes through the other domain</span>.
             </div>
-        </div>
-    </div>
-
-    <h3 class="subsection-heading" id="sec-cycle">3.2 Cycle Consistency Loss — 循環一致性損失</h3>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
-                To further reduce the space of possible mapping functions, we argue that the learned mappings should be <span class="hl-thesis">cycle-consistent</span>. For each image x from domain X, the image translation cycle should bring x back to the original: <span class="hl-method">x &rarr; G(x) &rarr; F(G(x)) &asymp; x</span> (forward cycle consistency). Similarly, for each image y from domain Y: <span class="hl-method">y &rarr; F(y) &rarr; G(F(y)) &asymp; y</span> (backward cycle consistency). The cycle consistency loss is defined as: <span class="hl-method">L_cyc(G, F) = E_x[||F(G(x)) - x||_1] + E_y[||G(F(y)) - y||_1]</span>, using the <span class="hl-method">L1 norm</span>. The full objective combines adversarial and cycle losses: <span class="hl-method">L(G, F, D_X, D_Y) = L_GAN(G, D_Y, X, Y) + L_GAN(F, D_X, Y, X) + lambda * L_cyc(G, F)</span>, where <span class="hl-evidence">lambda = 10</span>. Training can be viewed as <span class="hl-thesis">training two "autoencoders" F(G): X &rarr; X and G(F): Y &rarr; Y, with the constraint that the intermediate representation passes through the other domain</span>.
+<div class="lang-divider"></div>
+<div class="zh-text">
+                為進一步縮減可能映射函數的空間，我們主張學習到的映射應具備循環一致性。對於來自域 X 的每張影像 x，影像轉換循環應將 x 帶回原始狀態：x -&gt; G(x) -&gt; F(G(x)) 約等於 x（前向循環一致性）。類似地，對於來自域 Y 的每張影像 y：y -&gt; F(y) -&gt; G(F(y)) 約等於 y（反向循環一致性）。循環一致性損失定義為：L_cyc(G, F) = E_x[||F(G(x)) - x||_1] + E_y[||G(F(y)) - y||_1]，使用 L1 範數。完整目標函數結合對抗與循環損失：L(G, F, D_X, D_Y) = L_GAN(G, D_Y, X, Y) + L_GAN(F, D_X, Y, X) + lambda * L_cyc(G, F)，其中 lambda = 10。訓練可視為訓練兩個「自動編碼器」F(G): X -&gt; X 與 G(F): Y -&gt; Y，但中間表示必須經過另一個域。
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
-                為進一步縮減可能映射函數的空間，我們主張學習到的映射應具備循環一致性。對於來自域 X 的每張影像 x，影像轉換循環應將 x 帶回原始狀態：x -> G(x) -> F(G(x)) 約等於 x（前向循環一致性）。類似地，對於來自域 Y 的每張影像 y：y -> F(y) -> G(F(y)) 約等於 y（反向循環一致性）。循環一致性損失定義為：L_cyc(G, F) = E_x[||F(G(x)) - x||_1] + E_y[||G(F(y)) - y||_1]，使用 L1 範數。完整目標函數結合對抗與循環損失：L(G, F, D_X, D_Y) = L_GAN(G, D_Y, X, Y) + L_GAN(F, D_X, Y, X) + lambda * L_cyc(G, F)，其中 lambda = 10。訓練可視為訓練兩個「自動編碼器」F(G): X -> X 與 G(F): Y -> Y，但中間表示必須經過另一個域。
-            </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-method">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-method">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     核心技術貢獻——定義循環一致性損失與完整目標函數。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     此段是全文的技術核心。以「自動編碼器」的類比提供了直覺理解：循環一致性本質上是要求跨域的資訊保持。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     循環一致性的設計優雅且直覺。但 L1 重建損失傾向於產生模糊的結果——作者選擇 L1 而非對抗式循環損失可能犧牲了細節銳利度。此外，lambda = 10 的選擇未提供理論依據。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-impl">4. Implementation — 實現</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-impl">4. Implementation — 實現</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 The generator architecture is based on <span class="hl-method">Johnson et al.'s style transfer network</span>, with <span class="hl-method">3 convolutions, 9 residual blocks (for 256x256+), and 2 transposed convolutions</span>, using <span class="hl-method">instance normalization</span>. The discriminator uses a <span class="hl-concept">70x70 PatchGAN</span> that classifies <span class="hl-method">overlapping 70x70 patches as real or fake</span>, rather than the full image. For training stability, we use <span class="hl-method">least-squares loss</span> instead of the standard negative log-likelihood GAN loss, and maintain an <span class="hl-method">image buffer of 50 previously generated images</span> to reduce oscillation. Training uses <span class="hl-evidence">Adam optimizer with learning rate 0.0002, batch size 1, 100 epochs at constant rate followed by 100 epochs with linear decay</span>.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 生成器架構基於 Johnson 等人的風格轉換網路，包含 3 個摺積層、9 個殘差區塊（256x256 以上）與 2 個轉置摺積層，使用實例正規化。鑑別器使用 70x70 的 PatchGAN，將重疊的 70x70 區塊分類為真實或偽造，而非對整張影像進行判斷。為提升訓練穩定性，我們使用最小平方損失取代標準的負對數似然 GAN 損失，並維護一個包含 50 張先前生成影像的緩衝區以減少振盪。訓練使用 Adam 最佳化器，學習率 0.0002，批量大小 1，前 100 個紀元維持常數學習率，後 100 個紀元線性衰減。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-method">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-method">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     工程實現——詳述網路架構與訓練穩定性的關鍵技巧。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     此段展現了 GAN 訓練的實務智慧：PatchGAN 降低計算量、最小平方損失提高穩定性、影像緩衝減少振盪。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     多項穩定化技巧的必要性暗示 CycleGAN 的訓練並非易事。批量大小 1 與 200 紀元的訓練也暗示計算成本不低。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-results">5. Results — 結果</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-results">5. Results — 結果</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 We evaluate across multiple tasks. In <span class="hl-evidence">AMT perceptual studies (25 participants per algorithm)</span>, CycleGAN achieves <span class="hl-evidence">26.8% "real vs. fake" confusion rate for maps-to-photos</span> (compared to CoGAN's 0.6%, SimGAN's 0.7%, and pix2pix's 33.9% with paired data). On <span class="hl-evidence">Cityscapes labels-to-photos</span>, CycleGAN achieves <span class="hl-evidence">per-pixel accuracy 0.52 and class IOU 0.11</span>, outperforming all unpaired baselines though still behind pix2pix (0.71, 0.18). <span class="hl-evidence">Ablation studies</span> confirm that <span class="hl-thesis">"both terms [adversarial and cycle] are critical to our results"</span>: GAN loss alone produces mode collapse, and cycle loss alone produces unrealistic results. Applications include <span class="hl-evidence">Monet/Van Gogh/Cezanne/Ukiyo-e style transfer, horse-to-zebra, summer-to-winter Yosemite, and smartphone-to-DSLR photo enhancement</span>. An additional <span class="hl-method">identity mapping loss L_identity</span> was introduced for tasks requiring color preservation.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 我們在多項任務上進行評估。在 AMT 感知研究（每種演算法 25 名參與者）中，CycleGAN 在地圖轉照片上達到 26.8% 的「真偽混淆率」（CoGAN 為 0.6%、SimGAN 為 0.7%、使用配對資料的 pix2pix 為 33.9%）。在 Cityscapes 標籤轉照片上，CycleGAN 達到像素精度 0.52 與類別 IOU 0.11，超越所有無配對基線，但仍落後 pix2pix（0.71、0.18）。消融研究確認「對抗與循環兩個損失項對結果均至關重要」：僅 GAN 損失導致模式崩潰，僅循環損失產生不真實的結果。應用包括莫內/梵谷/塞尚/浮世繪風格轉換、馬轉斑馬、優勝美地夏轉冬、以及智慧型手機轉數位單眼照片增強。針對需要色彩保留的任務，額外引入了身分映射損失 L_identity。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-evidence">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-evidence">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     全面實驗驗證——以定量指標與豐富應用展示 CycleGAN 的效果。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     多層次證據：(1) 人類感知研究驗證視覺品質；(2) 定量指標驗證語意保真度；(3) 消融驗證各損失項的必要性；(4) 多樣化應用驗證通用性。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     誠實地報告了與 pix2pix 的差距（0.52 vs. 0.71），展現學術誠信。但 AMT 研究的參與者僅 25 人，樣本量偏小。多樣化的應用展示雖令人印象深刻，但每個應用的深度有限。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-limitations">6. Limitations and Discussion — 局限與討論</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-limitations">6. Limitations and Discussion — 局限與討論</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 The method <span class="hl-rebuttal">"often succeeds" on color and texture changes but has "little success" on geometric transformations</span>. For instance, <span class="hl-rebuttal">dog-to-cat translation makes minimal changes because geometric modifications are inherently difficult</span> for the generator architecture. <span class="hl-rebuttal">Horse-to-zebra with riders fails on unseen configurations</span> (training data did not include horseback riding). The generator architecture is <span class="hl-rebuttal">"tailored for good performance on appearance changes"</span> but not structural ones. There remains a <span class="hl-rebuttal">persistent gap between paired (pix2pix) and unpaired (CycleGAN) methods</span>. The authors note that <span class="hl-thesis">"handling more varied and extreme transformations, especially geometric changes, is an important problem for future work"</span>, while emphasizing that <span class="hl-thesis">"in many cases completely unpaired data is plentifully available and should be made use of"</span>.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 此方法在色彩與紋理變化上「通常成功」，但在幾何變換上「幾乎沒有成功」。例如，狗轉貓的翻譯僅做出微小改變，因為幾何修改對生成器架構而言本質上困難。馬轉斑馬在有騎手的情境下失敗（訓練資料未包含騎馬場景）。生成器架構「針對外觀變化的良好表現而設計」，但並非結構性變化。配對方法（pix2pix）與無配對方法（CycleGAN）之間仍存在持續性差距。作者指出「處理更多樣且極端的變換，尤其是幾何變化，是未來工作的重要問題」，同時強調「在許多情況下，完全無配對的資料大量可得且應加以利用」。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-rebuttal">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-rebuttal">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     誠實的局限性討論——明確指出方法在幾何變換上的失敗。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     此段展現了優秀的學術態度：坦承局限性反而增強了其他主張的可信度。同時以「資料可得性」的實務論點平衡了對方法限制的討論。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     將失敗歸因於「架構設計」而非「概念限制」是巧妙的——暗示未來更強的架構可能解決此問題。但循環一致性本身對大幅幾何變化就難以成立（例如，正面狗轉側面貓後再轉回，資訊已不可逆），這是概念層面而非架構層面的限制。
                 </div>
+</div>
+</div>
+</div>
+<div class="argument-overview" id="sec-overview">
+<h2>論證結構總覽</h2>
+<div class="arg-skeleton">
+<div class="arg-step">
+<strong>問題</strong><br/>
+                影像轉換缺乏<br/>配對訓練資料
             </div>
-        </div>
-    </div>
-
-    <div class="argument-overview" id="sec-overview">
-        <h2>論證結構總覽</h2>
-
-        <div class="arg-skeleton">
-            <div class="arg-step">
-                <strong>問題</strong><br>
-                影像轉換缺乏<br>配對訓練資料
+<div class="arg-arrow">→</div>
+<div class="arg-step">
+<strong>論點</strong><br/>
+                循環一致性約束<br/>實現無配對轉換
             </div>
-            <div class="arg-arrow">&rarr;</div>
-            <div class="arg-step">
-                <strong>論點</strong><br>
-                循環一致性約束<br>實現無配對轉換
+<div class="arg-arrow">→</div>
+<div class="arg-step">
+<strong>證據</strong><br/>
+                多任務驗證 +<br/>AMT 人類感知研究
             </div>
-            <div class="arg-arrow">&rarr;</div>
-            <div class="arg-step">
-                <strong>證據</strong><br>
-                多任務驗證 +<br>AMT 人類感知研究
+<div class="arg-arrow">→</div>
+<div class="arg-step">
+<strong>反駁</strong><br/>
+                幾何變換仍是局限<br/>配對方法差距存在
             </div>
-            <div class="arg-arrow">&rarr;</div>
-            <div class="arg-step">
-                <strong>反駁</strong><br>
-                幾何變換仍是局限<br>配對方法差距存在
+<div class="arg-arrow">→</div>
+<div class="arg-step">
+<strong>結論</strong><br/>
+                無配對資料充裕<br/>應善加利用
             </div>
-            <div class="arg-arrow">&rarr;</div>
-            <div class="arg-step">
-                <strong>結論</strong><br>
-                無配對資料充裕<br>應善加利用
-            </div>
-        </div>
-
-        <div class="arg-detail-grid">
-            <div class="arg-detail-card">
-                <h3>作者核心主張（一句話）</h3>
-                <p>
+</div>
+<div class="arg-detail-grid">
+<div class="arg-detail-card">
+<h3>作者核心主張（一句話）</h3>
+<p>
                     透過循環一致性損失耦合雙向映射函數，即可在完全無配對資料的情況下學習有意義的跨域影像轉換，在風格轉換等外觀變化任務上達到接近配對方法的品質。
                 </p>
-            </div>
-            <div class="arg-detail-card">
-                <h3>論證最強處</h3>
-                <p>
-                    <strong>概念的優雅與普適性：</strong>循環一致性是一個極為直覺且數學上簡潔的約束，能自然地應用於任何雙域轉換問題。消融研究明確證明對抗與循環兩個損失缺一不可。豐富的應用展示（風格轉換、季節變化、物種變換）令人印象深刻。
-                </p>
-            </div>
-            <div class="arg-detail-card">
-                <h3>論證最弱處</h3>
-                <p>
-                    <strong>幾何變換的根本限制：</strong>循環一致性假設資訊在轉換過程中大致可逆，但大幅的幾何變化（如正面轉側面）本質上是不可逆的。此外，與 pix2pix 在語意分割指標上的持續差距（IOU 0.11 vs. 0.18）暗示無配對學習在精確語意對應上仍有固有困難。
-                </p>
-            </div>
-        </div>
-    </div>
-
 </div>
-
+<div class="arg-detail-card">
+<h3>論證最強處</h3>
+<p>
+<strong>概念的優雅與普適性：</strong>循環一致性是一個極為直覺且數學上簡潔的約束，能自然地應用於任何雙域轉換問題。消融研究明確證明對抗與循環兩個損失缺一不可。豐富的應用展示（風格轉換、季節變化、物種變換）令人印象深刻。
+                </p>
+</div>
+<div class="arg-detail-card">
+<h3>論證最弱處</h3>
+<p>
+<strong>幾何變換的根本限制：</strong>循環一致性假設資訊在轉換過程中大致可逆，但大幅的幾何變化（如正面轉側面）本質上是不可逆的。此外，與 pix2pix 在語意分割指標上的持續差距（IOU 0.11 vs. 0.18）暗示無配對學習在精確語意對應上仍有固有困難。
+                </p>
+</div>
+</div>
+</div>
+</div>
 <div class="floating-legend">
-    <div class="legend-panel" id="legendPanel">
-        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
-        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
-        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
-        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
-        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
-    </div>
-    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+<div class="legend-panel" id="legendPanel">
+<div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+<div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+<div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+<div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+<div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
 </div>
-
+<button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">■</button>
+</div>
 </body>
 </html>

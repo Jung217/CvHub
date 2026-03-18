@@ -1,11 +1,12 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
-    <title>Grad-CAM: Visual Explanations from Deep Networks — ICCV 2017 雙欄批注</title>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="../../favicon.svg" rel="icon" type="image/svg+xml"/>
+<title>Grad-CAM: Visual Explanations from Deep Networks — ICCV 2017 雙欄批注</title>
+<style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
         .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
@@ -78,342 +79,317 @@
     </style>
 </head>
 <body>
-
 <nav class="top-navbar">
-    <div class="navbar-inner">
-        <div class="navbar-top-row">
-            <div class="navbar-title">
+<div class="navbar-inner">
+<div class="navbar-top-row">
+<div class="navbar-title">
                 Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization
                 <span class="course-tag">ICCV 2017</span>
-            </div>
-            <div>
-                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
-                <a href="https://arxiv.org/abs/1610.02391" target="_blank" class="navbar-home-link" style="margin-left:16px;">arXiv 原文連結</a>
-            </div>
-        </div>
-    </div>
-</nav>
-
-<div class="section-nav">
-    <div class="section-nav-inner">
-        <a href="#sec-abstract">摘要</a>
-        <a href="#sec-intro">1. 緒論</a>
-        <a href="#sec-related">2. 相關工作</a>
-        <a href="#sec-method">3. 方法</a>
-        <a href="#sec-guided">3.2 Guided Grad-CAM</a>
-        <a href="#sec-eval">4. 評估</a>
-        <a href="#sec-diagnosis">5. 模型診斷</a>
-        <a href="#sec-conclusion">6. 結論</a>
-        <a href="#sec-overview">論證總覽</a>
-    </div>
 </div>
-
+<div>
+<a class="navbar-home-link" href="../../index.html">← 返回主頁</a>
+<a class="navbar-home-link" href="https://arxiv.org/abs/1610.02391" style="margin-left:16px;" target="_blank">arXiv 原文連結</a>
+</div>
+</div>
+</div>
+</nav>
+<div class="section-nav">
+<div class="section-nav-inner">
+<a href="#sec-abstract">摘要</a>
+<a href="#sec-intro">1. 緒論</a>
+<a href="#sec-related">2. 相關工作</a>
+<a href="#sec-method">3. 方法</a>
+<a href="#sec-guided">3.2 Guided Grad-CAM</a>
+<a href="#sec-eval">4. 評估</a>
+<a href="#sec-diagnosis">5. 模型診斷</a>
+<a href="#sec-conclusion">6. 結論</a>
+<a href="#sec-overview">論證總覽</a>
+</div>
+</div>
 <div class="main-container">
-
-    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+<h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 We propose a technique for producing <span class="hl-concept">"visual explanations"</span> for decisions from a large class of <span class="hl-concept">CNN-based models</span>, making them more transparent. Our approach — <span class="hl-concept">Gradient-weighted Class Activation Mapping (Grad-CAM)</span> — uses the <span class="hl-method">gradients of any target concept flowing into the final convolutional layer to produce a coarse localization map highlighting the important regions in the image for predicting the concept</span>. Grad-CAM is <span class="hl-thesis">applicable to a wide variety of CNN model-families</span> including CNNs with fully-connected layers (e.g., VGG), CNNs used for structured outputs (e.g., captioning), CNNs used in tasks with multi-modal inputs (e.g., VQA), without any <span class="hl-thesis">architectural changes or re-training</span>. We combine Grad-CAM with existing fine-grained visualizations to create a high-resolution class-discriminative visualization, <span class="hl-concept">Guided Grad-CAM</span>. We show that these visualizations help <span class="hl-evidence">identify dataset bias, build trust in model predictions, and enable model diagnosis</span>.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 我們提出一種技術，為基於 CNN 的大量模型決策生成「視覺解釋」，使其更加透明。我們的方法——梯度加權類別啟動映射（Grad-CAM）——利用任何目標概念流入最後摺積層的梯度，產生粗略的定位圖，突顯影像中對預測該概念最重要的區域。Grad-CAM 適用於各種 CNN 模型族群，包括具全連接層的 CNN（如 VGG）、用於結構化輸出的 CNN（如影像描述）、用於多模態輸入任務的 CNN（如視覺問答），無需任何架構修改或重新訓練。我們將 Grad-CAM 與現有的細粒度視覺化方法結合，創建高解析度且具類別鑑別性的視覺化 Guided Grad-CAM。我們展示這些視覺化有助於識別資料集偏差、建立對模型預測的信任，以及實現模型診斷。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-intro">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-intro">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     全文總覽——定義 Grad-CAM 的技術核心與廣泛適用性，並預告其實務價值。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
-                    摘要以三層結構推進：技術方法（梯度定位圖）-> 適用範圍（多種架構）-> 實務價值（偏差偵測、信任建立）。
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
+                    摘要以三層結構推進：技術方法（梯度定位圖）-&gt; 適用範圍（多種架構）-&gt; 實務價值（偏差偵測、信任建立）。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     「無需架構修改或重新訓練」是極強的通用性主張，直接回應了 CAM 需要特定架構（全域平均池化）的限制。但「粗略定位圖」的措辭暗示解析度有限，Guided Grad-CAM 的引入即為彌補此不足。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 Deep neural networks have enabled unprecedented breakthroughs across tasks in <span class="hl-concept">computer vision</span>, but their <span class="hl-rebuttal">lack of decomposability into intuitive and understandable components makes them hard to interpret</span>. As these models are increasingly deployed in real-world applications, the need for <span class="hl-thesis">transparency and interpretability</span> becomes paramount. A <span class="hl-thesis">"good" visual explanation should be class-discriminative</span> (localizing the category in the image) and <span class="hl-thesis">high-resolution</span> (capturing fine-grained detail). Prior visualization approaches achieve one but not both: <span class="hl-rebuttal">pixel-space gradient methods (Guided Backpropagation, Deconvolution) are high-resolution but not class-discriminative</span>; <span class="hl-concept">CAM</span> is class-discriminative but <span class="hl-rebuttal">requires specific architectures with global average pooling layers directly before the softmax</span>.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 深度神經網路在電腦視覺的各項任務上實現了前所未有的突破，但其缺乏可分解為直覺且可理解組件的特性，使其難以解釋。隨著這些模型越來越多地部署於真實世界的應用中，透明度與可解釋性的需求變得至關重要。「好的」視覺解釋應具備類別鑑別性（定位影像中的類別）且高解析度（擷取細粒度細節）。先前的視覺化方法只能達到其中之一：像素空間梯度方法（引導式反向傳播、反摺積）具高解析度但缺乏類別鑑別性；CAM 具類別鑑別性但需要在 softmax 之前直接使用全域平均池化層的特定架構。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-intro">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-intro">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     建立研究動機——從可解釋性的需求出發，指出現有方法的二元困境。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     以「類別鑑別性 vs. 高解析度」的對立框架建立 Grad-CAM 的定位：一個同時滿足兩者的方法。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     二元對立的框架使問題定義清晰明確。但「透明度」與「可解釋性」的定義仍具爭議性——粗略的熱力圖是否真正構成「解釋」，在可解釋 AI 領域仍有辯論。
                 </div>
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
+<span class="hl-concept">Class Activation Mapping (CAM)</span> identifies discriminative image regions by using <span class="hl-method">weights from the global average pooling layer</span> to linearly combine feature maps. While effective, CAM is <span class="hl-rebuttal">restricted to architectures ending with convolutional feature maps followed by global average pooling and a softmax layer</span>. Gradient-based methods like <span class="hl-concept">Guided Backpropagation</span> and <span class="hl-concept">Deconvolution</span> provide pixel-level detail but <span class="hl-rebuttal">are not class-discriminative</span> — they highlight the same regions regardless of the target class. We prove that <span class="hl-thesis">Grad-CAM is a strict generalization of CAM</span>: when applied to the specific architecture CAM requires, Grad-CAM produces identical results, but <span class="hl-thesis">Grad-CAM can be applied to any CNN architecture without modification</span>.
             </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
-                <span class="hl-concept">Class Activation Mapping (CAM)</span> identifies discriminative image regions by using <span class="hl-method">weights from the global average pooling layer</span> to linearly combine feature maps. While effective, CAM is <span class="hl-rebuttal">restricted to architectures ending with convolutional feature maps followed by global average pooling and a softmax layer</span>. Gradient-based methods like <span class="hl-concept">Guided Backpropagation</span> and <span class="hl-concept">Deconvolution</span> provide pixel-level detail but <span class="hl-rebuttal">are not class-discriminative</span> — they highlight the same regions regardless of the target class. We prove that <span class="hl-thesis">Grad-CAM is a strict generalization of CAM</span>: when applied to the specific architecture CAM requires, Grad-CAM produces identical results, but <span class="hl-thesis">Grad-CAM can be applied to any CNN architecture without modification</span>.
-            </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 類別啟動映射（CAM）透過使用全域平均池化層的權重線性組合特徵圖來辨識具鑑別性的影像區域。雖然有效，但 CAM 受限於以摺積特徵圖接全域平均池化再接 softmax 層結尾的架構。梯度方法如引導式反向傳播與反摺積提供像素層級的細節，但不具類別鑑別性——無論目標類別為何，它們都突顯相同的區域。我們證明 Grad-CAM 是 CAM 的嚴格泛化：當應用於 CAM 所需的特定架構時，Grad-CAM 產生相同的結果，但 Grad-CAM 可應用於任何 CNN 架構而無需修改。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-concept">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-concept">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     文獻定位——確立 Grad-CAM 為 CAM 的嚴格泛化。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     「嚴格泛化」的數學證明是極為有力的定位——它意味著 Grad-CAM 在所有 CAM 能用的場景中表現相同，但適用範圍更廣。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     以數學證明建立泛化關係，比僅靠實驗對比更有說服力。但此證明僅在特定架構條件下成立；在一般架構中，Grad-CAM 的理論保證較弱。
                 </div>
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-method">3. Approach — 方法</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
+<span class="hl-concept">Grad-CAM</span> computes the gradient of the <span class="hl-method">score for class c (y^c) with respect to feature map activations A^k of the last convolutional layer</span>. These gradients are <span class="hl-method">global-average-pooled to obtain the neuron importance weights alpha_k^c</span>. The Grad-CAM localization map is then: <span class="hl-method">L_Grad-CAM^c = ReLU(sum_k(alpha_k^c * A^k))</span>. The <span class="hl-method">ReLU is applied because we are only interested in features that have a positive influence on the class of interest</span> — pixels whose intensity should be increased to increase y^c. The resulting map has the <span class="hl-evidence">same spatial dimensions as the last convolutional feature maps (e.g., 14x14 for VGG-16)</span> and is upsampled to image resolution for visualization.
             </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-method">3. Approach — 方法</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
-                <span class="hl-concept">Grad-CAM</span> computes the gradient of the <span class="hl-method">score for class c (y^c) with respect to feature map activations A^k of the last convolutional layer</span>. These gradients are <span class="hl-method">global-average-pooled to obtain the neuron importance weights alpha_k^c</span>. The Grad-CAM localization map is then: <span class="hl-method">L_Grad-CAM^c = ReLU(sum_k(alpha_k^c * A^k))</span>. The <span class="hl-method">ReLU is applied because we are only interested in features that have a positive influence on the class of interest</span> — pixels whose intensity should be increased to increase y^c. The resulting map has the <span class="hl-evidence">same spatial dimensions as the last convolutional feature maps (e.g., 14x14 for VGG-16)</span> and is upsampled to image resolution for visualization.
+<div class="lang-divider"></div>
+<div class="zh-text">
+<span class="hl-concept">Grad-CAM</span> 計算類別 c 的分數（y^c）相對於最後摺積層特徵圖啟動值 A^k 的梯度。這些梯度經全域平均池化以取得<span class="hl-method">神經元重要性權重 alpha_k^c</span>。Grad-CAM 定位圖為：<span class="hl-method">L_Grad-CAM^c = ReLU(sum_k(alpha_k^c * A^k))</span>。施加 ReLU 是因為我們僅關注對目標類別有正向影響的特徵——即強度應增加以提高 y^c 的像素。產生的定位圖與最後摺積特徵圖具有相同的空間維度（如 VGG-16 的 14x14），再上取樣至影像解析度進行視覺化。
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
-                Grad-CAM 計算類別 c 的分數（y^c）相對於最後摺積層特徵圖啟動值 A^k 的梯度。這些梯度經全域平均池化以取得神經元重要性權重 alpha_k^c。Grad-CAM 定位圖為：L_Grad-CAM^c = ReLU(sum_k(alpha_k^c * A^k))。施加 ReLU 是因為我們僅關注對目標類別有正向影響的特徵——即強度應增加以提高 y^c 的像素。產生的定位圖與最後摺積特徵圖具有相同的空間維度（如 VGG-16 的 14x14），再上取樣至影像解析度進行視覺化。
-            </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-method">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-method">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     核心演算法——定義 Grad-CAM 的計算流程。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     此段是全文的技術核心。Grad-CAM 的計算極為簡潔：一次前向傳播 + 一次部分反向傳播 + 加權求和 + ReLU。簡潔性是其被廣泛採用的關鍵。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     ReLU 的使用有明確的物理動機（僅保留正向影響）。但此選擇也意味著 Grad-CAM 忽略了負向影響的區域——這些區域可能同樣具有解釋價值（例如，某區域的存在降低了某類別的信心）。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h3 class="subsection-heading" id="sec-guided">3.2 Guided Grad-CAM</h3>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h3 class="subsection-heading" id="sec-guided">3.2 Guided Grad-CAM</h3>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 While Grad-CAM provides class-discriminative localization, it is <span class="hl-rebuttal">coarse (e.g., 14x14)</span>. To achieve <span class="hl-thesis">both high-resolution and class-discriminative visualizations</span>, we fuse Grad-CAM with <span class="hl-concept">Guided Backpropagation</span> via <span class="hl-method">element-wise multiplication</span>: the Grad-CAM map is first upsampled to the input resolution, then multiplied with the Guided Backpropagation map. This produces <span class="hl-concept">Guided Grad-CAM</span>, which <span class="hl-thesis">retains fine-grained pixel detail from Guided Backpropagation while being modulated by the class-discriminative coarse map from Grad-CAM</span>. In human studies, <span class="hl-evidence">Guided Grad-CAM achieved 61.23% accuracy in class discrimination tests, compared to Guided Backpropagation's 44.44%</span>.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 雖然 Grad-CAM 提供具類別鑑別性的定位，但其解析度粗略（如 14x14）。為同時實現高解析度與類別鑑別性的視覺化，我們將 Grad-CAM 與引導式反向傳播透過逐元素乘法融合：先將 Grad-CAM 定位圖上取樣至輸入解析度，再與引導式反向傳播圖相乘。這產生了 Guided Grad-CAM，保留了引導式反向傳播的細粒度像素細節，同時受 Grad-CAM 的類別鑑別粗略圖調制。在人類研究中，Guided Grad-CAM 在類別鑑別測試中達到 61.23% 準確率，而引導式反向傳播為 44.44%。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-method">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-method">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     解析度提升——描述如何融合粗略定位與細粒度細節。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     直接回應緒論中設定的二元困境：Guided Grad-CAM = 高解析度（Guided Backprop）+ 類別鑑別性（Grad-CAM）。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     逐元素乘法的融合策略簡潔且直覺。但此方法假設兩個來源的視覺化在空間上一致且互補——當它們衝突時（例如 Grad-CAM 認為重要但 Guided Backprop 沒有梯度的區域），結果可能不可靠。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-eval">4. Evaluating Visualizations — 評估視覺化</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-eval">4. Evaluating Visualizations — 評估視覺化</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 We evaluate Grad-CAM across multiple dimensions. For <span class="hl-evidence">weakly-supervised localization on ILSVRC-15</span>, Grad-CAM achieves <span class="hl-evidence">56.51% top-1 localization error on VGG-16</span>, outperforming <span class="hl-evidence">CAM (57.20%) while maintaining classification performance</span>. On <span class="hl-evidence">weakly-supervised segmentation (PASCAL VOC 2012)</span>, replacing CAM with Grad-CAM as seeds improved <span class="hl-evidence">Intersection over Union from 44.6 to 49.6</span>. In the <span class="hl-evidence">pointing game evaluation</span>, Grad-CAM achieved <span class="hl-evidence">70.58% accuracy versus c-MWP's 60.30%</span>. For faithfulness evaluation, <span class="hl-evidence">Grad-CAM's rank correlation with occlusion sensitivity reached 0.254</span>, outperforming Guided Backpropagation (0.168), CAM (0.208), and c-MWP (0.220), demonstrating <span class="hl-thesis">better fidelity to actual model behavior despite being more interpretable</span>.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 我們從多個維度評估 Grad-CAM。在 ILSVRC-15 的弱監督定位上，Grad-CAM 在 VGG-16 上達到 56.51% 的 top-1 定位錯誤率，優於 CAM（57.20%）同時維持分類效能。在 PASCAL VOC 2012 的弱監督分割上，以 Grad-CAM 取代 CAM 作為種子，將交集比聯集從 44.6 提升至 49.6。在指向遊戲評估中，Grad-CAM 達到 70.58% 準確率，而 c-MWP 為 60.30%。在忠實度評估中，Grad-CAM 與遮擋敏感度的等級相關達到 0.254，優於引導式反向傳播（0.168）、CAM（0.208）與 c-MWP（0.220），展示了在更具可解釋性的同時對實際模型行為有更好的忠實度。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-evidence">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-evidence">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     多維度定量評估——以多種基準驗證 Grad-CAM 的各項品質。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     四個評估維度構成全面的驗證：定位精度、分割品質、指向準確度、忠實度。每個維度均超越先前方法。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     多維度評估展現了方法的全面優勢。但忠實度指標（與遮擋敏感度的相關性）本身也有侷限——遮擋敏感度假設像素移除的影響是局部的，這在 CNN 的感受野較大時可能不成立。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-diagnosis">5. Diagnosing CNNs with Grad-CAM — 以 Grad-CAM 診斷 CNN</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-diagnosis">5. Diagnosing CNNs with Grad-CAM — 以 Grad-CAM 診斷 CNN</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 We demonstrate Grad-CAM's utility for <span class="hl-thesis">model diagnosis and bias detection</span>. In a <span class="hl-evidence">doctor/nurse classification task</span>, Grad-CAM revealed that the model learned <span class="hl-rebuttal">gender stereotypes by focusing on faces and hairstyles rather than medical equipment</span>. The training data was <span class="hl-evidence">gender-imbalanced: 78% male doctors, 93% female nurses</span>, causing poor generalization (<span class="hl-evidence">82% test accuracy</span>). After adding <span class="hl-method">balanced gender representation</span>, accuracy improved to <span class="hl-evidence">90%</span> with the model correctly focusing on relevant features. Grad-CAM also revealed that <span class="hl-evidence">"seemingly unreasonable predictions have reasonable explanations"</span> — misclassifications often occurred because the model focused on legitimate but insufficient features. For <span class="hl-concept">adversarial robustness</span>, despite networks assigning near-zero probability to true categories after perturbations, <span class="hl-evidence">Grad-CAM correctly localized the original objects</span>, suggesting adversarial attacks affect the classification layer more than feature representations.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
+<div class="lang-divider"></div>
+<div class="zh-text">
                 我們展示 Grad-CAM 在模型診斷與偏差偵測上的效用。在醫生/護理師分類任務中，Grad-CAM 揭示了模型學習到性別刻板印象——聚焦於臉部與髮型而非醫療設備。訓練資料存在性別不平衡：78% 的男性醫生、93% 的女性護理師，導致泛化不良（82% 測試準確率）。加入平衡的性別代表後，準確率提升至 90%，模型正確聚焦於相關特徵。Grad-CAM 也揭示了「看似不合理的預測有合理的解釋」——錯誤分類通常發生在模型聚焦於合法但不充分的特徵時。在對抗穩健性方面，儘管網路在擾動後對真實類別給出接近零的機率，Grad-CAM 仍正確定位了原始物件，暗示對抗攻擊影響分類層多於特徵表示。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-evidence">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-evidence">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     實務應用——展示 Grad-CAM 在偏差偵測與模型診斷中的價值。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     此段將 Grad-CAM 從純技術工具提升至具有社會影響力的工具。性別偏差案例尤其引人注目，直接連結到 AI 公平性的議題。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     醫生/護理師的案例研究極具說服力且具現實意義。但此案例相對簡單（二分類、明顯的視覺線索差異）；在更複雜的偏差場景中，Grad-CAM 的診斷能力可能受限於其粗略的解析度。
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
-
-    <div class="para-row">
-        <div class="left-col">
-            <div class="en-text">
+</div>
+</div>
+</div>
+<h2 class="section-heading" id="sec-conclusion">6. Conclusion — 結論</h2>
+<div class="para-row">
+<div class="left-col">
+<div class="en-text">
                 We proposed <span class="hl-concept">Grad-CAM</span>, a class-discriminative localization technique that is <span class="hl-thesis">applicable to any CNN-based architecture without architectural changes or retraining</span>. By combining Grad-CAM with Guided Backpropagation, <span class="hl-concept">Guided Grad-CAM</span> achieves both <span class="hl-thesis">high-resolution and class-discriminative visualizations</span>. We demonstrated that these visualizations are <span class="hl-evidence">faithful to the model, help identify dataset biases, build appropriate trust, and enable diagnosis</span> across multiple architectures and tasks including image classification, captioning, and visual question answering. Grad-CAM represents a step toward <span class="hl-thesis">making deep learning models more transparent and trustworthy</span>.
             </div>
-            <div class="lang-divider"></div>
-            <div class="zh-text">
-                我們提出了 Grad-CAM，一種類別鑑別的定位技術，適用於任何基於 CNN 的架構而無需架構修改或重新訓練。透過結合 Grad-CAM 與引導式反向傳播，Guided Grad-CAM 同時實現高解析度與類別鑑別性的視覺化。我們展示了這些視覺化忠實於模型、有助於識別資料集偏差、建立適當的信任，並跨越多種架構與任務（包括影像分類、影像描述與視覺問答）實現診斷。Grad-CAM 代表了朝向使深度學習模型更透明、更可信的一步。
+<div class="lang-divider"></div>
+<div class="zh-text">
+                我們提出了 <span class="hl-concept">Grad-CAM</span>，一種類別鑑別的定位技術，適用於任何基於 CNN 的架構而無需架構修改或重新訓練。透過結合 Grad-CAM 與引導式反向傳播，<span class="hl-concept">Guided Grad-CAM</span> 同時實現高解析度與類別鑑別性的視覺化。我們展示了這些視覺化忠實於模型、有助於識別資料集偏差、建立適當的信任，並跨越多種架構與任務（包括影像分類、影像描述與視覺問答）實現診斷。Grad-CAM 代表了朝向使深度學習模型更透明、更可信的一步。
             </div>
-        </div>
-        <div class="right-col">
-            <div class="annotation-card ann-intro">
-                <div class="ann-section">
-                    <span class="ann-label">段落功能</span>
+</div>
+<div class="right-col">
+<div class="annotation-card ann-intro">
+<div class="ann-section">
+<span class="ann-label">段落功能</span>
                     總結全文——重申通用性與實務價值。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">邏輯角色</span>
+<div class="ann-section">
+<span class="ann-label">邏輯角色</span>
                     結論精準回應了緒論設定的二元困境（解析度 vs. 類別鑑別性），並以更高層次的「透明與可信」作為收束。
                 </div>
-                <div class="ann-section">
-                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+<div class="ann-section">
+<span class="ann-label">論證技巧 / 潛在漏洞</span>
                     「朝向...的一步」的謙遜措辭適切——Grad-CAM 確實不是可解釋 AI 的終極解決方案，但作為視覺化工具，它的影響力已遠超論文本身（成為深度學習除錯的標準工具之一）。
                 </div>
+</div>
+</div>
+</div>
+<div class="argument-overview" id="sec-overview">
+<h2>論證結構總覽</h2>
+<div class="arg-skeleton">
+<div class="arg-step">
+<strong>問題</strong><br/>
+                CNN 決策不透明<br/>缺乏視覺解釋
             </div>
-        </div>
-    </div>
-
-    <div class="argument-overview" id="sec-overview">
-        <h2>論證結構總覽</h2>
-
-        <div class="arg-skeleton">
-            <div class="arg-step">
-                <strong>問題</strong><br>
-                CNN 決策不透明<br>缺乏視覺解釋
+<div class="arg-arrow">→</div>
+<div class="arg-step">
+<strong>論點</strong><br/>
+                梯度加權定位圖<br/>適用於任何 CNN
             </div>
-            <div class="arg-arrow">&rarr;</div>
-            <div class="arg-step">
-                <strong>論點</strong><br>
-                梯度加權定位圖<br>適用於任何 CNN
+<div class="arg-arrow">→</div>
+<div class="arg-step">
+<strong>證據</strong><br/>
+                多基準超越 CAM +<br/>偏差偵測案例研究
             </div>
-            <div class="arg-arrow">&rarr;</div>
-            <div class="arg-step">
-                <strong>證據</strong><br>
-                多基準超越 CAM +<br>偏差偵測案例研究
+<div class="arg-arrow">→</div>
+<div class="arg-step">
+<strong>反駁</strong><br/>
+                Guided Grad-CAM 融合<br/>解決解析度不足
             </div>
-            <div class="arg-arrow">&rarr;</div>
-            <div class="arg-step">
-                <strong>反駁</strong><br>
-                Guided Grad-CAM 融合<br>解決解析度不足
+<div class="arg-arrow">→</div>
+<div class="arg-step">
+<strong>結論</strong><br/>
+                邁向透明可信的<br/>深度學習模型
             </div>
-            <div class="arg-arrow">&rarr;</div>
-            <div class="arg-step">
-                <strong>結論</strong><br>
-                邁向透明可信的<br>深度學習模型
-            </div>
-        </div>
-
-        <div class="arg-detail-grid">
-            <div class="arg-detail-card">
-                <h3>作者核心主張（一句話）</h3>
-                <p>
+</div>
+<div class="arg-detail-grid">
+<div class="arg-detail-card">
+<h3>作者核心主張（一句話）</h3>
+<p>
                     透過計算目標類別梯度對最後摺積層的全域平均池化權重，Grad-CAM 能為任何 CNN 架構生成類別鑑別的視覺解釋，無需修改架構或重新訓練，並可用於模型診斷與偏差偵測。
                 </p>
-            </div>
-            <div class="arg-detail-card">
-                <h3>論證最強處</h3>
-                <p>
-                    <strong>通用性的數學證明：</strong>證明 Grad-CAM 是 CAM 的嚴格泛化，賦予方法堅實的理論地位。醫生/護理師的資料集偏差案例將技術貢獻連結至社會影響，極具說服力。多架構、多任務的全面評估（VGG、ResNet、影像描述、VQA）令人信服。
-                </p>
-            </div>
-            <div class="arg-detail-card">
-                <h3>論證最弱處</h3>
-                <p>
-                    <strong>解析度與深度的取捨：</strong>Grad-CAM 的輸出解析度受限於最後摺積層的空間維度（如 14x14），雖然 Guided Grad-CAM 提供了補救，但融合策略缺乏理論保證。此外，「解釋」的定義仍具爭議——熱力圖顯示模型「看哪裡」，但不解釋模型「如何推理」。
-                </p>
-            </div>
-        </div>
-    </div>
-
 </div>
-
+<div class="arg-detail-card">
+<h3>論證最強處</h3>
+<p>
+<strong>通用性的數學證明：</strong>證明 Grad-CAM 是 CAM 的嚴格泛化，賦予方法堅實的理論地位。醫生/護理師的資料集偏差案例將技術貢獻連結至社會影響，極具說服力。多架構、多任務的全面評估（VGG、ResNet、影像描述、VQA）令人信服。
+                </p>
+</div>
+<div class="arg-detail-card">
+<h3>論證最弱處</h3>
+<p>
+<strong>解析度與深度的取捨：</strong>Grad-CAM 的輸出解析度受限於最後摺積層的空間維度（如 14x14），雖然 Guided Grad-CAM 提供了補救，但融合策略缺乏理論保證。此外，「解釋」的定義仍具爭議——熱力圖顯示模型「看哪裡」，但不解釋模型「如何推理」。
+                </p>
+</div>
+</div>
+</div>
+</div>
 <div class="floating-legend">
-    <div class="legend-panel" id="legendPanel">
-        <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
-        <div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
-        <div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
-        <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
-        <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
-    </div>
-    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">&#9632;</button>
+<div class="legend-panel" id="legendPanel">
+<div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
+<div class="fl-item"><div class="fl-swatch" style="background:#f8d7da;"></div><span>Concept 關鍵概念</span></div>
+<div class="fl-item"><div class="fl-swatch" style="background:#cce5ff;"></div><span>Evidence 實證證據</span></div>
+<div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
+<div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
 </div>
-
+<button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例">■</button>
+</div>
 </body>
 </html>
