@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>論文引用關聯圖 — CvHub</title>
+  <link rel="icon" type="image/svg+xml" href="../public/favicon.svg">
+  <style>
+    /* ===== 全域重設 ===== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+      background-color: #faf8f5;
+      color: #2c2c2c;
+      line-height: 1.6;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== 導航欄 ===== */
+    .navbar {
+      background-color: #1a2332;
+      color: #fff;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      position: relative;
+      z-index: 200;
+      flex-shrink: 0;
+    }
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .navbar-brand {
+      font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #fff;
+    }
+    .navbar-sep {
+      color: #3a4f6a;
+      font-size: 1.2rem;
+      user-select: none;
+    }
+    .navbar-title {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.95rem;
+      color: #c0c8d4;
+      letter-spacing: 1px;
+    }
+    .navbar-right a {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.85rem;
+      color: #a0aab4;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .navbar-right a:hover { color: #fff; }
+    .navbar-right a::before {
+      content: '\2190';
+      font-size: 1rem;
+    }
+
+    /* ===== 漢堡選單按鈕（手機版） ===== */
+    .hamburger-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      line-height: 1;
+    }
+
+    /* ===== 主容器 ===== */
+    .main-container {
+      display: flex;
+      height: calc(100vh - 56px);
+      position: relative;
+    }
+
+    /* ===== 側邊欄 ===== */
+    .sidebar {
+      width: 240px;
+      min-width: 240px;
+      background: #fff;
+      border-right: 1px solid #e0dbd2;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    .sidebar-section-title {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #8a7e6b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e8e3da;
+    }
+
+    /* 會議篩選 */
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.82rem;
+      color: #3c3c3c;
+      cursor: pointer;
+      user-select: none;
+    }
+    .filter-item input[type="checkbox"] { display: none; }
+    .filter-check {
+      width: 16px; height: 16px;
+      border: 1.5px solid #bbb;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .filter-item input:checked + .filter-check {
+      background: #1a2332;
+      border-color: #1a2332;
+    }
+    .filter-item input:checked + .filter-check::after {
+      content: '';
+      width: 8px; height: 5px;
+      border-left: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      transform: rotate(-45deg);
+      margin-top: -2px;
+    }
+    .filter-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* 年份範圍滑桿 */
+    .year-range-container {
+      margin-top: 8px;
+    }
+    .year-range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.75rem;
+      color: #8a7e6b;
+      margin-bottom: 6px;
+    }
+    .year-slider-track {
+      position: relative;
+      height: 6px;
+      background: #e8e3da;
+      border-radius: 3px;
+      margin: 8px 0;
+    }
+    .year-slider-fill {
+      position: absolute;
+      height: 100%;
+      background: #1a2332;
+      border-radius: 3px;
+    }
+    .year-slider-thumb {
+      position: absolute;
+      width: 16px; height: 16px;
+      background: #fff;
+      border: 2px solid #1a2332;
+      border-radius: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      cursor: grab;
+      z-index: 2;
+    }
+    .year-slider-thumb:active { cursor: grabbing; }
+
+    /* 重設按鈕 */
+    .reset-btn {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.78rem;
+      color: #8a7e6b;
+      background: none;
+      border: 1px solid #d6d0c4;
+      border-radius: 4px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 4px;
+      align-self: flex-start;
+    }
+    .reset-btn:hover {
+      background: #f0ece2;
+      color: #1a2332;
+      border-color: #1a2332;
+    }
+
+    /* 統計列表 */
+    .stats-section { display: flex; flex-direction: column; gap: 4px; }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.8rem;
+      color: #4a4a4a;
+    }
+    .stat-row .stat-val {
+      font-weight: 700;
+      color: #1a2332;
+    }
+
+    /* 排行列表 */
+    .rank-list { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+    .rank-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.78rem;
+      color: #4a4a4a;
+      padding: 3px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .rank-item:hover { background: #f0ece2; }
+    .rank-num {
+      font-size: 0.7rem;
+      color: #8a7e6b;
+      min-width: 16px;
+    }
+    .rank-name { flex: 1; }
+    .rank-count {
+      font-weight: 600;
+      color: #1a2332;
+      font-size: 0.72rem;
+    }
+
+    /* 選取面板 */
+    .selection-panel { display: none; flex-direction: column; gap: 10px; }
+    .selection-panel.active { display: flex; }
+    .sel-title {
+      font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #1a2332;
+      line-height: 1.4;
+    }
+    .sel-meta {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.75rem;
+      color: #8a7e6b;
+    }
+    .sel-subtitle {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #8a7e6b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+    .sel-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sel-list-item {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.78rem;
+      color: #4a4a4a;
+      padding: 3px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .sel-list-item:hover { background: #f0ece2; }
+    .sel-read-btn {
+      display: inline-block;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.78rem;
+      color: #fff;
+      background: #1a2332;
+      border: none;
+      border-radius: 4px;
+      padding: 7px 14px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s;
+      margin-top: 6px;
+    }
+    .sel-read-btn:hover { background: #2a3a52; }
+
+    /* 圖例 */
+    .legend-section { display: flex; flex-direction: column; gap: 6px; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.78rem;
+      color: #4a4a4a;
+    }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .legend-note {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.7rem;
+      color: #8a7e6b;
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    /* ===== 畫布容器 ===== */
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    #graph-canvas {
+      display: block;
+      cursor: grab;
+    }
+    #graph-canvas.grabbing { cursor: grabbing; }
+    #graph-canvas.pointer { cursor: pointer; }
+
+    /* ===== Tooltip ===== */
+    .tooltip {
+      position: fixed;
+      display: none;
+      background: #fff;
+      border: 1px solid #d6d0c4;
+      border-radius: 6px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      pointer-events: none;
+      z-index: 500;
+      max-width: 280px;
+    }
+    .tooltip-title {
+      font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #1a2332;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .tooltip-meta {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.72rem;
+      color: #8a7e6b;
+      display: flex;
+      gap: 10px;
+    }
+    .tooltip-meta span { display: flex; align-items: center; gap: 3px; }
+    .tooltip-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* ===== 載入與錯誤畫面 ===== */
+    .overlay-message {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      z-index: 10;
+    }
+    .overlay-message .msg-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+      color: #8a7e6b;
+    }
+    .overlay-message .msg-text {
+      font-size: 0.95rem;
+      color: #4a4a4a;
+      line-height: 1.6;
+    }
+    .overlay-message .msg-sub {
+      font-size: 0.78rem;
+      color: #8a7e6b;
+      margin-top: 8px;
+    }
+    .loading-spinner {
+      width: 28px; height: 28px;
+      border: 3px solid #e0dbd2;
+      border-top-color: #1a2332;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== 側邊欄遮罩（手機版） ===== */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 56px; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 90;
+    }
+
+    /* ===== 響應式 ===== */
+    @media (max-width: 768px) {
+      .hamburger-btn { display: block; }
+      .sidebar {
+        position: fixed;
+        top: 56px; left: 0; bottom: 0;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.1);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.active { display: block; }
+      .navbar-title { display: none; }
+      .navbar-sep { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 導航欄 -->
+  <nav class="navbar">
+    <div class="navbar-left">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="開啟側邊選單">&#9776;</button>
+      <a href="../index.html" class="navbar-brand">CvHub</a>
+      <span class="navbar-sep">|</span>
+      <span class="navbar-title">論文引用關聯圖</span>
+    </div>
+    <div class="navbar-right">
+      <a href="../index.html">返回主頁</a>
+    </div>
+  </nav>
+
+  <div class="main-container">
+    <!-- 左側控制面板 -->
+    <aside class="sidebar" id="sidebar">
+
+      <!-- 篩選控制 -->
+      <div class="sidebar-block">
+        <div class="sidebar-section-title">篩選條件</div>
+        <div class="filter-group" id="conf-filters">
+          <label class="filter-item">
+            <input type="checkbox" value="Classics" checked>
+            <span class="filter-check"></span>
+            <span class="filter-dot" style="background:#c0392b"></span>
+            Classics
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" value="CVPR" checked>
+            <span class="filter-check"></span>
+            <span class="filter-dot" style="background:#1a2332"></span>
+            CVPR
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" value="ICCV" checked>
+            <span class="filter-check"></span>
+            <span class="filter-dot" style="background:#c9a84c"></span>
+            ICCV
+          </label>
+          <label class="filter-item">
+            <input type="checkbox" value="ECCV" checked>
+            <span class="filter-check"></span>
+            <span class="filter-dot" style="background:#6d5e54"></span>
+            ECCV
+          </label>
+        </div>
+
+        <!-- 年份範圍 -->
+        <div class="year-range-container">
+          <div class="year-range-labels">
+            <span id="year-min-label">2013</span>
+            <span id="year-max-label">2025</span>
+          </div>
+          <div class="year-slider-track" id="year-slider-track">
+            <div class="year-slider-fill" id="year-slider-fill"></div>
+            <div class="year-slider-thumb" id="year-thumb-min" data-which="min"></div>
+            <div class="year-slider-thumb" id="year-thumb-max" data-which="max"></div>
+          </div>
+        </div>
+
+        <button class="reset-btn" id="reset-btn">重設篩選</button>
+      </div>
+
+      <!-- 統計區（全域） -->
+      <div class="sidebar-block" id="global-stats">
+        <div class="sidebar-section-title">統計資訊</div>
+        <div class="stats-section">
+          <div class="stat-row"><span>論文總數</span><span class="stat-val" id="stat-total-nodes">0</span></div>
+          <div class="stat-row"><span>引用關係</span><span class="stat-val" id="stat-total-edges">0</span></div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="sidebar-section-title">被引用排行</div>
+          <ol class="rank-list" id="rank-list"></ol>
+        </div>
+      </div>
+
+      <!-- 選取面板 -->
+      <div class="selection-panel" id="selection-panel">
+        <div class="sidebar-section-title">選取論文</div>
+        <div class="sel-title" id="sel-title"></div>
+        <div class="sel-meta" id="sel-meta"></div>
+
+        <div class="sel-subtitle" id="sel-cites-label"></div>
+        <ul class="sel-list" id="sel-cites-list"></ul>
+
+        <div class="sel-subtitle" id="sel-cited-by-label"></div>
+        <ul class="sel-list" id="sel-cited-by-list"></ul>
+
+        <a class="sel-read-btn" id="sel-read-btn" href="#" target="_self">閱讀論文</a>
+      </div>
+
+      <!-- 圖例 -->
+      <div class="sidebar-block">
+        <div class="sidebar-section-title">圖例</div>
+        <div class="legend-section">
+          <div class="legend-item"><span class="legend-dot" style="background:#c0392b"></span>Classics</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#1a2332"></span>CVPR</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#c9a84c"></span>ICCV</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#6d5e54"></span>ECCV</div>
+        </div>
+        <div class="legend-note">節點大小 = 被引用次數</div>
+      </div>
+
+    </aside>
+
+    <!-- 側邊欄遮罩 -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- 畫布 -->
+    <div class="canvas-container" id="canvas-container">
+      <canvas id="graph-canvas"></canvas>
+      <!-- 載入提示 -->
+      <div class="overlay-message" id="loading-msg">
+        <div class="loading-spinner"></div>
+        <div class="msg-text">正在載入引用資料...</div>
+      </div>
+      <!-- 錯誤提示 -->
+      <div class="overlay-message" id="error-msg" style="display:none">
+        <div class="msg-icon">!</div>
+        <div class="msg-text" id="error-text">無法載入引用資料</div>
+        <div class="msg-sub" id="error-sub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="tooltip" id="tooltip">
+    <div class="tooltip-title" id="tooltip-title"></div>
+    <div class="tooltip-meta" id="tooltip-meta"></div>
+  </div>
+
+  <script>
+    /* ====================================================================
+     *  論文引用關聯圖 — 純 Canvas 力導向圖
+     *  不依賴任何外部函式庫
+     * ==================================================================== */
+
+    (function () {
+      'use strict';
+
+      /* ---------- 會議顏色對照表 ---------- */
+      var CONF_COLORS = {
+        'Classics': '#c0392b',
+        'CVPR':     '#1a2332',
+        'ICCV':     '#c9a84c',
+        'ECCV':     '#6d5e54'
+      };
+
+      /* ---------- DOM 參照 ---------- */
+      var canvas      = document.getElementById('graph-canvas');
+      var ctx         = canvas.getContext('2d');
+      var container   = document.getElementById('canvas-container');
+      var tooltipEl   = document.getElementById('tooltip');
+      var tooltipTitle = document.getElementById('tooltip-title');
+      var tooltipMeta  = document.getElementById('tooltip-meta');
+      var loadingMsg  = document.getElementById('loading-msg');
+      var errorMsg    = document.getElementById('error-msg');
+      var errorText   = document.getElementById('error-text');
+      var errorSub    = document.getElementById('error-sub');
+
+      /* 側邊欄元素 */
+      var sidebar       = document.getElementById('sidebar');
+      var sidebarOverlay = document.getElementById('sidebar-overlay');
+      var hamburgerBtn   = document.getElementById('hamburger-btn');
+      var globalStats    = document.getElementById('global-stats');
+      var selectionPanel = document.getElementById('selection-panel');
+      var selTitle       = document.getElementById('sel-title');
+      var selMeta        = document.getElementById('sel-meta');
+      var selCitesLabel  = document.getElementById('sel-cites-label');
+      var selCitesList   = document.getElementById('sel-cites-list');
+      var selCitedByLabel = document.getElementById('sel-cited-by-label');
+      var selCitedByList  = document.getElementById('sel-cited-by-list');
+      var selReadBtn      = document.getElementById('sel-read-btn');
+      var statTotalNodes  = document.getElementById('stat-total-nodes');
+      var statTotalEdges  = document.getElementById('stat-total-edges');
+      var rankListEl      = document.getElementById('rank-list');
+      var resetBtn        = document.getElementById('reset-btn');
+
+      /* 年份滑桿 */
+      var yearTrack    = document.getElementById('year-slider-track');
+      var yearFill     = document.getElementById('year-slider-fill');
+      var yearThumbMin = document.getElementById('year-thumb-min');
+      var yearThumbMax = document.getElementById('year-thumb-max');
+      var yearMinLabel = document.getElementById('year-min-label');
+      var yearMaxLabel = document.getElementById('year-max-label');
+
+      /* ---------- 資料變數 ---------- */
+      var allNodes = [];   // 原始節點陣列
+      var allEdges = [];   // 原始邊陣列
+      var nodes = [];      // 篩選後用於顯示的節點
+      var edges = [];      // 篩選後用於顯示的邊
+      var nodeMap = {};    // id -> node 快速查找
+      var citedByMap = {}; // id -> [引用它的節點 id]
+      var citesMap = {};   // id -> [它引用的節點 id]
+
+      /* 篩選狀態 */
+      var filterConfs = { 'Classics': true, 'CVPR': true, 'ICCV': true, 'ECCV': true };
+      var filterYearMin = 2013;
+      var filterYearMax = 2025;
+      var dataYearMin = 2013;
+      var dataYearMax = 2025;
+
+      /* 互動狀態 */
+      var selectedNodeId = null;
+      var hoveredNode = null;
+      var dragNode = null;
+      var isDragging = false;
+      var isPanning = false;
+      var panStart = { x: 0, y: 0 };
+
+      /* 視圖變換 */
+      var viewTransform = { x: 0, y: 0, scale: 1 };
+
+      /* 力模擬參數 */
+      var SIM_ALPHA = 1.0;          // 目前模擬溫度
+      var SIM_ALPHA_DECAY = 0.0228; // 溫度衰減率
+      var SIM_ALPHA_MIN = 0.001;    // 最低溫度（穩定後）
+      var SIM_VELOCITY_DECAY = 0.4; // 速度阻尼
+      var REPULSION_STRENGTH = 800; // 斥力強度
+      var LINK_STRENGTH = 0.06;     // 彈簧剛度
+      var LINK_DISTANCE = 100;      // 彈簧自然長度
+      var CENTER_STRENGTH = 0.01;   // 中心引力
+
+      /* devicePixelRatio */
+      var dpr = window.devicePixelRatio || 1;
+
+      /* 動畫控制 */
+      var animFrameId = null;
+      var isSimulationActive = true;
+
+      /* ================================================================
+       *  Canvas 尺寸
+       * ================================================================ */
+      function resizeCanvas() {
+        var rect = container.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      /* ================================================================
+       *  資料載入
+       * ================================================================ */
+      function loadData() {
+        fetch('../public/citations.json')
+          .then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+          })
+          .then(function (data) {
+            processData(data);
+            loadingMsg.style.display = 'none';
+            startSimulation();
+          })
+          .catch(function (err) {
+            loadingMsg.style.display = 'none';
+            errorMsg.style.display = '';
+            errorText.textContent = '無法載入引用資料';
+            errorSub.textContent = err.message || '請確認 citations.json 檔案是否存在';
+          });
+      }
+
+      /* ================================================================
+       *  資料處理
+       * ================================================================ */
+      function processData(data) {
+        allNodes = data.nodes || [];
+        allEdges = data.edges || [];
+
+        /* 建立快速查找表 */
+        nodeMap = {};
+        citedByMap = {};
+        citesMap = {};
+
+        var yearSet = {};
+        for (var i = 0; i < allNodes.length; i++) {
+          var n = allNodes[i];
+          nodeMap[n.id] = n;
+          n.citedCount = 0;
+          yearSet[n.year] = true;
+        }
+
+        /* 計算被引用數與建立引用對照 */
+        for (var j = 0; j < allEdges.length; j++) {
+          var e = allEdges[j];
+          // source 引用了 target
+          if (!citesMap[e.source]) citesMap[e.source] = [];
+          citesMap[e.source].push(e.target);
+          if (!citedByMap[e.target]) citedByMap[e.target] = [];
+          citedByMap[e.target].push(e.source);
+          if (nodeMap[e.target]) nodeMap[e.target].citedCount++;
+        }
+
+        /* 決定資料年份範圍 */
+        var years = Object.keys(yearSet).map(Number).sort(function (a, b) { return a - b; });
+        if (years.length > 0) {
+          dataYearMin = years[0];
+          dataYearMax = years[years.length - 1];
+        }
+        filterYearMin = dataYearMin;
+        filterYearMax = dataYearMax;
+
+        applyFilters();
+        updateStats();
+        updateYearSliderUI();
+      }
+
+      /* ================================================================
+       *  篩選
+       * ================================================================ */
+      function applyFilters() {
+        var visibleIds = {};
+        nodes = [];
+        edges = [];
+
+        /* 篩選節點 */
+        for (var i = 0; i < allNodes.length; i++) {
+          var n = allNodes[i];
+          var conf = normalizeConf(n.conference);
+          if (filterConfs[conf] && n.year >= filterYearMin && n.year <= filterYearMax) {
+            visibleIds[n.id] = true;
+            nodes.push(n);
+          }
+        }
+
+        /* 篩選邊（兩端都需可見） */
+        for (var j = 0; j < allEdges.length; j++) {
+          var e = allEdges[j];
+          if (visibleIds[e.source] && visibleIds[e.target]) {
+            edges.push(e);
+          }
+        }
+
+        /* 若選取的節點被篩掉，取消選取 */
+        if (selectedNodeId && !visibleIds[selectedNodeId]) {
+          clearSelection();
+        }
+
+        initNodePositions();
+        SIM_ALPHA = 1.0;
+        isSimulationActive = true;
+      }
+
+      function normalizeConf(conf) {
+        if (!conf) return 'CVPR';
+        var c = conf.toUpperCase();
+        if (c === 'CLASSICS' || c === 'CLASSIC') return 'Classics';
+        if (c === 'CVPR') return 'CVPR';
+        if (c === 'ICCV') return 'ICCV';
+        if (c === 'ECCV') return 'ECCV';
+        return conf;
+      }
+
+      /* ================================================================
+       *  初始節點位置（依年份排列 + 隨機偏移）
+       * ================================================================ */
+      function initNodePositions() {
+        var rect = container.getBoundingClientRect();
+        var w = rect.width;
+        var h = rect.height;
+
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i];
+          if (n.x !== undefined && n.y !== undefined) continue; // 已有位置則保留
+
+          /* 水平依年份排列 */
+          var yearFrac = (dataYearMax === dataYearMin)
+            ? 0.5
+            : (n.year - dataYearMin) / (dataYearMax - dataYearMin);
+          n.x = (yearFrac * 0.6 + 0.2) * w + (Math.random() - 0.5) * 80;
+          n.y = h * 0.5 + (Math.random() - 0.5) * h * 0.5;
+          n.vx = 0;
+          n.vy = 0;
+        }
+      }
+
+      /* ================================================================
+       *  力導向模擬
+       * ================================================================ */
+      function simulationStep() {
+        if (SIM_ALPHA < SIM_ALPHA_MIN) {
+          isSimulationActive = false;
+          return;
+        }
+
+        var rect = container.getBoundingClientRect();
+        var cx = rect.width / 2;
+        var cy = rect.height / 2;
+        var n, m, dx, dy, dist, force, i, j;
+
+        /* 中心引力 */
+        for (i = 0; i < nodes.length; i++) {
+          n = nodes[i];
+          if (n.fixed) continue;
+          n.vx += (cx - n.x) * CENTER_STRENGTH * SIM_ALPHA;
+          n.vy += (cy - n.y) * CENTER_STRENGTH * SIM_ALPHA;
+        }
+
+        /* 節點斥力（Barnes-Hut 簡化版：直接兩兩計算，數量 < 1000 可接受） */
+        for (i = 0; i < nodes.length; i++) {
+          n = nodes[i];
+          for (j = i + 1; j < nodes.length; j++) {
+            m = nodes[j];
+            dx = m.x - n.x;
+            dy = m.y - n.y;
+            dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            force = -REPULSION_STRENGTH * SIM_ALPHA / (dist * dist);
+            var fx = (dx / dist) * force;
+            var fy = (dy / dist) * force;
+            if (!n.fixed) { n.vx -= fx; n.vy -= fy; }
+            if (!m.fixed) { m.vx += fx; m.vy += fy; }
+          }
+        }
+
+        /* 邊引力（彈簧力） */
+        for (i = 0; i < edges.length; i++) {
+          var e = edges[i];
+          var src = nodeMap[e.source];
+          var tgt = nodeMap[e.target];
+          if (!src || !tgt) continue;
+          dx = tgt.x - src.x;
+          dy = tgt.y - src.y;
+          dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          force = (dist - LINK_DISTANCE) * LINK_STRENGTH * SIM_ALPHA;
+          var lfx = (dx / dist) * force;
+          var lfy = (dy / dist) * force;
+          if (!src.fixed) { src.vx += lfx; src.vy += lfy; }
+          if (!tgt.fixed) { tgt.vx -= lfx; tgt.vy -= lfy; }
+        }
+
+        /* 更新位置 */
+        for (i = 0; i < nodes.length; i++) {
+          n = nodes[i];
+          if (n.fixed) continue;
+          n.vx *= SIM_VELOCITY_DECAY;
+          n.vy *= SIM_VELOCITY_DECAY;
+          n.x += n.vx;
+          n.y += n.vy;
+        }
+
+        SIM_ALPHA += (0 - SIM_ALPHA) * SIM_ALPHA_DECAY;
+      }
+
+      /* ================================================================
+       *  節點半徑（依被引用數）
+       * ================================================================ */
+      function nodeRadius(n) {
+        var count = n.citedCount || 0;
+        if (count <= 0) return 4;
+        if (count >= 20) return 20;
+        return 4 + (count / 20) * 16;
+      }
+
+      /* ================================================================
+       *  節點顏色
+       * ================================================================ */
+      function nodeColor(n) {
+        var conf = normalizeConf(n.conference);
+        return CONF_COLORS[conf] || '#888';
+      }
+
+      /* ================================================================
+       *  座標轉換（畫布 <-> 世界）
+       * ================================================================ */
+      function worldToScreen(wx, wy) {
+        return {
+          x: (wx - viewTransform.x) * viewTransform.scale,
+          y: (wy - viewTransform.y) * viewTransform.scale
+        };
+      }
+      function screenToWorld(sx, sy) {
+        return {
+          x: sx / viewTransform.scale + viewTransform.x,
+          y: sy / viewTransform.scale + viewTransform.y
+        };
+      }
+
+      /* ================================================================
+       *  繪製
+       * ================================================================ */
+      function draw() {
+        var rect = container.getBoundingClientRect();
+        var w = rect.width;
+        var h = rect.height;
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.save();
+
+        /* 套用視圖變換 */
+        ctx.translate(-viewTransform.x * viewTransform.scale, -viewTransform.y * viewTransform.scale);
+        ctx.scale(viewTransform.scale, viewTransform.scale);
+
+        /* 取得高亮集合 */
+        var highlightSet = null;
+        var highlightEdges = null;
+        if (selectedNodeId) {
+          highlightSet = {};
+          highlightEdges = {};
+          highlightSet[selectedNodeId] = true;
+          var cites = citesMap[selectedNodeId] || [];
+          var citedBy = citedByMap[selectedNodeId] || [];
+          for (var ci = 0; ci < cites.length; ci++) highlightSet[cites[ci]] = true;
+          for (var bi = 0; bi < citedBy.length; bi++) highlightSet[citedBy[bi]] = true;
+
+          for (var ei = 0; ei < edges.length; ei++) {
+            var ed = edges[ei];
+            if (ed.source === selectedNodeId || ed.target === selectedNodeId) {
+              highlightEdges[ei] = true;
+            }
+          }
+        }
+
+        /* 繪製邊 */
+        for (var j = 0; j < edges.length; j++) {
+          var e = edges[j];
+          var src = nodeMap[e.source];
+          var tgt = nodeMap[e.target];
+          if (!src || !tgt) continue;
+
+          ctx.beginPath();
+          ctx.moveTo(src.x, src.y);
+          ctx.lineTo(tgt.x, tgt.y);
+
+          if (highlightSet) {
+            if (highlightEdges && highlightEdges[j]) {
+              ctx.strokeStyle = nodeColor(src);
+              ctx.globalAlpha = 0.6;
+              ctx.lineWidth = 1.5;
+            } else {
+              ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+              ctx.globalAlpha = 0.1;
+              ctx.lineWidth = 0.5;
+            }
+          } else {
+            ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 0.5;
+          }
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
+        /* 繪製節點 */
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i];
+          var r = nodeRadius(n);
+          var color = nodeColor(n);
+          var alpha = 1;
+
+          if (highlightSet && !highlightSet[n.id]) {
+            alpha = 0.1;
+          }
+
+          /* hover 光暈 */
+          if (hoveredNode === n) {
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, r + 6, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.15 * alpha;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+
+          /* 節點圓 */
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.globalAlpha = alpha;
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+
+          /* 標籤 */
+          var showLabel = (viewTransform.scale >= 0.7 && (n.citedCount || 0) >= 5)
+                       || viewTransform.scale >= 1.2
+                       || hoveredNode === n
+                       || n.id === selectedNodeId;
+          if (showLabel) {
+            ctx.font = "11px 'Microsoft JhengHei', sans-serif";
+            ctx.fillStyle = '#2c2c2c';
+            ctx.globalAlpha = alpha;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(n.shortName || n.id, n.x, n.y + r + 4);
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        ctx.restore();
+      }
+
+      /* ================================================================
+       *  主迴圈
+       * ================================================================ */
+      function tick() {
+        if (isSimulationActive) {
+          simulationStep();
+        }
+        draw();
+        animFrameId = requestAnimationFrame(tick);
+      }
+
+      function startSimulation() {
+        resizeCanvas();
+        viewTransform = { x: 0, y: 0, scale: 1 };
+        SIM_ALPHA = 1.0;
+        isSimulationActive = true;
+        if (!animFrameId) {
+          tick();
+        }
+      }
+
+      /* ================================================================
+       *  hitTest — 找到滑鼠下方的節點
+       * ================================================================ */
+      function hitTest(worldX, worldY) {
+        /* 從後往前遍歷，讓上層節點優先 */
+        for (var i = nodes.length - 1; i >= 0; i--) {
+          var n = nodes[i];
+          var r = nodeRadius(n) + 4; // 增加一點可點擊範圍
+          var dx = worldX - n.x;
+          var dy = worldY - n.y;
+          if (dx * dx + dy * dy <= r * r) return n;
+        }
+        return null;
+      }
+
+      /* ================================================================
+       *  Tooltip
+       * ================================================================ */
+      function showTooltip(n, screenX, screenY) {
+        tooltipTitle.textContent = n.title || n.shortName || n.id;
+        var conf = normalizeConf(n.conference);
+        var dotColor = CONF_COLORS[conf] || '#888';
+        tooltipMeta.innerHTML =
+          '<span><span class="tooltip-dot" style="background:' + dotColor + '"></span>' + conf + '</span>' +
+          '<span>' + (n.year || '--') + ' 年</span>' +
+          '<span>被引用 ' + (n.citedCount || 0) + ' 次</span>';
+
+        tooltipEl.style.display = 'block';
+
+        /* 定位（確保不超出視窗） */
+        var tw = tooltipEl.offsetWidth;
+        var th = tooltipEl.offsetHeight;
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var tx = screenX + 14;
+        var ty = screenY - th - 8;
+        if (tx + tw > vw - 8) tx = screenX - tw - 14;
+        if (ty < 8) ty = screenY + 20;
+        tooltipEl.style.left = tx + 'px';
+        tooltipEl.style.top = ty + 'px';
+      }
+
+      function hideTooltip() {
+        tooltipEl.style.display = 'none';
+      }
+
+      /* ================================================================
+       *  選取 / 取消選取
+       * ================================================================ */
+      function selectNode(id) {
+        selectedNodeId = id;
+        var n = nodeMap[id];
+        if (!n) return;
+
+        /* 更新側邊面板 */
+        globalStats.style.display = 'none';
+        selectionPanel.classList.add('active');
+        selTitle.textContent = n.title || n.shortName;
+        var conf = normalizeConf(n.conference);
+        selMeta.textContent = conf + ' ' + (n.year || '') + '  |  被引用 ' + (n.citedCount || 0) + ' 次';
+
+        /* 引用了 */
+        var cites = citesMap[id] || [];
+        selCitesLabel.textContent = '引用了 ' + cites.length + ' 篇';
+        selCitesList.innerHTML = '';
+        for (var i = 0; i < cites.length; i++) {
+          var cn = nodeMap[cites[i]];
+          if (!cn) continue;
+          var li = document.createElement('li');
+          li.className = 'sel-list-item';
+          li.textContent = (cn.shortName || cn.id) + ' (' + (cn.year || '') + ')';
+          li.dataset.nodeId = cn.id;
+          li.addEventListener('click', onSelListClick);
+          selCitesList.appendChild(li);
+        }
+
+        /* 被引用 */
+        var citedBy = citedByMap[id] || [];
+        selCitedByLabel.textContent = '被 ' + citedBy.length + ' 篇引用';
+        selCitedByList.innerHTML = '';
+        for (var j = 0; j < citedBy.length; j++) {
+          var bn = nodeMap[citedBy[j]];
+          if (!bn) continue;
+          var li2 = document.createElement('li');
+          li2.className = 'sel-list-item';
+          li2.textContent = (bn.shortName || bn.id) + ' (' + (bn.year || '') + ')';
+          li2.dataset.nodeId = bn.id;
+          li2.addEventListener('click', onSelListClick);
+          selCitedByList.appendChild(li2);
+        }
+
+        /* 閱讀按鈕 */
+        if (n.path) {
+          selReadBtn.href = '../' + n.path;
+          selReadBtn.style.display = 'inline-block';
+        } else {
+          selReadBtn.style.display = 'none';
+        }
+      }
+
+      function clearSelection() {
+        selectedNodeId = null;
+        selectionPanel.classList.remove('active');
+        globalStats.style.display = '';
+      }
+
+      function onSelListClick(ev) {
+        var targetId = ev.currentTarget.dataset.nodeId;
+        if (targetId && nodeMap[targetId]) {
+          selectNode(targetId);
+        }
+      }
+
+      /* ================================================================
+       *  統計 / 排行
+       * ================================================================ */
+      function updateStats() {
+        statTotalNodes.textContent = allNodes.length;
+        statTotalEdges.textContent = allEdges.length;
+
+        /* 被引用排行（前 10） */
+        var sorted = allNodes.slice().sort(function (a, b) {
+          return (b.citedCount || 0) - (a.citedCount || 0);
+        });
+        rankListEl.innerHTML = '';
+        var top = Math.min(10, sorted.length);
+        for (var i = 0; i < top; i++) {
+          var n = sorted[i];
+          if ((n.citedCount || 0) === 0) break;
+          var li = document.createElement('li');
+          li.className = 'rank-item';
+          li.innerHTML =
+            '<span class="rank-num">' + (i + 1) + '</span>' +
+            '<span class="rank-name">' + (n.shortName || n.id) + '</span>' +
+            '<span class="rank-count">' + n.citedCount + '</span>';
+          li.dataset.nodeId = n.id;
+          li.addEventListener('click', function (ev) {
+            var nid = ev.currentTarget.dataset.nodeId;
+            selectNode(nid);
+          });
+          rankListEl.appendChild(li);
+        }
+      }
+
+      /* ================================================================
+       *  年份滑桿
+       * ================================================================ */
+      var activeThumb = null;
+      var thumbStartX = 0;
+      var thumbStartVal = 0;
+
+      function updateYearSliderUI() {
+        yearMinLabel.textContent = filterYearMin;
+        yearMaxLabel.textContent = filterYearMax;
+
+        var range = dataYearMax - dataYearMin || 1;
+        var minPct = ((filterYearMin - dataYearMin) / range) * 100;
+        var maxPct = ((filterYearMax - dataYearMin) / range) * 100;
+        yearFill.style.left = minPct + '%';
+        yearFill.style.width = (maxPct - minPct) + '%';
+        yearThumbMin.style.left = minPct + '%';
+        yearThumbMax.style.left = maxPct + '%';
+      }
+
+      function onThumbDown(ev) {
+        ev.preventDefault();
+        var which = ev.target.dataset.which;
+        if (!which) return;
+        activeThumb = which;
+        var clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        thumbStartX = clientX;
+        thumbStartVal = (which === 'min') ? filterYearMin : filterYearMax;
+        document.addEventListener('mousemove', onThumbMove);
+        document.addEventListener('mouseup', onThumbUp);
+        document.addEventListener('touchmove', onThumbMove, { passive: false });
+        document.addEventListener('touchend', onThumbUp);
+      }
+
+      function onThumbMove(ev) {
+        if (!activeThumb) return;
+        ev.preventDefault();
+        var clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        var trackRect = yearTrack.getBoundingClientRect();
+        var trackW = trackRect.width;
+        var range = dataYearMax - dataYearMin || 1;
+        var deltaX = clientX - thumbStartX;
+        var deltaYears = Math.round((deltaX / trackW) * range);
+        var newVal = thumbStartVal + deltaYears;
+
+        if (activeThumb === 'min') {
+          filterYearMin = Math.max(dataYearMin, Math.min(filterYearMax, newVal));
+        } else {
+          filterYearMax = Math.min(dataYearMax, Math.max(filterYearMin, newVal));
+        }
+        updateYearSliderUI();
+      }
+
+      function onThumbUp() {
+        if (activeThumb) {
+          activeThumb = null;
+          applyFilters();
+        }
+        document.removeEventListener('mousemove', onThumbMove);
+        document.removeEventListener('mouseup', onThumbUp);
+        document.removeEventListener('touchmove', onThumbMove);
+        document.removeEventListener('touchend', onThumbUp);
+      }
+
+      yearThumbMin.addEventListener('mousedown', onThumbDown);
+      yearThumbMax.addEventListener('mousedown', onThumbDown);
+      yearThumbMin.addEventListener('touchstart', onThumbDown, { passive: false });
+      yearThumbMax.addEventListener('touchstart', onThumbDown, { passive: false });
+
+      /* ================================================================
+       *  會議篩選 checkbox
+       * ================================================================ */
+      var confCheckboxes = document.querySelectorAll('#conf-filters input[type="checkbox"]');
+      for (var ci = 0; ci < confCheckboxes.length; ci++) {
+        confCheckboxes[ci].addEventListener('change', function () {
+          filterConfs[this.value] = this.checked;
+          /* 重設已有位置，讓力模擬重新排列 */
+          for (var k = 0; k < allNodes.length; k++) {
+            delete allNodes[k].x;
+            delete allNodes[k].y;
+            allNodes[k].vx = 0;
+            allNodes[k].vy = 0;
+          }
+          applyFilters();
+        });
+      }
+
+      /* 重設按鈕 */
+      resetBtn.addEventListener('click', function () {
+        filterConfs = { 'Classics': true, 'CVPR': true, 'ICCV': true, 'ECCV': true };
+        filterYearMin = dataYearMin;
+        filterYearMax = dataYearMax;
+        for (var ci2 = 0; ci2 < confCheckboxes.length; ci2++) {
+          confCheckboxes[ci2].checked = true;
+        }
+        updateYearSliderUI();
+        /* 重設位置 */
+        for (var k = 0; k < allNodes.length; k++) {
+          delete allNodes[k].x;
+          delete allNodes[k].y;
+          allNodes[k].vx = 0;
+          allNodes[k].vy = 0;
+        }
+        applyFilters();
+        clearSelection();
+        viewTransform = { x: 0, y: 0, scale: 1 };
+      });
+
+      /* ================================================================
+       *  滑鼠事件
+       * ================================================================ */
+      var lastClickTime = 0;
+
+      canvas.addEventListener('mousedown', function (ev) {
+        var rect = canvas.getBoundingClientRect();
+        var sx = ev.clientX - rect.left;
+        var sy = ev.clientY - rect.top;
+        var world = screenToWorld(sx, sy);
+        var hit = hitTest(world.x, world.y);
+
+        if (hit) {
+          /* 檢查雙擊 */
+          var now = Date.now();
+          if (now - lastClickTime < 350 && selectedNodeId === hit.id) {
+            /* 雙擊：跳轉 */
+            if (hit.path) {
+              window.location.href = '../' + hit.path;
+            }
+            lastClickTime = 0;
+            return;
+          }
+          lastClickTime = now;
+
+          /* 開始拖拽 */
+          dragNode = hit;
+          hit.fixed = true;
+          isDragging = false;
+          canvas.classList.add('grabbing');
+          canvas.classList.remove('pointer');
+        } else {
+          /* 開始平移 */
+          isPanning = true;
+          panStart.x = ev.clientX;
+          panStart.y = ev.clientY;
+          canvas.classList.add('grabbing');
+          lastClickTime = 0;
+        }
+      });
+
+      canvas.addEventListener('mousemove', function (ev) {
+        var rect = canvas.getBoundingClientRect();
+        var sx = ev.clientX - rect.left;
+        var sy = ev.clientY - rect.top;
+
+        if (dragNode) {
+          isDragging = true;
+          var world = screenToWorld(sx, sy);
+          dragNode.x = world.x;
+          dragNode.y = world.y;
+          dragNode.vx = 0;
+          dragNode.vy = 0;
+          /* 讓模擬稍微回溫 */
+          SIM_ALPHA = Math.max(SIM_ALPHA, 0.3);
+          isSimulationActive = true;
+          return;
+        }
+
+        if (isPanning) {
+          var dx = ev.clientX - panStart.x;
+          var dy = ev.clientY - panStart.y;
+          viewTransform.x -= dx / viewTransform.scale;
+          viewTransform.y -= dy / viewTransform.scale;
+          panStart.x = ev.clientX;
+          panStart.y = ev.clientY;
+          return;
+        }
+
+        /* hover 檢測 */
+        var world2 = screenToWorld(sx, sy);
+        var hit = hitTest(world2.x, world2.y);
+        if (hit !== hoveredNode) {
+          hoveredNode = hit;
+          if (hit) {
+            canvas.classList.add('pointer');
+            showTooltip(hit, ev.clientX, ev.clientY);
+          } else {
+            canvas.classList.remove('pointer');
+            hideTooltip();
+          }
+        } else if (hit) {
+          showTooltip(hit, ev.clientX, ev.clientY);
+        }
+      });
+
+      canvas.addEventListener('mouseup', function (ev) {
+        if (dragNode) {
+          if (!isDragging) {
+            /* 沒有拖動 = 純點擊，選取/取消選取 */
+            if (selectedNodeId === dragNode.id) {
+              clearSelection();
+            } else {
+              selectNode(dragNode.id);
+            }
+          }
+          dragNode.fixed = false;
+          dragNode = null;
+          isDragging = false;
+          canvas.classList.remove('grabbing');
+          return;
+        }
+        if (isPanning) {
+          isPanning = false;
+          canvas.classList.remove('grabbing');
+
+          /* 若幾乎沒移動，視為點擊空白處 */
+          var rect = canvas.getBoundingClientRect();
+          var sx = ev.clientX - rect.left;
+          var sy = ev.clientY - rect.top;
+          var world = screenToWorld(sx, sy);
+          var hit = hitTest(world.x, world.y);
+          if (!hit && selectedNodeId) {
+            clearSelection();
+          }
+        }
+      });
+
+      canvas.addEventListener('mouseleave', function () {
+        hoveredNode = null;
+        hideTooltip();
+      });
+
+      /* 滾輪縮放 */
+      canvas.addEventListener('wheel', function (ev) {
+        ev.preventDefault();
+        var rect = canvas.getBoundingClientRect();
+        var sx = ev.clientX - rect.left;
+        var sy = ev.clientY - rect.top;
+
+        /* 計算縮放前的世界座標 */
+        var worldBefore = screenToWorld(sx, sy);
+
+        /* 更新縮放 */
+        var zoomFactor = ev.deltaY < 0 ? 1.08 : 0.92;
+        var newScale = viewTransform.scale * zoomFactor;
+        newScale = Math.max(0.1, Math.min(5, newScale));
+        viewTransform.scale = newScale;
+
+        /* 調整偏移讓滑鼠位置對應的世界座標不變 */
+        var worldAfter = screenToWorld(sx, sy);
+        viewTransform.x -= (worldAfter.x - worldBefore.x);
+        viewTransform.y -= (worldAfter.y - worldBefore.y);
+      }, { passive: false });
+
+      /* ================================================================
+       *  觸控事件（行動裝置）
+       * ================================================================ */
+      var touchStartDist = 0;
+      var touchStartScale = 1;
+      var touchStartCenter = { x: 0, y: 0 };
+
+      canvas.addEventListener('touchstart', function (ev) {
+        if (ev.touches.length === 1) {
+          var touch = ev.touches[0];
+          var rect = canvas.getBoundingClientRect();
+          var sx = touch.clientX - rect.left;
+          var sy = touch.clientY - rect.top;
+          var world = screenToWorld(sx, sy);
+          var hit = hitTest(world.x, world.y);
+
+          if (hit) {
+            dragNode = hit;
+            hit.fixed = true;
+            isDragging = false;
+          } else {
+            isPanning = true;
+            panStart.x = touch.clientX;
+            panStart.y = touch.clientY;
+          }
+        } else if (ev.touches.length === 2) {
+          /* 雙指縮放 */
+          var dx = ev.touches[0].clientX - ev.touches[1].clientX;
+          var dy = ev.touches[0].clientY - ev.touches[1].clientY;
+          touchStartDist = Math.sqrt(dx * dx + dy * dy);
+          touchStartScale = viewTransform.scale;
+          touchStartCenter = {
+            x: (ev.touches[0].clientX + ev.touches[1].clientX) / 2,
+            y: (ev.touches[0].clientY + ev.touches[1].clientY) / 2
+          };
+          isPanning = false;
+          if (dragNode) { dragNode.fixed = false; dragNode = null; }
+        }
+        ev.preventDefault();
+      }, { passive: false });
+
+      canvas.addEventListener('touchmove', function (ev) {
+        ev.preventDefault();
+
+        if (ev.touches.length === 2) {
+          var dx = ev.touches[0].clientX - ev.touches[1].clientX;
+          var dy = ev.touches[0].clientY - ev.touches[1].clientY;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          var newScale = touchStartScale * (dist / touchStartDist);
+          newScale = Math.max(0.1, Math.min(5, newScale));
+
+          var rect = canvas.getBoundingClientRect();
+          var cx = touchStartCenter.x - rect.left;
+          var cy = touchStartCenter.y - rect.top;
+          var worldBefore = screenToWorld(cx, cy);
+          viewTransform.scale = newScale;
+          var worldAfter = screenToWorld(cx, cy);
+          viewTransform.x -= (worldAfter.x - worldBefore.x);
+          viewTransform.y -= (worldAfter.y - worldBefore.y);
+          return;
+        }
+
+        if (dragNode && ev.touches.length === 1) {
+          isDragging = true;
+          var touch = ev.touches[0];
+          var rect2 = canvas.getBoundingClientRect();
+          var sx = touch.clientX - rect2.left;
+          var sy = touch.clientY - rect2.top;
+          var world = screenToWorld(sx, sy);
+          dragNode.x = world.x;
+          dragNode.y = world.y;
+          dragNode.vx = 0;
+          dragNode.vy = 0;
+          SIM_ALPHA = Math.max(SIM_ALPHA, 0.3);
+          isSimulationActive = true;
+          return;
+        }
+
+        if (isPanning && ev.touches.length === 1) {
+          var t = ev.touches[0];
+          var ddx = t.clientX - panStart.x;
+          var ddy = t.clientY - panStart.y;
+          viewTransform.x -= ddx / viewTransform.scale;
+          viewTransform.y -= ddy / viewTransform.scale;
+          panStart.x = t.clientX;
+          panStart.y = t.clientY;
+        }
+      }, { passive: false });
+
+      canvas.addEventListener('touchend', function (ev) {
+        if (dragNode) {
+          if (!isDragging) {
+            if (selectedNodeId === dragNode.id) {
+              clearSelection();
+            } else {
+              selectNode(dragNode.id);
+            }
+          }
+          dragNode.fixed = false;
+          dragNode = null;
+          isDragging = false;
+        }
+        if (isPanning) {
+          isPanning = false;
+        }
+        if (ev.touches.length === 0) {
+          touchStartDist = 0;
+        }
+      });
+
+      /* ================================================================
+       *  鍵盤事件
+       * ================================================================ */
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') {
+          clearSelection();
+        }
+      });
+
+      /* ================================================================
+       *  漢堡選單（手機版）
+       * ================================================================ */
+      hamburgerBtn.addEventListener('click', function () {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.classList.toggle('active');
+      });
+      sidebarOverlay.addEventListener('click', function () {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('active');
+      });
+
+      /* ================================================================
+       *  視窗調整
+       * ================================================================ */
+      window.addEventListener('resize', function () {
+        dpr = window.devicePixelRatio || 1;
+        resizeCanvas();
+      });
+
+      /* ================================================================
+       *  初始化
+       * ================================================================ */
+      resizeCanvas();
+      loadData();
+
+    })();
+  </script>
+</body>
+</html>
