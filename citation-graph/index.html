@@ -435,6 +435,8 @@
       width: 90%;
       padding: 28px 32px 20px;
       position: relative;
+      display: flex;
+      flex-direction: column;
     }
     .tour-step-indicator {
       font-family: 'Microsoft JhengHei', sans-serif;
@@ -456,6 +458,8 @@
       color: #4a4a4a;
       line-height: 1.7;
       margin-bottom: 20px;
+      min-height: 120px;
+      flex: 1;
     }
     .tour-desc kbd {
       display: inline-block;
@@ -760,16 +764,25 @@
       var viewTransform = { x: 0, y: 0, scale: 1 };
 
       /* 力模擬參數 */
-      var SIM_ALPHA = 1.0;          // 目前模擬溫度
-      var SIM_ALPHA_DECAY = 0.06;   // 溫度衰減率（較快冷卻）
-      var SIM_ALPHA_MIN = 0.001;    // 最低溫度（穩定後）
-      var SIM_VELOCITY_DECAY = 0.2; // 速度阻尼（保留 20% 速度，快速收斂）
-      var REPULSION_STRENGTH = 300; // 斥力強度（溫和不爆衝）
-      var LINK_STRENGTH = 0.02;     // 彈簧剛度（柔和拉近）
-      var LINK_DISTANCE = 120;      // 彈簧自然長度
-      var CENTER_STRENGTH = 0.008;  // 中心引力
-      var MAX_VELOCITY = 8;         // 速度上限（防止爆衝）
-      var MIN_DIST = 10;            // 最小計算距離（避免極近距離爆炸力）
+      var SIM_ALPHA = 1.0;
+      var SIM_ALPHA_DECAY = 0.06;
+      var SIM_ALPHA_MIN = 0.001;
+      var SIM_VELOCITY_DECAY = 0.2;
+      var REPULSION_STRENGTH = 300;
+      var LINK_STRENGTH = 0.02;
+      var LINK_DISTANCE = 120;
+      var CENTER_STRENGTH = 0.008;
+      var MAX_VELOCITY = 8;
+      var MIN_DIST = 10;
+
+      /* 佈局空間（固定大小，不隨視窗壓縮） */
+      var LAYOUT_W = 2400;
+      var LAYOUT_H = 1600;
+      var LAYOUT_CX = LAYOUT_W / 2;
+      var LAYOUT_CY = LAYOUT_H / 2;
+
+      /* 行動端偵測 */
+      var isMobile = (window.innerWidth < 768) || ('ontouchstart' in window && window.innerWidth < 1024);
 
       /* devicePixelRatio */
       var dpr = window.devicePixelRatio || 1;
@@ -904,23 +917,20 @@
       }
 
       /* ================================================================
-       *  初始節點位置（依年份排列 + 隨機偏移）
+       *  初始節點位置（在固定佈局空間中依年份排列 + 隨機偏移）
+       *  使用固定大小確保不同視窗下節點間距一致
        * ================================================================ */
       function initNodePositions() {
-        var rect = container.getBoundingClientRect();
-        var w = rect.width;
-        var h = rect.height;
-
         for (var i = 0; i < nodes.length; i++) {
           var n = nodes[i];
-          if (n.x !== undefined && n.y !== undefined) continue; // 已有位置則保留
+          if (n.x !== undefined && n.y !== undefined) continue;
 
           /* 水平依年份排列 */
           var yearFrac = (dataYearMax === dataYearMin)
             ? 0.5
             : (n.year - dataYearMin) / (dataYearMax - dataYearMin);
-          n.x = (yearFrac * 0.6 + 0.2) * w + (Math.random() - 0.5) * 80;
-          n.y = h * 0.5 + (Math.random() - 0.5) * h * 0.5;
+          n.x = (yearFrac * 0.6 + 0.2) * LAYOUT_W + (Math.random() - 0.5) * 100;
+          n.y = LAYOUT_CY + (Math.random() - 0.5) * LAYOUT_H * 0.5;
           n.vx = 0;
           n.vy = 0;
         }
@@ -935,17 +945,14 @@
           return;
         }
 
-        var rect = container.getBoundingClientRect();
-        var cx = rect.width / 2;
-        var cy = rect.height / 2;
         var n, m, dx, dy, dist, force, i, j;
 
-        /* 中心引力 */
+        /* 中心引力（指向佈局空間中心，與視窗大小無關） */
         for (i = 0; i < nodes.length; i++) {
           n = nodes[i];
           if (n.fixed) continue;
-          n.vx += (cx - n.x) * CENTER_STRENGTH * SIM_ALPHA;
-          n.vy += (cy - n.y) * CENTER_STRENGTH * SIM_ALPHA;
+          n.vx += (LAYOUT_CX - n.x) * CENTER_STRENGTH * SIM_ALPHA;
+          n.vy += (LAYOUT_CY - n.y) * CENTER_STRENGTH * SIM_ALPHA;
         }
 
         /* 節點斥力（兩兩計算 + 最小距離保護） */
@@ -1005,9 +1012,13 @@
        * ================================================================ */
       function nodeRadius(n) {
         var count = n.citedCount || 0;
-        if (count <= 0) return 4;
-        if (count >= 20) return 20;
-        return 4 + (count / 20) * 16;
+        /* 視窗越小，畫面已經由 fitView 縮放，
+           世界座標中的半徑需等比放大才能維持螢幕上足夠的點擊面積 */
+        var baseMin = 5;
+        var baseMax = 22;
+        if (count <= 0) return baseMin;
+        if (count >= 20) return baseMax;
+        return baseMin + (count / 20) * (baseMax - baseMin);
       }
 
       /* ================================================================
@@ -1156,16 +1167,64 @@
       function tick() {
         if (isSimulationActive) {
           simulationStep();
+          /* 模擬穩定後自動縮放適配 */
+          if (!isSimulationActive && !fitViewScheduled) {
+            fitViewScheduled = true;
+            fitView();
+          }
         }
         draw();
         animFrameId = requestAnimationFrame(tick);
       }
 
+      /* ================================================================
+       *  自動縮放：將所有節點適配到視窗中
+       * ================================================================ */
+      function fitView() {
+        if (nodes.length === 0) return;
+        var rect = container.getBoundingClientRect();
+        var sw = rect.width;
+        var sh = rect.height;
+
+        /* 計算所有節點的邊界框 */
+        var minX = Infinity, maxX = -Infinity;
+        var minY = Infinity, maxY = -Infinity;
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i];
+          minX = Math.min(minX, n.x);
+          maxX = Math.max(maxX, n.x);
+          minY = Math.min(minY, n.y);
+          maxY = Math.max(maxY, n.y);
+        }
+
+        var pad = 60;
+        var gw = (maxX - minX) + pad * 2;
+        var gh = (maxY - minY) + pad * 2;
+        if (gw < 1) gw = 1;
+        if (gh < 1) gh = 1;
+
+        var scale = Math.min(sw / gw, sh / gh);
+        scale = Math.min(scale, 2);   // 不要放太大
+        scale = Math.max(scale, 0.05); // 不要縮太小
+
+        viewTransform.scale = scale;
+        /* 置中 */
+        viewTransform.x = (minX - pad) + (gw - sw / scale) / 2;
+        viewTransform.y = (minY - pad) + (gh - sh / scale) / 2;
+      }
+
+      var fitViewScheduled = false;
+
       function startSimulation() {
         resizeCanvas();
-        viewTransform = { x: 0, y: 0, scale: 1 };
+        /* 初始 viewTransform 讓佈局空間中心對齊視窗中心 */
+        var rect = container.getBoundingClientRect();
+        viewTransform.scale = Math.min(rect.width / LAYOUT_W, rect.height / LAYOUT_H);
+        viewTransform.x = LAYOUT_CX - rect.width / viewTransform.scale / 2;
+        viewTransform.y = LAYOUT_CY - rect.height / viewTransform.scale / 2;
         SIM_ALPHA = 1.0;
         isSimulationActive = true;
+        fitViewScheduled = false;
         if (!animFrameId) {
           tick();
         }
@@ -1175,10 +1234,12 @@
        *  hitTest — 找到滑鼠下方的節點
        * ================================================================ */
       function hitTest(worldX, worldY) {
-        /* 從後往前遍歷，讓上層節點優先 */
+        /* 觸控額外加大判定範圍（世界座標中的像素）
+           在縮小顯示時，螢幕上的手指面積對應更大的世界座標範圍 */
+        var pad = isMobile ? 14 / viewTransform.scale : 6;
         for (var i = nodes.length - 1; i >= 0; i--) {
           var n = nodes[i];
-          var r = nodeRadius(n) + 4; // 增加一點可點擊範圍
+          var r = nodeRadius(n) + pad;
           var dx = worldX - n.x;
           var dy = worldY - n.y;
           if (dx * dx + dy * dy <= r * r) return n;
@@ -1420,7 +1481,7 @@
         }
         applyFilters();
         clearSelection();
-        viewTransform = { x: 0, y: 0, scale: 1 };
+        fitViewScheduled = false; // 讓模擬穩定後重新 fitView
       });
 
       /* ================================================================
@@ -1708,7 +1769,9 @@
        * ================================================================ */
       window.addEventListener('resize', function () {
         dpr = window.devicePixelRatio || 1;
+        isMobile = (window.innerWidth < 768) || ('ontouchstart' in window && window.innerWidth < 1024);
         resizeCanvas();
+        if (!isSimulationActive) fitView();
       });
 
       /* ================================================================
