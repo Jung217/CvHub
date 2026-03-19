@@ -12,13 +12,11 @@
 | An Image is Worth 16x16 Words (ViT) | Vision Transformer (ICLR 2021) |
 | Denoising Diffusion Probabilistic Models (DDPM) | 擴散模型 (NeurIPS 2020) |
 
----
-
 ## CVPR (2013-2025, 13 屆, 156 篇)
 
 > 含經典論文 5 篇 + CVPR 156 篇 + ICCV 84 篇 + ECCV 72 篇 = 共 317 篇
 
-## CVPR 2013
+### CVPR 2013
 
 | 論文 | 領域 |
 |------|------|
@@ -35,7 +33,7 @@
 | Detecting and Aligning Faces by Image Retrieval | 人臉偵測 |
 | Multi-target Tracking by Lagrangian Relaxation to Min-cost Network Flow | 多目標追蹤 |
 
-## CVPR 2014
+### CVPR 2014
 
 | 論文 | 領域 |
 |------|------|
@@ -52,7 +50,7 @@
 | Fast and Accurate Image Matching with Cascade Hashing for 3D Reconstruction | 3D 重建 |
 | Multi-Object Tracking via Constrained Sequential Labeling | 多目標追蹤 |
 
-## CVPR 2015
+### CVPR 2015
 
 | 論文 | 領域 |
 |------|------|
@@ -69,7 +67,7 @@
 | Deformable Part Models are Convolutional Neural Networks | 物件偵測 |
 | Hierarchical Recurrent Neural Network for Skeleton Based Action Recognition | 動作辨識 |
 
-## CVPR 2016
+### CVPR 2016
 
 | 論文 | 領域 |
 |------|------|
@@ -86,7 +84,7 @@
 | Learning Dense Correspondence via 3D-Guided Cycle Consistency | 3D 對應 |
 | Single Image 3D Interpreter Network | 3D 理解 |
 
-## CVPR 2017
+### CVPR 2017
 
 | 論文 | 領域 |
 |------|------|
@@ -103,7 +101,7 @@
 | Annotating Object Instances with a Polygon-RNN | 實例分割 (Honorable Mention) |
 | Computational Imaging on the Electric Grid | 計算攝影 (Best Student Paper) |
 
-## CVPR 2018
+### CVPR 2018
 
 | 論文 | 領域 |
 |------|------|
@@ -120,7 +118,7 @@
 | Deep Learning of Graph Matching | 圖匹配 (Honorable Mention) |
 | SPLATNet: Sparse Lattice Networks for Point Cloud Processing | 點雲 (Honorable Mention) |
 
-## CVPR 2019
+### CVPR 2019
 
 | 論文 | 領域 |
 |------|------|
@@ -137,7 +135,7 @@
 | Generalized Intersection over Union (GIoU) | 物件偵測 |
 | GANFIT: GAN Fitting for High Fidelity 3D Face Reconstruction | 3D 人臉重建 |
 
-## CVPR 2020
+### CVPR 2020
 
 | 論文 | 領域 |
 |------|------|
@@ -154,7 +152,7 @@
 | DeepCap: Monocular Human Performance Capture Using Weak Supervision | 人體動態捕捉 |
 | Adversarial Latent Autoencoders (ALAE) | 生成模型 |
 
-## CVPR 2021
+### CVPR 2021
 
 | 論文 | 領域 |
 |------|------|
@@ -171,7 +169,7 @@
 | UP-DETR: Unsupervised Pre-training for Object Detection with Transformers | 物件偵測 |
 | Learning High Fidelity Depths of Dressed Humans by Watching Social Media Dance Videos | 人體深度估計 (Honorable Mention) |
 
-## CVPR 2022
+### CVPR 2022
 
 | 論文 | 領域 |
 |------|------|
@@ -188,7 +186,7 @@
 | Restormer: Efficient Transformer for High-Resolution Image Restoration | 影像修復 |
 | Point-NeRF: Point-based Neural Radiance Fields | 3D 重建 |
 
-## CVPR 2023
+### CVPR 2023
 
 | 論文 | 領域 |
 |------|------|
@@ -205,7 +203,7 @@
 | Mask DINO: Towards A Unified Transformer-based Framework for Object Detection and Segmentation | 偵測與分割 |
 | Score Jacobian Chaining: Lifting Pretrained 2D Diffusion Models for 3D Generation | 3D 生成 |
 
-## CVPR 2024
+### CVPR 2024
 
 | 論文 | 領域 |
 |------|------|
@@ -222,7 +220,7 @@
 | EfficientSAM: Leveraged Masked Image Pretraining for Efficient Segment Anything | 高效分割 |
 | Objects as Volumes: A Stochastic Geometry View of Opaque Solids | 渲染理論 (Honorable Mention) |
 
-## CVPR 2025
+### CVPR 2025
 
 | 論文 | 領域 |
 |------|------|
@@ -239,11 +237,9 @@
 | DepthCrafter: Generating Consistent Long Depth Sequences for Open-world Videos | 影片深度估測 |
 | OmniGen: Unified Image Generation | 統一影像生成 |
 
----
-
 ## ICCV (2013-2025, 7 屆, 84 篇)
 
-## ICCV 2013
+### ICCV 2013
 
 | 論文 | 領域 |
 |------|------|
@@ -260,7 +256,7 @@
 | PhotoOCR: Reading Text in Uncontrolled Conditions | 文字辨識 |
 | Robust Object Tracking with Online Multi-lifespan Dictionary Learning | 視覺追蹤 |
 
-## ICCV 2015
+### ICCV 2015
 
 | 論文 | 領域 |
 |------|------|
@@ -277,7 +273,7 @@
 | Unsupervised Learning of Visual Representations using Videos | 自監督學習 |
 | Dense Optical Flow Prediction From a Static Image | 運動預測 |
 
-## ICCV 2017
+### ICCV 2017
 
 | 論文 | 領域 |
 |------|------|
@@ -294,7 +290,7 @@
 | Globally and Locally Consistent Image Completion | 影像補全 |
 | Learning to Segment Every Thing | 實例分割 |
 
-## ICCV 2019
+### ICCV 2019
 
 | 論文 | 領域 |
 |------|------|
@@ -311,7 +307,7 @@
 | Asynchronous Single-Photon 3D Imaging | 計算攝影 (Honorable Mention) |
 | Specifying Object Attributes and Relations in Interactive Scene Generation | 場景生成 (Honorable Mention) |
 
-## ICCV 2021
+### ICCV 2021
 
 | 論文 | 領域 |
 |------|------|
@@ -328,7 +324,7 @@
 | Viewing Graph Solvability via Cycle Consistency | 多視圖幾何 (Honorable Mention) |
 | Multiscale Vision Transformers (MViT) | Vision Transformer |
 
-## ICCV 2023
+### ICCV 2023
 
 | 論文 | 領域 |
 |------|------|
@@ -345,7 +341,7 @@
 | IP-Adapter: Text Compatible Image Prompt Adapter | 可控生成 |
 | Tracking Anything in High Quality | 追蹤 |
 
-## ICCV 2025
+### ICCV 2025
 
 | 論文 | 領域 |
 |------|------|
@@ -362,11 +358,9 @@
 | SceneSplat: Gaussian Splatting-based Scene Understanding | 3D 場景理解 |
 | From Image to Video: An Empirical Study of Diffusion Representations | 表示學習 |
 
----
-
 ## ECCV (2014-2024, 6 屆, 72 篇)
 
-## ECCV 2014
+### ECCV 2014
 
 | 論文 | 領域 |
 |------|------|
@@ -383,7 +377,7 @@
 | Part-Based R-CNNs for Fine-Grained Category Detection | 細粒度偵測 |
 | Action Recognition with Stacked Fisher Vectors | 動作辨識 |
 
-## ECCV 2016
+### ECCV 2016
 
 | 論文 | 領域 |
 |------|------|
@@ -400,7 +394,7 @@
 | ENet: A Deep Neural Network Architecture for Real-Time Semantic Segmentation | 語義分割 |
 | Temporal Segment Networks (TSN) | 影片動作辨識 |
 
-## ECCV 2018
+### ECCV 2018
 
 | 論文 | 領域 |
 |------|------|
@@ -417,7 +411,7 @@
 | ESPNet: Efficient Spatial Pyramid of Dilated Convolutions | 即時語義分割 |
 | Rethinking ImageNet Pre-training | 預訓練策略 |
 
-## ECCV 2020
+### ECCV 2020
 
 | 論文 | 領域 |
 |------|------|
@@ -434,7 +428,7 @@
 | Knowledge Distillation Meets Self-Supervision | 知識蒸餾 |
 | Unpaired Learning of Deep Image Denoising | 影像去噪 |
 
-## ECCV 2022
+### ECCV 2022
 
 | 論文 | 領域 |
 |------|------|
@@ -451,7 +445,7 @@
 | AnyDoor: Zero-shot Object-level Image Customization | 影像編輯 |
 | MaskGIT: Masked Generative Image Transformer | 影像生成 |
 
-## ECCV 2024
+### ECCV 2024
 
 | 論文 | 領域 |
 |------|------|
