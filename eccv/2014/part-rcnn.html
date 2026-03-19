@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
-    <title>Part-Based R-CNNs — 雙欄批注</title>
+    <title>Part-Based R-CNNs for Fine-Grained Category Detection — 雙欄批注</title>
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
@@ -23,6 +23,7 @@
         .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
         .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
         .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
         .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
         .left-col { flex: 0 0 63%; max-width: 63%; }
         .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
@@ -33,8 +34,16 @@
         .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
         .annotation-card .ann-section { margin-bottom: 10px; }
         .annotation-card .ann-section:last-child { margin-bottom: 0; }
-        .ann-intro { border-left: 4px solid #ffc107; } .ann-concept { border-left: 4px solid #dc3545; } .ann-evidence { border-left: 4px solid #007bff; } .ann-rebuttal { border-left: 4px solid #28a745; } .ann-method { border-left: 4px solid #7b61c4; }
-        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; } .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; } .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; } .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; } .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
         .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
         .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
         .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
@@ -44,39 +53,341 @@
         .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
         .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
         .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
-        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
-        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
-        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; } .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; } .legend-toggle:hover { background: #243044; } .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; } .legend-panel.open { display: block; } .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; } .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
     </style>
 </head>
 <body>
-<nav class="top-navbar"><div class="navbar-inner"><div class="navbar-top-row"><div class="navbar-title">Part-Based R-CNNs for Fine-Grained Category Detection<span class="course-tag">ECCV 2014</span></div><div class="navbar-links"><a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a><a href="https://link.springer.com/chapter/10.1007/978-3-319-10590-1_54" target="_blank" class="navbar-home-link">原文連結</a></div></div></div></nav>
-<div class="section-nav"><div class="section-nav-inner"><a href="#sec-abstract">摘要</a><a href="#sec-intro">1. 緒論</a><a href="#sec-method">2. 方法</a><a href="#sec-parts">3. 部件偵測</a><a href="#sec-experiments">4. 實驗</a><a href="#sec-conclusion">5. 結論</a><a href="#sec-overview">論證總覽</a></div></div>
-<div class="main-container">
-    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
-    <div class="para-row"><div class="left-col"><div class="en-text">Existing <span class="hl-concept">fine-grained recognition</span> methods often rely on <span class="hl-rebuttal">manually defined parts or attribute annotations</span>. We present a <span class="hl-concept">Part-based R-CNN</span> model that learns to <span class="hl-thesis">detect discriminative parts and use them for fine-grained categorization without requiring part annotations at test time</span>. Our approach uses <span class="hl-method">R-CNN to detect both the whole object and its semantic parts</span>, then combines their features for classification. We achieve <span class="hl-evidence">state-of-the-art accuracy on the Caltech-UCSD Birds-200-2011 dataset</span>.</div><div class="lang-divider"></div><div class="zh-text">現有的<span class="hl-concept">細粒度辨識</span>方法通常依賴<span class="hl-rebuttal">人工定義的部件或屬性標記</span>。我們提出一個<span class="hl-concept">基於部件的 R-CNN</span> 模型，學習<span class="hl-thesis">偵測具區分性的部件並利用它們進行細粒度分類，且測試時無需部件標記</span>。我們的方法使用 <span class="hl-method">R-CNN 同時偵測整體物件及其語義部件</span>，然後結合它們的特徵進行分類。我們在 <span class="hl-evidence">Caltech-UCSD Birds-200-2011 資料集上達到了最先進的精度</span>。</div></div><div class="right-col"><div class="annotation-card ann-intro"><div class="ann-section"><span class="ann-label">段落功能</span>提出以 R-CNN 為基礎的部件偵測方法解決細粒度辨識。</div><div class="ann-section"><span class="ann-label">邏輯角色</span>「無需部件標記」的宣稱直接回應了現有方法的標記成本問題。</div><div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>訓練時仍需部件標記，僅測試時免除——此區分需更明確說明。</div></div></div></div>
 
-    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
-    <div class="para-row"><div class="left-col"><div class="en-text"><span class="hl-concept">Fine-grained visual categorization</span> aims to distinguish between subordinate categories within a basic-level category, such as <span class="hl-evidence">different bird species, car models, or flower types</span>. This task is challenging because <span class="hl-rebuttal">the visual differences between categories are often subtle — a Laysan Albatross and a Black-footed Albatross differ mainly in bill color and plumage pattern</span>. Traditional methods require <span class="hl-rebuttal">detailed part annotations during both training and testing</span>, which is expensive and limits scalability.</div><div class="lang-divider"></div><div class="zh-text"><span class="hl-concept">細粒度視覺分類</span>旨在區分基本類別內的從屬類別，例如<span class="hl-evidence">不同鳥種、車款或花卉品種</span>。此任務具有挑戰性，因為<span class="hl-rebuttal">類別間的視覺差異通常很微妙——黑背信天翁與短尾信天翁主要在喙色與羽毛圖案上有所不同</span>。傳統方法在<span class="hl-rebuttal">訓練和測試期間都需要詳細的部件標記</span>，成本高昂且限制了可擴展性。</div></div><div class="right-col"><div class="annotation-card ann-concept"><div class="ann-section"><span class="ann-label">段落功能</span>以鳥類辨識的具體例子說明細粒度分類的困難。</div><div class="ann-section"><span class="ann-label">邏輯角色</span>從「微妙差異」到「昂貴標記」雙重挑戰，為自動部件偵測的必要性建立基礎。</div><div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>具體鳥種的例子讓抽象問題具象化，增加讀者共鳴。</div></div></div></div>
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Part-Based R-CNNs for Fine-Grained Category Detection
+                <span class="course-tag">ECCV 2014</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/1407.3867" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
 
-    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
-    <div class="para-row"><div class="left-col"><div class="en-text">Our method has three components: (1) A <span class="hl-method">whole-object detector based on R-CNN</span> that localizes the bird in the image; (2) <span class="hl-method">Part detectors (also based on R-CNN) for semantic parts</span> such as head, body, and tail; (3) A <span class="hl-method">feature combination stage that concatenates CNN features from the whole object and detected parts</span> and feeds them to a linear SVM classifier. Part detectors are trained using <span class="hl-evidence">bounding box annotations for parts provided in the training set</span>.</div><div class="lang-divider"></div><div class="zh-text">我們的方法有三個組成部分：(1) <span class="hl-method">基於 R-CNN 的整體物件偵測器</span>，在影像中定位鳥類；(2) <span class="hl-method">語義部件的部件偵測器（同樣基於 R-CNN）</span>，如頭部、身體和尾部；(3) <span class="hl-method">特徵結合階段，串接來自整體物件和偵測到的部件的 CNN 特徵</span>，並饋入線性 SVM 分類器。部件偵測器使用<span class="hl-evidence">訓練集中提供的部件邊界框標記</span>進行訓練。</div></div><div class="right-col"><div class="annotation-card ann-method"><div class="ann-section"><span class="ann-label">段落功能</span>描述三元件管線：整體偵測 + 部件偵測 + 特徵結合。</div><div class="ann-section"><span class="ann-label">邏輯角色</span>模組化設計使方法清晰可理解，各元件的功能定位明確。</div><div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>多階段管線可能導致錯誤傳遞，且訓練仍需部件標記。</div></div></div></div>
-
-    <h2 class="section-heading" id="sec-parts">3. Part Detection — 部件偵測</h2>
-    <div class="para-row"><div class="left-col"><div class="en-text">At test time, we use a <span class="hl-method">geometric prior to constrain part locations relative to the detected object</span>. Given the detected bird bounding box, we restrict the search space for each part to a region predicted by a <span class="hl-method">learned geometric model</span>. This not only improves <span class="hl-evidence">part detection accuracy by 5-10 percentage points</span> but also <span class="hl-evidence">reduces computation by limiting the number of candidate regions</span>. The geometric model captures intuitive spatial relations: <span class="hl-evidence">heads are near the top, tails at the extremities</span>.</div><div class="lang-divider"></div><div class="zh-text">在測試時，我們使用<span class="hl-method">幾何先驗來約束部件相對於偵測物件的位置</span>。給定偵測到的鳥類邊界框，我們將每個部件的搜索空間限制在由<span class="hl-method">學習到的幾何模型</span>預測的區域內。這不僅<span class="hl-evidence">將部件偵測精度提升了 5-10 個百分點</span>，還<span class="hl-evidence">透過限制候選區域數量減少了計算量</span>。幾何模型捕捉了直覺的空間關係：<span class="hl-evidence">頭部在頂部附近，尾部在末端</span>。</div></div><div class="right-col"><div class="annotation-card ann-evidence"><div class="ann-section"><span class="ann-label">段落功能</span>展示幾何先驗對部件偵測的雙重改進（精度 + 效率）。</div><div class="ann-section"><span class="ann-label">邏輯角色</span>幾何約束是實用性的關鍵——它使部件偵測在測試時可行。</div><div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>5-10 個百分點的改進證實了幾何先驗的價值，但對於姿態變化大的物件可能效果減弱。</div></div></div></div>
-
-    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
-    <div class="para-row"><div class="left-col"><div class="en-text">We evaluate on the <span class="hl-evidence">Caltech-UCSD Birds-200-2011 (CUB-200-2011) dataset</span>, which contains <span class="hl-evidence">11,788 images of 200 bird species</span>. Our Part-based R-CNN achieves <span class="hl-evidence">76.4% classification accuracy</span>, significantly outperforming previous methods: <span class="hl-evidence">DPD+DeCAF at 65.0% and Alignment at 62.7%</span>. Ablation studies show that <span class="hl-evidence">adding part features improves accuracy by 3.5% over using whole-object features alone</span>.</div><div class="lang-divider"></div><div class="zh-text">我們在 <span class="hl-evidence">Caltech-UCSD Birds-200-2011（CUB-200-2011）資料集</span>上評估，該資料集包含 <span class="hl-evidence">200 個鳥種的 11,788 張影像</span>。我們的基於部件的 R-CNN 達到 <span class="hl-evidence">76.4% 的分類精度</span>，顯著優於先前方法：<span class="hl-evidence">DPD+DeCAF 的 65.0% 和 Alignment 的 62.7%</span>。消融實驗顯示<span class="hl-evidence">添加部件特徵相較僅使用整體物件特徵改進了 3.5%</span>。</div></div><div class="right-col"><div class="annotation-card ann-evidence"><div class="ann-section"><span class="ann-label">段落功能</span>提供定量結果與消融分析。</div><div class="ann-section"><span class="ann-label">邏輯角色</span>11 個百分點以上的提升（76.4% vs 65.0%）是極具說服力的改進幅度。</div><div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>消融實驗量化了部件特徵的邊際貢獻（3.5%），為方法設計提供了實證依據。</div></div></div></div>
-
-    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
-    <div class="para-row"><div class="left-col"><div class="en-text">We have presented <span class="hl-concept">Part-based R-CNNs</span> for <span class="hl-thesis">fine-grained visual categorization that combines whole-object and part-level CNN features</span>. By leveraging <span class="hl-method">geometric priors and R-CNN-based part detectors</span>, our method achieves state-of-the-art results on bird species recognition. We believe that <span class="hl-thesis">the principled integration of part-based representations with deep features will continue to advance fine-grained recognition</span>.</div><div class="lang-divider"></div><div class="zh-text">我們提出了<span class="hl-concept">基於部件的 R-CNN</span>，用於<span class="hl-thesis">結合整體物件與部件級 CNN 特徵的細粒度視覺分類</span>。透過利用<span class="hl-method">幾何先驗與基於 R-CNN 的部件偵測器</span>，我們的方法在鳥種辨識上達到了最先進的結果。我們相信<span class="hl-thesis">將基於部件的表示與深度特徵進行有原則性的整合，將持續推進細粒度辨識</span>。</div></div><div class="right-col"><div class="annotation-card ann-intro"><div class="ann-section"><span class="ann-label">段落功能</span>總結貢獻並展望未來方向。</div><div class="ann-section"><span class="ann-label">邏輯角色</span>強調「部件 + 深度」結合的範式，對後續研究有指導意義。</div><div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>後續研究表明注意力機制可隱式學習部件，顯式部件偵測的必要性受到挑戰。</div></div></div></div>
-
-    <div class="argument-overview" id="sec-overview">
-        <h2>論證結構總覽</h2>
-        <div class="arg-skeleton"><div class="arg-step">細粒度分類挑戰<br><small>微妙類間差異</small></div><div class="arg-arrow">&rarr;</div><div class="arg-step">R-CNN 部件偵測<br><small>頭/身/尾偵測器</small></div><div class="arg-arrow">&rarr;</div><div class="arg-step">幾何先驗約束<br><small>空間關係建模</small></div><div class="arg-arrow">&rarr;</div><div class="arg-step">特徵結合分類<br><small>整體 + 部件 CNN</small></div><div class="arg-arrow">&rarr;</div><div class="arg-step">76.4% 精度<br><small>CUB-200 SOTA</small></div></div>
-        <div class="arg-detail-grid"><div class="arg-detail-card"><h3>核心主張</h3><p>透過 R-CNN 自動偵測語義部件並結合整體特徵，能在測試時無需人工部件標記的情況下實現最先進的細粒度辨識。</p></div><div class="arg-detail-card"><h3>最強論證</h3><p>76.4% vs 65.0% 的顯著精度提升，以及消融實驗對部件特徵貢獻（3.5%）的量化，提供了充分的實證支持。</p></div><div class="arg-detail-card"><h3>最弱環節</h3><p>訓練仍需部件邊界框標記，多階段管線的複雜度高，且幾何先驗對非剛體物件的泛化能力有限。</p></div></div>
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-method">2. 方法</a>
+        <a href="#sec-experiments">3. 實驗</a>
+        <a href="#sec-analysis">4. 分析</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
     </div>
 </div>
-<div class="floating-legend"><div class="legend-panel" id="legendPanel"><div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div><div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div><div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div><div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div><div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div></div><button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9713;</button></div>
+
+<div class="main-container">
+
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We present a <span class="hl-method">Part-based R-CNN</span> model for <span class="hl-concept">fine-grained category detection</span>. Our approach <span class="hl-thesis">combines the power of deep convolutional neural networks with explicit part-level reasoning to achieve accurate fine-grained recognition</span>. Given an image, we first use <span class="hl-method">R-CNN to detect the whole object and its semantic parts</span> (e.g., head, body, legs for birds). We then extract <span class="hl-method">CNN features from each detected part region</span> and combine them through a <span class="hl-method">geometric constraint model</span> that encodes the expected spatial relationships between parts. <span class="hl-evidence">Experiments on CUB-200-2011 demonstrate that our method achieves state-of-the-art fine-grained recognition accuracy of 73.9%</span>, significantly outperforming whole-image CNN features and prior part-based methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出用於<span class="hl-concept">細粒度類別偵測</span>的<span class="hl-method">基於部件的 R-CNN</span> 模型。我們的方法<span class="hl-thesis">結合了深度摺積神經網路的強大表示能力與顯式的部件級推理，以實現精確的細粒度辨識</span>。給定一張影像，我們首先使用 <span class="hl-method">R-CNN 偵測完整物體及其語意部件</span>（如鳥類的頭部、身體、腿部）。接著從<span class="hl-method">每個偵測到的部件區域提取 CNN 特徵</span>，並透過編碼部件間預期空間關係的<span class="hl-method">幾何約束模型</span>進行組合。<span class="hl-evidence">在 CUB-200-2011 上的實驗表明，我們的方法達到 73.9% 的最先進細粒度辨識精確度</span>，顯著超越全影像 CNN 特徵和先前的基於部件方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——概述部件級 R-CNN 的方法設計與效能。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立了「組合（CNN + 部件推理）→ 管線（偵測→提取→組合）→ 驗證（SOTA）」的論證預告。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「結合」的敘事框架將 CNN 與部件模型的優勢整合。但方法依賴部件標註（如鳥類部位），標註成本和跨類別泛化性是潛在問題。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Fine-grained visual categorization</span> aims to distinguish between visually similar sub-categories within a general category, such as differentiating between species of birds, breeds of dogs, or models of cars. This task is particularly challenging because <span class="hl-rebuttal">inter-class differences are subtle and localized to specific parts of the object, while intra-class variation due to pose, viewpoint, and illumination can be substantial</span>. Standard whole-image classification approaches, even those using powerful <span class="hl-concept">CNN features</span>, <span class="hl-rebuttal">may not focus on the discriminative parts that distinguish fine-grained categories</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">細粒度視覺分類</span>旨在區分一般類別內視覺上相似的子類別，如區分不同鳥種、犬種或車型。此任務格外具有挑戰性，因為<span class="hl-rebuttal">類間差異細微且定位於物體的特定部分，而由姿態、視角和照明引起的類內變異可能相當大</span>。標準的全影像分類方法，即使使用強大的 <span class="hl-concept">CNN 特徵</span>，也<span class="hl-rebuttal">可能無法聚焦於區分細粒度類別的判別性部件</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題意識——闡述細粒度辨識的特殊挑戰。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：「類間差異小、類內變異大」的雙重挑戰，加上全影像方法的不足，為部件級推理建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以直觀的例子（鳥種、犬種）讓讀者快速理解問題。但全影像 CNN 是否真的「不聚焦判別部件」需要實驗驗證，注意力可視化可能揭示不同的事實。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                Prior work on fine-grained recognition has explored <span class="hl-concept">part-based models</span> using <span class="hl-concept">deformable part models (DPM)</span> and <span class="hl-concept">poselets</span>, which explicitly model object parts and their spatial configurations. However, <span class="hl-rebuttal">these methods rely on hand-crafted features (HOG) that lack the representational power of deep features</span>. Meanwhile, R-CNN has demonstrated that <span class="hl-concept">region-based CNN features</span> can achieve excellent object detection performance. <span class="hl-thesis">We bridge these two lines of research by applying the R-CNN framework to detect both the whole object and its semantic parts, then combining part-level CNN features with geometric reasoning for fine-grained recognition</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                先前的細粒度辨識工作探索了使用<span class="hl-concept">可變形部件模型（DPM）</span>和<span class="hl-concept">poselets</span> 的<span class="hl-concept">基於部件的模型</span>，顯式建模物體部件及其空間配置。然而，<span class="hl-rebuttal">這些方法依賴手工特徵（HOG），缺乏深度特徵的表示能力</span>。同時，R-CNN 已證明<span class="hl-concept">基於區域的 CNN 特徵</span>能達到優異的物件偵測效能。<span class="hl-thesis">我們透過將 R-CNN 框架應用於偵測完整物體及其語意部件，再結合部件級 CNN 特徵與幾何推理進行細粒度辨識，銜接了這兩條研究路線</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    定位差異——指出部件模型（手工特徵）與 CNN（缺乏部件）的各自不足。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「銜接兩條研究路線」的敘事建立 Part R-CNN 的獨特學術定位。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「銜接」的論述簡潔有力。但 R-CNN 本身的計算成本已不低，為每個部件分別運行 R-CNN 將大幅增加推論時間。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-method">Part-based R-CNN</span> pipeline consists of three stages. In the <span class="hl-method">detection stage</span>, we train separate R-CNN detectors for the whole object and for each semantic part (e.g., head, body, legs, tail for birds). Each detector uses <span class="hl-method">Selective Search proposals followed by CNN feature extraction and SVM classification</span>. In the <span class="hl-method">feature extraction stage</span>, CNN features (from the fc7 layer) are extracted from the detected bounding boxes of the whole object and each part. In the <span class="hl-method">classification stage</span>, the concatenated part features, augmented with <span class="hl-method">geometric features encoding the relative positions and scales of detected parts</span>, are fed into a final classifier for fine-grained category prediction.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">基於部件的 R-CNN</span> 管線包含三個階段。在<span class="hl-method">偵測階段</span>，我們為完整物體和每個語意部件（如鳥類的頭部、身體、腿部、尾部）分別訓練 R-CNN 偵測器。每個偵測器使用 <span class="hl-method">Selective Search 提案，接著進行 CNN 特徵提取和 SVM 分類</span>。在<span class="hl-method">特徵提取階段</span>，從偵測到的完整物體和各部件邊界框中提取 CNN 特徵（fc7 層）。在<span class="hl-method">分類階段</span>，串接的部件特徵加上編碼<span class="hl-method">偵測部件相對位置和尺度的幾何特徵</span>，被輸入最終分類器進行細粒度類別預測。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法描述——詳述三階段管線的具體流程。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將「部件 + CNN」的概念落實為偵測→提取→分類的三步管線，每步驟職責分明。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    管線結構清晰。但三個獨立階段意味著誤差會逐步累積：部件偵測失敗將直接影響下游分類效能。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The <span class="hl-method">geometric constraint model</span> encodes the expected spatial configuration of parts relative to the whole object. For each pair of parts, we compute features including <span class="hl-method">relative position (normalized by object bounding box), relative scale, and overlap ratio</span>. These geometric features capture the <span class="hl-evidence">characteristic pose and layout of each species</span>: for example, the relative position of a bird's head to its body differs systematically between perching and flying poses. The final feature representation concatenates <span class="hl-method">whole-object CNN features, per-part CNN features, and the geometric features</span>, producing a rich, multi-faceted descriptor that captures both local appearance and global structure.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">幾何約束模型</span>編碼了部件相對於完整物體的預期空間配置。對於每對部件，我們計算包括<span class="hl-method">相對位置（以物體邊界框正規化）、相對尺度和重疊比率</span>的特徵。這些幾何特徵捕捉了<span class="hl-evidence">每個物種的特徵性姿態和布局</span>：例如，鳥頭相對於身體的位置在棲息和飛行姿態之間存在系統性差異。最終特徵表示串接了<span class="hl-method">全物體 CNN 特徵、逐部件 CNN 特徵和幾何特徵</span>，產生一個捕捉局部外觀和全域結構的豐富多面向描述子。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    技術細節深化——說明幾何約束模型的設計與最終特徵組合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    幾何特徵與 CNN 特徵的互補：CNN 提供外觀資訊，幾何模型提供結構資訊，兩者缺一不可。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「棲息 vs. 飛行」的具體例子展示幾何特徵的判別價值。但幾何特徵的設計高度依賴領域知識，推廣至其他細粒度類別（如車型）時可能需要重新設計。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-experiments">3. Experiments — 實驗</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We evaluate Part R-CNN on the <span class="hl-evidence">CUB-200-2011 benchmark (200 bird species, 11,788 images)</span>. Using ground-truth bounding boxes and part annotations at both training and test time, Part R-CNN achieves <span class="hl-evidence">73.9% classification accuracy</span>, outperforming whole-image CNN features (65.0%), DPM-based part models (51.0%), and the previous state-of-the-art Poselets + CNN (68.0%). In the more realistic setting where only the bounding box is provided at test time, Part R-CNN achieves <span class="hl-evidence">68.7% accuracy</span> using detected parts, still significantly above whole-image baselines. The <span class="hl-evidence">contribution of part features is most significant for species that differ primarily in head markings or tail patterns</span>, where whole-image features fail to capture the relevant details.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                我們在<span class="hl-evidence">CUB-200-2011 基準（200 種鳥類、11,788 張影像）</span>上評估 Part R-CNN。在訓練和測試時均使用真實邊界框和部件標註的情況下，Part R-CNN 達到<span class="hl-evidence">73.9% 分類精確度</span>，超越全影像 CNN 特徵（65.0%）、基於 DPM 的部件模型（51.0%）和先前最先進的 Poselets + CNN（68.0%）。在更實際的設定中（測試時僅提供邊界框），Part R-CNN 使用偵測部件達到<span class="hl-evidence">68.7% 精確度</span>，仍顯著高於全影像基線。<span class="hl-evidence">部件特徵的貢獻在主要以頭部標記或尾部花紋區分的物種上最為顯著</span>，這些是全影像特徵無法捕捉相關細節的類別。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心實證——在 CUB-200-2011 上的量化結果。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以多設定的比較（真實部件 vs. 偵測部件、全影像 vs. 部件級）全面支撐部件級推理的價值。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    73.9%（真實部件）與 68.7%（偵測部件）之間 5.2% 的差距揭示了部件偵測品質對最終效能的顯著影響，這是方法的實際瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-analysis">4. Analysis — 分析</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Component analysis</span> reveals the relative importance of each feature type. <span class="hl-evidence">Whole-object CNN features alone achieve 65.0%</span>. Adding head part features boosts accuracy to <span class="hl-evidence">70.2% (+5.2%)</span>, confirming that head region is the most discriminative part for bird species recognition. Adding body and leg features further improves to <span class="hl-evidence">72.8%</span>. The geometric features contribute an additional <span class="hl-evidence">1.1%</span>, bringing the total to 73.9%. <span class="hl-rebuttal">We note that the marginal contribution of geometric features is relatively small, suggesting that CNN part features already implicitly encode some positional information through the detected part regions</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">組件分析</span>揭示了每種特徵類型的相對重要性。<span class="hl-evidence">僅全物體 CNN 特徵達到 65.0%</span>。加入頭部部件特徵將精確度提升至<span class="hl-evidence">70.2%（+5.2%）</span>，確認頭部區域是鳥類物種辨識中最具判別力的部件。加入身體和腿部特徵進一步提升至<span class="hl-evidence">72.8%</span>。幾何特徵貢獻額外的<span class="hl-evidence">1.1%</span>，使總精確度達到 73.9%。<span class="hl-rebuttal">我們注意到幾何特徵的邊際貢獻相對較小，表明 CNN 部件特徵已透過偵測到的部件區域隱式編碼了部分位置資訊</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    深度分析——逐步拆解各特徵組件的貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    頭部 +5.2% 的貢獻最大，直接支撐了「部件級推理對細粒度辨識至關重要」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    坦誠指出幾何特徵貢獻有限，增強了研究的可信度。但這也暗示方法的核心價值主要來自部件偵測而非幾何推理，方法名稱可能產生誤導。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">Part-based R-CNNs</span>, <span class="hl-thesis">an approach that combines deep CNN features with explicit part detection and geometric reasoning for fine-grained visual categorization</span>. Our results on CUB-200-2011 demonstrate that <span class="hl-evidence">part-level CNN features provide substantial improvements over whole-image features</span>, with the head region being the most discriminative part for bird species recognition. The approach establishes a strong baseline for <span class="hl-concept">fine-grained recognition</span> and highlights the importance of <span class="hl-thesis">focusing computational resources on the most informative regions of the image rather than processing the entire image uniformly</span>. Future work will explore end-to-end training of part detection and classification, as well as learning part detectors without explicit part annotations.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了<span class="hl-concept">基於部件的 R-CNN</span>，<span class="hl-thesis">一種結合深度 CNN 特徵、顯式部件偵測和幾何推理的細粒度視覺分類方法</span>。在 CUB-200-2011 上的結果證明，<span class="hl-evidence">部件級 CNN 特徵相較於全影像特徵提供了顯著改進</span>，其中頭部區域是鳥類物種辨識中最具判別力的部件。此方法為<span class="hl-concept">細粒度辨識</span>建立了強勁基線，並強調了<span class="hl-thesis">將計算資源聚焦於影像中最具資訊量的區域而非均勻處理整張影像</span>的重要性。未來工作將探索部件偵測與分類的端到端訓練，以及在無顯式部件標註下學習部件偵測器。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-intro">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——重申核心貢獻並提出未來方向。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以「聚焦資訊區域」的一般性原則總結方法價值，超越了具體的鳥類辨識應用。未來方向（端到端、無標註部件）指出了方法的主要改進空間。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    未來方向的提出（端到端、無標註）精準地指出了方法的兩大局限：非端到端和依賴部件標註。這種自我批評增強了學術誠實度。
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="main-container">
+    <div class="argument-overview" id="sec-overview">
+        <h2>論證結構總覽</h2>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題<br>全影像 CNN 無法<br>聚焦細粒度判別部件</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">論點<br>R-CNN 偵測部件<br>+部件級 CNN 特徵</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">證據<br>CUB-200 73.9%<br>頭部 +5.2% 最關鍵</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">反駁<br>偵測部件 68.7%<br>仍超越全影像基線</div>
+            <div class="arg-arrow">&#10132;</div>
+            <div class="arg-step">結論<br>聚焦資訊區域<br>對細粒度辨識至關重要</div>
+        </div>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過以 R-CNN 分別偵測物體部件並提取部件級 CNN 特徵，結合幾何約束進行細粒度分類，Part R-CNN 證明了聚焦於判別性區域對細粒度辨識的重要性。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論點</h3>
+                <p>頭部部件單獨貢獻 5.2% 的精確度提升，直接證明了部件級推理的不可替代價值，且此發現與鳥類學中頭部標記為物種辨識關鍵特徵的領域知識高度一致。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>方法依賴顯式部件標註（訓練時）且為非端到端管線，真實部件與偵測部件間 5.2% 的效能差距暴露了部件偵測品質為整體效能的瓶頸。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="floating-legend">
+    <div class="legend-panel" id="legendPanel">
+        <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#f8d7da;"></span> 關鍵概念 / 術語</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#cce5ff;"></span> 實證證據 / 資料</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#d4edda;"></span> 讓步 / 反駁處理</div>
+        <div class="fl-item"><span class="fl-swatch" style="background:#e2d5f1;"></span> 方法論說明</div>
+    </div>
+    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')">&#9673;</button>
+</div>
+
 </body>
 </html>

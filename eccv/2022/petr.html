@@ -4,138 +4,447 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
-    <title>PETR — 雙欄批注</title>
+    <title>PETR: Position Embedding Transformation for Multi-View 3D Object Detection — 雙欄批注</title>
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; background-color: #faf8f5; color: #2c2c2c; line-height: 1.7; }
-        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; } .navbar-inner { max-width: 1400px; margin: 0 auto; } .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; } .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; } .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; } .navbar-links { display: flex; align-items: center; gap: 16px; } .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; } .navbar-home-link:hover { color: #fff; }
-        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; } .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; } .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; } .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
-        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; } .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; } .section-heading:first-of-type { margin-top: 10px; }
-        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; } .left-col { flex: 0 0 63%; max-width: 63%; } .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; } .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; } .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; } .right-col { flex: 0 0 34%; max-width: 34%; }
-        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; } .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; } .annotation-card .ann-section { margin-bottom: 10px; } .annotation-card .ann-section:last-child { margin-bottom: 0; }
-        .ann-intro { border-left: 4px solid #ffc107; } .ann-concept { border-left: 4px solid #dc3545; } .ann-evidence { border-left: 4px solid #007bff; } .ann-rebuttal { border-left: 4px solid #28a745; } .ann-method { border-left: 4px solid #7b61c4; }
-        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; } .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; } .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; } .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; } .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
-        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; } .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; } .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; } .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; } .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; } .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; } .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; } .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; } .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
-        @media (max-width: 900px) { .para-row { flex-direction: column; } .left-col, .right-col { flex: 0 0 100%; max-width: 100%; } .arg-detail-grid { grid-template-columns: 1fr; } .arg-skeleton { flex-direction: column; align-items: center; } .arg-arrow { transform: rotate(90deg); } }
-        @media (max-width: 600px) { .top-navbar { padding: 12px 14px; } .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; } .navbar-title { font-size: 0.85rem; line-height: 1.4; } .section-nav { padding: 0 10px; } .section-nav a { font-size: 0.75rem; padding: 8px 10px; } .main-container { padding: 16px 12px 40px; } }
-        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; } .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; } .legend-toggle:hover { background: #243044; } .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; } .legend-panel.open { display: block; } .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; } .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+        .top-navbar { background-color: #1a2332; color: #fff; padding: 18px 30px; position: relative; z-index: 1000; }
+        .navbar-inner { max-width: 1400px; margin: 0 auto; }
+        .navbar-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar-title { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.3px; }
+        .navbar-title .course-tag { display: inline-block; background: rgba(255,255,255,0.15); padding: 2px 10px; border-radius: 3px; font-size: 0.78rem; font-weight: 500; margin-left: 12px; vertical-align: middle; }
+        .navbar-links { display: flex; align-items: center; gap: 16px; }
+        .navbar-home-link { color: #ccc; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .navbar-home-link:hover { color: #fff; }
+        .section-nav { background-color: #243044; position: sticky; top: 0; z-index: 999; padding: 0 30px; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid #1a2332; }
+        .section-nav-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 0; }
+        .section-nav a { color: #aab; text-decoration: none; font-size: 0.82rem; font-weight: 500; padding: 10px 16px; display: inline-block; transition: background 0.2s, color 0.2s; border-bottom: 2px solid transparent; }
+        .section-nav a:hover { background: rgba(255,255,255,0.06); color: #fff; border-bottom-color: #5b9bd5; }
+        .main-container { max-width: 1400px; margin: 0 auto; padding: 30px 30px 60px; }
+        .section-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.5rem; font-weight: 700; color: #1a2332; margin: 50px 0 8px; padding-bottom: 8px; border-bottom: 3px solid #1a2332; scroll-margin-top: 60px; }
+        .section-heading:first-of-type { margin-top: 10px; }
+        .subsection-heading { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.15rem; font-weight: 600; color: #2a3a50; margin: 30px 0 6px; scroll-margin-top: 60px; }
+        .para-row { display: flex; gap: 28px; margin: 22px 0; align-items: flex-start; }
+        .left-col { flex: 0 0 63%; max-width: 63%; }
+        .en-text { font-family: 'Times New Roman', 'Microsoft JhengHei', serif; font-size: 1.02rem; line-height: 1.85; color: #1e1e1e; text-align: justify; }
+        .lang-divider { height: 1px; background: #d5d0c8; margin: 10px 0; }
+        .zh-text { background-color: #f0ece2; border-left: 3px solid #b8a88a; padding: 12px 16px; font-size: 0.96rem; line-height: 1.85; color: #3a3a3a; border-radius: 0 4px 4px 0; }
+        .right-col { flex: 0 0 34%; max-width: 34%; }
+        .annotation-card { background: #f7f5f0; border-radius: 4px; padding: 14px 16px; font-size: 0.88rem; line-height: 1.7; border: 1px solid #e8e4dc; }
+        .annotation-card .ann-label { font-weight: 700; font-size: 0.78rem; color: #1a2332; margin-bottom: 4px; display: block; }
+        .annotation-card .ann-section { margin-bottom: 10px; }
+        .annotation-card .ann-section:last-child { margin-bottom: 0; }
+        .ann-intro { border-left: 4px solid #ffc107; }
+        .ann-concept { border-left: 4px solid #dc3545; }
+        .ann-evidence { border-left: 4px solid #007bff; }
+        .ann-rebuttal { border-left: 4px solid #28a745; }
+        .ann-method { border-left: 4px solid #7b61c4; }
+        .hl-thesis { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        .hl-concept { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; }
+        .hl-evidence { background-color: #cce5ff; padding: 1px 3px; border-radius: 2px; }
+        .hl-rebuttal { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+        .hl-method { background-color: #e2d5f1; padding: 1px 3px; border-radius: 2px; }
+        .argument-overview { margin-top: 60px; padding: 30px; background: #1a2332; color: #eee; border-radius: 6px; }
+        .argument-overview h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 22px; text-align: center; color: #fff; }
+        .arg-skeleton { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; margin-bottom: 28px; }
+        .arg-step { background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 4px; font-size: 0.9rem; text-align: center; min-width: 130px; }
+        .arg-arrow { display: flex; align-items: center; padding: 0 6px; font-size: 1.4rem; color: #5b9bd5; }
+        .arg-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .arg-detail-card { background: rgba(255,255,255,0.06); border-radius: 4px; padding: 16px; }
+        .arg-detail-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #5b9bd5; }
+        .arg-detail-card p { font-size: 0.88rem; line-height: 1.65; color: #ccc; }
+        @media (max-width: 900px) {
+            .para-row { flex-direction: column; }
+            .left-col, .right-col { flex: 0 0 100%; max-width: 100%; }
+            .arg-detail-grid { grid-template-columns: 1fr; }
+            .arg-skeleton { flex-direction: column; align-items: center; }
+            .arg-arrow { transform: rotate(90deg); }
+        }
+        @media (max-width: 600px) {
+            .top-navbar { padding: 12px 14px; }
+            .navbar-top-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .navbar-title { font-size: 0.85rem; line-height: 1.4; }
+            .navbar-title .course-tag { font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; }
+            .section-nav { padding: 0 10px; }
+            .section-nav a { font-size: 0.75rem; padding: 8px 10px; }
+            .main-container { padding: 16px 12px 40px; }
+        }
+        .floating-legend { position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: 'Times New Roman', 'Microsoft JhengHei', serif; }
+        .legend-toggle { width: 40px; height: 40px; border-radius: 50%; background: #1a2332; color: #fff; border: none; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); margin-left: auto; }
+        .legend-toggle:hover { background: #243044; }
+        .legend-panel { display: none; background: #1a2332; color: #fff; padding: 14px 18px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); font-size: 0.8rem; min-width: 200px; }
+        .legend-panel.open { display: block; }
+        .legend-panel .fl-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+        .legend-panel .fl-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
     </style>
 </head>
 <body>
 
-<nav class="top-navbar"><div class="navbar-inner"><div class="navbar-top-row">
-    <div class="navbar-title">PETR: Position Embedding Transformation for Multi-View 3D Object Detection<span class="course-tag">ECCV 2022</span></div>
-    <div class="navbar-links"><a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a><a href="https://arxiv.org/abs/2203.13310" target="_blank" class="navbar-home-link">arXiv 原文連結</a></div>
-</div></div></nav>
+<!-- ==================== 頂部導航欄 ==================== -->
+<nav class="top-navbar">
+    <div class="navbar-inner">
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                PETR: Position Embedding Transformation for Multi-View 3D Object Detection
+                <span class="course-tag">ECCV 2022</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回主頁</a>
+                <a href="https://arxiv.org/abs/2203.05625" target="_blank" class="navbar-home-link">arXiv 原文連結</a>
+            </div>
+        </div>
+    </div>
+</nav>
 
-<div class="section-nav"><div class="section-nav-inner"><a href="#sec-abstract">摘要</a><a href="#sec-intro">1. 緒論</a><a href="#sec-method">2. 方法</a><a href="#sec-experiments">3. 實驗</a><a href="#sec-conclusion">4. 結論</a><a href="#sec-overview">論證總覽</a></div></div>
+<!-- ==================== 章節導航條 ==================== -->
+<div class="section-nav">
+    <div class="section-nav-inner">
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-related">2. 相關工作</a>
+        <a href="#sec-method">3. 方法</a>
+        <a href="#sec-experiments">4. 實驗</a>
+        <a href="#sec-conclusion">5. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
+    </div>
+</div>
 
+<!-- ==================== 主體內容 ==================== -->
 <div class="main-container">
 
+    <!-- ====== 摘要 ====== -->
     <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
+
     <div class="para-row">
         <div class="left-col">
-            <div class="en-text">In this paper, we develop <span class="hl-concept">Position Embedding Transformation (PETR)</span> for <span class="hl-thesis">multi-view 3D object detection</span>. PETR encodes the <span class="hl-method">position information of 3D coordinates into image features, producing the 3D position-aware features</span>. Object query can perceive the 3D position-aware features and perform <span class="hl-method">end-to-end object detection</span>. PETR achieves <span class="hl-evidence">state-of-the-art performance on standard nuScenes dataset for both 3D object detection and BEV segmentation</span>, surpassing previous methods by a <span class="hl-evidence">significant margin of 3.6% mAP and 1.8% NDS</span> compared to BEVDet. The framework is conceptually simple and does not require <span class="hl-rebuttal">any view transformation or depth estimation module</span>.</div>
+            <div class="en-text">
+                In this paper, we develop <span class="hl-method">Position Embedding Transformation (PETR)</span> for <span class="hl-thesis">multi-view 3D object detection</span>. PETR encodes the position information of <span class="hl-concept">3D coordinates</span> into <span class="hl-concept">image features</span>, producing <span class="hl-method">3D position-aware features</span>. Object queries can then <span class="hl-method">perceive the 3D scene by interacting with the 3D position-aware features via attention mechanism</span>. PETR achieves <span class="hl-evidence">state-of-the-art performance on the nuScenes benchmark</span>, reaching <span class="hl-evidence">38.3% NDS and 31.3% mAP</span> without bells and whistles. Furthermore, PETR provides a <span class="hl-thesis">simple and elegant framework for multi-view 3D perception</span> that can be easily extended to temporal fusion and multi-task learning.
+            </div>
             <div class="lang-divider"></div>
-            <div class="zh-text">本文開發了<span class="hl-concept">位置嵌入轉換（PETR）</span>用於<span class="hl-thesis">多視角三維物體偵測</span>。PETR 將<span class="hl-method">三維座標的位置資訊編碼至影像特徵中，產生三維位置感知特徵</span>。物體查詢可感知三維位置感知特徵並執行<span class="hl-method">端對端物體偵測</span>。PETR 在標準 <span class="hl-evidence">nuScenes 資料集上在三維物體偵測和 BEV 分割上均達到最優表現</span>，相較 BEVDet <span class="hl-evidence">大幅領先 3.6% mAP 和 1.8% NDS</span>。此框架概念上簡潔，<span class="hl-rebuttal">不需要任何視角轉換或深度估計模組</span>。</div>
+            <div class="zh-text">
+                本文開發了<span class="hl-method">位置嵌入變換（PETR）</span>用於<span class="hl-thesis">多視角 3D 物件偵測</span>。PETR 將 <span class="hl-concept">3D 座標</span>的位置資訊編碼至<span class="hl-concept">影像特徵</span>中，產生<span class="hl-method">3D 位置感知特徵</span>。物件查詢隨後可透過<span class="hl-method">注意力機制與 3D 位置感知特徵互動來感知 3D 場景</span>。PETR 在<span class="hl-evidence">nuScenes 基準上達到最先進效能</span>，在無額外技巧的情況下達到<span class="hl-evidence">38.3% NDS 和 31.3% mAP</span>。此外，PETR 提供了<span class="hl-thesis">一個簡潔優雅的多視角 3D 感知框架</span>，可輕鬆擴展至時序融合和多任務學習。
+            </div>
         </div>
         <div class="right-col">
             <div class="annotation-card ann-intro">
-                <div class="ann-section"><span class="ann-label">段落功能</span>全文總覽——以位置嵌入轉換簡化多視角三維偵測。</div>
-                <div class="ann-section"><span class="ann-label">邏輯角色</span>「不需要視角轉換或深度估計」的強調凸顯了方法的簡潔性，與 BEVFormer 等方法形成差異化。</div>
-                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>以「概念簡潔」作為設計哲學的賣點。但省略深度估計可能意味著隱式地依賴注意力機制學習深度資訊。</div>
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總覽——概述 PETR 的核心方法、效能與可擴展性。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    摘要建立了「方法（位置嵌入變換）→ 效能（SOTA）→ 價值（簡潔可擴展）」的三層論證預告。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「無額外技巧」強調方法本身的實力。但 38.3% NDS 的絕對值反映了純視覺方法在 3D 偵測上的內在挑戰，與 LiDAR 方法仍有差距。
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- ====== 1. 緒論 ====== -->
     <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
+
     <div class="para-row">
         <div class="left-col">
-            <div class="en-text">Multi-view 3D object detection from cameras is essential for autonomous driving. Existing approaches can be categorized into two paradigms: <span class="hl-concept">BEV-based methods</span> that explicitly transform image features to BEV space using depth estimation, and <span class="hl-concept">query-based methods</span> like DETR3D that use learnable 3D reference points. <span class="hl-rebuttal">BEV-based methods require accurate depth estimation, which is error-prone, while DETR3D only queries sparse 3D reference points, limiting its ability to capture dense features</span>. We propose PETR, which <span class="hl-thesis">implicitly encodes 3D positional information into 2D image features through position embedding transformation</span>, allowing object queries to directly interact with 3D-aware image features without explicit depth or BEV conversion.</div>
+            <div class="en-text">
+                <span class="hl-concept">Multi-view 3D object detection</span> aims to detect 3D objects from multiple camera images, which is gaining importance as a <span class="hl-concept">cost-effective alternative to LiDAR-based systems</span> in autonomous driving. The key challenge lies in how to <span class="hl-thesis">transform 2D image features into 3D-aware representations</span> that support accurate 3D bounding box prediction. Existing approaches can be broadly categorized into two paradigms: <span class="hl-concept">explicit depth estimation methods</span> that first predict depth maps and construct 3D features through view transformation (e.g., BEVDet, LSS), and <span class="hl-concept">implicit 3D reasoning methods</span> that leverage attention mechanisms to reason about 3D geometry without explicit depth prediction (e.g., DETR3D).
+            </div>
             <div class="lang-divider"></div>
-            <div class="zh-text">基於相機的多視角三維物體偵測對自動駕駛至關重要。現有方法可分為兩個範式：使用深度估計將影像特徵顯式轉換至 BEV 空間的<span class="hl-concept">BEV 方法</span>，以及使用可學習三維參考點的<span class="hl-concept">基於查詢的方法</span>（如 DETR3D）。<span class="hl-rebuttal">BEV 方法需要精確的深度估計（易出錯），而 DETR3D 僅查詢稀疏的三維參考點，限制了其捕捉密集特徵的能力</span>。我們提出 PETR，<span class="hl-thesis">透過位置嵌入轉換將三維位置資訊隱式編碼至二維影像特徵中</span>，允許物體查詢直接與三維感知的影像特徵互動，無需顯式深度或 BEV 轉換。</div>
+            <div class="zh-text">
+                <span class="hl-concept">多視角 3D 物件偵測</span>旨在從多個相機影像中偵測 3D 物體，作為自動駕駛中<span class="hl-concept">LiDAR 系統的低成本替代方案</span>日益重要。核心挑戰在於如何<span class="hl-thesis">將 2D 影像特徵轉換為支援精確 3D 邊界框預測的 3D 感知表示</span>。現有方法大致可分為兩種範式：<span class="hl-concept">顯式深度估計方法</span>，先預測深度圖並透過視角變換建構 3D 特徵（如 BEVDet、LSS）；以及<span class="hl-concept">隱式 3D 推理方法</span>，利用注意力機制在無需顯式深度預測的情況下推理 3D 幾何（如 DETR3D）。
+            </div>
         </div>
         <div class="right-col">
             <div class="annotation-card ann-concept">
-                <div class="ann-section"><span class="ann-label">段落功能</span>建立問題意識——對比兩大範式的不足。</div>
-                <div class="ann-section"><span class="ann-label">邏輯角色</span>以清晰的二分法框定現有方法，為 PETR 的「第三路線」建立動機。</div>
-                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>與 BEVFormer 同樣指出 BEV 方法和稀疏查詢方法的不足，但提出了不同的解決策略。</div>
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    建立問題背景——介紹多視角 3D 偵測的兩大範式。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    論證起點：建立「2D 到 3D 轉換」的核心挑戰，並以兩大範式的分類為 PETR 的定位奠定基礎。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「低成本替代 LiDAR」的定位明確了研究的實際價值。但此定位也暗示效能上限可能低於 LiDAR 方法。
+                </div>
             </div>
         </div>
     </div>
 
-    <h2 class="section-heading" id="sec-method">2. Method — 方法</h2>
     <div class="para-row">
         <div class="left-col">
-            <div class="en-text">The core of PETR is the <span class="hl-method">3D Position Embedding (3D PE)</span> module. For each pixel in the 2D image feature map, we first <span class="hl-method">generate a ray from the camera origin through the pixel into 3D space</span>. Along this ray, we sample D discrete depth values and obtain <span class="hl-method">D 3D coordinates for each pixel</span>. These 3D coordinates are then transformed into <span class="hl-method">position embeddings through an MLP</span>, which are added to the image features. This process converts the 2D image features into <span class="hl-thesis">3D position-aware features that implicitly encode depth information at every pixel</span>. Object queries then use standard cross-attention to interact with these 3D-aware features for detection.</div>
+            <div class="en-text">
+                <span class="hl-concept">DETR3D</span> pioneered the use of <span class="hl-method">learnable 3D object queries that interact with 2D image features through cross-attention</span>. However, DETR3D <span class="hl-rebuttal">projects 3D reference points onto 2D images and samples features at projected locations, which relies on accurate 3D-to-2D projection and suffers from quantization errors when the projected point falls between pixels</span>. Moreover, this projection-based sampling only attends to a single point per view, <span class="hl-rebuttal">missing the broader spatial context around the projected location</span>. We propose a fundamentally different approach: instead of projecting 3D queries to 2D, <span class="hl-thesis">we embed 3D position information directly into the 2D image features, allowing object queries to perceive 3D geometry through standard attention</span>.
+            </div>
             <div class="lang-divider"></div>
-            <div class="zh-text">PETR 的核心是<span class="hl-method">三維位置嵌入（3D PE）</span>模組。對於二維影像特徵圖的每個像素，我們首先<span class="hl-method">從相機原點穿過該像素生成一條射線至三維空間</span>。沿此射線，我們採樣 D 個離散深度值並獲得<span class="hl-method">每個像素 D 個三維座標</span>。這些三維座標接著透過 <span class="hl-method">MLP 轉換為位置嵌入</span>，加入影像特徵中。此過程將二維影像特徵轉換為<span class="hl-thesis">在每個像素隱式編碼深度資訊的三維位置感知特徵</span>。物體查詢隨後使用標準交叉注意力與這些三維感知特徵互動以執行偵測。</div>
+            <div class="zh-text">
+                <span class="hl-concept">DETR3D</span> 開創性地使用了<span class="hl-method">可學習的 3D 物件查詢，透過交叉注意力與 2D 影像特徵互動</span>。然而，DETR3D <span class="hl-rebuttal">將 3D 參考點投影至 2D 影像並在投影位置取樣特徵，這依賴精確的 3D 到 2D 投影，且當投影點落在像素之間時會遭受量化誤差</span>。此外，基於投影的取樣每個視角僅關注單一點，<span class="hl-rebuttal">遺漏了投影位置周圍更廣泛的空間上下文</span>。我們提出一種根本不同的方法：不是將 3D 查詢投影至 2D，而是<span class="hl-thesis">將 3D 位置資訊直接嵌入 2D 影像特徵中，使物件查詢能透過標準注意力感知 3D 幾何</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-rebuttal">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    反駁既有方法——指出 DETR3D 投影取樣的具體缺陷。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    透過「量化誤差」和「單點取樣」兩個具體缺陷，為 PETR「將 3D 嵌入 2D」的反向思路建立動機。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    將 DETR3D 的「3D→2D 投影」與 PETR 的「3D 嵌入 2D」形成對比，概念上清晰。但 PETR 隱式地學習 3D 位置是否能達到與顯式投影相同的精度，需要實驗驗證。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 2. 相關工作 ====== -->
+    <h2 class="section-heading" id="sec-related">2. Related Work — 相關工作</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-concept">Camera-based 3D detection</span> has evolved from monocular methods like <span class="hl-concept">FCOS3D</span> and <span class="hl-concept">PGD</span> that predict 3D boxes from single images, to multi-view methods that exploit the geometric constraints from multiple camera views. <span class="hl-concept">BEV-based methods</span> construct bird's-eye-view representations through <span class="hl-method">lift-splat-shoot (LSS)</span> or <span class="hl-method">depth estimation and back-projection</span>, providing explicit 3D spatial structure. Query-based methods, led by <span class="hl-concept">DETR3D</span>, use <span class="hl-method">learnable queries to directly predict 3D boxes</span> without constructing explicit BEV features. PETR belongs to the query-based family but differs in how <span class="hl-thesis">3D position information is incorporated: through position embedding transformation rather than point projection</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-concept">基於相機的 3D 偵測</span>從單目方法如 <span class="hl-concept">FCOS3D</span> 和 <span class="hl-concept">PGD</span>（從單張影像預測 3D 框）演進至利用多相機視角幾何約束的多視角方法。<span class="hl-concept">BEV 方法</span>透過<span class="hl-method">升降-潑灑-射擊（LSS）</span>或<span class="hl-method">深度估計與反投影</span>建構鳥瞰圖表示，提供顯式的 3D 空間結構。以 <span class="hl-concept">DETR3D</span> 為首的基於查詢的方法，使用<span class="hl-method">可學習查詢直接預測 3D 框</span>而無需建構顯式 BEV 特徵。PETR 屬於基於查詢的家族，但在<span class="hl-thesis">3D 位置資訊的納入方式上有所不同：透過位置嵌入變換而非點投影</span>。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-concept">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    文獻回顧——梳理相機 3D 偵測的技術演進路線。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將 PETR 精確定位於「基於查詢」家族中，同時以「位置嵌入變換」標示其獨特貢獻。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    技術演進的敘事（單目→多視角→BEV→查詢）清晰易懂。但 BEV 方法和查詢方法各有優勢，此處未充分討論兩者的互補可能性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 3. 方法 ====== -->
+    <h2 class="section-heading" id="sec-method">3. Method — 方法</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                The core of PETR is the <span class="hl-method">3D Position Embedding (3D PE) generation</span>. For each pixel in the multi-view images, we generate a set of <span class="hl-method">3D coordinates by back-projecting the pixel along its camera ray at multiple predefined depths</span>. Specifically, for a pixel at location (u, v) in camera view i, we compute its 3D world coordinates at D discrete depth values using the known camera intrinsics and extrinsics. These 3D coordinates are then transformed through a <span class="hl-method">small MLP network</span> to produce the 3D position embedding, which is added to the 2D image feature at that pixel location. The resulting <span class="hl-method">3D position-aware features</span> encode both the visual appearance from the 2D backbone and the 3D geometric information from the position embedding.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                PETR 的核心是<span class="hl-method">3D 位置嵌入（3D PE）生成</span>。對於多視角影像中的每個像素，我們透過<span class="hl-method">沿其相機射線在多個預定義深度處反投影像素</span>來生成一組 3D 座標。具體而言，對於相機視角 i 中位置 (u, v) 的像素，我們使用已知的相機內參和外參在 D 個離散深度值處計算其 3D 世界座標。這些 3D 座標隨後透過<span class="hl-method">小型 MLP 網路</span>轉換為 3D 位置嵌入，並加到該像素位置的 2D 影像特徵上。所得的<span class="hl-method">3D 位置感知特徵</span>同時編碼了來自 2D 骨幹的視覺外觀和來自位置嵌入的 3D 幾何資訊。
+            </div>
         </div>
         <div class="right-col">
             <div class="annotation-card ann-method">
-                <div class="ann-section"><span class="ann-label">段落功能</span>核心方法——三維位置嵌入的生成流程。</div>
-                <div class="ann-section"><span class="ann-label">邏輯角色</span>「射線 → 採樣 → MLP → 位置嵌入」的清晰流程使方法易於理解和實現。</div>
-                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>方法的簡潔性是其最大賣點。但沿射線的離散採樣可能無法精確表示連續的深度分布。</div>
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    核心方法描述——詳細說明 3D 位置嵌入的生成機制。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    將「3D 嵌入 2D」的概念落實為具體的技術操作：反投影→MLP 變換→特徵相加。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以「多個預定義深度」的離散化策略處理深度不確定性，設計巧妙。但離散深度值的選取（間距、範圍）直接影響效能，此超參數的敏感度需要關注。
+                </div>
             </div>
         </div>
     </div>
 
-    <h2 class="section-heading" id="sec-experiments">3. Experiments — 實驗</h2>
     <div class="para-row">
         <div class="left-col">
-            <div class="en-text">We evaluate PETR on the <span class="hl-evidence">nuScenes dataset</span>. PETR with <span class="hl-evidence">ResNet-101 backbone achieves 38.3% mAP and 44.2% NDS on the validation set</span>, surpassing DETR3D by 3.0% mAP and BEVDet by 3.6% mAP. On the <span class="hl-evidence">test set, PETR achieves 45.5% NDS</span>. Ablation studies show that <span class="hl-evidence">the 3D PE module is the critical component, contributing +12.1% mAP over the 2D baseline</span>. The <span class="hl-evidence">number of depth samples D=64 provides the best performance</span>, with diminishing returns beyond this point. PETR also demonstrates <span class="hl-evidence">strong robustness to camera extrinsic noise</span>, outperforming BEV-based methods that rely on accurate camera calibration for depth estimation.</div>
+            <div class="en-text">
+                With the 3D position-aware features, we employ a <span class="hl-method">standard transformer decoder</span> where <span class="hl-method">learnable object queries interact with the 3D position-aware features through cross-attention</span>. Unlike DETR3D which samples features at specific projected locations, PETR's attention mechanism allows each object query to <span class="hl-thesis">attend to all positions across all views simultaneously</span>, weighted by the compatibility between the query and the 3D position-aware features. This global attention naturally handles <span class="hl-evidence">cross-view feature aggregation without explicit view selection or fusion modules</span>. The decoder outputs are passed through <span class="hl-method">prediction heads for 3D bounding box regression and classification</span>, trained with <span class="hl-method">Hungarian matching</span> following the DETR paradigm.
+            </div>
             <div class="lang-divider"></div>
-            <div class="zh-text">我們在 <span class="hl-evidence">nuScenes 資料集</span>上評估 PETR。使用 <span class="hl-evidence">ResNet-101 骨幹的 PETR 在驗證集上達到 38.3% mAP 和 44.2% NDS</span>，超越 DETR3D 3.0% mAP 和 BEVDet 3.6% mAP。在<span class="hl-evidence">測試集上，PETR 達到 45.5% NDS</span>。消融研究顯示<span class="hl-evidence">三維 PE 模組是關鍵組件，相較二維基準貢獻了 +12.1% mAP</span>。<span class="hl-evidence">深度採樣數 D=64 提供最佳表現</span>，超過此值後收益遞減。PETR 還展示了<span class="hl-evidence">對相機外參噪音的強穩健性</span>，超越依賴精確相機校正的 BEV 方法。</div>
+            <div class="zh-text">
+                有了 3D 位置感知特徵，我們採用<span class="hl-method">標準 Transformer 解碼器</span>，其中<span class="hl-method">可學習物件查詢透過交叉注意力與 3D 位置感知特徵互動</span>。與在特定投影位置取樣特徵的 DETR3D 不同，PETR 的注意力機制允許每個物件查詢<span class="hl-thesis">同時關注所有視角的所有位置</span>，權重由查詢與 3D 位置感知特徵之間的相容性決定。此全域注意力自然地處理了<span class="hl-evidence">跨視角特徵聚合，無需顯式的視角選擇或融合模組</span>。解碼器輸出透過 <span class="hl-method">3D 邊界框迴歸與分類的預測頭</span>，並遵循 DETR 範式使用<span class="hl-method">匈牙利匹配</span>進行訓練。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-method">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    解碼器描述——說明物件查詢如何與 3D 位置感知特徵互動。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    強調 PETR 相較於 DETR3D 的關鍵優勢：全域注意力取代單點取樣，自然實現跨視角融合。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    「無需顯式融合模組」是簡潔性的體現。但全域注意力的計算成本隨視角數和解析度增長，在高解析度多視角場景下可能成為瓶頸。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                To improve detection performance, we introduce several <span class="hl-method">auxiliary designs</span>. First, a <span class="hl-method">3D coordinate generator</span> that uses camera frustum-based sampling to create denser 3D coordinate grids at closer distances, where objects are more likely to appear. Second, <span class="hl-method">feature-guided position encoding (FPE)</span> that conditions the position embedding on the image features themselves, allowing the network to adaptively weight depth hypotheses based on visual cues. Third, we apply <span class="hl-method">auxiliary supervision at intermediate decoder layers</span> to accelerate convergence. These improvements collectively boost performance by <span class="hl-evidence">2.1 NDS over the base PETR model</span>.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                為提升偵測效能，我們引入數項<span class="hl-method">輔助設計</span>。首先是<span class="hl-method">3D 座標生成器</span>，使用基於相機錐體的取樣在較近距離產生更密集的 3D 座標網格，因為物體更可能出現在近處。其次是<span class="hl-method">特徵引導位置編碼（FPE）</span>，使位置嵌入以影像特徵本身為條件，讓網路能根據視覺線索自適應地加權深度假設。第三，我們在<span class="hl-method">中間解碼器層施加輔助監督</span>以加速收斂。這些改進共同使效能提升<span class="hl-evidence">2.1 NDS（相較於基礎 PETR 模型）</span>。
+            </div>
         </div>
         <div class="right-col">
             <div class="annotation-card ann-evidence">
-                <div class="ann-section"><span class="ann-label">段落功能</span>核心實驗——全面的量化結果與消融分析。</div>
-                <div class="ann-section"><span class="ann-label">邏輯角色</span>+12.1% mAP 的消融結果有力地證明了 3D PE 的核心價值。</div>
-                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>穩健性分析是獨特的差異化優勢。但與 BEVFormer 的直接比較缺失，使讀者難以全面評估。</div>
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    輔助技術介紹——描述增強核心方法效能的附加設計。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    補充主框架的技術細節，特別是 FPE 將視覺線索納入位置編碼，從「固定深度假設」演進為「自適應深度推理」。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    2.1 NDS 的提升幅度可觀，但三項改進的個別貢獻未被拆解，無法評估哪項設計最為關鍵。
+                </div>
             </div>
         </div>
     </div>
 
-    <h2 class="section-heading" id="sec-conclusion">4. Conclusion — 結論</h2>
+    <!-- ====== 4. 實驗 ====== -->
+    <h2 class="section-heading" id="sec-experiments">4. Experiments — 實驗</h2>
+
     <div class="para-row">
         <div class="left-col">
-            <div class="en-text">We have presented <span class="hl-concept">PETR</span>, <span class="hl-thesis">a simple and effective framework for multi-view 3D object detection that encodes 3D positional information directly into image features</span>. Without requiring explicit depth estimation or BEV transformation, PETR achieves <span class="hl-evidence">state-of-the-art performance on nuScenes</span> while maintaining architectural simplicity. The position embedding transformation paradigm provides a <span class="hl-thesis">clean and extensible approach to bridging 2D image features with 3D spatial reasoning</span>.</div>
+            <div class="en-text">
+                We evaluate PETR on the <span class="hl-evidence">nuScenes benchmark</span>, the standard testbed for multi-view 3D detection. Using <span class="hl-evidence">ResNet-50 backbone</span>, PETR achieves <span class="hl-evidence">38.3% NDS and 31.3% mAP on the validation set</span>, outperforming DETR3D (34.9% NDS, 30.3% mAP) and FCOS3D (37.2% NDS, 29.5% mAP). With <span class="hl-evidence">ResNet-101 and CBGS</span>, PETR further achieves <span class="hl-evidence">44.1% NDS and 37.0% mAP</span>. Notably, PETR significantly surpasses DETR3D in localization-related metrics: <span class="hl-evidence">mATE (translation error) improves by 5.2%</span>, confirming that 3D position-aware features provide superior spatial reasoning compared to point-projection-based sampling.
+            </div>
             <div class="lang-divider"></div>
-            <div class="zh-text">本文提出了 <span class="hl-concept">PETR</span>，<span class="hl-thesis">一種簡潔有效的多視角三維物體偵測框架，將三維位置資訊直接編碼至影像特徵中</span>。無需顯式深度估計或 BEV 轉換，PETR <span class="hl-evidence">在 nuScenes 上達到最優表現</span>，同時維持架構簡潔性。位置嵌入轉換範式提供了<span class="hl-thesis">一種簡潔且可擴展的方法來橋接二維影像特徵與三維空間推理</span>。</div>
+            <div class="zh-text">
+                我們在<span class="hl-evidence">nuScenes 基準</span>上評估 PETR，這是多視角 3D 偵測的標準測試平台。使用 <span class="hl-evidence">ResNet-50 骨幹</span>，PETR 在驗證集上達到<span class="hl-evidence">38.3% NDS 和 31.3% mAP</span>，超越 DETR3D（34.9% NDS、30.3% mAP）和 FCOS3D（37.2% NDS、29.5% mAP）。使用 <span class="hl-evidence">ResNet-101 和 CBGS</span>，PETR 進一步達到<span class="hl-evidence">44.1% NDS 和 37.0% mAP</span>。值得注意的是，PETR 在定位相關指標上顯著超越 DETR3D：<span class="hl-evidence">mATE（平移誤差）改善 5.2%</span>，確認了 3D 位置感知特徵相較於基於點投影的取樣提供了更優越的空間推理。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    提供核心實證——以 nuScenes 上的量化結果展示 PETR 的優勢。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    實驗驗證的核心：mATE 的顯著改善直接支撐了「3D 位置嵌入提供更優空間推理」的核心論點。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    以 mATE 的改善聚焦於定位精度，巧妙呼應了對 DETR3D「量化誤差」的批評。但與 BEV 方法（如 BEVDet、BEVFormer）的比較較少，無法全面評估 PETR 在整個方法譜中的位置。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                <span class="hl-method">Ablation studies</span> validate the key design choices. Replacing 3D position embedding with standard 2D positional encoding decreases NDS by <span class="hl-evidence">4.7 points</span>, confirming the critical role of 3D spatial information. Reducing the number of depth bins from 64 to 16 decreases NDS by <span class="hl-evidence">1.3 points</span>, showing that finer depth discretization is beneficial. Using feature-guided position encoding (FPE) instead of fixed position embedding improves NDS by <span class="hl-evidence">0.8 points</span>, demonstrating the value of conditioning position encoding on visual features. The <span class="hl-thesis">simplicity of PETR's architecture enables fast inference at 8.2 FPS</span>, comparable to DETR3D and faster than most BEV-based methods.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                <span class="hl-method">消融研究</span>驗證了關鍵設計選擇。將 3D 位置嵌入替換為標準 2D 位置編碼使 NDS 下降<span class="hl-evidence">4.7 個百分點</span>，確認了 3D 空間資訊的關鍵作用。將深度區間數從 64 減少至 16 使 NDS 下降<span class="hl-evidence">1.3 個百分點</span>，顯示更精細的深度離散化是有益的。使用特徵引導位置編碼（FPE）而非固定位置嵌入使 NDS 提升<span class="hl-evidence">0.8 個百分點</span>，證明了以視覺特徵為條件的位置編碼的價值。<span class="hl-thesis">PETR 架構的簡潔性使其推論速度達到 8.2 FPS</span>，與 DETR3D 相當且快於大多數 BEV 方法。
+            </div>
+        </div>
+        <div class="right-col">
+            <div class="annotation-card ann-evidence">
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    設計驗證——透過消融研究和速度分析完善論證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    4.7 NDS 的 3D PE 貢獻是最大的單一因素，有力證明了位置嵌入變換的核心價值。推論速度的比較補充了效率面向的論證。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    消融設計全面，逐一驗證了各組件的貢獻。但 8.2 FPS 在實際自動駕駛部署中可能仍不夠快，與部署要求之間的差距未被討論。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 5. 結論 ====== -->
+    <h2 class="section-heading" id="sec-conclusion">5. Conclusion — 結論</h2>
+
+    <div class="para-row">
+        <div class="left-col">
+            <div class="en-text">
+                We have presented <span class="hl-concept">PETR</span>, <span class="hl-thesis">a simple and effective framework for multi-view 3D object detection that transforms 2D image features into 3D position-aware representations through position embedding transformation</span>. By encoding 3D coordinates directly into image features, PETR enables object queries to reason about 3D geometry through standard attention mechanisms without relying on explicit depth estimation or point projection. <span class="hl-evidence">State-of-the-art results on nuScenes validate the effectiveness of our approach</span>. The simplicity and modularity of PETR make it <span class="hl-thesis">a promising foundation for future research in camera-based 3D perception</span>, including temporal fusion (PETRv2), occupancy prediction, and multi-task autonomous driving systems.
+            </div>
+            <div class="lang-divider"></div>
+            <div class="zh-text">
+                本文提出了 <span class="hl-concept">PETR</span>，<span class="hl-thesis">一個透過位置嵌入變換將 2D 影像特徵轉換為 3D 位置感知表示的簡潔有效多視角 3D 物件偵測框架</span>。透過將 3D 座標直接編碼至影像特徵中，PETR 使物件查詢能透過標準注意力機制推理 3D 幾何，而無需依賴顯式深度估計或點投影。<span class="hl-evidence">在 nuScenes 上的最先進結果驗證了我們方法的有效性</span>。PETR 的簡潔性和模組化使其成為<span class="hl-thesis">基於相機之 3D 感知未來研究的有前景基礎</span>，包括時序融合（PETRv2）、佔用預測和多任務自動駕駛系統。
+            </div>
         </div>
         <div class="right-col">
             <div class="annotation-card ann-intro">
-                <div class="ann-section"><span class="ann-label">段落功能</span>全文總結——重申簡潔性與可擴展性。</div>
-                <div class="ann-section"><span class="ann-label">邏輯角色</span>以「簡潔且可擴展」作為核心定位，暗示方法論的持續發展潛力（PETRv2 等）。</div>
-                <div class="ann-section"><span class="ann-label">論證技巧 / 潛在漏洞</span>確實，PETRv2 後續展示了框架的可擴展性，驗證了此處的前瞻性宣稱。</div>
+                <div class="ann-section">
+                    <span class="ann-label">段落功能</span>
+                    全文總結——重申核心貢獻並展望生態系統擴展。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">邏輯角色</span>
+                    以 PETRv2 等後續工作作為「可擴展性」的實際證據，將 PETR 定位為方法框架而非單一方法，提升了學術影響力。
+                </div>
+                <div class="ann-section">
+                    <span class="ann-label">論證技巧 / 潛在漏洞</span>
+                    提及 PETRv2 增強了可擴展性的論證。但未討論 PETR 與 LiDAR 方法之間仍然存在的效能差距，以及純視覺方法在極端光照或遮擋條件下的局限。
+                </div>
             </div>
         </div>
     </div>
 
-</div>
+</div><!-- main-container -->
 
+<!-- ==================== 論證結構總覽 ==================== -->
 <div class="main-container">
     <div class="argument-overview" id="sec-overview">
         <h2>論證結構總覽</h2>
         <div class="arg-skeleton">
-            <div class="arg-step">問題<br>BEV 需深度估計<br>查詢方法太稀疏</div>
+            <div class="arg-step">問題<br>2D→3D 轉換困難<br>投影取樣有誤差</div>
             <div class="arg-arrow">&#10132;</div>
-            <div class="arg-step">論點<br>位置嵌入轉換<br>隱式編碼三維</div>
+            <div class="arg-step">論點<br>3D 位置嵌入<br>直接編碼至影像</div>
             <div class="arg-arrow">&#10132;</div>
-            <div class="arg-step">證據<br>mAP +3.6%<br>NDS 45.5%</div>
+            <div class="arg-step">證據<br>nuScenes 38.3% NDS<br>mATE 改善 5.2%</div>
             <div class="arg-arrow">&#10132;</div>
-            <div class="arg-step">反駁<br>對外參噪音<br>更加穩健</div>
+            <div class="arg-step">反駁<br>簡潔架構 8.2 FPS<br>可擴展至 PETRv2</div>
             <div class="arg-arrow">&#10132;</div>
-            <div class="arg-step">結論<br>簡潔可擴展的<br>三維偵測範式</div>
+            <div class="arg-step">結論<br>PETR 是相機 3D<br>感知的有前景基礎</div>
         </div>
         <div class="arg-detail-grid">
-            <div class="arg-detail-card"><h3>核心主張</h3><p>透過位置嵌入轉換將三維位置資訊編碼至二維影像特徵，無需顯式深度估計即可實現端對端三維物體偵測。</p></div>
-            <div class="arg-detail-card"><h3>最強論點</h3><p>3D PE 模組帶來的 +12.1% mAP 提升清楚證明了位置嵌入轉換的核心作用，且對相機外參噪音的穩健性展示了實際部署的優勢。</p></div>
-            <div class="arg-detail-card"><h3>最弱環節</h3><p>沿射線的離散深度採樣是一種近似，可能在需要精確深度推理的場景（如近距離小物體）中表現不佳。</p></div>
+            <div class="arg-detail-card">
+                <h3>核心主張</h3>
+                <p>透過將 3D 座標位置資訊以嵌入變換方式編碼至 2D 影像特徵中，PETR 使物件查詢能以標準注意力機制感知 3D 幾何，提供了一個簡潔而有效的多視角 3D 偵測框架。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最強論點</h3>
+                <p>在定位相關指標 mATE 上 5.2% 的顯著改善，直接驗證了 3D 位置嵌入相較於 DETR3D 點投影取樣在空間推理上的優越性，使理論分析與實驗結果完美呼應。</p>
+            </div>
+            <div class="arg-detail-card">
+                <h3>最弱環節</h3>
+                <p>與同期 BEV 方法（如 BEVFormer）的比較不夠全面，且 8.2 FPS 的推論速度與自動駕駛實時要求（通常 &gt;20 FPS）仍有差距，實際部署可行性的論證不足。</p>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- ==================== 浮動顏色圖例 ==================== -->
 <div class="floating-legend">
     <div class="legend-panel" id="legendPanel">
         <div class="fl-item"><span class="fl-swatch" style="background:#fff3cd;"></span> 核心論點 / Thesis</div>
