@@ -8,7 +8,7 @@
   <style>
     /* ===== 全域重設 ===== */
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; }
+    html, body { height: 100%; overflow: hidden; touch-action: none; overscroll-behavior: none; }
     body {
       font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
       background-color: #faf8f5;
@@ -1012,13 +1012,19 @@
        * ================================================================ */
       function nodeRadius(n) {
         var count = n.citedCount || 0;
-        /* 視窗越小，畫面已經由 fitView 縮放，
-           世界座標中的半徑需等比放大才能維持螢幕上足夠的點擊面積 */
         var baseMin = 5;
         var baseMax = 22;
-        if (count <= 0) return baseMin;
-        if (count >= 20) return baseMax;
-        return baseMin + (count / 20) * (baseMax - baseMin);
+        var r;
+        if (count <= 0) r = baseMin;
+        else if (count >= 20) r = baseMax;
+        else r = baseMin + (count / 20) * (baseMax - baseMin);
+
+        /* 確保螢幕上有足夠的可見/可觸控尺寸
+           當 fitView 縮放很小時（如手機 scale≈0.15），
+           世界座標中的半徑自動放大以維持最小螢幕像素 */
+        var minScreenPx = isMobile ? 7 : 4;
+        var minWorldR = minScreenPx / viewTransform.scale;
+        return Math.max(r, minWorldR);
       }
 
       /* ================================================================
@@ -1091,20 +1097,23 @@
           ctx.moveTo(src.x, src.y);
           ctx.lineTo(tgt.x, tgt.y);
 
+          /* 邊線寬依縮放反算，維持螢幕上一致粗細 */
+          var thinLine = Math.max(0.5, 0.5 / viewTransform.scale);
+          var thickLine = Math.max(1.5, 1.5 / viewTransform.scale);
           if (highlightSet) {
             if (highlightEdges && highlightEdges[j]) {
               ctx.strokeStyle = nodeColor(src);
               ctx.globalAlpha = 0.6;
-              ctx.lineWidth = 1.5;
+              ctx.lineWidth = thickLine;
             } else {
               ctx.strokeStyle = 'rgba(0,0,0,0.08)';
               ctx.globalAlpha = 0.1;
-              ctx.lineWidth = 0.5;
+              ctx.lineWidth = thinLine;
             }
           } else {
             ctx.strokeStyle = 'rgba(0,0,0,0.08)';
             ctx.globalAlpha = 1;
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = thinLine;
           }
           ctx.stroke();
           ctx.globalAlpha = 1;
@@ -1124,7 +1133,7 @@
           /* hover 光暈 */
           if (hoveredNode === n) {
             ctx.beginPath();
-            ctx.arc(n.x, n.y, r + 6, 0, Math.PI * 2);
+            ctx.arc(n.x, n.y, r + 6 / viewTransform.scale, 0, Math.PI * 2);
             ctx.fillStyle = color;
             ctx.globalAlpha = 0.15 * alpha;
             ctx.fill();
@@ -1138,22 +1147,24 @@
           ctx.globalAlpha = alpha;
           ctx.fill();
           ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 1;
+          ctx.lineWidth = Math.max(1, 1 / viewTransform.scale);
           ctx.stroke();
           ctx.globalAlpha = 1;
 
-          /* 標籤 */
-          var showLabel = (viewTransform.scale >= 0.7 && (n.citedCount || 0) >= 5)
+          /* 標籤（字型大小依縮放反算，維持螢幕上一致大小） */
+          var screenFontSize = 11;
+          var worldFontSize = screenFontSize / viewTransform.scale;
+          var showLabel = ((n.citedCount || 0) >= 5)
                        || viewTransform.scale >= 1.2
                        || hoveredNode === n
                        || n.id === selectedNodeId;
           if (showLabel) {
-            ctx.font = "11px 'Microsoft JhengHei', sans-serif";
+            ctx.font = worldFontSize.toFixed(1) + "px 'Microsoft JhengHei', sans-serif";
             ctx.fillStyle = '#2c2c2c';
             ctx.globalAlpha = alpha;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText(n.shortName || n.id, n.x, n.y + r + 4);
+            ctx.fillText(n.shortName || n.id, n.x, n.y + r + 4 / viewTransform.scale);
             ctx.globalAlpha = 1;
           }
         }
@@ -1682,16 +1693,34 @@
           var dy = ev.touches[0].clientY - ev.touches[1].clientY;
           var dist = Math.sqrt(dx * dx + dy * dy);
           var newScale = touchStartScale * (dist / touchStartDist);
-          newScale = Math.max(0.1, Math.min(5, newScale));
+          newScale = Math.max(0.05, Math.min(5, newScale));
 
+          /* 目前雙指中心（螢幕座標） */
+          var curCenter = {
+            x: (ev.touches[0].clientX + ev.touches[1].clientX) / 2,
+            y: (ev.touches[0].clientY + ev.touches[1].clientY) / 2
+          };
           var rect = canvas.getBoundingClientRect();
-          var cx = touchStartCenter.x - rect.left;
-          var cy = touchStartCenter.y - rect.top;
-          var worldBefore = screenToWorld(cx, cy);
+
+          /* 以起始中心為縮放錨點 */
+          var anchorSx = touchStartCenter.x - rect.left;
+          var anchorSy = touchStartCenter.y - rect.top;
+          var worldBefore = screenToWorld(anchorSx, anchorSy);
           viewTransform.scale = newScale;
-          var worldAfter = screenToWorld(cx, cy);
+          var worldAfter = screenToWorld(anchorSx, anchorSy);
           viewTransform.x -= (worldAfter.x - worldBefore.x);
           viewTransform.y -= (worldAfter.y - worldBefore.y);
+
+          /* 同步追蹤雙指平移（中心點偏移） */
+          var panDx = curCenter.x - touchStartCenter.x;
+          var panDy = curCenter.y - touchStartCenter.y;
+          viewTransform.x -= panDx / viewTransform.scale;
+          viewTransform.y -= panDy / viewTransform.scale;
+          /* 更新起始中心供下一幀差值計算 */
+          touchStartCenter.x = curCenter.x;
+          touchStartCenter.y = curCenter.y;
+          touchStartDist = dist;
+          touchStartScale = viewTransform.scale;
           return;
         }
 
@@ -1706,7 +1735,7 @@
           dragNode.y = world.y;
           dragNode.vx = 0;
           dragNode.vy = 0;
-          SIM_ALPHA = Math.max(SIM_ALPHA, 0.3);
+          SIM_ALPHA = Math.max(SIM_ALPHA, 0.04);
           isSimulationActive = true;
           return;
         }
