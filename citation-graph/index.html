@@ -416,6 +416,125 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ===== 導覽按鈕（右下角固定） ===== */
+    .tour-fab {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: #1a2332;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(26,35,50,0.35);
+      z-index: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .tour-fab:hover { background: #2a3a52; transform: scale(1.08); }
+
+    /* 導覽遮罩 */
+    .tour-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 700;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .tour-overlay.active { display: flex; }
+
+    /* 導覽卡片 */
+    .tour-card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      max-width: 420px;
+      width: 90%;
+      padding: 28px 32px 20px;
+      position: relative;
+    }
+    .tour-step-indicator {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.7rem;
+      color: #8a7e6b;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .tour-title {
+      font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1a2332;
+      margin-bottom: 10px;
+    }
+    .tour-desc {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.85rem;
+      color: #4a4a4a;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    .tour-desc kbd {
+      display: inline-block;
+      background: #f0ece2;
+      border: 1px solid #d6d0c4;
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.78rem;
+      color: #1a2332;
+    }
+    .tour-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .tour-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .tour-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #d6d0c4;
+      transition: background 0.2s;
+    }
+    .tour-dot.active { background: #1a2332; }
+    .tour-btn {
+      font-family: 'Microsoft JhengHei', sans-serif;
+      font-size: 0.82rem;
+      padding: 7px 18px;
+      border-radius: 4px;
+      border: 1px solid #d6d0c4;
+      background: #fff;
+      color: #1a2332;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tour-btn:hover { background: #f0ece2; }
+    .tour-btn.primary {
+      background: #1a2332;
+      color: #fff;
+      border-color: #1a2332;
+    }
+    .tour-btn.primary:hover { background: #2a3a52; }
+    .tour-close {
+      position: absolute;
+      top: 12px; right: 16px;
+      background: none; border: none;
+      font-size: 1.3rem; color: #8a7e6b;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .tour-close:hover { color: #1a2332; }
+
     /* ===== 側邊欄遮罩（手機版） ===== */
     .sidebar-overlay {
       display: none;
@@ -569,6 +688,24 @@
     </div>
   </div>
 
+  <!-- 右下角導覽按鈕 -->
+  <button class="tour-fab" id="tour-fab" title="使用導覽">?</button>
+
+  <!-- 導覽遮罩 -->
+  <div class="tour-overlay" id="tour-overlay">
+    <div class="tour-card">
+      <button class="tour-close" id="tour-close">&times;</button>
+      <div class="tour-step-indicator" id="tour-step-indicator"></div>
+      <div class="tour-title" id="tour-title"></div>
+      <div class="tour-desc" id="tour-desc"></div>
+      <div class="tour-nav">
+        <button class="tour-btn" id="tour-prev">上一步</button>
+        <div class="tour-dots" id="tour-dots"></div>
+        <button class="tour-btn primary" id="tour-next">下一步</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Tooltip -->
   <div class="tooltip" id="tooltip">
     <div class="tooltip-title" id="tooltip-title"></div>
@@ -659,13 +796,15 @@
 
       /* 力模擬參數 */
       var SIM_ALPHA = 1.0;          // 目前模擬溫度
-      var SIM_ALPHA_DECAY = 0.0228; // 溫度衰減率
+      var SIM_ALPHA_DECAY = 0.06;   // 溫度衰減率（較快冷卻）
       var SIM_ALPHA_MIN = 0.001;    // 最低溫度（穩定後）
-      var SIM_VELOCITY_DECAY = 0.4; // 速度阻尼
-      var REPULSION_STRENGTH = 800; // 斥力強度
-      var LINK_STRENGTH = 0.06;     // 彈簧剛度
-      var LINK_DISTANCE = 100;      // 彈簧自然長度
-      var CENTER_STRENGTH = 0.01;   // 中心引力
+      var SIM_VELOCITY_DECAY = 0.2; // 速度阻尼（保留 20% 速度，快速收斂）
+      var REPULSION_STRENGTH = 300; // 斥力強度（溫和不爆衝）
+      var LINK_STRENGTH = 0.02;     // 彈簧剛度（柔和拉近）
+      var LINK_DISTANCE = 120;      // 彈簧自然長度
+      var CENTER_STRENGTH = 0.008;  // 中心引力
+      var MAX_VELOCITY = 8;         // 速度上限（防止爆衝）
+      var MIN_DIST = 10;            // 最小計算距離（避免極近距離爆炸力）
 
       /* devicePixelRatio */
       var dpr = window.devicePixelRatio || 1;
@@ -844,14 +983,15 @@
           n.vy += (cy - n.y) * CENTER_STRENGTH * SIM_ALPHA;
         }
 
-        /* 節點斥力（Barnes-Hut 簡化版：直接兩兩計算，數量 < 1000 可接受） */
+        /* 節點斥力（兩兩計算 + 最小距離保護） */
         for (i = 0; i < nodes.length; i++) {
           n = nodes[i];
           for (j = i + 1; j < nodes.length; j++) {
             m = nodes[j];
             dx = m.x - n.x;
             dy = m.y - n.y;
-            dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < MIN_DIST) dist = MIN_DIST; // 防止極近距離爆炸力
             force = -REPULSION_STRENGTH * SIM_ALPHA / (dist * dist);
             var fx = (dx / dist) * force;
             var fy = (dy / dist) * force;
@@ -876,12 +1016,18 @@
           if (!tgt.fixed) { tgt.vx -= lfx; tgt.vy -= lfy; }
         }
 
-        /* 更新位置 */
+        /* 更新位置（含速度上限） */
         for (i = 0; i < nodes.length; i++) {
           n = nodes[i];
           if (n.fixed) continue;
           n.vx *= SIM_VELOCITY_DECAY;
           n.vy *= SIM_VELOCITY_DECAY;
+          /* 限制最大速度，防止節點爆衝 */
+          var speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
+          if (speed > MAX_VELOCITY) {
+            n.vx = (n.vx / speed) * MAX_VELOCITY;
+            n.vy = (n.vy / speed) * MAX_VELOCITY;
+          }
           n.x += n.vx;
           n.y += n.vy;
         }
@@ -1365,8 +1511,8 @@
           dragNode.y = world.y;
           dragNode.vx = 0;
           dragNode.vy = 0;
-          /* 讓模擬稍微回溫 */
-          SIM_ALPHA = Math.max(SIM_ALPHA, 0.3);
+          /* 讓模擬輕微回溫（避免釋放後劇烈震盪） */
+          SIM_ALPHA = Math.max(SIM_ALPHA, 0.04);
           isSimulationActive = true;
           return;
         }
@@ -1408,7 +1554,11 @@
               selectNode(dragNode.id);
             }
           }
+          /* 釋放節點：清零速度、微幅回溫讓鄰近節點平滑調整 */
+          dragNode.vx = 0;
+          dragNode.vy = 0;
           dragNode.fixed = false;
+          SIM_ALPHA = Math.min(SIM_ALPHA, 0.03);
           dragNode = null;
           isDragging = false;
           canvas.classList.remove('grabbing');
@@ -1594,6 +1744,103 @@
       window.addEventListener('resize', function () {
         dpr = window.devicePixelRatio || 1;
         resizeCanvas();
+      });
+
+      /* ================================================================
+       *  導覽功能
+       * ================================================================ */
+      var tourOverlay = document.getElementById('tour-overlay');
+      var tourFab     = document.getElementById('tour-fab');
+      var tourClose   = document.getElementById('tour-close');
+      var tourTitle   = document.getElementById('tour-title');
+      var tourDesc    = document.getElementById('tour-desc');
+      var tourStepInd = document.getElementById('tour-step-indicator');
+      var tourPrev    = document.getElementById('tour-prev');
+      var tourNext    = document.getElementById('tour-next');
+      var tourDotsEl  = document.getElementById('tour-dots');
+      var tourStep    = 0;
+
+      var TOUR_STEPS = [
+        {
+          title: '歡迎使用論文引用關聯圖',
+          desc: '這張互動式圖表呈現了 CvHub 收錄的 317 篇電腦視覺論文之間的引用關係。' +
+                '每個節點代表一篇論文，連線表示引用關係。節點越大，表示被引用次數越多。'
+        },
+        {
+          title: '節點互動',
+          desc: '<b>點擊</b>節點可查看該論文的引用鏈 — 它引用了哪些論文、被哪些論文引用。' +
+                '相關節點會高亮顯示，其餘節點變淡。<br><br>' +
+                '<b>雙擊</b>節點可直接跳轉至該論文的批注頁面。<br><br>' +
+                '<b>拖拽</b>節點可手動調整位置。'
+        },
+        {
+          title: '畫布操作',
+          desc: '使用<b>滾輪</b>可縮放圖表（以滑鼠位置為中心）。' +
+                '在空白處<b>按住拖拽</b>可平移整張畫布。<br><br>' +
+                '按 <kbd>Esc</kbd> 可取消節點選取。'
+        },
+        {
+          title: '篩選與統計',
+          desc: '左側面板提供<b>會議篩選</b>（Classics / CVPR / ICCV / ECCV）' +
+                '和<b>年份範圍</b>滑桿，可聚焦特定會議或時期的論文。<br><br>' +
+                '下方的<b>被引用排行</b>列出最具影響力的論文，點擊可直接定位。'
+        },
+        {
+          title: '節點顏色',
+          desc: '節點依所屬會議分色：<br>' +
+                '<span style="color:#c0392b;font-weight:700">&#9679;</span> Classics（經典論文）<br>' +
+                '<span style="color:#1a2332;font-weight:700">&#9679;</span> CVPR（深藍）<br>' +
+                '<span style="color:#c9a84c;font-weight:700">&#9679;</span> ICCV（金色）<br>' +
+                '<span style="color:#6d5e54;font-weight:700">&#9679;</span> ECCV（暖棕）'
+        }
+      ];
+
+      function renderTourStep() {
+        var step = TOUR_STEPS[tourStep];
+        tourStepInd.textContent = (tourStep + 1) + ' / ' + TOUR_STEPS.length;
+        tourTitle.textContent = step.title;
+        tourDesc.innerHTML = step.desc;
+
+        /* 更新圓點 */
+        tourDotsEl.innerHTML = '';
+        for (var i = 0; i < TOUR_STEPS.length; i++) {
+          var dot = document.createElement('span');
+          dot.className = 'tour-dot' + (i === tourStep ? ' active' : '');
+          tourDotsEl.appendChild(dot);
+        }
+
+        /* 按鈕狀態 */
+        tourPrev.style.visibility = tourStep === 0 ? 'hidden' : 'visible';
+        tourNext.textContent = tourStep === TOUR_STEPS.length - 1 ? '完成' : '下一步';
+      }
+
+      function openTour() {
+        tourStep = 0;
+        renderTourStep();
+        tourOverlay.classList.add('active');
+      }
+
+      function closeTour() {
+        tourOverlay.classList.remove('active');
+      }
+
+      tourFab.addEventListener('click', openTour);
+      tourClose.addEventListener('click', closeTour);
+      tourOverlay.addEventListener('click', function (ev) {
+        if (ev.target === tourOverlay) closeTour();
+      });
+
+      tourPrev.addEventListener('click', function () {
+        if (tourStep > 0) { tourStep--; renderTourStep(); }
+      });
+
+      tourNext.addEventListener('click', function () {
+        if (tourStep < TOUR_STEPS.length - 1) {
+          tourStep++;
+          renderTourStep();
+        } else {
+          closeTour();
+        }
       });
 
       /* ================================================================
