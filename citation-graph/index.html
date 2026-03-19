@@ -1650,10 +1650,15 @@
       var touchStartDist = 0;
       var touchStartScale = 1;
       var touchStartCenter = { x: 0, y: 0 };
+      var touchStartPos = { x: 0, y: 0 };   // 記錄初始觸控位置
+      var TOUCH_TAP_THRESHOLD = 10;           // 移動 < 10px 視為輕點
 
       canvas.addEventListener('touchstart', function (ev) {
         if (ev.touches.length === 1) {
           var touch = ev.touches[0];
+          touchStartPos.x = touch.clientX;
+          touchStartPos.y = touch.clientY;
+
           var rect = canvas.getBoundingClientRect();
           var sx = touch.clientX - rect.left;
           var sy = touch.clientY - rect.top;
@@ -1725,8 +1730,16 @@
         }
 
         if (dragNode && ev.touches.length === 1) {
-          isDragging = true;
           var touch = ev.touches[0];
+          /* 計算手指從起始位置移動了多少（螢幕像素） */
+          var moveDx = touch.clientX - touchStartPos.x;
+          var moveDy = touch.clientY - touchStartPos.y;
+          var moveDist = Math.sqrt(moveDx * moveDx + moveDy * moveDy);
+
+          /* 移動距離超過門檻才算拖拽，否則保持 isDragging=false（輕點） */
+          if (moveDist < TOUCH_TAP_THRESHOLD) return;
+
+          isDragging = true;
           var rect2 = canvas.getBoundingClientRect();
           var sx = touch.clientX - rect2.left;
           var sy = touch.clientY - rect2.top;
@@ -1754,18 +1767,31 @@
       canvas.addEventListener('touchend', function (ev) {
         if (dragNode) {
           if (!isDragging) {
+            /* 手指幾乎沒移動 = 輕點，執行選取/取消選取 */
             if (selectedNodeId === dragNode.id) {
               clearSelection();
             } else {
               selectNode(dragNode.id);
             }
           }
+          dragNode.vx = 0;
+          dragNode.vy = 0;
           dragNode.fixed = false;
+          SIM_ALPHA = Math.min(SIM_ALPHA, 0.03);
           dragNode = null;
           isDragging = false;
         }
         if (isPanning) {
           isPanning = false;
+          /* 判斷是否為輕點空白處（取消選取） */
+          if (ev.changedTouches.length > 0) {
+            var endTouch = ev.changedTouches[0];
+            var tapDx = endTouch.clientX - touchStartPos.x;
+            var tapDy = endTouch.clientY - touchStartPos.y;
+            if (Math.sqrt(tapDx * tapDx + tapDy * tapDy) < TOUCH_TAP_THRESHOLD) {
+              if (selectedNodeId) clearSelection();
+            }
+          }
         }
         if (ev.touches.length === 0) {
           touchStartDist = 0;
