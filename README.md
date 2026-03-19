@@ -2,10 +2,6 @@
 
 > 深度解讀電腦視覺論文 -- 經典到前沿 -- 中英雙語對照 + 多維度深度解析
 
-## GitHub Pages
-
-https://jung217.github.io/CvHub/
-
 ## 經典論文 (Classics)
 
 | 論文 | 領域 |
