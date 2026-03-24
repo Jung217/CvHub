@@ -3,431 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="../../public/favicon.svg">
+    <link rel="stylesheet" href="../../public/paper.css">
     <title>Generalized Intersection over Union — 雙欄批注</title>
-    <!-- 載入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
-    
-    
-    <!-- 系統字體：Times New Roman + 標楷體 -->
-    <style>
-        /* ===== 全域重設與基礎樣式 ===== */
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            background-color: #faf8f5; /* 米白紙張底色 */
-            color: #2c2c2c;
-            line-height: 1.7;
-        }
-
-        /* ===== 頂部導航欄 ===== */
-        .top-navbar {
-            background-color: #1a2332; /* 深海軍藍 */
-            color: #fff;
-            padding: 18px 30px;
-            position: relative;
-            z-index: 1000;
-        }
-
-        .navbar-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .navbar-top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .navbar-title {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-        }
-
-        .navbar-title .course-tag {
-            display: inline-block;
-            background: rgba(255,255,255,0.15);
-            padding: 2px 10px;
-            border-radius: 3px;
-            font-size: 0.78rem;
-            font-weight: 500;
-            margin-left: 12px;
-            vertical-align: middle;
-        }
-
-        .navbar-home-link {
-            color: #ccc;
-            text-decoration: none;
-            font-size: 0.85rem;
-            transition: color 0.2s;
-        }
-        .navbar-home-link:hover {
-            color: #fff;
-        }
-
-        /* ===== 章節導航條（黏性） ===== */
-        .section-nav {
-            background-color: #243044;
-            position: sticky;
-            top: 0;
-            z-index: 999;
-            padding: 0 30px;
-            overflow-x: auto;
-            white-space: nowrap;
-            border-bottom: 2px solid #1a2332;
-        }
-
-        .section-nav-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            gap: 0;
-        }
-
-        .section-nav a {
-            color: #aab;
-            text-decoration: none;
-            font-size: 0.82rem;
-            font-weight: 500;
-            padding: 10px 16px;
-            display: inline-block;
-            transition: background 0.2s, color 0.2s;
-            border-bottom: 2px solid transparent;
-        }
-
-        .section-nav a:hover {
-            background: rgba(255,255,255,0.06);
-            color: #fff;
-            border-bottom-color: #5b9bd5;
-        }
-
-        /* ===== 主體容器 ===== */
-        .main-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 30px 30px 60px;
-        }
-
-        /* 章節標題 */
-        .section-heading {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1a2332;
-            margin: 50px 0 8px;
-            padding-bottom: 8px;
-            border-bottom: 3px solid #1a2332;
-            scroll-margin-top: 60px;
-        }
-
-        .section-heading:first-of-type {
-            margin-top: 10px;
-        }
-
-        .subsection-heading {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 1.15rem;
-            font-weight: 600;
-            color: #2a3a50;
-            margin: 30px 0 6px;
-            scroll-margin-top: 60px;
-        }
-
-        /* ===== 雙欄段落行 ===== */
-        .para-row {
-            display: flex;
-            gap: 28px;
-            margin: 22px 0;
-            align-items: flex-start;
-        }
-
-        /* 左欄 */
-        .left-col {
-            flex: 0 0 63%;
-            max-width: 63%;
-        }
-
-        /* 英文原文 */
-        .en-text {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 1.02rem;
-            line-height: 1.85;
-            color: #1e1e1e;
-            text-align: justify;
-        }
-
-        /* 英中分隔線 */
-        .lang-divider {
-            height: 1px;
-            background: #d5d0c8;
-            margin: 10px 0;
-        }
-
-        /* 中文譯文塊 */
-        .zh-text {
-            background-color: #f0ece2;
-            border-left: 3px solid #b8a88a;
-            padding: 12px 16px;
-            font-size: 0.95rem;
-            line-height: 1.8;
-            color: #3a3a3a;
-            border-radius: 0 4px 4px 0;
-        }
-
-        /* 右欄批注 */
-        .right-col {
-            flex: 1 1 37%;
-        }
-
-        .annotation-card {
-            border-radius: 4px;
-            padding: 14px 16px;
-            font-size: 0.88rem;
-            line-height: 1.7;
-        }
-
-        .annotation-card .ann-label {
-            font-weight: 700;
-            font-size: 0.78rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        .annotation-card p {
-            margin: 4px 0;
-        }
-
-        .annotation-card strong {
-            font-weight: 600;
-        }
-
-        /* 批注卡片配色 */
-        .ann-function   { background: #f5f0e0; border-left: 4px solid #c9a84c; }
-        .ann-logic      { background: #eef3fb; border-left: 4px solid #5b9bd5; }
-        .ann-technique  { background: #f0f7f0; border-left: 4px solid #6abf69; }
-        .ann-weakness   { background: #fdf0f0; border-left: 4px solid #d46b6b; }
-        .ann-evidence   { background: #f0f0fa; border-left: 4px solid #8b7ec8; }
-
-        /* ===== 五類高亮標注 ===== */
-        .hl-thesis   { background-color: rgba(255, 235, 59, 0.35); padding: 1px 3px; border-radius: 2px; } /* 黃色 = 核心論點 */
-        .hl-concept  { background-color: rgba(244, 67, 54, 0.20);  padding: 1px 3px; border-radius: 2px; } /* 紅色 = 關鍵概念 */
-        .hl-evidence { background-color: rgba(33, 150, 243, 0.20);  padding: 1px 3px; border-radius: 2px; } /* 藍色 = 實證證據 */
-        .hl-concession { background-color: rgba(76, 175, 80, 0.22); padding: 1px 3px; border-radius: 2px; } /* 綠色 = 讓步/反駁 */
-        .hl-method   { background-color: rgba(156, 39, 176, 0.18);  padding: 1px 3px; border-radius: 2px; } /* 紫色 = 方法論 */
-
-        /* ===== 底部論證結構總覽 ===== */
-        .overview-section {
-            margin-top: 60px;
-            padding: 30px;
-            background: #ffffff;
-            border: 1px solid #d6d0c4;
-            border-radius: 6px;
-        }
-
-        .overview-section h2 {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #1a2332;
-            margin-bottom: 20px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #1a2332;
-        }
-
-        .overview-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-top: 20px;
-        }
-
-        .overview-card {
-            padding: 18px;
-            border-radius: 4px;
-            background: #faf8f5;
-            border: 1px solid #e0dbd2;
-        }
-
-        .overview-card h3 {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #1a2332;
-            margin-bottom: 10px;
-        }
-
-        .overview-card p, .overview-card li {
-            font-size: 0.9rem;
-            line-height: 1.7;
-            color: #3a3a3a;
-        }
-
-        .overview-card ul {
-            padding-left: 20px;
-        }
-
-        .overview-card li {
-            margin: 4px 0;
-        }
-
-        .logic-flow {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 10px 0;
-        }
-
-        .logic-flow .flow-step {
-            background: #1a2332;
-            color: #fff;
-            padding: 6px 14px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .logic-flow .flow-arrow {
-            color: #8a7e6b;
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .strength-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 3px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            margin-right: 6px;
-        }
-
-        .badge-strong { background: #e8f5e9; color: #2e7d32; }
-        .badge-weak   { background: #fce4ec; color: #c62828; }
-
-        /* ===== 頁尾 ===== */
-        .footer {
-            background-color: #1a2332;
-            color: #a0aab4;
-            padding: 28px 30px;
-            text-align: center;
-            font-size: 0.82rem;
-        }
-
-        .footer a {
-            color: #5b9bd5;
-            text-decoration: none;
-        }
-
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        /* ===== 響應式設計 ===== */
-        @media (max-width: 900px) {
-            .para-row {
-                flex-direction: column;
-                gap: 14px;
-            }
-
-            .left-col {
-                flex: 1 1 100%;
-                max-width: 100%;
-            }
-
-            .right-col {
-                flex: 1 1 100%;
-            }
-
-            .overview-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .top-navbar {
-                padding: 14px 16px;
-            }
-
-            .section-nav {
-                padding: 0 16px;
-            }
-
-            .main-container {
-                padding: 20px 16px 40px;
-            }
-
-            .navbar-title {
-                font-size: 0.95rem;
-            }
-        }
-
-        /* ===== 浮動顏色圖例 ===== */
-        .floating-legend {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-        }
-        .legend-toggle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #1a2332;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            margin-left: auto;
-        }
-        .legend-toggle:hover { background: #243044; }
-        .hl-icon {
-            display: block; width: 14px; height: 14px; border-radius: 2px;
-            background:
-                linear-gradient(#fff3cd, #fff3cd) 0 0/100% 2px no-repeat,
-                linear-gradient(#f8d7da, #f8d7da) 0 3px/100% 2px no-repeat,
-                linear-gradient(#cce5ff, #cce5ff) 0 6px/100% 2px no-repeat,
-                linear-gradient(#d4edda, #d4edda) 0 9px/100% 2px no-repeat,
-                linear-gradient(#e2d5f1, #e2d5f1) 0 12px/100% 2px no-repeat;
-        }
-        .legend-panel {
-            display: none;
-            background: #1a2332;
-            color: #fff;
-            padding: 14px 18px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-            font-size: 0.8rem;
-            min-width: 200px;
-        }
-        .legend-panel.open { display: block; }
-        .legend-panel .fl-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 0;
-        }
-        .legend-panel .fl-swatch {
-            width: 14px;
-            height: 14px;
-            border-radius: 3px;
-            flex-shrink: 0;
-        }
-    </style>
 </head>
 <body>
 
@@ -439,16 +17,10 @@
                 Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression
                 <span class="course-tag">CVPR 2019</span>
             </div>
-            <a href="../../index.html" class="navbar-home-link">&#8592; 返回論文列表</a>
-            <a href="https://arxiv.org/abs/1902.09630" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
-        </div>
-        <!-- 顏色圖例 -->
-        <div class="color-legend">
-            <div class="legend-item"><span class="legend-swatch" style="background:#ffeb3b;"></span>核心論點 Thesis</div>
-            <div class="legend-item"><span class="legend-swatch" style="background:#f44336;"></span>關鍵概念 Key Concept</div>
-            <div class="legend-item"><span class="legend-swatch" style="background:#2196f3;"></span>實證證據 Evidence</div>
-            <div class="legend-item"><span class="legend-swatch" style="background:#4caf50;"></span>讓步／反駁 Concession</div>
-            <div class="legend-item"><span class="legend-swatch" style="background:#9c27b0;"></span>方法論 Methodology</div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&#8592; 返回論文列表</a>
+                <a href="https://arxiv.org/abs/1902.09630" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
+            </div>
         </div>
     </div>
 </nav>
@@ -485,11 +57,11 @@
             </div>
             <div class="lang-divider"></div>
             <div class="zh-text">
-                <span class="hl-concept">廣義交集比（GIoU）</span>針對標準 <span class="hl-concept">IoU</span> 在<span class="hl-concept">邊界框迴歸</span>中的侷限性提出解決方案。儘管 IoU 是最主要的評估指標，但<span class="hl-thesis">優化標準距離損失與最大化 IoU 值之間存在落差</span>。由於 <span class="hl-rebuttal">IoU 在不重疊邊界框的情況下會形成平臺區域，導致無法進行有效的梯度優化</span>。<span class="hl-thesis">GIoU 同時扮演指標與損失函數的雙重角色</span>，並被整合至 <span class="hl-evidence">Faster R-CNN</span>、<span class="hl-evidence">Mask R-CNN</span> 及 <span class="hl-evidence">YOLO v3</span> 等主流偵測框架中，在 <span class="hl-evidence">PASCAL VOC 與 MS COCO 資料集上展現出一致性的效能提升</span>。
+                <span class="hl-concept">廣義交集比（GIoU）</span>針對標準 <span class="hl-concept">IoU</span> 在<span class="hl-concept">邊界框迴歸</span>中的侷限性提出解決方案。儘管 IoU 是最主要的評估指標，但<span class="hl-thesis">優化標準距離損失與最大化 IoU 值之間存在落差</span>。由於 <span class="hl-concession">IoU 在不重疊邊界框的情況下會形成平臺區域，導致無法進行有效的梯度優化</span>。<span class="hl-thesis">GIoU 同時扮演指標與損失函數的雙重角色</span>，並被整合至 <span class="hl-evidence">Faster R-CNN</span>、<span class="hl-evidence">Mask R-CNN</span> 及 <span class="hl-evidence">YOLO v3</span> 等主流偵測框架中，在 <span class="hl-evidence">PASCAL VOC 與 MS COCO 資料集上展現出一致性的效能提升</span>。
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card ann-function">
+            <div class="annotation-card ann-intro">
                 <span class="ann-label">段落功能：全文摘要</span>
                 <p><strong>段落功能：</strong>提出核心問題（IoU 的優化困境）並預告解決方案（GIoU），同時交代實驗驗證範圍。</p>
                 <p><strong>邏輯角色：</strong>作為全文的濃縮版，建立「問題 → 方案 → 驗證」的論證骨架。</p>
@@ -515,7 +87,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card ann-logic">
+            <div class="annotation-card ann-intro">
                 <span class="ann-label">邏輯分析</span>
                 <p><strong>段落功能：</strong>引出核心問題——現有損失函數與評估指標之間的脫節。</p>
                 <p><strong>邏輯角色：</strong>論證鏈起點，透過反例（相同距離、不同 IoU）建立研究動機。</p>
@@ -539,7 +111,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card ann-weakness">
+            <div class="annotation-card ann-rebuttal">
                 <span class="ann-label">問題剖析</span>
                 <p><strong>段落功能：</strong>深化問題描述——指出 IoU 雖可微分，但存在根本性的梯度消失缺陷。</p>
                 <p><strong>邏輯角色：</strong>承接上段的相關性問題，進一步揭示 IoU 自身的致命弱點，為 GIoU 的提出做鋪墊。</p>
@@ -597,7 +169,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card ann-logic">
+            <div class="annotation-card ann-concept">
                 <span class="ann-label">定義鋪陳</span>
                 <p><strong>段落功能：</strong>提供 IoU 的形式化定義，並明確列出其優勢與致命缺陷。</p>
                 <p><strong>邏輯角色：</strong>作為 GIoU 推導的前置條件，先建立讀者對標準 IoU 的完整認知。</p>
@@ -625,7 +197,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card ann-technique">
+            <div class="annotation-card ann-method">
                 <span class="ann-label">核心方法</span>
                 <p><strong>段落功能：</strong>提出本文的核心技術貢獻——GIoU 的數學定義。</p>
                 <p><strong>邏輯角色：</strong>論證鏈的核心環節，直接回應前文提出的 IoU 零梯度問題。</p>
@@ -648,7 +220,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card ann-function">
+            <div class="annotation-card ann-intro">
                 <span class="ann-label">核心主張</span>
                 <p><strong>段落功能：</strong>明確宣示 GIoU 的普適性地位。</p>
                 <p><strong>邏輯角色：</strong>將技術貢獻升華為通用性主張，是全文最強的論點聲明。</p>
@@ -726,7 +298,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card ann-function">
+            <div class="annotation-card ann-intro">
                 <span class="ann-label">總結回顧</span>
                 <p><strong>段落功能：</strong>總結全文貢獻並提出未來研究方向。</p>
                 <p><strong>邏輯角色：</strong>論證鏈終點，回應摘要與引言中提出的問題。</p>
@@ -736,54 +308,39 @@
     </div>
 
     <!-- ==================== 底部論證結構總覽 ==================== -->
-    <div class="overview-section" id="sec-overview">
+    <div class="argument-overview" id="sec-overview">
         <h2>論證結構總覽</h2>
 
         <!-- 全文邏輯骨架 -->
-        <div class="overview-card" style="margin-bottom: 20px;">
-            <h3>全文邏輯骨架</h3>
-            <div class="logic-flow">
-                <span class="flow-step">問題：IoU 不可優化</span>
-                <span class="flow-arrow">&#8594;</span>
-                <span class="flow-step">分析：零梯度根因</span>
-                <span class="flow-arrow">&#8594;</span>
-                <span class="flow-step">方案：GIoU 公式</span>
-                <span class="flow-arrow">&#8594;</span>
-                <span class="flow-step">理論：保留度量性質</span>
-                <span class="flow-arrow">&#8594;</span>
-                <span class="flow-step">實證：三框架驗證</span>
-                <span class="flow-arrow">&#8594;</span>
-                <span class="flow-step">結論：通用損失函數</span>
-            </div>
+        <div class="arg-skeleton">
+            <div class="arg-step"><strong>問題</strong><br>IoU 不可優化</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>分析</strong><br>零梯度根因</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>方案</strong><br>GIoU 公式</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>理論</strong><br>保留度量性質</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>實證</strong><br>三框架驗證</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step"><strong>結論</strong><br>通用損失函數</div>
         </div>
 
-        <div class="overview-grid">
+        <div class="arg-detail-grid">
             <!-- 核心主張 -->
-            <div class="overview-card">
+            <div class="arg-detail-card">
                 <h3>作者核心主張（一句話）</h3>
                 <p>GIoU 透過引入最小凸包的空白比例懲罰項，將 IoU 從一個僅適用於重疊情況的評估指標，推廣為在任意邊界框配置下均可有效優化的通用損失函數。</p>
             </div>
 
-            <!-- 問題→論點→證據→反駁→結論 -->
-            <div class="overview-card">
-                <h3>論證鏈拆解</h3>
-                <ul>
-                    <li><strong>問題：</strong>&#8467;&#8345; 損失與 IoU 指標之間存在優化目標不一致</li>
-                    <li><strong>論點：</strong>直接優化 IoU 變體比優化替代距離更有效</li>
-                    <li><strong>證據：</strong>三個主流框架、兩個基準資料集的量化改進</li>
-                    <li><strong>反駁：</strong>IoU 本身可微分但存在零梯度平臺（先承認再指出缺陷）</li>
-                    <li><strong>結論：</strong>GIoU 是 2D 邊界框迴歸的最優損失選擇</li>
-                </ul>
-            </div>
-
             <!-- 論證最強處 -->
-            <div class="overview-card">
+            <div class="arg-detail-card">
                 <h3><span class="strength-badge badge-strong">最強</span>論證最強處</h3>
                 <p>GIoU 的數學定義優雅且直觀——僅增加一個「凸包空白比例」懲罰項即解決零梯度問題，同時嚴格保留 IoU 的所有理論性質（度量公理、尺度不變性）。Faster R-CNN 在 AP75 上高達 12.85% 的提升提供了強有力的實證支撐。</p>
             </div>
 
             <!-- 論證最弱處 -->
-            <div class="overview-card">
+            <div class="arg-detail-card">
                 <h3><span class="strength-badge badge-weak">最弱</span>論證最弱處</h3>
                 <p>作者聲稱 GIoU 為「所有 2D 邊界框迴歸應用的最優損失」，但缺乏嚴格的最優性理論證明。此外，GIoU 在重疊情況下退化為標準 IoU，未能進一步提升已重疊邊界框的迴歸精度——後續的 DIoU 和 CIoU 正是針對此問題提出改進。</p>
             </div>
@@ -798,8 +355,7 @@
     <p style="margin-top:6px;">&copy; 2026 CvHub. 本站內容僅供學術研究與教育用途。論文版權歸原作者與出版方所有。</p>
 </footer>
 
-
-<!-- 浮動顏色圖例 -->
+<!-- ===== 浮動顏色圖例 ===== -->
 <div class="floating-legend">
     <div class="legend-panel" id="legendPanel">
         <div class="fl-item"><div class="fl-swatch" style="background:#fff3cd;"></div><span>Thesis 核心論點</span></div>
@@ -808,8 +364,14 @@
         <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
         <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
     </div>
-    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例"><span class="hl-icon"></span></button>
+    <button class="legend-toggle" onclick="toggleLegend()"><span class="hl-icon"></span></button>
 </div>
+
+<script>
+function toggleLegend() {
+    document.getElementById('legendPanel').classList.toggle('open');
+}
+</script>
 
 </body>
 </html>

@@ -3,454 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="../../public/favicon.svg">
+    <link rel="stylesheet" href="../../public/paper.css">
     <title>Bag of Tricks for Image Classification with CNNs — 雙欄批注版</title>
-    <!-- 引入 Google Fonts：Lora（正文襯線）與 IBM Plex Sans（介面無襯線） -->
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* ===== 全域重設與基礎樣式 ===== */
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Lora', 'Georgia', serif;
-            background-color: #faf8f5; /* 米白紙張底色 */
-            color: #2c2c2c;
-            line-height: 1.8;
-            font-size: 16px;
-        }
-
-        /* ===== 頂部導航欄 ===== */
-        .navbar {
-            background-color: #1a2332; /* 深海軍藍 */
-            color: #e8e0d0;
-            padding: 18px 30px;
-            position: relative;
-            z-index: 1000;
-        }
-
-        .navbar-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .navbar-title {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 4px;
-            letter-spacing: 0.3px;
-        }
-
-        .navbar-subtitle {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 13px;
-            color: #9aa8b8;
-            margin-bottom: 12px;
-        }
-
-        .navbar-home {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 13px;
-            color: #7eb8e0;
-            text-decoration: none;
-            margin-right: 20px;
-        }
-
-        .navbar-home:hover {
-            color: #ffffff;
-            text-decoration: underline;
-        }
-
-        /* ===== 章節導航條 (sticky) ===== */
-        .section-nav {
-            position: sticky;
-            top: 0;
-            z-index: 999;
-            background-color: #22303f;
-            border-bottom: 2px solid #2d4a5e;
-            padding: 0 30px;
-            overflow-x: auto;
-            white-space: nowrap;
-        }
-
-        .section-nav-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            gap: 0;
-        }
-
-        .section-nav a {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 13px;
-            color: #8fa4b8;
-            text-decoration: none;
-            padding: 10px 16px;
-            display: inline-block;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .section-nav a:hover,
-        .section-nav a.active {
-            color: #ffffff;
-            border-bottom-color: #5ba3d9;
-            background-color: rgba(91, 163, 217, 0.08);
-        }
-
-        /* ===== 主體容器 ===== */
-        .main-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 30px 30px 60px;
-        }
-
-        /* 章節標題 */
-        .section-heading {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 22px;
-            font-weight: 700;
-            color: #1a2332;
-            border-bottom: 3px solid #1a2332;
-            padding-bottom: 8px;
-            margin: 40px 0 24px;
-        }
-
-        .section-heading:first-of-type {
-            margin-top: 10px;
-        }
-
-        .subsection-heading {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 18px;
-            font-weight: 600;
-            color: #2a3f54;
-            border-bottom: 2px solid #d0d0d0;
-            padding-bottom: 6px;
-            margin: 30px 0 18px;
-        }
-
-        /* ===== 雙欄佈局 ===== */
-        .dual-column {
-            display: flex;
-            gap: 28px;
-            margin-bottom: 28px;
-            align-items: flex-start;
-        }
-
-        .left-col {
-            flex: 0 0 63%;
-            max-width: 63%;
-        }
-
-        .right-col {
-            flex: 0 0 34%;
-            max-width: 34%;
-            position: sticky;
-            top: 60px;
-        }
-
-        /* 英文原文段落 */
-        .en-text {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 15.5px;
-            line-height: 1.85;
-            color: #2c2c2c;
-            margin-bottom: 0;
-            text-align: justify;
-        }
-
-        /* 英中分隔線 */
-        .lang-divider {
-            border: none;
-            border-top: 1px solid #d8d2c8;
-            margin: 10px 0;
-        }
-
-        /* 中文譯文區塊 */
-        .zh-text {
-            background-color: #f0ece2; /* 淺米色背景 */
-            border-left: 3px solid #b8a88a;
-            padding: 14px 18px;
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 15px;
-            line-height: 1.85;
-            color: #3a3a3a;
-            margin-bottom: 0;
-            text-align: justify;
-        }
-
-        /* ===== 高亮標注樣式（五類維度） ===== */
-        .hl-yellow { background-color: #fce4a8; padding: 1px 3px; border-radius: 2px; } /* 核心論點 */
-        .hl-red    { background-color: #f5b7b1; padding: 1px 3px; border-radius: 2px; } /* 關鍵概念 */
-        .hl-blue   { background-color: #a8d4f0; padding: 1px 3px; border-radius: 2px; } /* 實證證據 */
-        .hl-green  { background-color: #a8e6cf; padding: 1px 3px; border-radius: 2px; } /* 讓步/反駁 */
-        .hl-purple { background-color: #d4b8e8; padding: 1px 3px; border-radius: 2px; } /* 方法論 */
-
-        /* ===== 批注卡片 ===== */
-        .annotation-card {
-            background-color: #f7f5f0;
-            border-radius: 6px;
-            padding: 16px 18px;
-            margin-bottom: 14px;
-            border: 1px solid #e0dcd4;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        }
-
-        .annotation-card.yellow-border { border-left: 4px solid #e6c34d; }
-        .annotation-card.red-border    { border-left: 4px solid #d9534f; }
-        .annotation-card.blue-border   { border-left: 4px solid #5ba3d9; }
-        .annotation-card.green-border  { border-left: 4px solid #5cb85c; }
-        .annotation-card.purple-border { border-left: 4px solid #9b59b6; }
-
-        .annotation-label {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 6px;
-            color: #6a7585;
-        }
-
-        .annotation-card h4 {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 13px;
-            font-weight: 600;
-            color: #1a2332;
-            margin-bottom: 8px;
-        }
-
-        .annotation-card p,
-        .annotation-card li {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 13px;
-            line-height: 1.65;
-            color: #4a4a4a;
-        }
-
-        .annotation-card ul {
-            padding-left: 16px;
-            margin-top: 4px;
-        }
-
-        .annotation-card li {
-            margin-bottom: 4px;
-        }
-
-        .annotation-card strong {
-            color: #1a2332;
-        }
-
-        /* ===== 底部論證結構總覽 ===== */
-        .argument-overview {
-            background-color: #1a2332;
-            color: #e8e0d0;
-            padding: 40px 36px;
-            border-radius: 8px;
-            margin-top: 50px;
-        }
-
-        .argument-overview h2 {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 24px;
-            color: #ffffff;
-            border-bottom: 2px solid #3d5a7a;
-            padding-bottom: 10px;
-        }
-
-        .argument-overview h3 {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 16px;
-            font-weight: 600;
-            margin: 20px 0 10px;
-            color: #7eb8e0;
-        }
-
-        .argument-overview p,
-        .argument-overview li {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 14px;
-            line-height: 1.75;
-            color: #c0c8d4;
-        }
-
-        .argument-overview ul {
-            padding-left: 20px;
-        }
-
-        .argument-overview li {
-            margin-bottom: 6px;
-        }
-
-        .overview-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-top: 16px;
-        }
-
-        .overview-box {
-            background-color: rgba(255,255,255,0.05);
-            border-radius: 6px;
-            padding: 18px 20px;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .overview-box.strong { border-left: 4px solid #5cb85c; }
-        .overview-box.weak   { border-left: 4px solid #d9534f; }
-
-        .overview-box h4 {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .overview-box.strong h4 { color: #a8e6cf; }
-        .overview-box.weak h4   { color: #f5b7b1; }
-
-        .overview-box p {
-            font-size: 13px;
-        }
-
-        .logic-flow {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            margin: 12px 0 20px;
-        }
-
-        .logic-node {
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-            font-size: 13px;
-            background-color: rgba(91,163,217,0.15);
-            border: 1px solid rgba(91,163,217,0.3);
-            padding: 6px 14px;
-            border-radius: 20px;
-            color: #a8d4f0;
-        }
-
-        .logic-arrow {
-            color: #5ba3d9;
-            font-size: 18px;
-        }
-
-        /* ===== 響應式設計（移動端單欄） ===== */
-        @media (max-width: 900px) {
-            .dual-column {
-                flex-direction: column;
-            }
-
-            .left-col, .right-col {
-                flex: 0 0 100%;
-                max-width: 100%;
-                position: static;
-            }
-
-            .navbar { padding: 14px 16px; }
-            .main-container { padding: 16px 16px 40px; }
-            .section-nav { padding: 0 10px; }
-            .section-nav a { padding: 8px 10px; font-size: 12px; }
-            .overview-grid { grid-template-columns: 1fr; }
-            .argument-overview { padding: 24px 18px; }
-        }
-
-        /* 段落間距容器 */
-        .para-block {
-            margin-bottom: 32px;
-        }
-
-        /* ===== 浮動顏色圖例 ===== */
-        .floating-legend {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            font-family: 'Times New Roman', 'Microsoft JhengHei', serif;
-        }
-        .legend-toggle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #1a2332;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            margin-left: auto;
-        }
-        .legend-toggle:hover { background: #243044; }
-        .hl-icon {
-            display: block; width: 14px; height: 14px; border-radius: 2px;
-            background:
-                linear-gradient(#fff3cd, #fff3cd) 0 0/100% 2px no-repeat,
-                linear-gradient(#f8d7da, #f8d7da) 0 3px/100% 2px no-repeat,
-                linear-gradient(#cce5ff, #cce5ff) 0 6px/100% 2px no-repeat,
-                linear-gradient(#d4edda, #d4edda) 0 9px/100% 2px no-repeat,
-                linear-gradient(#e2d5f1, #e2d5f1) 0 12px/100% 2px no-repeat;
-        }
-        .legend-panel {
-            display: none;
-            background: #1a2332;
-            color: #fff;
-            padding: 14px 18px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-            font-size: 0.8rem;
-            min-width: 200px;
-        }
-        .legend-panel.open { display: block; }
-        .legend-panel .fl-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 0;
-        }
-        .legend-panel .fl-swatch {
-            width: 14px;
-            height: 14px;
-            border-radius: 3px;
-            flex-shrink: 0;
-        }
-    </style>
 </head>
 <body>
 
 <!-- ===== 頂部導航欄 ===== -->
-<nav class="navbar">
+<nav class="top-navbar">
     <div class="navbar-inner">
-        <a href="../../index.html" class="navbar-home">&larr; 返回首頁</a>
-            <a href="https://arxiv.org/abs/1812.01187" target="_blank" class="navbar-home-link" style="margin-left:16px;">原文連結</a>
-        <div class="navbar-title">Bag of Tricks for Image Classification with Convolutional Neural Networks</div>
-        <div class="navbar-subtitle">CVPR 2019 &middot; Tong He, Zhi Zhang, Hang Zhang, Zhongyue Zhang, Junyuan Xie, Mu Li</div>
+        <div class="navbar-top-row">
+            <div class="navbar-title">
+                Bag of Tricks for Image Classification with Convolutional Neural Networks
+                <span class="course-tag">CVPR 2019</span>
+            </div>
+            <div class="navbar-links">
+                <a href="../../index.html" class="navbar-home-link">&larr; 返回首頁</a>
+                <a href="https://arxiv.org/abs/1812.01187" target="_blank" class="navbar-home-link">原文連結</a>
+            </div>
+        </div>
     </div>
 </nav>
 
 <!-- ===== 章節導航條 ===== -->
 <div class="section-nav">
     <div class="section-nav-inner">
-        <a href="#abstract">摘要</a>
-        <a href="#sec1">1. 緒論</a>
-        <a href="#sec2">2. 訓練流程</a>
-        <a href="#sec3">3. 高效訓練</a>
-        <a href="#sec4">4. 模型微調</a>
-        <a href="#sec5">5. 訓練精煉</a>
-        <a href="#sec6">6. 遷移學習</a>
-        <a href="#sec7">7. 結論</a>
-        <a href="#overview">論證總覽</a>
+        <a href="#sec-abstract">摘要</a>
+        <a href="#sec-intro">1. 緒論</a>
+        <a href="#sec-training">2. 訓練流程</a>
+        <a href="#sec-efficient">3. 高效訓練</a>
+        <a href="#sec-tweaks">4. 模型微調</a>
+        <a href="#sec-refinements">5. 訓練精煉</a>
+        <a href="#sec-transfer">6. 遷移學習</a>
+        <a href="#sec-conclusion">7. 結論</a>
+        <a href="#sec-overview">論證總覽</a>
     </div>
 </div>
 
@@ -460,9 +46,9 @@
     <!-- ============================== -->
     <!--           摘要 Abstract         -->
     <!-- ============================== -->
-    <h2 class="section-heading" id="abstract">Abstract — 摘要</h2>
+    <h2 class="section-heading" id="sec-abstract">Abstract — 摘要</h2>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -475,7 +61,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card yellow-border">
+            <div class="annotation-card ann-intro">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：全文論點總覽</h4>
                 <ul>
@@ -490,9 +76,9 @@
     <!-- ============================== -->
     <!--       1. 緒論 Introduction       -->
     <!-- ============================== -->
-    <h2 class="section-heading" id="sec1">1. Introduction — 緒論</h2>
+    <h2 class="section-heading" id="sec-intro">1. Introduction — 緒論</h2>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -505,7 +91,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card green-border">
+            <div class="annotation-card ann-rebuttal">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：問題界定與研究動機</h4>
                 <ul>
@@ -520,9 +106,9 @@
     <!-- ============================== -->
     <!--       2. 訓練流程                -->
     <!-- ============================== -->
-    <h2 class="section-heading" id="sec2">2. Training Procedures — 訓練流程</h2>
+    <h2 class="section-heading" id="sec-training">2. Training Procedures — 訓練流程</h2>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -535,7 +121,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card purple-border">
+            <div class="annotation-card ann-method">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：建立實驗基線</h4>
                 <ul>
@@ -550,12 +136,12 @@
     <!-- ============================== -->
     <!--       3. 高效訓練                -->
     <!-- ============================== -->
-    <h2 class="section-heading" id="sec3">3. Efficient Training — 高效訓練</h2>
+    <h2 class="section-heading" id="sec-efficient">3. Efficient Training — 高效訓練</h2>
 
     <!-- 3.1 大批次訓練 -->
     <h3 class="subsection-heading">3.1 Large-batch Training — 大批次訓練</h3>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -568,7 +154,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card purple-border">
+            <div class="annotation-card ann-method">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：提出高效訓練策略</h4>
                 <ul>
@@ -583,7 +169,7 @@
     <!-- 3.2 低精度訓練 -->
     <h3 class="subsection-heading">3.2 Low-precision Training — 低精度訓練</h3>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -596,7 +182,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card blue-border">
+            <div class="annotation-card ann-evidence">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：提供實證資料支撐</h4>
                 <ul>
@@ -611,9 +197,9 @@
     <!-- ============================== -->
     <!--       4. 模型微調                -->
     <!-- ============================== -->
-    <h2 class="section-heading" id="sec4">4. Model Tweaks — 模型微調</h2>
+    <h2 class="section-heading" id="sec-tweaks">4. Model Tweaks — 模型微調</h2>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -626,7 +212,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card purple-border">
+            <div class="annotation-card ann-method">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：架構層面的微幅調整</h4>
                 <ul>
@@ -641,12 +227,12 @@
     <!-- ============================== -->
     <!--       5. 訓練精煉                -->
     <!-- ============================== -->
-    <h2 class="section-heading" id="sec5">5. Training Refinements — 訓練精煉</h2>
+    <h2 class="section-heading" id="sec-refinements">5. Training Refinements — 訓練精煉</h2>
 
     <!-- 5.1 餘弦學習率衰減 -->
     <h3 class="subsection-heading">5.1 Cosine Learning Rate Decay — 餘弦學習率衰減</h3>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -659,7 +245,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card yellow-border">
+            <div class="annotation-card ann-intro">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：引入改進訓練策略</h4>
                 <ul>
@@ -674,7 +260,7 @@
     <!-- 5.2 標籤平滑 -->
     <h3 class="subsection-heading">5.2 Label Smoothing — 標籤平滑</h3>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -687,7 +273,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card purple-border">
+            <div class="annotation-card ann-method">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：介紹正則化技巧</h4>
                 <ul>
@@ -702,7 +288,7 @@
     <!-- 5.3 知識蒸餾 -->
     <h3 class="subsection-heading">5.3 Knowledge Distillation — 知識蒸餾</h3>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -715,7 +301,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card yellow-border">
+            <div class="annotation-card ann-intro">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：引入外部知識源</h4>
                 <ul>
@@ -730,7 +316,7 @@
     <!-- 5.4 Mixup 訓練 -->
     <h3 class="subsection-heading">5.4 Mixup Training — 混合增強訓練</h3>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -743,7 +329,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card purple-border">
+            <div class="annotation-card ann-method">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：資料增強層面的正則化</h4>
                 <ul>
@@ -758,7 +344,7 @@
     <!-- 5.5 疊加效果 -->
     <h3 class="subsection-heading">5.5 Stacking Results — 疊加效果</h3>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -771,7 +357,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card blue-border">
+            <div class="annotation-card ann-evidence">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：量化累積效益</h4>
                 <ul>
@@ -786,9 +372,9 @@
     <!-- ============================== -->
     <!--       6. 遷移學習                -->
     <!-- ============================== -->
-    <h2 class="section-heading" id="sec6">6. Transfer Learning — 遷移學習</h2>
+    <h2 class="section-heading" id="sec-transfer">6. Transfer Learning — 遷移學習</h2>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -801,7 +387,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card green-border">
+            <div class="annotation-card ann-rebuttal">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：驗證泛化能力與揭示局限</h4>
                 <ul>
@@ -816,9 +402,9 @@
     <!-- ============================== -->
     <!--       7. 結論                    -->
     <!-- ============================== -->
-    <h2 class="section-heading" id="sec7">7. Conclusion — 結論</h2>
+    <h2 class="section-heading" id="sec-conclusion">7. Conclusion — 結論</h2>
 
-    <div class="dual-column">
+    <div class="para-row">
         <div class="left-col">
             <div class="para-block">
                 <p class="en-text">
@@ -831,7 +417,7 @@
             </div>
         </div>
         <div class="right-col">
-            <div class="annotation-card yellow-border">
+            <div class="annotation-card ann-intro">
                 <div class="annotation-label">批注</div>
                 <h4>段落功能：總結全文核心主張</h4>
                 <ul>
@@ -846,39 +432,38 @@
     <!-- ============================== -->
     <!--       底部論證結構總覽            -->
     <!-- ============================== -->
-    <div class="argument-overview" id="overview">
+    <div class="argument-overview" id="sec-overview">
         <h2>論證結構總覽</h2>
 
-        <h3>全文邏輯骨架</h3>
-        <div class="logic-flow">
-            <span class="logic-node">問題：訓練技巧被忽視</span>
-            <span class="logic-arrow">&rarr;</span>
-            <span class="logic-node">基線：標準 ResNet-50 訓練流程</span>
-            <span class="logic-arrow">&rarr;</span>
-            <span class="logic-node">高效訓練：大批次 + FP16</span>
-            <span class="logic-arrow">&rarr;</span>
-            <span class="logic-node">模型微調：ResNet-B/C/D</span>
-            <span class="logic-arrow">&rarr;</span>
-            <span class="logic-node">訓練精煉：餘弦衰減 + 標籤平滑 + 蒸餾 + Mixup</span>
-            <span class="logic-arrow">&rarr;</span>
-            <span class="logic-node">實證：75.3% → 79.29%</span>
-            <span class="logic-arrow">&rarr;</span>
-            <span class="logic-node">遷移驗證：偵測與分割</span>
-            <span class="logic-arrow">&rarr;</span>
-            <span class="logic-node">結論：小技巧累積大改進</span>
+        <div class="arg-skeleton">
+            <div class="arg-step">問題：訓練技巧被忽視</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">基線：標準 ResNet-50 訓練流程</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">高效訓練：大批次 + FP16</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">模型微調：ResNet-B/C/D</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">訓練精煉：餘弦衰減 + 標籤平滑 + 蒸餾 + Mixup</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">實證：75.3% → 79.29%</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">遷移驗證：偵測與分割</div>
+            <div class="arg-arrow">&rarr;</div>
+            <div class="arg-step">結論：小技巧累積大改進</div>
         </div>
 
-        <h3>作者核心主張（一句話版本）</h3>
-        <p>透過系統性地疊加十二項低成本的訓練技巧與架構微調，可以在不顯著增加計算開銷的情況下，將 ResNet-50 在 ImageNet 上的 top-1 準確率提升近 4 個百分點，且改進可遷移至下游視覺任務。</p>
-
-        <h3>論證最強處 vs 最弱處</h3>
-        <div class="overview-grid">
-            <div class="overview-box strong">
-                <h4>最強處</h4>
+        <div class="arg-detail-grid">
+            <div class="arg-detail-card">
+                <h4>作者核心主張</h4>
+                <p>透過系統性地疊加十二項低成本的訓練技巧與架構微調，可以在不顯著增加計算開銷的情況下，將 ResNet-50 在 ImageNet 上的 top-1 準確率提升近 4 個百分點，且改進可遷移至下游視覺任務。</p>
+            </div>
+            <div class="arg-detail-card arg-strong">
+                <h4>論證最強處</h4>
                 <p>透過嚴格的消融實驗，逐一量化每項技巧的邊際貢獻（餘弦 +0.75%、標籤平滑 +0.4%、Mixup +0.84%），讓讀者清楚了解各項技巧的價值排序，並以累積至 79.29% 的最終結果驗證疊加效應的真實性。這種工程導向的實證風格具有極高的實用價值與可重現性。</p>
             </div>
-            <div class="overview-box weak">
-                <h4>最弱處</h4>
+            <div class="arg-detail-card arg-weak">
+                <h4>論證最弱處</h4>
                 <p>論文缺乏對各技巧之間交互作用的深入分析——各項增量是否可以簡單加總？是否存在技巧間的衝突或冗餘？此外，第 6 節揭示的遷移學習局限（標籤平滑與 Mixup 對像素級任務的負面影響）在結論中被輕描淡寫，未提供修正方案或適用性指南。</p>
             </div>
         </div>
@@ -911,8 +496,11 @@
         window.addEventListener('scroll', onScroll);
         onScroll();
     })();
-</script>
 
+    function toggleLegend() {
+        document.getElementById('legendPanel').classList.toggle('open');
+    }
+</script>
 
 <!-- 浮動顏色圖例 -->
 <div class="floating-legend">
@@ -923,7 +511,7 @@
         <div class="fl-item"><div class="fl-swatch" style="background:#d4edda;"></div><span>Rebuttal 讓步反駁</span></div>
         <div class="fl-item"><div class="fl-swatch" style="background:#e2d5f1;"></div><span>Method 方法論</span></div>
     </div>
-    <button class="legend-toggle" onclick="document.getElementById('legendPanel').classList.toggle('open')" title="顏色圖例"><span class="hl-icon"></span></button>
+    <button class="legend-toggle" onclick="toggleLegend()"><span class="hl-icon"></span></button>
 </div>
 
 </body>
